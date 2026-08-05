@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="pt" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  <title>Recibo $company_name</title>
+  <style>
+    @media only screen and (max-width: 640px) {
+      .container { width: 100% !important; }
+      .mobile-padding { padding-left: 24px !important; padding-right: 24px !important; }
+      .mobile-stack { display: block !important; width: 100% !important; }
+      .mobile-left { text-align: left !important; }
+      .mobile-top { padding-top: 16px !important; }
+    }
+  </style>
+</head>
+<body style="margin:0; padding:0; background-color:#eef0f3; color:#111827; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
+    O seu recibo $company_name do pedido $order_id está pronto.
+  </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; background-color:#eef0f3;">
+    <tr>
+      <td align="center" style="padding:40px 12px;">
+        <table role="presentation" class="container" width="640" cellpadding="0" cellspacing="0" border="0" style="width:640px; max-width:640px; background-color:#ffffff; border-radius:16px; overflow:hidden; box-shadow:0 1px 3px rgba(17,24,39,0.06), 0 8px 24px rgba(17,24,39,0.04);">
+
+          <!-- Header / brand bar -->
+          <tr>
+            <td style="background-color:#111827; padding:28px 40px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="left" valign="middle">
+                    <span style="display:inline-block; font-size:28px; line-height:32px; font-weight:800; color:#ffffff; letter-spacing:0.08em;">PREY</span>
+                  </td>
+                  <td align="right" valign="middle" style="font-size:12px; line-height:18px; color:#9ca3af; text-transform:uppercase; letter-spacing:0.06em;">
+                    Recibo<br>
+                    <strong style="font-size:15px; color:#ffffff; letter-spacing:0;">$order_id</strong>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Greeting -->
+          <tr>
+            <td class="mobile-padding" style="padding:32px 40px 8px 40px;">
+              <h1 style="margin:0; font-size:26px; line-height:34px; font-weight:700; letter-spacing:-0.01em; color:#111827;">Obrigado pelo seu pedido, $customer_name.</h1>
+              <p style="margin:10px 0 0 0; font-size:15px; line-height:24px; color:#6b7280;">
+                A sua compra foi confirmada. Enviamos este recibo para <span style="color:#111827; font-weight:600;">$customer_email</span>.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Order meta card -->
+          <tr>
+            <td class="mobile-padding" style="padding:24px 40px 8px 40px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f9fafb; border:1px solid #eef0f3; border-radius:12px;">
+                <tr>
+                  <td style="padding:20px 22px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td class="mobile-stack" width="33.33%" valign="top" style="font-size:11px; line-height:16px; color:#9ca3af; text-transform:uppercase; letter-spacing:0.06em; font-weight:600;">
+                          Pedido
+                          <div style="margin-top:4px; font-size:15px; line-height:22px; color:#111827; font-weight:700; text-transform:none; letter-spacing:0;">$order_id</div>
+                        </td>
+                        <td class="mobile-stack mobile-top" width="33.33%" valign="top" style="font-size:11px; line-height:16px; color:#9ca3af; text-transform:uppercase; letter-spacing:0.06em; font-weight:600;">
+                          Data
+                          <div style="margin-top:4px; font-size:15px; line-height:22px; color:#111827; font-weight:700; text-transform:none; letter-spacing:0;">$order_date</div>
+                        </td>
+                        <td class="mobile-stack mobile-left mobile-top" width="33.33%" valign="top" align="right" style="font-size:11px; line-height:16px; color:#9ca3af; text-transform:uppercase; letter-spacing:0.06em; font-weight:600;">
+                          Pagamento
+                          <div style="margin-top:4px; font-size:15px; line-height:22px; color:#111827; font-weight:700; text-transform:none; letter-spacing:0;">$payment_method</div>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Order summary -->
+          <tr>
+            <td class="mobile-padding" style="padding:28px 40px 0 40px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td colspan="2" style="padding:0 0 14px 0; font-size:13px; line-height:20px; font-weight:700; color:#111827; text-transform:uppercase; letter-spacing:0.06em; border-bottom:1px solid #eef0f3;">Resumo do Pedido</td>
+                </tr>
+                $items_rows
+              </table>
+            </td>
+          </tr>
+
+          <!-- Totals -->
+          <tr>
+            <td class="mobile-padding" style="padding:8px 40px 32px 40px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="padding:10px 0; border-top:1px solid #eef0f3; font-size:14px; line-height:22px; color:#6b7280;">Subtotal</td>
+                  <td align="right" style="padding:10px 0; border-top:1px solid #eef0f3; font-size:14px; line-height:22px; color:#111827;">$subtotal</td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 0; font-size:14px; line-height:22px; color:#6b7280;">IVA</td>
+                  <td align="right" style="padding:10px 0; font-size:14px; line-height:22px; color:#111827;">$tax</td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 0; font-size:14px; line-height:22px; color:#6b7280;">Taxa de refeição</td>
+                  <td align="right" style="padding:10px 0; font-size:14px; line-height:22px; color:#111827;">$shipping</td>
+                </tr>
+                $discount_row
+                $service_fee_row
+                <tr>
+                  <td style="padding:18px 0 0 0; border-top:2px solid #111827; font-size:18px; line-height:26px; font-weight:700; color:#111827;">Total</td>
+                  <td align="right" style="padding:18px 0 0 0; border-top:2px solid #111827; font-size:18px; line-height:26px; font-weight:700; color:#111827;">$total_amount</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Addresses -->
+          <tr>
+            <td class="mobile-padding" style="padding:0 40px 32px 40px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #eef0f3;">
+                <tr>
+                  <td class="mobile-stack" width="50%" valign="top" style="padding:24px 12px 0 0;">
+                    <p style="margin:0 0 8px 0; font-size:12px; line-height:18px; font-weight:700; color:#9ca3af; text-transform:uppercase; letter-spacing:0.06em;">Faturação</p>
+                    <p style="margin:0; font-size:14px; line-height:22px; color:#374151;">$billing_address</p>
+                  </td>
+                  <td class="mobile-stack mobile-top" width="50%" valign="top" style="padding:24px 0 0 12px;">
+                    <p style="margin:0 0 8px 0; font-size:12px; line-height:18px; font-weight:700; color:#9ca3af; text-transform:uppercase; letter-spacing:0.06em;">Entrega</p>
+                    <p style="margin:0; font-size:14px; line-height:22px; color:#374151;">$shipping_address</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td class="mobile-padding" style="padding:28px 40px; background-color:#f9fafb; border-top:1px solid #eef0f3;">
+              <p style="margin:0 0 10px 0; font-size:13px; line-height:20px; color:#6b7280;">
+                Tem perguntas sobre o seu pedido? Contacte-nos em <a href="mailto:$company_email" style="color:#111827; font-weight:600; text-decoration:underline;">$company_email</a> ou $company_phone.
+              </p>
+              <p style="margin:0; font-size:12px; line-height:20px; color:#9ca3af;">
+                $company_name &middot; $company_address
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
