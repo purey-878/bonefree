@@ -8,7 +8,7 @@ import styled, { css } from 'styled-components'
 
 import { AddToCartButton } from './Button'
 import { Badge, StockBadge } from './Badge'
-import { productImageFallback, useApiImageFallback } from '../../utils/imageFallback'
+import { productImageFallback, resolveProductImageUrl, useApiImageFallback } from '../../utils/imageFallback'
 import { formatEuro } from '../../utils/money'
 
 export type ProductCardProduct = {
@@ -48,13 +48,7 @@ export type ProductCardProps = Omit<
 const defaultImageFallback = productImageFallback
 
 function defaultResolveImageSrc(image: string | null | undefined) {
-  if (!image) return defaultImageFallback
-  if (/^(https?:|data:|blob:)/.test(image)) return image
-  if (image.startsWith('/assets/')) return image
-  if (image.startsWith('/menu-images/')) return `/assets/images${image}`
-  if (image.startsWith('menu-images/')) return `/assets/images/${image}`
-  if (image.startsWith('/')) return `/assets/images${image}`
-  return `/assets/images/menu-images/${image}`
+  return resolveProductImageUrl(image, defaultImageFallback)
 }
 
 function formatPrice(price: number | null | undefined, currencySymbol: string) {

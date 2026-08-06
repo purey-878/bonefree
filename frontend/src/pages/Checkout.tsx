@@ -28,7 +28,7 @@ import { rememberActiveOrder } from "../components/orderStatusStorage"
 import type { CartItem, GuestCartItem } from "../types/cart"
 import type { Coupon, CouponValidation, FulfillmentMethod, PaymentMethod } from "../types/checkout"
 import type { Product } from "../types/product"
-import { productImageFallback, useApiImageFallback } from "../utils/imageFallback"
+import { resolveProductImageUrl, useApiImageFallback } from "../utils/imageFallback"
 import { validateEmail, validateName, validateNif } from "../utils/validation"
 import type { FieldErrors } from "../utils/validation"
 import { formatEuro } from "../utils/money"
@@ -152,13 +152,7 @@ function getPaymentMethodLabel(method: PaymentMethod) {
 }
 
 function checkoutImageUrl(src?: string | null) {
-  if (!src) return productImageFallback
-  if (/^(https?:|data:|blob:)/.test(src)) return src
-  if (src.startsWith("/assets/")) return src
-  if (src.startsWith("/menu-images/")) return `/assets/images${src}`
-  if (src.startsWith("menu-images/")) return `/assets/images/${src}`
-  if (src.startsWith("/")) return `/assets/images${src}`
-  return `/assets/images/menu-images/${src}`
+  return resolveProductImageUrl(src)
 }
 
 function formatCardNumber(value: string) {
@@ -592,12 +586,7 @@ function Checkout() {
         ? "Balcão para levar"
         : "Entrega ao balcão"
     const imageForItem = (src?: string) => {
-      if (!src) return productImageFallback
-      if (src.startsWith("http")) return src
-      if (src.startsWith("/assets/")) return src
-      if (src.startsWith("/menu-images/")) return `/assets/images${src}`
-      if (src.startsWith("menu-images/")) return `/assets/images/${src}`
-      return src
+      return resolveProductImageUrl(src)
     }
     const paymentNote = confirmationPayment === "cash"
       ? "Pague ao balcão para a cozinha começar a preparar o pedido."

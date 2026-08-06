@@ -386,7 +386,14 @@ export const deleteCategory = async (categoryId: string | number): Promise<Categ
   return response.json();
 };
 
-export const uploadProductImage = async (productId: string | number, file: File, replaceExisting = true): Promise<void> => {
+export type UploadedProductImage = {
+  caminho_imagem: string
+  filename: string
+  message: string
+  url: string
+}
+
+export const uploadProductImage = async (productId: string | number, file: File, replaceExisting = true): Promise<UploadedProductImage> => {
   const token = getAdminToken();
   const form = new FormData();
   form.append("file", file);
@@ -400,6 +407,8 @@ export const uploadProductImage = async (productId: string | number, file: File,
   if (!response.ok) {
     throw await parseError(response, "Failed to upload image");
   }
+
+  return response.json()
 };
 
 export const deleteProductImage = async (productId: string | number, imageId: number): Promise<void> => {

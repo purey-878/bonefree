@@ -14,7 +14,7 @@ import {
   loyaltyCouponDetail,
   loyaltyCouponHeadline,
 } from "../utils/loyaltyCoupon";
-import { productImageFallback, useApiImageFallback } from "../utils/imageFallback";
+import { productImageFallback, resolveProductImageUrl, useApiImageFallback } from "../utils/imageFallback";
 import { formatEuro } from "../utils/money";
 
 
@@ -94,12 +94,7 @@ const fallbackHomeReviews: HomeReview[] = [
 
 
 function resolveImage(image: string | null | undefined) {
-  if (!image) return fallbackDishImage;
-  if (/^(https?:|data:|blob:)/.test(image)) return image;
-  if (image.startsWith("/assets/")) return image;
-  if (image.startsWith("/menu-images/")) return `/assets/images${image}`;
-  if (image.startsWith("/")) return `/assets/images${image}`;
-  return `/assets/images/${image}`;
+  return resolveProductImageUrl(image, fallbackDishImage);
 }
 
 function productDescription(product?: Product | null) {

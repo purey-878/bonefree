@@ -49,7 +49,7 @@ def _product_image_path(produto: Produto) -> str | None:
         image_path = produto.imagem
 
     if image_path:
-        if image_path.startswith(("http://", "https://", "/assets/", "/menu-images/")):
+        if image_path.startswith(("http://", "https://", "/assets/", "/uploads/", "/menu-images/")):
             return image_path
         if image_path.startswith("menu-images/"):
             return f"/{image_path}"

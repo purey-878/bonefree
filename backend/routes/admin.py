@@ -65,8 +65,25 @@ from utils.id_format import format_category_id, format_product_id, parse_categor
 router = APIRouter(prefix="/admin", tags=["Admin Management"])
 logger = logging.getLogger(__name__)
 
-UPLOAD_DIR = Path(__file__).resolve().parents[2] / "public" / "assets" / "images" / "menu-images"
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+UPLOAD_DIR = PROJECT_ROOT / "uploads" / "images"
+LEGACY_UPLOAD_DIR = PROJECT_ROOT / "public" / "assets" / "images" / "menu-images"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+
+def _image_filename(image_path: str) -> str:
+    return Path(image_path).name
+
+
+def _delete_uploaded_image_file(image_path: str) -> None:
+    filename = _image_filename(image_path)
+    for directory in (UPLOAD_DIR, LEGACY_UPLOAD_DIR):
+        filepath = directory / filename
+        try:
+            if filepath.exists():
+                filepath.unlink()
+        except Exception:
+            logger.exception("Failed to remove product image file %s", filepath)
 
 KITCHEN_VISIBLE_STATES = ("confirmada", "em_preparacao", "pronta")
 CHEF_ALLOWED_STATES = {"confirmada", "em_preparacao", "pronta"}
@@ -1103,7 +1120,7 @@ def upload_product_image(
         file_ext = file.filename.split(".")[-1].lower() if file.filename else "jpg"
         unique_filename = f"{format_product_id(parsed_product_id)}_{uuid.uuid4().hex}.{file_ext}"
         filepath = UPLOAD_DIR / unique_filename
-        public_image_path = f"/assets/images/menu-images/{unique_filename}"
+        public_image_path = f"/uploads/images/{unique_filename}"
         
         # Save file
         with open(filepath, "wb") as f:
@@ -1113,12 +1130,7 @@ def upload_product_image(
             # Delete old images for this product
             old_images = db.query(ImagemProduto).filter(ImagemProduto.id_produto == parsed_product_id).all()
             for old_img in old_images:
-                try:
-                    old_filepath = UPLOAD_DIR / old_img.caminho_imagem.split("/")[-1]
-                    if old_filepath.exists():
-                        old_filepath.unlink()
-                except Exception:
-                    pass
+                _delete_uploaded_image_file(old_img.caminho_imagem)
                 db.delete(old_img)
             db.commit()
         
@@ -1130,7 +1142,12 @@ def upload_product_image(
         db.add(new_image)
         db.commit()
         
-        return {"message": "Image uploaded successfully", "filename": unique_filename}
+        return {
+            "message": "Image uploaded successfully",
+            "filename": unique_filename,
+            "url": public_image_path,
+            "caminho_imagem": public_image_path,
+        }
     
     except Exception as e:
         db.rollback()
@@ -1152,12 +1169,7 @@ def delete_product_image(
     if not image:
         raise HTTPException(status_code=404, detail="Imagem não encontrada.")
 
-    try:
-        filepath = UPLOAD_DIR / image.caminho_imagem.split("/")[-1]
-        if filepath.exists():
-            filepath.unlink()
-    except Exception:
-        pass
+    _delete_uploaded_image_file(image.caminho_imagem)
 
     db.delete(image)
     db.commit()

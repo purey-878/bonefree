@@ -14,7 +14,7 @@ import {
   loyaltyCouponDetail,
   loyaltyCouponHeadline,
 } from "../utils/loyaltyCoupon";
-import { productImageFallback, useApiImageFallback } from "../utils/imageFallback";
+import { resolveProductImageUrl, useApiImageFallback } from "../utils/imageFallback";
 import { formatEuro } from "../utils/money";
 
 interface CategoryCount {
@@ -444,7 +444,7 @@ function Menu() {
               >
                 <span className="menu-popular-media">
                   <img
-                    src={product.image ? product.image.startsWith("/menu-images/") ? `/assets/images${product.image}` : product.image : productImageFallback}
+                    src={resolveProductImageUrl(product.image)}
                     alt=""
                     onError={(event) => useApiImageFallback(event.currentTarget)}
                   />

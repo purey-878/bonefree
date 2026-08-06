@@ -120,18 +120,12 @@ import CustomSelect from "../components/ui/CustomSelect"
 import ConfirmDialog from "../components/ui/ConfirmDialog"
 import { useToast } from "../components/ui/toastContext"
 import { formatCategoryId, formatProductId } from "../utils/ids"
-import { productImageFallback, useApiImageFallback } from "../utils/imageFallback"
+import { resolveProductImageUrl, useApiImageFallback } from "../utils/imageFallback"
 import { formatEuro } from "../utils/money"
 import { translateUserMessage } from "../utils/messages"
 
 function getImageUrl(imagePath: string): string {
-  if (!imagePath) return productImageFallback
-  if (/^(https?:|data:|blob:)/.test(imagePath)) return imagePath
-  if (imagePath.startsWith("/assets/")) return imagePath
-  if (imagePath.startsWith("/menu-images/")) return `/assets/images${imagePath}`
-  if (imagePath.startsWith("menu-images/")) return `/assets/images/${imagePath}`
-  if (imagePath.startsWith("/")) return `/assets/images${imagePath}`
-  return `/assets/images/menu-images/${imagePath}`
+  return resolveProductImageUrl(imagePath)
 }
 
 function handleAdminImageError(event: SyntheticEvent<HTMLImageElement>) {

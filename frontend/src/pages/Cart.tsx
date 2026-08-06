@@ -7,7 +7,7 @@ import "./Cart.css"
 import { useCart } from "../hooks"
 import { customizationSummary } from "../services"
 import type { CartItem, GuestCartItem, ItemCustomization } from "../types/cart"
-import { productImageFallback, useApiImageFallback } from "../utils/imageFallback"
+import { resolveProductImageUrl, useApiImageFallback } from "../utils/imageFallback"
 import { formatEuro } from "../utils/money"
 
 function isCartItem(item: CartItem | GuestCartItem): item is CartItem {
@@ -15,13 +15,7 @@ function isCartItem(item: CartItem | GuestCartItem): item is CartItem {
 }
 
 function cartImage(src?: string | null) {
-  if (!src) return productImageFallback
-  if (src.startsWith("http")) return src
-  if (src.startsWith("/assets/")) return src
-  if (src.startsWith("/menu-images/")) return `/assets/images${src}`
-  if (src.startsWith("menu-images/")) return `/assets/images/${src}`
-  if (src.startsWith("/")) return `/assets/images${src}`
-  return `/assets/images/menu-images/${src}`
+  return resolveProductImageUrl(src)
 }
 
 interface CartProps {

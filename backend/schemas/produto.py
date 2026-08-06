@@ -56,7 +56,7 @@ class ProdutoResponse(BaseModel):
         def normalize_image_path(image_path: str | None) -> str | None:
             if not image_path:
                 return None
-            if image_path.startswith(("http://", "https://", "/assets/", "/menu-images/")):
+            if image_path.startswith(("http://", "https://", "/assets/", "/uploads/", "/menu-images/")):
                 return image_path
             if image_path.startswith("menu-images/"):
                 return f"/{image_path}"

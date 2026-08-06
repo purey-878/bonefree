@@ -30,7 +30,7 @@ import CustomSelect from "../components/ui/CustomSelect"
 import { useToast } from "../components/ui/toastContext"
 import { useAuth } from "../hooks"
 import { cartService, checkoutService, customizationSummary, productService } from "../services"
-import { useApiImageFallback } from "../utils/imageFallback"
+import { resolveProductImageUrl, useApiImageFallback } from "../utils/imageFallback"
 import { translateUserMessage } from "../utils/messages"
 import { authService } from "../services/authService"
 import { getPublicLoyaltyCouponSettings } from "../services/siteSettingsService"
@@ -137,13 +137,7 @@ function formatPayment(value: string) {
 }
 
 function resolveImage(image?: string | null) {
-  if (!image) return ""
-  if (/^(https?:|data:|blob:)/.test(image)) return image
-  if (image.startsWith("/assets/")) return image
-  if (image.startsWith("/menu-images/")) return `/assets/images${image}`
-  if (image.startsWith("menu-images/")) return `/assets/images/${image}`
-  if (image.startsWith("/")) return image
-  return `/assets/images/menu-images/${image}`
+  return resolveProductImageUrl(image, "")
 }
 
 function formatStatus(value: string) {

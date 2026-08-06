@@ -108,6 +108,10 @@ PUBLIC_ASSETS_DIR = Path(__file__).resolve().parents[1] / "public" / "assets"
 PUBLIC_ASSETS_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/assets", StaticFiles(directory=PUBLIC_ASSETS_DIR), name="assets")
 
+UPLOADS_DIR = Path(__file__).resolve().parents[1] / "uploads"
+UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
+
 origins = [
     'http://127.0.0.1:8000',
     'http://localhost:5173',

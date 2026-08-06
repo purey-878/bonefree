@@ -43,7 +43,7 @@ import type {
   ProductSuggestion,
 } from "../types/product"
 import type { ItemCustomization, ProductCustomizationOptions } from "../types/cart"
-import { productImageFallback, useApiImageFallback } from "../utils/imageFallback"
+import { productImageFallback, resolveProductImageUrl, useApiImageFallback } from "../utils/imageFallback"
 import { formatEuro } from "../utils/money"
 
 type GalleryImage = {
@@ -101,11 +101,7 @@ const anchoredSections = [
 ]
 
 function getImage(img: string | null | undefined) {
-  if (!img) return fallbackImage
-  if (/^(https?:|data:|blob:)/.test(img)) return img
-  if (img.startsWith("/assets/")) return img
-  if (img.startsWith("/menu-images/")) return `/assets/images${img}`
-  return img.startsWith("/") ? `/assets/images${img}` : `/assets/images/${img}`
+  return resolveProductImageUrl(img, fallbackImage)
 }
 
 function formatPrice(price: number | null | undefined) {
