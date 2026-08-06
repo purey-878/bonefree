@@ -4,6 +4,7 @@ import type { Cart, CartItem, CustomizedCartItemRequest, GuestCartItem, ItemCust
 import { translateUserMessage } from "../utils/messages";
 
 const GUEST_CART_KEY = "guest_cart";
+const LEGACY_CART_KEY = "cart";
 
 const customizationLabelTranslations: Record<string, string> = {
   remove: "Remover",
@@ -42,8 +43,12 @@ const customizationValueTranslations: Record<string, string> = {
  * Dispatch custom event to notify app of cart updates
  */
 export function dispatchCartUpdate(): void {
-  const event = new CustomEvent('cartUpdated', { detail: { timestamp: Date.now() } });
-  window.dispatchEvent(event);
+  try {
+    const event = new CustomEvent("cartUpdated", { detail: { timestamp: Date.now() } });
+    window.dispatchEvent(event);
+  } catch (error) {
+    console.error("Error dispatching cart update:", error);
+  }
 }
 
 function isCartItem(item: CartItem | GuestCartItem): item is CartItem {
@@ -161,23 +166,52 @@ async function cartError(response: Response, fallback: string): Promise<Error> {
   }
 }
 
+function normalizeCart(cart: Partial<Cart> | null | undefined): Cart {
+  const items = Array.isArray(cart?.itens) ? cart.itens : [];
+  const total = typeof cart?.total === "number"
+    ? cart.total
+    : items.reduce((sum, item) => sum + ("subtotal" in item ? Number(item.subtotal ?? 0) : 0), 0);
+
+  return {
+    id_carrinho: cart?.id_carrinho ?? null,
+    itens: items,
+    total,
+  };
+}
+
 /**
  * Guest Cart Logic (LocalStorage)
  */
 export const guestCartService = {
   get(): GuestCartItem[] {
-    const data = localStorage.getItem(GUEST_CART_KEY);
-    return data ? JSON.parse(data) : [];
+    try {
+      const parsed = JSON.parse(localStorage.getItem(GUEST_CART_KEY) || localStorage.getItem(LEGACY_CART_KEY) || "[]");
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      console.error("Error reading guest cart:", error);
+      return [];
+    }
   },
 
   save(items: GuestCartItem[]): void {
-    localStorage.setItem(GUEST_CART_KEY, JSON.stringify(items));
-    dispatchCartUpdate();
+    try {
+      localStorage.setItem(GUEST_CART_KEY, JSON.stringify(Array.isArray(items) ? items : []));
+    } catch (error) {
+      console.error("Error saving guest cart:", error);
+    } finally {
+      dispatchCartUpdate();
+    }
   },
 
   clear(): void {
-    localStorage.removeItem(GUEST_CART_KEY);
-    dispatchCartUpdate();
+    try {
+      localStorage.removeItem(GUEST_CART_KEY);
+      localStorage.removeItem(LEGACY_CART_KEY);
+    } catch (error) {
+      console.error("Error clearing guest cart:", error);
+    } finally {
+      dispatchCartUpdate();
+    }
   },
 
   addItem(id_produto: number, quantidade: number = 1, stock?: number, customizacao?: ItemCustomization | null): GuestCartItem[] {
@@ -185,14 +219,16 @@ export const guestCartService = {
     const normalizedCustomization = normalizeCustomization(customizacao);
     const targetKey = customizationKey(normalizedCustomization);
     const existing = cart.find((i) => i.id_produto === id_produto && customizationKey(i.customizacao) === targetKey);
+    const safeQuantity = Math.max(1, Number(quantidade) || 1);
+    const safeStock = stock !== undefined && Number.isFinite(stock) ? Math.max(0, stock) : undefined;
 
     if (existing) {
-      const nova = existing.quantidade + quantidade;
-      existing.quantidade = stock !== undefined ? Math.min(nova, stock) : nova;
+      const nova = (Number(existing.quantidade) || 0) + safeQuantity;
+      existing.quantidade = safeStock !== undefined ? Math.min(nova, safeStock) : nova;
     } else {
       cart.push({
         id_produto,
-        quantidade: stock !== undefined ? Math.min(quantidade, stock) : quantidade,
+        quantidade: safeStock !== undefined ? Math.min(safeQuantity, safeStock) : safeQuantity,
         customizacao: normalizedCustomization,
       });
     }
@@ -233,7 +269,7 @@ export const apiCartService = {
   async getCart(): Promise<Cart> {
     const res = await fetch(`${API_BASE}/cart/`, { headers: authHeaders() });
     if (!res.ok) throw await cartError(res, "Failed to get cart");
-    return res.json();
+    return normalizeCart(await res.json());
   },
 
   async addItem(id_produto: number, quantidade: number = 1, customizacao?: ItemCustomization | null): Promise<Cart> {
@@ -247,7 +283,7 @@ export const apiCartService = {
     }
     const result = await res.json();
     dispatchCartUpdate();
-    return result;
+    return normalizeCart(result);
   },
 
   async addCustomizedItem(body: CustomizedCartItemRequest): Promise<Cart> {
@@ -261,7 +297,7 @@ export const apiCartService = {
     }
     const result = await res.json();
     dispatchCartUpdate();
-    return result;
+    return normalizeCart(result);
   },
 
   async updateItem(id_produto: number, quantidade: number, cartLogId?: number): Promise<Cart> {
@@ -275,7 +311,7 @@ export const apiCartService = {
     }
     const result = await res.json();
     dispatchCartUpdate();
-    return result;
+    return normalizeCart(result);
   },
 
   async removeItem(id_produto: number, cartLogId?: number): Promise<Cart> {
@@ -287,7 +323,7 @@ export const apiCartService = {
     if (!res.ok) throw await cartError(res, "Failed to remove item");
     const result = await res.json();
     dispatchCartUpdate();
-    return result;
+    return normalizeCart(result);
   },
 
   async mergeGuestCart(items: GuestCartItem[]): Promise<MergeResult> {
@@ -390,7 +426,7 @@ export const cartService = {
       return validatedCart;
     }
 
-    const validatedItem = validatedCart.itens[0] as CartItem | undefined;
+    const validatedItem = validatedCart.itens?.[0] as CartItem | undefined;
     return guestCartService.addItem(
       body.id_produto,
       body.quantidade,

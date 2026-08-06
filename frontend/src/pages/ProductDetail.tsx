@@ -294,9 +294,9 @@ export const ProductDetail = () => {
 
   const handleAddToCart = async (goToCheckout = false) => {
     if (!product) return
-    if (product.stock <= 0 || product.available === false) {
+    if (Number(product.stock ?? 0) <= 0 || product.available === false) {
       setToastError(true)
-      setToastMessage(product.stock <= 0 ? "Este item está esgotado." : "Este item está indisponível.")
+      setToastMessage(Number(product.stock ?? 0) <= 0 ? "Este item está esgotado." : "Este item está indisponível.")
       setTimeout(() => setToastMessage(null), 3000)
       return
     }
@@ -518,6 +518,7 @@ export const ProductDetail = () => {
     if (!product) return []
     const sources = product.images?.length ? product.images : [product.image]
     return sources
+      .filter((src): src is string => typeof src === "string")
       .map(src => getImage(src))
       .filter((src, index, all) => src && all.indexOf(src) === index)
       .map((src, index) => ({

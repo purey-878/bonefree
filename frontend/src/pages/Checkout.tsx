@@ -268,7 +268,7 @@ function Checkout() {
   }, [fulfillment])
 
   const items = useMemo<CartItem[]>(
-    () => cart?.itens.flatMap((item) => isCartItem(item) ? [item] : []) ?? [],
+    () => cart?.itens?.flatMap((item) => isCartItem(item) ? [item] : []) ?? [],
     [cart],
   )
   const subtotal = Number(cart?.total ?? 0)

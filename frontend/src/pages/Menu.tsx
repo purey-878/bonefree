@@ -260,7 +260,7 @@ function Menu() {
       setErrorMessage(null);
       setSuccessMessage(null);
 
-      if (product.stock <= 0) {
+      if (Number(product.stock ?? 0) <= 0) {
         setErrorMessage(`${product.name} está esgotado.`);
         setAddingToCart(null);
         return;

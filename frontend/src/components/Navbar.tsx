@@ -788,7 +788,7 @@ const Navbar = () => {
     const fetchCartCount = async () => {
       try {
         const cart = await cartService.getCart();
-        setCartCount(cart.itens ? cart.itens.length : 0);
+        setCartCount(cart.itens?.length ?? 0);
       } catch (error) {
         console.error("Error fetching cart:", error);
       }
@@ -801,7 +801,7 @@ const Navbar = () => {
     const handleCartUpdate = async () => {
       try {
         const cart = await cartService.getCart();
-        setCartCount(cart.itens ? cart.itens.length : 0);
+        setCartCount(cart.itens?.length ?? 0);
       } catch (error) {
         console.error("Error fetching cart:", error);
       }
@@ -849,8 +849,8 @@ const Navbar = () => {
           </MobileLeft>
 
           <Logo className="logo-prey" aria-label="Início PREY" onClick={closeDrawer} to="/">
-       
-            PREY
+          im
+            
           </Logo>
 
           <CenterNav aria-label="Navegação principal">

@@ -143,7 +143,7 @@ export function useCart() {
     updateQuantity,
     clearCart,
     clearError,
-    itemCount: cart?.itens.length ?? 0,
+    itemCount: cart?.itens?.length ?? 0,
     total: cart?.total ?? 0,
   };
 }

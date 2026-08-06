@@ -1007,6 +1007,8 @@
 
 /* Content area */
 .ad-content {
+  width: 100%;
+  min-width: 0;
   padding: 14px 32px 48px;
   display: flex;
   flex-direction: column;
@@ -1036,8 +1038,10 @@
 
 /* Metrics */
 .ad-metrics-grid {
+  width: 100%;
+  min-width: 0;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
 }
 
@@ -1079,8 +1083,10 @@
 
 /* Two col layout */
 .ad-two-col {
+  width: 100%;
+  min-width: 0;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 20px;
 }
 
@@ -1101,6 +1107,7 @@
 }
 
 .ad-sales-chart {
+  width: 100%;
   background: #fff;
   border: 1px solid #cbd5e1;
   border-radius: 12px;
@@ -1141,7 +1148,10 @@
 }
 
 .ad-sales-chart-body {
+  width: 100%;
+  min-width: 0;
   height: 306px;
+  min-height: 306px;
   position: relative;
 }
 
@@ -1221,12 +1231,15 @@
 
 /* Analytics dashboard */
 .ad-analytics-grid {
+  width: 100%;
+  min-width: 0;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
 }
 
 .ad-analytics-card {
+  width: 100%;
   background: #fff;
   border: 1px solid #cbd5e1;
   border-radius: 12px;
@@ -1321,7 +1334,10 @@
 }
 
 .ad-analytics-chart {
+  width: 100%;
+  min-width: 0;
   height: 260px;
+  min-height: 260px;
   margin-top: 12px;
 }
 
@@ -1941,6 +1957,8 @@
 }
 
 .ad-product-analytics-grid {
+  width: 100%;
+  min-width: 0;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
@@ -1967,6 +1985,8 @@
 }
 
 .ad-product-chart-card {
+  width: 100%;
+  min-width: 0;
   margin-top: 16px;
   border: 1px solid #cbd5e1;
   border-radius: 12px;
@@ -2024,7 +2044,10 @@
 }
 
 .ad-product-chart {
+  width: 100%;
+  min-width: 0;
   height: 240px;
+  min-height: 240px;
   margin-top: 12px;
 }
 
