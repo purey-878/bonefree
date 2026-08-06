@@ -14,6 +14,7 @@ import {
   loyaltyCouponDetail,
   loyaltyCouponHeadline,
 } from "../utils/loyaltyCoupon";
+import { productImageFallback, useApiImageFallback } from "../utils/imageFallback";
 import { formatEuro } from "../utils/money";
 
 
@@ -30,14 +31,14 @@ type HomeReview = ProductReview & {
 
 const HOME_REVIEW_PRODUCT_LIMIT = 18;
 const HOME_REVIEW_LIMIT = 3;
-const fallbackDishImage = "/assets/images/menu-images/acai.avif";
+const fallbackDishImage = productImageFallback;
 const hiddenHomeProductNames = new Set(["latino loaded nachos", "lationo loaded nachos"]);
 
 const fallbackHomeReviews: HomeReview[] = [
   {
     id_review: -1,
     id_produto: 0,
-    id_produto_display: "prey-menu",
+    id_produto_display: "bonefree-menu",
     id_cliente: 0,
     id_encomenda_produto: null,
     cliente_nome: "Marta S.",
@@ -48,14 +49,14 @@ const fallbackHomeReviews: HomeReview[] = [
     data_criacao: "2026-05-18T20:30:00Z",
     data_atualizacao: "2026-05-18T20:30:00Z",
     is_owner: false,
-    productName: "Menu PREY",
+    productName: "Menu BONEFREE",
     productId: 0,
     productPath: "/menu",
   },
   {
     id_review: -2,
     id_produto: 0,
-    id_produto_display: "prey-favorites",
+    id_produto_display: "bonefree-favorites",
     id_cliente: 0,
     id_encomenda_produto: null,
     cliente_nome: "Rui e Ana",
@@ -73,10 +74,10 @@ const fallbackHomeReviews: HomeReview[] = [
   {
     id_review: -3,
     id_produto: 0,
-    id_produto_display: "prey-experience",
+    id_produto_display: "bonefree-experience",
     id_cliente: 0,
     id_encomenda_produto: null,
-    cliente_nome: "Cliente PREY",
+    cliente_nome: "Cliente BONEFREE",
     rating: 5,
     titulo: "Ambiente descontraído",
     comentario: "Boa música, equipa atenta e comida vegan que não parece uma alternativa. Parece simplesmente uma boa escolha.",
@@ -84,7 +85,7 @@ const fallbackHomeReviews: HomeReview[] = [
     data_criacao: "2026-04-27T19:45:00Z",
     data_atualizacao: "2026-04-27T19:45:00Z",
     is_owner: false,
-    productName: "Experiência PREY",
+    productName: "Experiência BONEFREE",
     productId: 0,
     productPath: "/menu",
   },
@@ -397,7 +398,7 @@ const HomePage = () => {
                   key={heroDish.id}
                   alt={heroDish.name}
                   onError={(event) => {
-                    event.currentTarget.src = fallbackDishImage;
+                    useApiImageFallback(event.currentTarget, fallbackDishImage);
                   }}
                   src={resolveImage(heroDish.image)}
                 />
@@ -449,9 +450,9 @@ const HomePage = () => {
 
       
       {loyaltyCouponSettings.enabled && (
-        <LoyaltyRewardBanner aria-label="Recompensa de fidelização PREY" className="mt-5">
+        <LoyaltyRewardBanner aria-label="Recompensa de fidelização BONEFREE" className="mt-5">
           <div>
-            <SectionKicker>Recompensas PREY</SectionKicker>
+            <SectionKicker>Recompensas BONEFREE</SectionKicker>
             <h2>{loyaltyCouponHeadline(loyaltyCouponSettings)}</h2>
             <p>{loyaltyCouponDetail(loyaltyCouponSettings)}</p>
           </div>
@@ -513,7 +514,7 @@ const HomePage = () => {
           <ChefImage
             alt={chefSpecial?.name ?? "Especial de hoje"}
             onError={(event) => {
-              event.currentTarget.src = fallbackDishImage;
+              useApiImageFallback(event.currentTarget, fallbackDishImage);
             }}
             src={resolveImage(chefSpecial?.image)}
           />
@@ -569,7 +570,7 @@ const HomePage = () => {
                 </ReviewStars>
                 <blockquote>{reviewCopy(review)}</blockquote>
                 <ReviewMeta>
-                  <span>{review.cliente_nome || "Cliente PREY"}</span>
+                  <span>{review.cliente_nome || "Cliente BONEFREE"}</span>
                   <small>
                     <ProductReviewLink to={review.productPath ?? `/product/${review.productId}`}>{review.productName}</ProductReviewLink>
                     {" | "}

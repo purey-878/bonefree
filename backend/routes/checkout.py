@@ -1,4 +1,4 @@
-"""Checkout routes backed by the prey_resturante encomenda schema."""
+"""Checkout routes backed by the bonefree_resturante encomenda schema."""
 
 import logging
 from datetime import datetime
@@ -47,6 +47,25 @@ logger = logging.getLogger(__name__)
 SERVICE_FEE = Decimal("0")
 IVA_PERCENTUAL = Decimal("13.00")
 ONLINE_PAYMENT_METHODS = {"cartao", "mbway", "digital"}
+
+
+def _product_image_path(produto: Produto | None) -> str | None:
+    if not produto:
+        return None
+
+    image_path = None
+    if produto.imagens:
+        image_path = produto.imagens[0].caminho_imagem
+    elif produto.imagem:
+        image_path = produto.imagem
+
+    if not image_path:
+        return None
+    if image_path.startswith(("http://", "https://", "/assets/", "/menu-images/")):
+        return image_path
+    if image_path.startswith("menu-images/"):
+        return f"/{image_path}"
+    return f"/menu-images/{image_path}"
 
 
 def _payment_method(payment_method: str) -> str:
@@ -295,7 +314,7 @@ def _coupon_code_prefix(discount_type: str, discount_value: Decimal) -> str:
         if normalized_value == normalized_value.to_integral_value()
         else str(normalized_value).replace(".", "")
     )
-    return f"PREY{compact_value}P" if discount_type == "PERCENTAGEM" else f"PREY{compact_value}"
+    return f"BONEFREE{compact_value}P" if discount_type == "PERCENTAGEM" else f"BONEFREE{compact_value}"
 
 
 def _new_coupon_code(db: Session, current_user: Cliente, discount_type: str, discount_value: Decimal) -> str:
@@ -395,10 +414,7 @@ def _order_response(encomenda: Encomenda) -> dict:
                 "quantidade": item.quantidade,
                 "customizacao": customization_from_json(item.customizacao),
                 "subtotal": Decimal(str(item.preco_unitario)) * item.quantidade,
-                "imagem": (
-                    item.produto.imagens[0].caminho_imagem
-                    if item.produto and item.produto.imagens else item.produto.imagem if item.produto else None
-                ),
+                "imagem": _product_image_path(item.produto),
                 "calorias": item.produto.total_calorias if item.produto else None,
             }
             for item in encomenda.itens

@@ -53,8 +53,8 @@ type BannerImages = {
 };
 
 type LogoImages = {
-  prey: string;
-  preyWebP: string;
+  bonefree: string;
+  bonefreeWebP: string;
 };
 
 type EventImages = {
@@ -113,7 +113,7 @@ export const ASSETS: AssetsType = {
 
     // Hero section images
     hero: {
-      stamp: '/assets/images/stamp-1.png',
+      stamp: '/assets/images/bonefree-logo.webp',
       burgerGirl: '/assets/images/burger-girl.webp',
       heroBanner: '/assets/images/index-hero-banner.webp',
     },
@@ -156,8 +156,8 @@ export const ASSETS: AssetsType = {
 
     // Logo images
     logos: {
-      prey: '/assets/images/stamp-1.png',
-      preyWebP: '/assets/images/stamp-1.png',
+      bonefree: '/assets/images/bonefree-logo.webp',
+      bonefreeWebP: '/assets/images/bonefree-logo.webp',
     },
 
     // Event/People images

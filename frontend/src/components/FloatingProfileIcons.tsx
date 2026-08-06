@@ -40,7 +40,7 @@ const ProfileFloatLayer = styled.div`
     color: var(--brand-main, #7baf4b);
     opacity: 0.34;
     transform: rotate(var(--profile-float-rotate, -8deg));
-    animation: prey-profile-drift var(--profile-float-duration, 14s) ease-in-out infinite alternate;
+    animation: bonefree-profile-drift var(--profile-float-duration, 14s) ease-in-out infinite alternate;
     box-shadow:
       0 18px 48px color-mix(in srgb, currentColor 16%, transparent),
       inset 0 0 0 1px rgba(255, 255, 255, 0.5);
@@ -108,7 +108,7 @@ const ProfileFloatLayer = styled.div`
     color: var(--brand-accent, #fdcd43);
   }
 
-  @keyframes prey-profile-drift {
+  @keyframes bonefree-profile-drift {
     from {
       translate: 0 0;
     }

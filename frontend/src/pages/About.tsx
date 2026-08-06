@@ -39,11 +39,11 @@ const About: React.FC = () => {
           <HeroCopy>
             <HeroKicker>
               <Sparkles size={16} />
-              Sobre a PREY
+              Sobre a BONEFREE
             </HeroKicker>
             <h1>Comida vegan com pulso costeiro.</h1>
             <p>
-              A PREY é um restaurante de cozinha vegetal na Costa da Caparica, feito para pratos cheios,
+              A BONEFREE é um restaurante de cozinha vegetal na Costa da Caparica, feito para pratos cheios,
               bebidas com carácter, pedidos simples à mesa e uma sala viva do almoço até tarde.
             </p>
             <HeroActions>
@@ -56,7 +56,7 @@ const About: React.FC = () => {
           </HeroCopy>
 
           <HeroPhoto>
-            <img src="/assets/images/about-us-photo-1.webp" alt="Ambiente do restaurante PREY" />
+            <img src="/assets/images/about-us-photo-1.webp" alt="Ambiente do restaurante BONEFREE" />
             <PhotoTag>
               <Star size={16} />
               Avaliação Google 4,7
@@ -65,19 +65,19 @@ const About: React.FC = () => {
         </HeroInner>
       </AboutHero>
 
-      <AboutBento aria-label="Sobre a PREY">
+      <AboutBento aria-label="Sobre a BONEFREE">
         <StoryTile>
           <span>A nossa história</span>
           <h2>Vegetal, mas nunca discreto.</h2>
           <p>
-            A PREY nasceu de uma ideia simples: a comida vegan deve ser generosa, ousada e social.
+            A BONEFREE nasceu de uma ideia simples: a comida vegan deve ser generosa, ousada e social.
             O menu transforma ingredientes frescos em pratos com textura, calor, cor e alma
             suficiente para juntar todos à mesma mesa.
           </p>
         </StoryTile>
 
         <ImageTile className="large">
-          <img src="/assets/images/about-image-2.jpg" alt="Comida vegetal da PREY" />
+          <img src="/assets/images/about-image-2.jpg" alt="Comida vegetal da BONEFREE" />
         </ImageTile>
 
         {stats.map((stat) => (
@@ -88,7 +88,7 @@ const About: React.FC = () => {
         ))}
 
         <ImageTile>
-          <img src="/assets/images/about-us-3.jpg" alt="Detalhe da sala da PREY" />
+          <img src="/assets/images/about-us-3.jpg" alt="Detalhe da sala da BONEFREE" />
         </ImageTile>
 
         <MissionTile>
@@ -98,7 +98,7 @@ const About: React.FC = () => {
         </MissionTile>
 
         <ImageTile>
-          <img src="/assets/images/index-about-tap.jpeg" alt="Bebidas e detalhe do bar da PREY" />
+          <img src="/assets/images/index-about-tap.jpeg" alt="Bebidas e detalhe do bar da BONEFREE" />
         </ImageTile>
 
         {values.map(({ title, text, Icon }) => (
@@ -118,7 +118,7 @@ const About: React.FC = () => {
             <span>Costa da Caparica</span>
             <h2>Venha com fome. Saia convertido.</h2>
           </div>
-          <Link to="/contact">Visitar a PREY</Link>
+          <Link to="/contact">Visitar a BONEFREE</Link>
         </WideCta>
       </AboutBento>
     </AboutPage>

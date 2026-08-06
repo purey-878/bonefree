@@ -14,6 +14,7 @@ import {
   loyaltyCouponDetail,
   loyaltyCouponHeadline,
 } from "../utils/loyaltyCoupon";
+import { productImageFallback, useApiImageFallback } from "../utils/imageFallback";
 import { formatEuro } from "../utils/money";
 
 interface CategoryCount {
@@ -31,8 +32,8 @@ const sortLabels: Record<SortOption, string> = {
   "name-asc": "Name A-Z",
 };
 
-const LOYALTY_BANNER_DISMISSED_KEY = "prey-loyalty-banner-dismissed";
-const MENU_FILTERS_STORAGE_KEY = "prey-menu-filters";
+const LOYALTY_BANNER_DISMISSED_KEY = "bonefree-loyalty-banner-dismissed";
+const MENU_FILTERS_STORAGE_KEY = "bonefree-menu-filters";
 const PRICE_STEP = 0.01;
 
 interface SavedMenuFilters {
@@ -361,11 +362,11 @@ function Menu() {
       </div>
 
       {successMessage && (
-        <div className="prey-toast" role="status">
-          <span className="prey-toast-icon" aria-hidden="true">
+        <div className="bonefree-toast" role="status">
+          <span className="bonefree-toast-icon" aria-hidden="true">
             <Check size={15} strokeWidth={2.7} />
           </span>
-          <span className="prey-toast-message">{successMessage}</span>
+          <span className="bonefree-toast-message">{successMessage}</span>
           <button
             type="button"
             onClick={() => setSuccessMessage(null)}
@@ -378,9 +379,9 @@ function Menu() {
       )}
 
       {errorMessage && (
-        <div className="prey-toast error" role="alert">
-          <span className="prey-toast-icon" aria-hidden="true">!</span>
-          <span className="prey-toast-message">{errorMessage}</span>
+        <div className="bonefree-toast error" role="alert">
+          <span className="bonefree-toast-icon" aria-hidden="true">!</span>
+          <span className="bonefree-toast-message">{errorMessage}</span>
           <button
             type="button"
             onClick={() => setErrorMessage(null)}
@@ -404,9 +405,9 @@ function Menu() {
       </header>
 
       {showLoyaltyBanner && loyaltyCouponSettings.enabled && (
-        <section className="menu-loyalty-banner" aria-label="Cupão de fidelização PREY">
+        <section className="menu-loyalty-banner" aria-label="Cupão de fidelização BONEFREE">
           <div>
-            <p className="menu-eyebrow">Recompensas PREY</p>
+            <p className="menu-eyebrow">Recompensas BONEFREE</p>
             <h2>{loyaltyCouponHeadline(loyaltyCouponSettings)}</h2>
             <span>{loyaltyCouponDetail(loyaltyCouponSettings)}</span>
           </div>
@@ -442,7 +443,11 @@ function Menu() {
                 onClick={() => navigate(`/product/${product.id}`)}
               >
                 <span className="menu-popular-media">
-                  <img src={product.image ? product.image.startsWith("/menu-images/") ? `/assets/images${product.image}` : product.image : "/assets/images/menu-images/acai.avif"} alt="" />
+                  <img
+                    src={product.image ? product.image.startsWith("/menu-images/") ? `/assets/images${product.image}` : product.image : productImageFallback}
+                    alt=""
+                    onError={(event) => useApiImageFallback(event.currentTarget)}
+                  />
                 </span>
                 <span className="menu-popular-content">
                   <span className="menu-popular-category">{product.category}</span>

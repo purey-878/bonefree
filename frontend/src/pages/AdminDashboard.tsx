@@ -120,11 +120,12 @@ import CustomSelect from "../components/ui/CustomSelect"
 import ConfirmDialog from "../components/ui/ConfirmDialog"
 import { useToast } from "../components/ui/toastContext"
 import { formatCategoryId, formatProductId } from "../utils/ids"
+import { productImageFallback, useApiImageFallback } from "../utils/imageFallback"
 import { formatEuro } from "../utils/money"
 import { translateUserMessage } from "../utils/messages"
 
 function getImageUrl(imagePath: string): string {
-  if (!imagePath) return "/assets/images/menu-images/acai.avif"
+  if (!imagePath) return productImageFallback
   if (/^(https?:|data:|blob:)/.test(imagePath)) return imagePath
   if (imagePath.startsWith("/assets/")) return imagePath
   if (imagePath.startsWith("/menu-images/")) return `/assets/images${imagePath}`
@@ -134,10 +135,7 @@ function getImageUrl(imagePath: string): string {
 }
 
 function handleAdminImageError(event: SyntheticEvent<HTMLImageElement>) {
-  const fallback = "/assets/images/menu-images/acai.avif"
-  if (!event.currentTarget.src.endsWith(fallback)) {
-    event.currentTarget.src = fallback
-  }
+  useApiImageFallback(event.currentTarget)
 }
 
 type TabType = "dashboard" | "products" | "ingredients" | "categories" | "orders" | "refunds" | "reviews" | "analytics" | "clientes" | "staff" | "settings"
@@ -1312,7 +1310,7 @@ function SiteSettingsPanel({
             color: colors.text,
           }}>
             <div className="ad-theme-preview-nav" style={{ borderColor: colors.border }}>
-              <strong>PREY</strong>
+              <strong>BONEFREE</strong>
               <span style={{ background: colors.accent }} />
             </div>
             <div className="ad-theme-preview-hero">
@@ -1440,7 +1438,7 @@ function SiteSettingsPanel({
                     id={`social-href-${link.platform}`}
                     type="url"
                     value={link.href}
-                    placeholder={`https://${link.platform}.com/prey`}
+                    placeholder={`https://${link.platform}.com/bonefree`}
                     onChange={(event) => updateSocialLink(link.platform, { href: event.target.value })}
                   />
                 </div>
@@ -3119,7 +3117,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
       setCompanyDetails(savedCompanyDetails)
       setSocialMedia(savedSocialMedia)
       setEventsSettings(savedEventsSettings)
-      localStorage.setItem("prey_site_theme", JSON.stringify(savedTheme))
+      localStorage.setItem("bonefree_site_theme", JSON.stringify(savedTheme))
       window.dispatchEvent(new Event("siteThemeUpdated"))
       setSiteThemeSaved(true)
       window.setTimeout(() => setSiteThemeSaved(false), 2200)
@@ -3506,14 +3504,14 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
             <Menu size={22} />
           </button>
 
-          <div className="ad-topbar-brand" aria-label="Administração Prey">
+          <div className="ad-topbar-brand" aria-label="Administração Bonefree">
             <div className="ad-brand-icon ad-topbar-brand-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
               </svg>
             </div>
             <div className="ad-topbar-brand-copy">
-              <span className="ad-brand-kicker">Prey</span>
+              <span className="ad-brand-kicker">Bonefree</span>
               <span className="ad-brand-name">{shellTitle}</span>
             </div>
           </div>
@@ -3556,7 +3554,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
             </svg>
           </div>
           <div className="ad-brand-copy">
-            <span className="ad-brand-kicker">Prey</span>
+            <span className="ad-brand-kicker">Bonefree</span>
             <span className="ad-brand-name">{shellTitle}</span>
           </div>
           {isMobileAdminNav && (
@@ -5793,7 +5791,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
           </div>
         )}
         <footer className="ad-compact-footer">
-          <span>PREY Admin</span>
+          <span>BONEFREE Admin</span>
           <span>&copy; {new Date().getFullYear()} Painel de operações da equipa</span>
         </footer>
       </main>

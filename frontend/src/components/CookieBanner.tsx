@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { useAuth } from "../hooks"
 import "./CookieBanner.css"
 
-const COOKIE_CONSENT_KEY = "prey_cookie_consent"
+const COOKIE_CONSENT_KEY = "bonefree_cookie_consent"
 const COOKIE_CONSENT_VERSION = 1
 
 type CookieConsent = {
@@ -53,7 +53,7 @@ export default function CookieBanner() {
   return (
     <section className="cookie-banner" role="dialog" aria-live="polite" aria-label="Aviso de cookies">
       <div>
-        <strong>Cookies no PREY</strong>
+        <strong>Cookies no BONEFREE</strong>
         <p>Usamos cookies e armazenamento local para manter a sessao, carrinho, preferencias e melhorar a experiencia.</p>
       </div>
       <button type="button" onClick={acceptAllCookies}>

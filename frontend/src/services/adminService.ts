@@ -268,7 +268,7 @@ export const exportRefunds = async (filters: RefundFilters = {}): Promise<{ blob
   if (!response.ok) throw await parseError(response, "Failed to export refunds");
   return {
     blob: await response.blob(),
-    filename: "prey-refunds.csv",
+    filename: "bonefree-refunds.csv",
   };
 };
 

@@ -1,10 +1,10 @@
 import type { CompanyDetailsSettings, SocialMediaSettings, SocialPlatform } from "../types/siteSettings"
 
 export const defaultCompanyDetails: CompanyDetailsSettings = {
-  brand_name: "PREY",
+  brand_name: "BONEFREE",
   description:
-    "A PREY é um restaurante e bar vegan na Costa da Caparica. Servimos pratos 100% vegetais, cocktails artesanais e um ambiente descontraído.",
-  address: "Prey, R. Eng. Henrique Mendia 28A, 2825-450 Costa da Caparica",
+    "A BONEFREE é um restaurante e bar vegan na Costa da Caparica. Servimos pratos 100% vegetais, cocktails artesanais e um ambiente descontraído.",
+  address: "Bonefree, R. Eng. Henrique Mendia 28A, 2825-450 Costa da Caparica",
   phone: "+351 968 107 703",
   email: "carambolarubra@gmail.com",
 }

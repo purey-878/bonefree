@@ -68,7 +68,7 @@ DEFAULT_EVENTS = EventsSettings(
 BUILT_IN_THEMES: dict[str, dict[str, Any]] = {
     "normal": {
         "id": "normal",
-        "name": "Prey Classic",
+        "name": "Bonefree Classic",
         "colors": {
             "primary": "#7BAF4B",
             "accent": "#FDCD43",
@@ -93,7 +93,7 @@ BUILT_IN_THEMES: dict[str, dict[str, Any]] = {
     },
     "presentation": {
         "id": "presentation",
-        "name": "Prey Presentation",
+        "name": "Bonefree Presentation",
         "colors": {
             "primary": "#5f9636",
             "accent": "#e0aa00",

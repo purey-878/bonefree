@@ -110,7 +110,7 @@ function Login() {
               {fieldErrors.password && <small className="field-error">{fieldErrors.password}</small>}
             </div>
 
-            <button type="submit" className="auth-btn prey-button fw-bold letter-spacing-2 " disabled={loading}>
+            <button type="submit" className="auth-btn bonefree-button fw-bold letter-spacing-2 " disabled={loading}>
               {loading ? 'A entrar...' : 'Entrar'}
             </button>
           </form>

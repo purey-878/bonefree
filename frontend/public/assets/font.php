@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title><?= $title ?? 'Prey' ?></title>
+  <title><?= $title ?? 'Bonefree' ?></title>
 
   <!-- Google Font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">

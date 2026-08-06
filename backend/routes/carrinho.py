@@ -380,7 +380,7 @@ def _cart_item_out_from_product(
     unit_price: Decimal,
     customizacao: ItemCustomization,
 ) -> CarrinhoItemOut:
-    imagem = produto.imagens[0].caminho_imagem if produto.imagens else None
+    imagem = _product_image_path(produto)
     return CarrinhoItemOut(
         cart_log_id=0,
         id_produto=produto.id_produto,

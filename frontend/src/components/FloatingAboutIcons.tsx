@@ -41,7 +41,7 @@ const AboutFloatLayer = styled.div`
     color: #7baf4b;
     opacity: 0.36;
     transform: rotate(var(--about-float-rotate, -8deg));
-    animation: prey-about-drift var(--about-float-duration, 13s) ease-in-out infinite alternate;
+    animation: bonefree-about-drift var(--about-float-duration, 13s) ease-in-out infinite alternate;
     box-shadow:
       0 18px 48px color-mix(in srgb, currentColor 16%, transparent),
       inset 0 0 0 1px rgba(255, 255, 255, 0.5);
@@ -117,7 +117,7 @@ const AboutFloatLayer = styled.div`
     color: #d97706;
   }
 
-  @keyframes prey-about-drift {
+  @keyframes bonefree-about-drift {
     from {
       translate: 0 0;
     }

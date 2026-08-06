@@ -3,9 +3,11 @@ from core.env_loader import load_env_files
 load_env_files()
 
 import logging
+from pathlib import Path
 
 from fastapi import BackgroundTasks, FastAPI, Request
 from fastapi import Depends, HTTPException, status
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from database import SessionLocal
@@ -97,10 +99,14 @@ def _send_welcome_email_background(email: str, name: str | None = None) -> None:
 
 
 app = FastAPI(
-    title='Prey API',
+    title='Bonefree API',
     version='0.1.0',
-    description='Backend API for the Prey project',
+    description='Backend API for the Bonefree project',
 )
+
+PUBLIC_ASSETS_DIR = Path(__file__).resolve().parents[1] / "public" / "assets"
+PUBLIC_ASSETS_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/assets", StaticFiles(directory=PUBLIC_ASSETS_DIR), name="assets")
 
 origins = [
     'http://127.0.0.1:8000',

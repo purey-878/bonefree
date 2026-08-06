@@ -2,7 +2,7 @@ import sqlite3
 from pathlib import Path
 
 
-DB_PATH = Path(__file__).with_name("prey_rest_2.db")
+DB_PATH = Path(__file__).with_name("bonefree_rest_2.db")
 OLD_TYPE = "INGREDIENTE"
 NEW_TYPE = "INGREDIENTES_NORMAIS"
 

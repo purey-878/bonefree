@@ -31,7 +31,9 @@ const Footer: React.FC = () => {
       <div className="container">
         <div className="row">
           <div className="col-lg-3 col-md-6 mb-4">
-            <div className="footer-brand">{companyDetails.brand_name}</div>
+            <div className="footer-brand">
+              <img src="/assets/images/bonefree-logo.webp" alt={companyDetails.brand_name} />
+            </div>
             <p className="mt-3">{companyDetails.description}</p>
           </div>
 

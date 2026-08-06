@@ -200,13 +200,13 @@ export const GlobalStyles = createGlobalStyle`
     box-shadow: var(--focus-ring-shadow);
   }
 
-  :where(button, .btn, .prey-button, .prey-button-secondary, .ad-btn, [role='button']):hover,
-  :where(button, .btn, .prey-button, .prey-button-secondary, .ad-btn, [role='button']):focus,
-  :where(button, .btn, .prey-button, .prey-button-secondary, .ad-btn, [role='button']):focus-visible {
+  :where(button, .btn, .bonefree-button, .bonefree-button-secondary, .ad-btn, [role='button']):hover,
+  :where(button, .btn, .bonefree-button, .bonefree-button-secondary, .ad-btn, [role='button']):focus,
+  :where(button, .btn, .bonefree-button, .bonefree-button-secondary, .ad-btn, [role='button']):focus-visible {
     text-decoration: none;
   }
 
-  :where(button, .btn, .prey-button, .prey-button-secondary, .ad-btn):focus-visible {
+  :where(button, .btn, .bonefree-button, .bonefree-button-secondary, .ad-btn):focus-visible {
     box-shadow: none;
   }
 

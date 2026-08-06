@@ -98,7 +98,7 @@ def receipt_pdf_filename(receipt: Mapping[str, Any]) -> str:
 def _header(receipt: Mapping[str, Any], styles: dict[str, ParagraphStyle]) -> Table:
     logo = _logo(receipt)
     brand_lines = [
-        f"<b>{_xml(receipt.get('company_name') or 'PREY')}</b>",
+        f"<b>{_xml(receipt.get('company_name') or 'BONEFREE')}</b>",
         _xml(_text(receipt.get("company_email"))),
         _xml(_text(receipt.get("company_phone"))),
         _xml(_text(receipt.get("public_base_url"))),
@@ -236,7 +236,7 @@ def _promotions_section(receipt: Mapping[str, Any], styles: dict[str, ParagraphS
     coupon_code = _text(receipt.get("coupon_code"))
     rows = _visible_rows(
         [
-            ("Promoção", "Cupão PREY" if coupon_code else "Desconto aplicado"),
+            ("Promoção", "Cupão BONEFREE" if coupon_code else "Desconto aplicado"),
             ("Código", coupon_code),
             ("Total poupado", _money(discount)),
         ]
@@ -304,10 +304,10 @@ def _legal_notes(receipt: Mapping[str, Any], styles: dict[str, ParagraphStyle]) 
 
 
 def _footer(receipt: Mapping[str, Any], styles: dict[str, ParagraphStyle]) -> Table:
-    company = _text(receipt.get("company_name", "PREY"))
+    company = _text(receipt.get("company_name", "BONEFREE"))
     bits = [
         f"<b>{_xml(company)}</b> agradece a sua preferência.",
-        "Documento gerado automaticamente pelo sistema PREY.",
+        "Documento gerado automaticamente pelo sistema BONEFREE.",
         f"NIF: {_xml(receipt.get('company_nif'))}" if _text(receipt.get("company_nif")) else "",
         " | ".join(_xml(value) for value in (receipt.get("company_email"), receipt.get("company_phone")) if _text(value)),
     ]

@@ -43,6 +43,7 @@ import type {
   ProductSuggestion,
 } from "../types/product"
 import type { ItemCustomization, ProductCustomizationOptions } from "../types/cart"
+import { productImageFallback, useApiImageFallback } from "../utils/imageFallback"
 import { formatEuro } from "../utils/money"
 
 type GalleryImage = {
@@ -56,8 +57,8 @@ const PUBLIC_REVIEW_REACTIONS = [
   { type: "like", label: "Gostado pela equipa", Icon: ThumbsUp },
 ] as const
 
-const fallbackImage = "/assets/images/menu-images/acai.avif"
-const recentlyViewedKey = "prey_recently_viewed"
+const fallbackImage = productImageFallback
+const recentlyViewedKey = "bonefree_recently_viewed"
 const customizationAddSurcharge = 1
 const customizationOptionTranslations: Record<string, string> = {
   "extra sauce": "Molho extra",
@@ -661,11 +662,11 @@ export const ProductDetail = () => {
       </div>
 
       {toastMessage && (
-        <div className={`prey-toast ${toastError ? "error" : ""}`} role={toastError ? "alert" : "status"}>
-          <span className="prey-toast-icon" aria-hidden="true">
+        <div className={`bonefree-toast ${toastError ? "error" : ""}`} role={toastError ? "alert" : "status"}>
+          <span className="bonefree-toast-icon" aria-hidden="true">
             {toastError ? "!" : <Check size={15} strokeWidth={2.7} />}
           </span>
-          <span className="prey-toast-message">{toastMessage}</span>
+          <span className="bonefree-toast-message">{toastMessage}</span>
           <button
             type="button"
             onClick={() => setToastMessage(null)}
@@ -720,7 +721,7 @@ export const ProductDetail = () => {
                 alt={activeImage?.alt ?? product.name}
                 className="pd-image p-4"
                 onError={event => {
-                  event.currentTarget.src = fallbackImage
+                  useApiImageFallback(event.currentTarget, fallbackImage)
                 }}
               />
             <div className="pd-gallery-topline ">
@@ -743,7 +744,7 @@ export const ProductDetail = () => {
                     src={image.src}
                     alt=""
                     onError={event => {
-                      event.currentTarget.src = fallbackImage
+                      useApiImageFallback(event.currentTarget, fallbackImage)
                     }}
                   />
                 </button>
@@ -1109,7 +1110,7 @@ export const ProductDetail = () => {
                   <article key={review.id_review} className="pd-review-item">
                     <div className="pd-review-item-head">
                       <div>
-                        <strong>{review.cliente_nome ?? "Cliente PREY"}</strong>
+                        <strong>{review.cliente_nome ?? "Cliente BONEFREE"}</strong>
                         <span>{new Date(review.data_criacao).toLocaleDateString("pt-PT")}</span>
                       </div>
                       <div className="pd-review-item-rating"><Star size={16} fill="currentColor" />{review.rating}</div>
@@ -1130,7 +1131,7 @@ export const ProductDetail = () => {
                       <div className="pd-review-admin-reply">
                         <div>
                           <MessageCircle size={16} />
-                          <strong>Resposta da PREY</strong>
+                          <strong>Resposta da BONEFREE</strong>
                           <span>{new Date(review.reply.updated_at || review.reply.created_at).toLocaleDateString("pt-PT")}</span>
                         </div>
                         <p>{review.reply.texto}</p>

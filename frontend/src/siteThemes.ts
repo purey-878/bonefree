@@ -35,7 +35,7 @@ export const presentationColors: ThemeColors = {
 
 export const presentationThemeConfig: ThemeConfig = {
   id: "presentation",
-  name: "Prey Apresentação",
+  name: "Bonefree Apresentação",
   colors: presentationColors,
   background: {
     type: "gradient",
@@ -51,7 +51,7 @@ export const presentationThemeConfig: ThemeConfig = {
 
 export const defaultThemeConfig: ThemeConfig = {
   id: "normal",
-  name: "Prey Clássico",
+  name: "Bonefree Clássico",
   colors: classicColors,
   background: {
     type: "gradient",
@@ -78,16 +78,16 @@ export const defaultSiteThemeResponse: SiteThemeResponse = {
 export const siteThemePresets: SiteThemePreset[] = [
   {
     id: "normal",
-    name: "Prey Clássico",
-    description: "Verde e amarelo originais da PREY, limpo e minimalista.",
+    name: "Bonefree Clássico",
+    description: "Verde e amarelo originais da BONEFREE, limpo e minimalista.",
     swatches: ["#f8faf6", "#7BAF4B", "#FDCD43"],
     background: "#f8faf6",
     colors: classicColors,
   },
   {
     id: "presentation",
-    name: "Prey Apresentação",
-    description: "Cores clássicas da PREY com contraste mais forte para projetores 1080p.",
+    name: "Bonefree Apresentação",
+    description: "Cores clássicas da BONEFREE com contraste mais forte para projetores 1080p.",
     swatches: ["#eef5ea", "#5f9636", "#e0aa00"],
     background: "#eef5ea",
     colors: presentationColors,

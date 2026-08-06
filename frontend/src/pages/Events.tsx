@@ -11,9 +11,9 @@ import type { EventItemSettings } from "../types/siteSettings"
 import { defaultEventsSettings } from "../utils/eventSettings"
 
 const galleryImages = [
-  { src: "/assets/images/about-us-3.jpg", alt: "Ambiente de eventos na sala da PREY" },
-  { src: "/assets/images/about-img-1.webp", alt: "Mesa vegan para partilhar na PREY" },
-  { src: "/assets/images/about-img-2.webp", alt: "Detalhe noturno do restaurante PREY" },
+  { src: "/assets/images/about-us-3.jpg", alt: "Ambiente de eventos na sala da BONEFREE" },
+  { src: "/assets/images/about-img-1.webp", alt: "Mesa vegan para partilhar na BONEFREE" },
+  { src: "/assets/images/about-img-2.webp", alt: "Detalhe noturno do restaurante BONEFREE" },
 ]
 
 function formatEventDate(value: string) {
@@ -76,7 +76,7 @@ export default function Events() {
             <HeroScrim />
             <HeroContent>
               <EventKicker>{featuredEvent.kicker}</EventKicker>
-              <h1>Eventos na PREY</h1>
+              <h1>Eventos na BONEFREE</h1>
               <p>Noites de DJ, pratos vegetais, cocktails e energia costeira até tarde na Costa da Caparica.</p>
               <HeroMeta>
                 <EventMeta icon={<CalendarDays size={16} />}>{formatEventDate(featuredEvent.date)}</EventMeta>
@@ -93,7 +93,7 @@ export default function Events() {
           </EventCard>
 
           <ImageTile className="image-tall">
-            <img src="/assets/images/dj_khalil.jpg" alt="DJ Khalil a atuar na PREY" />
+            <img src="/assets/images/dj_khalil.jpg" alt="DJ Khalil a atuar na BONEFREE" />
           </ImageTile>
 
           <DateTile>

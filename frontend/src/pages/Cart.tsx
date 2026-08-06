@@ -7,6 +7,7 @@ import "./Cart.css"
 import { useCart } from "../hooks"
 import { customizationSummary } from "../services"
 import type { CartItem, GuestCartItem, ItemCustomization } from "../types/cart"
+import { productImageFallback, useApiImageFallback } from "../utils/imageFallback"
 import { formatEuro } from "../utils/money"
 
 function isCartItem(item: CartItem | GuestCartItem): item is CartItem {
@@ -14,7 +15,7 @@ function isCartItem(item: CartItem | GuestCartItem): item is CartItem {
 }
 
 function cartImage(src?: string | null) {
-  if (!src) return "/assets/images/menu-images/acai.avif"
+  if (!src) return productImageFallback
   if (src.startsWith("http")) return src
   if (src.startsWith("/assets/")) return src
   if (src.startsWith("/menu-images/")) return `/assets/images${src}`
@@ -132,7 +133,7 @@ function Cart({ overlay = false }: CartProps) {
             <div className="cart-empty">
               <h2>O carrinho está vazio</h2>
               <p>Adicione algo do menu e aparece aqui.</p>
-              <Link to="/menu" className="prey-button">Ver menu</Link>
+              <Link to="/menu" className="bonefree-button">Ver menu</Link>
             </div>
           ) : (
             <div className="cart-items">
@@ -172,7 +173,7 @@ function Cart({ overlay = false }: CartProps) {
                       src={cartImage(itemData.image)}
                       alt={itemData.name}
                       onError={(event) => {
-                        ;(event.target as HTMLImageElement).src = "/assets/images/menu-images/acai.avif"
+                        useApiImageFallback(event.currentTarget)
                       }}
                     />
 
@@ -262,7 +263,7 @@ function Cart({ overlay = false }: CartProps) {
             </div>
             <p className="cart-footer-note">Taxas e serviço são confirmados no checkout.</p>
           </div>
-          <Link className={`prey-button cart-checkout ${items.length === 0 ? "disabled" : ""}`} to="/checkout">
+          <Link className={`bonefree-button cart-checkout ${items.length === 0 ? "disabled" : ""}`} to="/checkout">
             Fazer pedido
           </Link>
         </footer>

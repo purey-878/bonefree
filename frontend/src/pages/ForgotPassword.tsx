@@ -150,7 +150,7 @@ function ForgotPassword() {
               />
               {fieldErrors.email && <small className="field-error">{fieldErrors.email}</small>}
             </div>
-            <button type="submit" className="auth-btn prey-button" disabled={loading}>
+            <button type="submit" className="auth-btn bonefree-button" disabled={loading}>
               {loading ? "A enviar código..." : "Enviar código"}
             </button>
           </form>
@@ -177,7 +177,7 @@ function ForgotPassword() {
               />
               {fieldErrors.code && <small className="field-error">{fieldErrors.code}</small>}
             </div>
-            <button type="submit" className="auth-btn prey-button" disabled={loading}>
+            <button type="submit" className="auth-btn bonefree-button" disabled={loading}>
               {loading ? "A verificar..." : "Verificar código"}
             </button>
             <button type="button" className="auth-secondary-action" onClick={() => setStep("email")}>
@@ -220,14 +220,14 @@ function ForgotPassword() {
               />
               {fieldErrors.confirmPassword && <small className="field-error">{fieldErrors.confirmPassword}</small>}
             </div>
-            <button type="submit" className="auth-btn prey-button" disabled={loading}>
+            <button type="submit" className="auth-btn bonefree-button" disabled={loading}>
               {loading ? "A guardar..." : "Repor palavra-passe"}
             </button>
           </form>
         )}
 
         {step === "done" && (
-          <Link to="/login" className="auth-btn prey-button auth-done-link">
+          <Link to="/login" className="auth-btn bonefree-button auth-done-link">
             Voltar ao login
           </Link>
         )}

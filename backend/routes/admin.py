@@ -1103,6 +1103,7 @@ def upload_product_image(
         file_ext = file.filename.split(".")[-1].lower() if file.filename else "jpg"
         unique_filename = f"{format_product_id(parsed_product_id)}_{uuid.uuid4().hex}.{file_ext}"
         filepath = UPLOAD_DIR / unique_filename
+        public_image_path = f"/assets/images/menu-images/{unique_filename}"
         
         # Save file
         with open(filepath, "wb") as f:
@@ -1124,7 +1125,7 @@ def upload_product_image(
         # Create new image record
         new_image = ImagemProduto(
             id_produto=parsed_product_id,
-            caminho_imagem=unique_filename
+            caminho_imagem=public_image_path
         )
         db.add(new_image)
         db.commit()
@@ -1429,7 +1430,7 @@ def export_refunds(
     return Response(
         content=output.getvalue(),
         media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=\"prey-refunds.csv\""},
+        headers={"Content-Disposition": "attachment; filename=\"bonefree-refunds.csv\""},
     )
 
 

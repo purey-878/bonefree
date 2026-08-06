@@ -40,17 +40,17 @@ def validate_email_config() -> list[str]:
 
 def send_welcome_email(email: str, name: str | None = None, *, raise_errors: bool = False) -> bool:
     display_name = (name or "cliente").strip() or "cliente"
-    subject = "Bem-vindo ao Prey"
+    subject = "Bem-vindo ao Bonefree"
     text = (
         f"Ola {display_name},\n\n"
-        "Bem-vindo ao Prey. A sua conta está pronta e já pode guardar os seus dados, "
+        "Bem-vindo ao Bonefree. A sua conta está pronta e já pode guardar os seus dados, "
         "customizar pedidos e finalizar compras mais rapidamente.\n\n"
-        "Até à mesa,\nPrey"
+        "Até à mesa,\nBonefree"
     )
     html = _layout(
         title=f"Bem-vindo, {escape(display_name)}.",
         body=(
-            "A sua conta Prey está pronta. Já pode guardar os seus dados, customizar pedidos "
+            "A sua conta Bonefree está pronta. Já pode guardar os seus dados, customizar pedidos "
             "e finalizar compras mais rapidamente sempre que nos visitar."
         ),
         accent="Comece o seu próximo pedido a partir do menu quando estiver pronto.",
@@ -60,12 +60,12 @@ def send_welcome_email(email: str, name: str | None = None, *, raise_errors: boo
 
 def send_password_reset_email(email: str, code: str, name: str | None = None) -> bool:
     display_name = (name or "cliente").strip() or "cliente"
-    subject = "O seu código de redefinição da palavra-passe Prey"
+    subject = "O seu código de redefinição da palavra-passe Bonefree"
     text = (
         f"Ola {display_name},\n\n"
-        f"O seu código de redefinição da palavra-passe Prey é {code}. Expira em 10 minutos.\n\n"
+        f"O seu código de redefinição da palavra-passe Bonefree é {code}. Expira em 10 minutos.\n\n"
         "Se não pediu isto, pode ignorar este email.\n\n"
-        "Prey"
+        "Bonefree"
     )
     html = _layout(
         title="Código de redefinição da palavra-passe",
@@ -182,7 +182,7 @@ def _layout(title: str, body: str, accent: str) -> str:
               <table role="presentation" width="560" cellspacing="0" cellpadding="0" style="max-width:560px;width:100%;background:#ffffff;border:1px solid #e6e8ec;border-radius:16px;overflow:hidden;">
                 <tr>
                   <td style="padding:30px 34px;">
-                    <div style="font-weight:900;font-size:20px;letter-spacing:.04em;">PREY</div>
+                    <div style="font-weight:900;font-size:20px;letter-spacing:.04em;">BONEFREE</div>
                     <h1 style="margin:26px 0 12px;font-size:28px;line-height:1.15;">{title}</h1>
                     <p style="margin:0 0 22px;color:#5f6673;font-size:15px;line-height:1.65;">{escape(body)}</p>
                     <div style="border:1px solid #e7eadf;border-radius:12px;background:#fafbf4;padding:18px;text-align:center;color:#1f3d28;">{accent}</div>
@@ -210,7 +210,7 @@ def _sender_email() -> str:
 
 
 def _sender_name() -> str:
-    return os.getenv("AUTH_EMAIL_FROM_NAME", "Prey")
+    return os.getenv("AUTH_EMAIL_FROM_NAME", "Bonefree")
 
 
 def _env_flag(name: str, default: bool) -> bool:

@@ -5,7 +5,7 @@ import { defaultSiteThemeResponse } from "../siteThemes";
 import type { SiteThemeResponse, ThemeConfig } from "../types/siteSettings";
 import ThemeDecorations from "./ThemeDecorations";
 
-const THEME_STORAGE_KEY = "prey_site_theme";
+const THEME_STORAGE_KEY = "bonefree_site_theme";
 
 function applySiteTheme(theme: SiteThemeResponse) {
   const { config } = theme;

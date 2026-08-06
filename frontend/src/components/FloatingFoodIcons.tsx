@@ -43,7 +43,7 @@ const FoodFloatLayer = styled.div`
     color: #7baf4b;
     opacity: 0.4;
     transform: rotate(var(--food-float-rotate, -8deg));
-    animation: prey-food-drift var(--food-float-duration, 13s) ease-in-out infinite alternate;
+    animation: bonefree-food-drift var(--food-float-duration, 13s) ease-in-out infinite alternate;
     box-shadow:
       0 18px 48px color-mix(in srgb, currentColor 18%, transparent),
       inset 0 0 0 1px rgba(255, 255, 255, 0.52);
@@ -135,7 +135,7 @@ const FoodFloatLayer = styled.div`
     color: #be185d;
   }
 
-  @keyframes prey-food-drift {
+  @keyframes bonefree-food-drift {
     from {
       translate: 0 0;
     }

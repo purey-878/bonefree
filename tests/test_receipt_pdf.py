@@ -11,10 +11,10 @@ from services.receipt_pdf import receipt_pdf_filename, render_receipt_pdf  # noq
 
 def sample_receipt():
     return {
-        "company_name": "PREY",
+        "company_name": "BONEFREE",
         "company_nif": "123456789",
-        "company_logo_url": "http://localhost:8000/public/images/stamp-1.png",
-        "company_address": "Prey\nCosta da Caparica",
+        "company_logo_url": "http://localhost:8000/assets/images/bonefree-logo.webp",
+        "company_address": "Bonefree\nCosta da Caparica",
         "company_email": "hello@example.com",
         "company_phone": "+351 000 000 000",
         "customer_name": "Cliente Teste",
@@ -29,7 +29,7 @@ def sample_receipt():
         "order_date": "26/05/2026 12:30",
         "payment_method": "Cartão",
         "billing_address": "Cliente Teste\nguest@example.com",
-        "shipping_address": "Mesa 7\nComer no restaurante PREY",
+        "shipping_address": "Mesa 7\nComer no restaurante BONEFREE",
         "items": [
             {
                 "name": "Burger",
@@ -56,7 +56,7 @@ def sample_receipt():
         "total_amount": "14,00 €",
         "iva_rate": "23",
         "iva_exemption_reason": "",
-        "public_base_url": "https://prey.example",
+        "public_base_url": "https://bonefree.example",
     }
 
 
@@ -73,13 +73,13 @@ class ReceiptPDFTests(unittest.TestCase):
 
         self.assertIn("Desconto", html)
         self.assertIn("-2,00 €", html)
-        self.assertIn(">PREY</span>", html)
+        self.assertIn(">BONEFREE</span>", html)
         self.assertNotIn("<img", html)
         self.assertIn("Incluído", html)
         self.assertIn("Mesa 7", html)
-        self.assertIn("Comer no restaurante PREY", html)
+        self.assertIn("Comer no restaurante BONEFREE", html)
         self.assertNotIn("Included", html)
-        self.assertNotIn("Dine in at Prey", html)
+        self.assertNotIn("Dine in at Bonefree", html)
         self.assertNotIn("Table 7", html)
         self.assertNotIn("Taxa de serviço", html)
 

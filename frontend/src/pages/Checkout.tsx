@@ -28,6 +28,7 @@ import { rememberActiveOrder } from "../components/orderStatusStorage"
 import type { CartItem, GuestCartItem } from "../types/cart"
 import type { Coupon, CouponValidation, FulfillmentMethod, PaymentMethod } from "../types/checkout"
 import type { Product } from "../types/product"
+import { productImageFallback, useApiImageFallback } from "../utils/imageFallback"
 import { validateEmail, validateName, validateNif } from "../utils/validation"
 import type { FieldErrors } from "../utils/validation"
 import { formatEuro } from "../utils/money"
@@ -87,7 +88,7 @@ const paymentOptions: Array<{ value: PaymentMethod; label: string; icon: typeof 
 ]
 
 const fulfillmentOptions: Array<{ value: FulfillmentMethod; label: string; description: string; icon: typeof ShoppingBag }> = [
-  { value: "dine_in", label: "Comer no restaurante", description: "Coma na PREY com serviço à mesa opcional.", icon: MapPin },
+  { value: "dine_in", label: "Comer no restaurante", description: "Coma na BONEFREE com serviço à mesa opcional.", icon: MapPin },
   { value: "takeaway", label: "Para levar", description: "Embalado para levar ao balcão.", icon: ShoppingBag },
 ]
 
@@ -151,7 +152,7 @@ function getPaymentMethodLabel(method: PaymentMethod) {
 }
 
 function checkoutImageUrl(src?: string | null) {
-  if (!src) return "/assets/images/menu-images/acai.avif"
+  if (!src) return productImageFallback
   if (/^(https?:|data:|blob:)/.test(src)) return src
   if (src.startsWith("/assets/")) return src
   if (src.startsWith("/menu-images/")) return `/assets/images${src}`
@@ -583,7 +584,7 @@ function Checkout() {
       : confirmationPayment === "cash"
         ? "Pagar ao balcão"
         : "MB Way aprovado"
-    const paymentReference = `PREY-${confirmedOrder?.orderId ?? orderNumber}`
+    const paymentReference = `BONEFREE-${confirmedOrder?.orderId ?? orderNumber}`
     const customerName = `${confirmationCustomer.firstName} ${confirmationCustomer.lastName}`.trim()
     const tableLabel = confirmationFulfillment === "dine_in" && confirmationCustomer.tableNumber
       ? `Mesa ${confirmationCustomer.tableNumber}`
@@ -591,7 +592,7 @@ function Checkout() {
         ? "Balcão para levar"
         : "Entrega ao balcão"
     const imageForItem = (src?: string) => {
-      if (!src) return "/assets/images/menu-images/acai.avif"
+      if (!src) return productImageFallback
       if (src.startsWith("http")) return src
       if (src.startsWith("/assets/")) return src
       if (src.startsWith("/menu-images/")) return `/assets/images${src}`
@@ -755,7 +756,7 @@ function Checkout() {
                               src={imageForItem(item.caminho_imagem)}
                               alt=""
                               onError={(event) => {
-                                ; (event.target as HTMLImageElement).src = "/assets/images/menu-images/acai.avif"
+                                useApiImageFallback(event.currentTarget)
                               }}
                             />
                             <div className="item-details">
@@ -882,7 +883,7 @@ function Checkout() {
                 )}
 
                 <div className="receipt-actions">
-                  <button type="button" className="prey-button confirmation-primary-action" onClick={highlightOrderStatus}>
+                  <button type="button" className="bonefree-button confirmation-primary-action" onClick={highlightOrderStatus}>
                     Acompanhar pedido
                   </button>
                   <Link to="/profile?tab=orders" className="confirmation-secondary-action">
@@ -921,7 +922,7 @@ function Checkout() {
               <span>Total pago</span>
               <strong>{formatEuro(confirmationTotal)}</strong>
             </div>
-            <button type="button" className="prey-button" onClick={highlightOrderStatus}>
+            <button type="button" className="bonefree-button" onClick={highlightOrderStatus}>
               Acompanhar pedido
             </button>
           </div>
@@ -940,7 +941,7 @@ function Checkout() {
             <p className="checkout-eyebrow">Pedido à mesa</p>
             <h1>Confirme o seu pedido</h1>
           </div>
-          <Link to="/cart" className="prey-button-secondary">Voltar ao carrinho</Link>
+          <Link to="/cart" className="bonefree-button-secondary">Voltar ao carrinho</Link>
         </div>
 
         {!loading && items.length > 0 && checkoutUpsells.length > 0 && (
@@ -958,7 +959,7 @@ function Checkout() {
                 const busy = upsellBusyId === product.id
                 return (
                   <article key={product.id} className="checkout-upsell-item">
-                    <img src={checkoutImageUrl(product.image)} alt="" onError={(event) => { ; (event.target as HTMLImageElement).src = "/assets/images/menu-images/acai.avif" }} />
+                    <img src={checkoutImageUrl(product.image)} alt="" onError={(event) => useApiImageFallback(event.currentTarget)} />
                     <div>
                       <span>{label}</span>
                       <strong>{product.name}</strong>
@@ -992,7 +993,7 @@ function Checkout() {
           <div className="checkout-empty glass-panel">
             <h2>O carrinho está vazio</h2>
             <p>Adicione alguns pratos antes de finalizar o pedido.</p>
-            <Link to="/menu" className="prey-button">Ver menu</Link>
+            <Link to="/menu" className="bonefree-button">Ver menu</Link>
           </div>
         ) : (
           <form className="checkout-grid" onSubmit={handleSubmit}>
@@ -1205,7 +1206,7 @@ function Checkout() {
                     const busy = cartBusyKey === `${item.cart_log_id}-${item.id_produto}`
                     return (
                       <div key={`${item.cart_log_id}-${item.id_produto}`} className="checkout-summary-item checkout-summary-item-detailed checkout-mini-cart-item">
-                        <img src={checkoutImageUrl(item.caminho_imagem)} alt={item.nome} onError={(event) => { ; (event.target as HTMLImageElement).src = "/assets/images/menu-images/acai.avif" }} />
+                        <img src={checkoutImageUrl(item.caminho_imagem)} alt={item.nome} onError={(event) => useApiImageFallback(event.currentTarget)} />
                         <div className="checkout-mini-cart-copy">
                           <span>
                             {item.nome}
@@ -1297,7 +1298,7 @@ function Checkout() {
 
                 {formError && <p className="checkout-form-error">{formError}</p>}
 
-                <button type="submit" className="checkout-submit prey-button" disabled={isSubmitting || items.length === 0}>
+                <button type="submit" className="checkout-submit bonefree-button" disabled={isSubmitting || items.length === 0}>
                   {isSubmitting ? "A efetuar pedido..." : `Fazer pedido - ${formatEuro(total)}`}
                 </button>
               </div>

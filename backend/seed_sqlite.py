@@ -17,7 +17,7 @@ from database import DATABASE_URL, Base, engine
 import models  # noqa: F401  Ensures SQLAlchemy registers all models.
 
 
-DEFAULT_DUMP_PATH = Path(__file__).resolve().parent / "prey_rest_2.sql"
+DEFAULT_DUMP_PATH = Path(__file__).resolve().parent / "bonefree_rest_2.sql"
 INSERT_RE = re.compile(r"INSERT\s+INTO\s+`(?P<table>[^`]+)`\s+.*?;", re.DOTALL | re.IGNORECASE)
 
 
@@ -73,7 +73,7 @@ def seed_sqlite(dump_path: Path = DEFAULT_DUMP_PATH) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Seed the SQLite database from prey_rest_2.sql.")
+    parser = argparse.ArgumentParser(description="Seed the SQLite database from bonefree_rest_2.sql.")
     parser.add_argument(
         "--dump",
         type=Path,

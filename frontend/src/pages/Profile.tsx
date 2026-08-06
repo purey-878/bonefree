@@ -30,6 +30,7 @@ import CustomSelect from "../components/ui/CustomSelect"
 import { useToast } from "../components/ui/toastContext"
 import { useAuth } from "../hooks"
 import { cartService, checkoutService, customizationSummary, productService } from "../services"
+import { useApiImageFallback } from "../utils/imageFallback"
 import { translateUserMessage } from "../utils/messages"
 import { authService } from "../services/authService"
 import { getPublicLoyaltyCouponSettings } from "../services/siteSettingsService"
@@ -411,7 +412,7 @@ function Profile() {
   const favoriteItem = favoriteMeals[0]?.name ?? "Discovering"
   const latestOrder = allOrders[0]
   const activeFilterCount = Object.values(filters).filter(Boolean).length
-  const displayName = `${form.nome} ${form.apelido}`.trim() || user?.email || "Cliente PREY"
+  const displayName = `${form.nome} ${form.apelido}`.trim() || user?.email || "Cliente BONEFREE"
   const tier = customerTier(allOrders.length, totalSpent)
   const couponStreak = useMemo(() => {
     const requiredOrders = Math.max(1, Math.round(numericSetting(loyaltySettings.qualifying_order_count, 3)))
@@ -955,7 +956,7 @@ function Profile() {
             <div className="profile-loyalty-banner">
               <div>
                 <Sparkles size={20} />
-                <span>Prey loyalty</span>
+                <span>Bonefree loyalty</span>
                 <h3>{loyaltyProfileHeadline(loyaltySettings)}</h3>
                 <p>{loyaltyCouponDetail(loyaltySettings)}</p>
               </div>
@@ -1145,7 +1146,7 @@ function OrderTimelineCard({
                             src={resolveImage(productImage)}
                             alt=""
                             onError={(event) => {
-                              ;(event.currentTarget as HTMLImageElement).src = "/assets/images/menu-images/acai.avif"
+                              useApiImageFallback(event.currentTarget)
                             }}
                           />
                         ) : (

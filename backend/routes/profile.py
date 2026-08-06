@@ -54,6 +54,25 @@ def _note_value(notes: str | None, key: str) -> str | None:
     return None
 
 
+def _product_image_path(produto) -> str | None:
+    if not produto:
+        return None
+
+    image_path = None
+    if produto.imagens:
+        image_path = produto.imagens[0].caminho_imagem
+    elif produto.imagem:
+        image_path = produto.imagem
+
+    if not image_path:
+        return None
+    if image_path.startswith(("http://", "https://", "/assets/", "/menu-images/")):
+        return image_path
+    if image_path.startswith("menu-images/"):
+        return f"/{image_path}"
+    return f"/menu-images/{image_path}"
+
+
 def _fulfillment_from_notes(notes: str | None) -> str:
     fulfillment = _note_value(notes, "fulfillment")
     if fulfillment in {"dine_in", "pickup", "takeaway"}:
@@ -120,10 +139,7 @@ def _order_response(encomenda: Encomenda) -> dict:
                 "quantidade": item.quantidade,
                 "customizacao": customization_from_json(item.customizacao),
                 "subtotal": Decimal(str(item.preco_unitario)) * item.quantidade,
-                "imagem": (
-                    item.produto.imagens[0].caminho_imagem
-                    if item.produto and item.produto.imagens else item.produto.imagem if item.produto else None
-                ),
+                "imagem": _product_image_path(item.produto),
                 "calorias": item.produto.total_calorias if item.produto else None,
             }
             for item in encomenda.itens

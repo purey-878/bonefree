@@ -53,7 +53,7 @@ class AuthEmailSMTPTests(unittest.TestCase):
         env = {
             "SMTP_HOST": "localhost",
             "SMTP_PORT": "1025",
-            "SMTP_USER": "prey@example.com",
+            "SMTP_USER": "bonefree@example.com",
             "SMTP_PASS": "secret",
             "SMTP_STARTTLS": "false",
             "AUTH_EMAIL_FROM": "noreply@example.com",
@@ -68,15 +68,15 @@ class AuthEmailSMTPTests(unittest.TestCase):
         smtp = FakeSMTP.instances[0]
         self.assertEqual((smtp.host, smtp.port), ("localhost", 1025))
         self.assertFalse(smtp.started_tls)
-        self.assertEqual(smtp.login_args, ("prey@example.com", "secret"))
-        self.assertEqual(smtp.message["From"], "Prey <noreply@example.com>")
+        self.assertEqual(smtp.login_args, ("bonefree@example.com", "secret"))
+        self.assertEqual(smtp.message["From"], "Bonefree <noreply@example.com>")
         self.assertEqual(smtp.message["To"], "guest@example.com")
 
     def test_smtp_secure_uses_ssl_transport(self):
         env = {
             "SMTP_HOST": "smtp.example.com",
             "SMTP_SECURE": "true",
-            "SMTP_USER": "prey@example.com",
+            "SMTP_USER": "bonefree@example.com",
             "SMTP_PASSWORD": "secret",
         }
 
@@ -89,7 +89,7 @@ class AuthEmailSMTPTests(unittest.TestCase):
         smtp = FakeSMTP.instances[0]
         self.assertEqual((smtp.host, smtp.port), ("smtp.example.com", 465))
         self.assertFalse(smtp.started_tls)
-        self.assertEqual(smtp.login_args, ("prey@example.com", "secret"))
+        self.assertEqual(smtp.login_args, ("bonefree@example.com", "secret"))
 
     def test_port_465_defaults_to_ssl_transport(self):
         env = {
@@ -108,8 +108,8 @@ class AuthEmailSMTPTests(unittest.TestCase):
         self.assertFalse(smtp.started_tls)
 
     def test_sender_email_falls_back_to_smtp_user(self):
-        with patch.dict(os.environ, {"SMTP_USER": "prey@example.com"}, clear=True):
-            self.assertEqual(_sender_email(), "prey@example.com")
+        with patch.dict(os.environ, {"SMTP_USER": "bonefree@example.com"}, clear=True):
+            self.assertEqual(_sender_email(), "bonefree@example.com")
 
     def test_validate_email_config_reports_missing_required_keys(self):
         with patch.dict(os.environ, {}, clear=True):
@@ -128,7 +128,7 @@ class AuthEmailSMTPTests(unittest.TestCase):
         env = {
             "SMTP_HOST": "smtp.gmail.com",
             "SMTP_PORT": "587",
-            "SMTP_USER": "prey@example.com",
+            "SMTP_USER": "bonefree@example.com",
             "SMTP_PASS": "secret",
         }
 
@@ -139,7 +139,7 @@ class AuthEmailSMTPTests(unittest.TestCase):
         env = {
             "SMTP_HOST": "smtp.gmail.com",
             "SMTP_PORT": "587",
-            "SMTP_USER": "prey@example.com",
+            "SMTP_USER": "bonefree@example.com",
             "SMTP_PASSWORD": "account-password",
             "SMTP_STARTTLS": "false",
         }

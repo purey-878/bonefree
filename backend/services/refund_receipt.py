@@ -54,7 +54,7 @@ def build_refund_receipt_payload(refund: Reembolso) -> dict[str, Any]:
     ) or "Cliente"
 
     return {
-        "company_name": os.getenv("RECEIPT_COMPANY_NAME", "PREY"),
+        "company_name": os.getenv("RECEIPT_COMPANY_NAME", "BONEFREE"),
         "company_email": os.getenv("RECEIPT_COMPANY_EMAIL", "carambolarubra@gmail.com"),
         "refund_receipt_number": refund.recibo_numero or refund_receipt_number(refund),
         "original_order_number": f"ENC-{order.id_encomenda:06d}",
@@ -81,7 +81,7 @@ def render_refund_receipt_pdf(receipt: Mapping[str, Any]) -> bytes:
         topMargin=15 * mm,
         bottomMargin=15 * mm,
         title=f"Recibo de Reembolso {receipt['refund_receipt_number']}",
-        author=str(receipt.get("company_name", "PREY")),
+        author=str(receipt.get("company_name", "BONEFREE")),
     )
     styles = _styles()
     rows = [
@@ -119,20 +119,20 @@ def send_refund_email(receipt: Mapping[str, Any]) -> bool:
         logger.info("Refund email skipped because EMAIL_RECEIPTS_ENABLED is disabled.")
         return False
 
-    subject = "Reembolso aprovado - PREY"
+    subject = "Reembolso aprovado - BONEFREE"
     text_body = (
         "O seu reembolso foi aprovado e processado.\n\n"
         f"Valor do reembolso: {_format_money(receipt['refund_amount'])}\n\n"
         f"{REFUND_METHOD_TEXT}\n\n"
         "Enviamos o recibo de reembolso em anexo.\n\n"
-        "Obrigado,\nPREY"
+        "Obrigado,\nBONEFREE"
     )
     html_body = (
         "<p>O seu reembolso foi aprovado e processado.</p>"
         f"<p><strong>Valor do reembolso:</strong> {_format_money(receipt['refund_amount'])}</p>"
         f"<p>{escape(REFUND_METHOD_TEXT)}</p>"
         "<p>Enviamos o recibo de reembolso em anexo.</p>"
-        "<p>Obrigado,<br>PREY</p>"
+        "<p>Obrigado,<br>BONEFREE</p>"
     )
     pdf_body = render_refund_receipt_pdf(receipt)
     pdf_filename = refund_receipt_filename(receipt)
@@ -154,7 +154,7 @@ def send_refund_email(receipt: Mapping[str, Any]) -> bool:
 def _header(receipt: Mapping[str, Any], styles: dict[str, ParagraphStyle]) -> Table:
     data = [
         [
-            Paragraph(escape(str(receipt.get("company_name", "PREY"))), styles["Brand"]),
+            Paragraph(escape(str(receipt.get("company_name", "BONEFREE"))), styles["Brand"]),
             Paragraph(
                 f"<b>RECIBO DE REEMBOLSO</b><br/><font color='#4B5563'>{escape(str(receipt['refund_receipt_number']))}</font>",
                 styles["Right"],
@@ -210,7 +210,7 @@ def _styles() -> dict[str, ParagraphStyle]:
 def _send_with_sendgrid(receipt: Mapping[str, Any], subject: str, text_body: str, html_body: str, pdf_body: bytes, pdf_filename: str) -> None:
     payload = {
         "personalizations": [{"to": [{"email": str(receipt["customer_email"]), "name": str(receipt["customer_name"])}]}],
-        "from": {"email": _sender_email(receipt), "name": "PREY"},
+        "from": {"email": _sender_email(receipt), "name": "BONEFREE"},
         "subject": subject,
         "content": [{"type": "text/plain", "value": text_body}, {"type": "text/html", "value": html_body}],
         "attachments": [{"content": b64encode(pdf_body).decode("ascii"), "type": "application/pdf", "filename": pdf_filename, "disposition": "attachment"}],
@@ -232,7 +232,7 @@ def _send_with_smtp(receipt: Mapping[str, Any], subject: str, text_body: str, ht
     port = int(configured_port or ("465" if secure else "587"))
     message = EmailMessage()
     message["Subject"] = subject
-    message["From"] = formataddr(("PREY", _sender_email(receipt)))
+    message["From"] = formataddr(("BONEFREE", _sender_email(receipt)))
     message["To"] = formataddr((str(receipt["customer_name"]), str(receipt["customer_email"])))
     message.set_content(text_body)
     message.add_alternative(html_body, subtype="html")

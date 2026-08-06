@@ -14,7 +14,7 @@ from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 
 
-DB_PATH = Path(__file__).with_name("prey_rest_2.db")
+DB_PATH = Path(__file__).with_name("bonefree_rest_2.db")
 
 INGREDIENT_DEFAULTS: dict[str, tuple[str, Decimal]] = {
     "Americano": ("INGREDIENTES_NORMAIS", Decimal("0.02")),

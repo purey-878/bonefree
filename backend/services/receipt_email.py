@@ -91,7 +91,7 @@ def build_order_receipt_payload(
         "company_nif": os.getenv("RECEIPT_COMPANY_NIF", ""),
         "company_address": os.getenv(
             "RECEIPT_COMPANY_ADDRESS",
-            "Prey\nR. Eng. Henrique Mendia 28A\n2825-450 Costa da Caparica\nPortugal",
+            "Bonefree\nR. Eng. Henrique Mendia 28A\n2825-450 Costa da Caparica\nPortugal",
         ),
         "company_email": os.getenv("RECEIPT_COMPANY_EMAIL", "carambolarubra@gmail.com"),
         "company_phone": os.getenv("RECEIPT_COMPANY_PHONE", "+351 968 107 703"),
@@ -153,7 +153,7 @@ def build_saved_order_receipt_payload(encomenda: Encomenda) -> dict[str, Any]:
         "company_nif": os.getenv("RECEIPT_COMPANY_NIF", ""),
         "company_address": os.getenv(
             "RECEIPT_COMPANY_ADDRESS",
-            "Prey\nR. Eng. Henrique Mendia 28A\n2825-450 Costa da Caparica\nPortugal",
+            "Bonefree\nR. Eng. Henrique Mendia 28A\n2825-450 Costa da Caparica\nPortugal",
         ),
         "company_email": os.getenv("RECEIPT_COMPANY_EMAIL", "carambolarubra@gmail.com"),
         "company_phone": os.getenv("RECEIPT_COMPANY_PHONE", "+351 968 107 703"),
@@ -485,7 +485,7 @@ def _render_plain_text(receipt: Mapping[str, Any]) -> str:
 
 
 def _company_name() -> str:
-    return os.getenv("RECEIPT_COMPANY_NAME", "PREY")
+    return os.getenv("RECEIPT_COMPANY_NAME", "BONEFREE")
 
 
 def _company_logo_url() -> str:
@@ -494,7 +494,7 @@ def _company_logo_url() -> str:
         return explicit
 
     base_url = os.getenv("PUBLIC_BASE_URL") or os.getenv("APP_BASE_URL") or "http://localhost:8000"
-    return f"{base_url.rstrip('/')}/public/images/stamp-1.png"
+    return f"{base_url.rstrip('/')}/assets/images/bonefree-logo.webp"
 
 
 def _sender_email(receipt: Mapping[str, Any]) -> str:
@@ -520,7 +520,7 @@ def _customer_address(customer_name: str, checkout: CheckoutRequest, customer: A
 def _shipping_address(checkout: CheckoutRequest) -> str:
     address = os.getenv(
         "RECEIPT_PICKUP_ADDRESS",
-        "Comer no restaurante PREY\nR. Eng. Henrique Mendia 28A\n2825-450 Costa da Caparica\nPortugal",
+        "Comer no restaurante BONEFREE\nR. Eng. Henrique Mendia 28A\n2825-450 Costa da Caparica\nPortugal",
     )
     if checkout.customer.table_number is None:
         return address
@@ -567,7 +567,7 @@ def _invoice_address(customer: Any) -> str:
 def _saved_shipping_address(encomenda: Encomenda) -> str:
     address = os.getenv(
         "RECEIPT_PICKUP_ADDRESS",
-        "Comer no restaurante PREY\nR. Eng. Henrique Mendia 28A\n2825-450 Costa da Caparica\nPortugal",
+        "Comer no restaurante BONEFREE\nR. Eng. Henrique Mendia 28A\n2825-450 Costa da Caparica\nPortugal",
     )
     table_number = _note_value(encomenda.notas, "table_number")
     if not table_number:

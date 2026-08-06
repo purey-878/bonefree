@@ -175,6 +175,13 @@ const Logo = styled(Link)`
   text-decoration: none;
   letter-spacing: 0;
 
+  img {
+    display: block;
+    width: auto;
+    height: 42px;
+    object-fit: contain;
+  }
+
   &:hover {
     color: var(--nav-strong, var(--brand-ink));
   }
@@ -848,9 +855,8 @@ const Navbar = () => {
             </IconAction>
           </MobileLeft>
 
-          <Logo className="logo-prey" aria-label="Início PREY" onClick={closeDrawer} to="/">
-          im
-            
+          <Logo className="logo-bonefree" aria-label="Início Bonefree" onClick={closeDrawer} to="/">
+            <img src="/assets/images/bonefree-logo.webp" className="img-fluid img-25" alt="Bonefree" />
           </Logo>
 
           <CenterNav aria-label="Navegação principal">
@@ -922,9 +928,8 @@ const Navbar = () => {
           <Backdrop aria-label="Fechar menu" onClick={closeDrawer} type="button" />
           <MobileDrawer aria-label="Navegação móvel">
             <DrawerHeader>
-              <Logo aria-label="Início PREY" onClick={closeDrawer} to="/">
-              
-                PREY
+              <Logo aria-label="Início Bonefree" onClick={closeDrawer} to="/">
+                <img src="/assets/images/bonefree-logo.webp" className="img-fluid img-25" alt="Bonefree" />
               </Logo>
               <IconAction aria-label="Fechar menu" onClick={closeDrawer} type="button">
                 <X size={22} />

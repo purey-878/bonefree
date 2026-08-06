@@ -181,12 +181,12 @@ class LoyaltyCouponSettings(BaseModel):
 
 
 class CompanyDetailsSettings(BaseModel):
-    brand_name: str = Field("PREY", max_length=80)
+    brand_name: str = Field("BONEFREE", max_length=80)
     description: str = Field(
-        "Prey is a vegan restaurant and bar in Costa da Caparica. We serve 100% plant-based dishes, artisanal cocktails, and provide a relaxed atmosphere.",
+        "Bonefree is a vegan restaurant and bar in Costa da Caparica. We serve 100% plant-based dishes, artisanal cocktails, and provide a relaxed atmosphere.",
         max_length=500,
     )
-    address: str = Field("Prey, R. Eng. Henrique Mendia 28A, 2825-450 Costa da Caparica", max_length=240)
+    address: str = Field("Bonefree, R. Eng. Henrique Mendia 28A, 2825-450 Costa da Caparica", max_length=240)
     phone: str = Field("+351 968 107 703", max_length=60)
     email: str = Field("carambolarubra@gmail.com", max_length=160)
 

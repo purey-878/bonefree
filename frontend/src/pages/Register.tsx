@@ -232,7 +232,7 @@ function Register() {
               {fieldErrors.confirmPassword && <small className="field-error">{fieldErrors.confirmPassword}</small>}
             </div>
 
-            <button type="submit" className="auth-btn prey-button" disabled={loading}>
+            <button type="submit" className="auth-btn bonefree-button" disabled={loading}>
               {loading ? 'A criar conta...' : 'Criar conta'}
             </button>
           </form>

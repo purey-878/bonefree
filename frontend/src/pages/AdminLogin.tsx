@@ -87,7 +87,7 @@ export default function AdminLogin() {
               className="form-input"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@prey.pt"
+              placeholder="admin@bonefree.pt"
               required
             />
           </div>
@@ -105,7 +105,7 @@ export default function AdminLogin() {
             />
           </div>
 
-          <button type="submit" disabled={loading} className="auth-btn prey-button fw-bold letter-spacing-2">
+          <button type="submit" disabled={loading} className="auth-btn bonefree-button fw-bold letter-spacing-2">
             {loading ? "A entrar..." : "Entrar como admin"}
           </button>
         </form>

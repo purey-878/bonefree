@@ -7,7 +7,7 @@ from sqlalchemy.event import listens_for
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 BASE_DIR = Path(__file__).resolve().parent
-DEFAULT_SQLITE_PATH = BASE_DIR / "prey_rest_2.db"
+DEFAULT_SQLITE_PATH = BASE_DIR / "bonefree_rest_2.db"
 DEFAULT_DATABASE_URL = f"sqlite:///{DEFAULT_SQLITE_PATH.as_posix()}"
 
 # Allow overriding the DB URL via environment variable.

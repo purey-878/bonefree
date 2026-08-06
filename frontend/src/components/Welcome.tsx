@@ -22,11 +22,11 @@ const WelcomeSection = () => {
             </div>
 
             <h1 className="display-4 display-md-1 fw-normal mb-3">
-              Prey Sabores Veganos na Costa da Caparica
+              Bonefree Sabores Veganos na Costa da Caparica
             </h1>
 
             <h6 className="lh-lg mb-4 text-muted">
-             Bem-vindo ao Prey, um restaurante e bar vegan na Costa da Caparica. Aqui encontras nachos latinos, hambúrgueres vegan e pratos criativos à base de plantas, acompanhados por cocktails refrescantes, num ambiente descontraído.
+             Bem-vindo ao Bonefree, um restaurante e bar vegan na Costa da Caparica. Aqui encontras nachos latinos, hambúrgueres vegan e pratos criativos à base de plantas, acompanhados por cocktails refrescantes, num ambiente descontraído.
             </h6>
 
             <h4 className="fw-semi-bold fs-4 green">

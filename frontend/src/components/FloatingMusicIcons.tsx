@@ -41,7 +41,7 @@ const MusicFloatLayer = styled.div`
     color: #7baf4b;
     opacity: 0.38;
     transform: rotate(var(--music-float-rotate, -8deg));
-    animation: prey-music-drift var(--music-float-duration, 13s) ease-in-out infinite alternate;
+    animation: bonefree-music-drift var(--music-float-duration, 13s) ease-in-out infinite alternate;
     box-shadow:
       0 18px 48px color-mix(in srgb, currentColor 18%, transparent),
       inset 0 0 0 1px rgba(255, 255, 255, 0.52);
@@ -117,7 +117,7 @@ const MusicFloatLayer = styled.div`
     color: #0891b2;
   }
 
-  @keyframes prey-music-drift {
+  @keyframes bonefree-music-drift {
     from {
       translate: 0 0;
     }

@@ -1031,7 +1031,7 @@ label{
   text-align: center;
 }
 
-.checkout-empty .prey-button {
+.checkout-empty .bonefree-button {
   margin-top: 18px;
 }
 
@@ -1497,7 +1497,7 @@ label{
   width: 100%;
 }
 
-.confirmation-actions .prey-button {
+.confirmation-actions .bonefree-button {
   width: 100%;
   min-height: 52px;
 }
@@ -2572,7 +2572,7 @@ label{
     font-weight: 950;
   }
 
-.confirmation-mobile-cta .prey-button {
+.confirmation-mobile-cta .bonefree-button {
     width: auto;
     min-height: 44px;
     padding: 0 18px;

@@ -39,7 +39,7 @@ const Contact: React.FC = () => {
         
           <HeroCopy>
               <Navbar />
-            <h1>Encontre a PREY junto à costa.</h1>
+            <h1>Encontre a BONEFREE junto à costa.</h1>
             <p>Pratos vegetais, cocktails, pedidos à mesa e uma sala feita para noites longas e descontraídas.</p>
             <HeroActions>
               <a href={mapsUrl} target="_blank" rel="noopener noreferrer">
@@ -57,9 +57,9 @@ const Contact: React.FC = () => {
         </HeroGrid>
       </ContactHero>
 
-      <ContactBento aria-label="Detalhes de contacto da PREY">
+      <ContactBento aria-label="Detalhes de contacto da BONEFREE">
         <FeatureTile>
-          <img src="/assets/images/banner-menu.jpeg" alt="Mesa vegetal da PREY" />
+          <img src="/assets/images/banner-menu.jpeg" alt="Mesa vegetal da BONEFREE" />
           <div>
             <span>Entre com fome</span>
             <h2>Comida, cocktails, música, costa.</h2>
@@ -80,7 +80,7 @@ const Contact: React.FC = () => {
 
         <DirectionsTile>
           <MapPin size={26} />
-          <span>Prey, Costa da Caparica</span>
+          <span>Bonefree, Costa da Caparica</span>
           <h2>R. Eng. Henrique Mendia 28A</h2>
           <a href={mapsUrl} target="_blank" rel="noopener noreferrer">
             Abrir no Google Maps
@@ -96,7 +96,7 @@ const Contact: React.FC = () => {
             allowFullScreen
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
-            title="Localização da PREY"
+            title="Localização da BONEFREE"
           />
         </MapTile>
       </ContactBento>

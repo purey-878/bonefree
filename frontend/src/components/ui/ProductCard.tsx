@@ -8,6 +8,7 @@ import styled, { css } from 'styled-components'
 
 import { AddToCartButton } from './Button'
 import { Badge, StockBadge } from './Badge'
+import { productImageFallback, useApiImageFallback } from '../../utils/imageFallback'
 import { formatEuro } from '../../utils/money'
 
 export type ProductCardProduct = {
@@ -44,7 +45,7 @@ export type ProductCardProps = Omit<
   tone?: 'dark' | 'light'
 }
 
-const defaultImageFallback = '/assets/images/menu-images/acai.avif'
+const defaultImageFallback = productImageFallback
 
 function defaultResolveImageSrc(image: string | null | undefined) {
   if (!image) return defaultImageFallback
@@ -428,7 +429,7 @@ export function ProductCard({
 
 
   const handleImageError = (event: SyntheticEvent<HTMLImageElement>) => {
-    event.currentTarget.src = imageFallback
+    useApiImageFallback(event.currentTarget, imageFallback)
   }
 
   return (
