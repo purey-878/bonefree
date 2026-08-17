@@ -13,12 +13,16 @@ frontend/.vite/
 frontend/.vite-temp/
 frontend/node_modules/.tmp/
 
-# Python
+# Python cache
 __pycache__/
 *.py[cod]
+
+# Testing / tooling cache
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+
+# Virtual environments
 .venv/
 venv/
 
