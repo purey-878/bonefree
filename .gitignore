@@ -34,7 +34,6 @@ examples/
 
 # Local databases and runtime files
 *.db
-!backend/bonefree_rest_2.db
 *.sqlite
 *.sqlite3
 

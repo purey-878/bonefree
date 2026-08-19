@@ -10,7 +10,8 @@ from urllib.parse import quote
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session, joinedload
 
-from auth import get_current_user_optional, hash_password
+from dependencies import get_current_user_optional
+from services.auth_service import hash_password
 from database import get_db
 from models import (
     Cart,

@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import String, cast, func
 from sqlalchemy.orm import Session, joinedload
 
-from auth import get_current_user
+from dependencies import get_current_user
 from database import get_db
 from models import Customer, CustomerBillingAddress, Order, OrderProduct
 from schemas import UserProfileUpdate, UserResponse

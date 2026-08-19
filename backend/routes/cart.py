@@ -25,7 +25,7 @@ from schemas import (
     MergeCartSchema,
     MergeResult,
 )
-from auth import get_current_user, get_current_user_optional
+from dependencies import get_current_user, get_current_user_optional
 from services.order_customization import customization_from_json, customization_to_json
 from services.product_availability import unavailable_due_to_inactive_base
 from services.product_pricing import discounted_product_price

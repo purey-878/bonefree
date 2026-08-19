@@ -55,6 +55,12 @@ class Settings(BaseSettings):
         validation_alias="DATABASE_CONNECT_TIMEOUT_SECONDS",
     )
     auto_apply_migrations: bool = Field(default=True, validation_alias="AUTO_APPLY_MIGRATIONS")
+    session_expiration_minutes: int = Field(default=10080, validation_alias="SESSION_EXPIRATION_MINUTES")
+    admin_session_expiration_minutes: int = Field(default=480, validation_alias="ADMIN_SESSION_EXPIRATION_MINUTES")
+    admin_session_inactivity_expiration_minutes: int = Field(
+        default=60,
+        validation_alias="ADMIN_SESSION_INACTIVITY_EXPIRATION_MINUTES",
+    )
     dev_reset_database_on_migration_error: bool = Field(
         default=True,
         validation_alias="DEV_RESET_DATABASE_ON_MIGRATION_ERROR",

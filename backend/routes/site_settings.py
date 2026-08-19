@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from auth import require_super_admin
+from dependencies import require_role
+from services.auth_service import SUPER_ADMIN_ROLE
 from database import get_db
 from models import Admin, Product
 from schemas.site_settings import (
@@ -66,7 +67,7 @@ def read_public_events(db: Session = Depends(get_db)):
 
 @admin_router.get("/theme", response_model=SiteThemeResponse)
 def read_admin_site_theme(
-    current_admin: Admin = Depends(require_super_admin),
+    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     return get_site_theme(db)
@@ -75,7 +76,7 @@ def read_admin_site_theme(
 @admin_router.put("/theme", response_model=SiteThemeResponse)
 def update_admin_site_theme(
     settings: SiteThemeSettings,
-    current_admin: Admin = Depends(require_super_admin),
+    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     return save_site_theme(db, settings)
@@ -83,7 +84,7 @@ def update_admin_site_theme(
 
 @admin_router.get("/chef-special", response_model=ChefSpecialSettings)
 def read_admin_chef_special(
-    current_admin: Admin = Depends(require_super_admin),
+    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     return get_chef_special_settings(db)
@@ -92,7 +93,7 @@ def read_admin_chef_special(
 @admin_router.put("/chef-special", response_model=ChefSpecialSettings)
 def update_admin_chef_special(
     settings: ChefSpecialSettings,
-    current_admin: Admin = Depends(require_super_admin),
+    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     if settings.product_id:
@@ -112,7 +113,7 @@ def update_admin_chef_special(
 
 @admin_router.get("/loyalty-coupons", response_model=LoyaltyCouponSettings)
 def read_admin_loyalty_coupon_settings(
-    current_admin: Admin = Depends(require_super_admin),
+    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     return get_loyalty_coupon_settings(db)
@@ -121,7 +122,7 @@ def read_admin_loyalty_coupon_settings(
 @admin_router.put("/loyalty-coupons", response_model=LoyaltyCouponSettings)
 def update_admin_loyalty_coupon_settings(
     settings: LoyaltyCouponSettings,
-    current_admin: Admin = Depends(require_super_admin),
+    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     return save_loyalty_coupon_settings(db, settings)
@@ -129,7 +130,7 @@ def update_admin_loyalty_coupon_settings(
 
 @admin_router.get("/company-details", response_model=CompanyDetailsSettings)
 def read_admin_company_details(
-    current_admin: Admin = Depends(require_super_admin),
+    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     return get_company_details_settings(db)
@@ -138,7 +139,7 @@ def read_admin_company_details(
 @admin_router.put("/company-details", response_model=CompanyDetailsSettings)
 def update_admin_company_details(
     settings: CompanyDetailsSettings,
-    current_admin: Admin = Depends(require_super_admin),
+    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     return save_company_details_settings(db, settings)
@@ -146,7 +147,7 @@ def update_admin_company_details(
 
 @admin_router.get("/social-media", response_model=SocialMediaSettings)
 def read_admin_social_media(
-    current_admin: Admin = Depends(require_super_admin),
+    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     return get_social_media_settings(db)
@@ -155,7 +156,7 @@ def read_admin_social_media(
 @admin_router.put("/social-media", response_model=SocialMediaSettings)
 def update_admin_social_media(
     settings: SocialMediaSettings,
-    current_admin: Admin = Depends(require_super_admin),
+    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     return save_social_media_settings(db, settings)
@@ -163,7 +164,7 @@ def update_admin_social_media(
 
 @admin_router.get("/events", response_model=EventsSettings)
 def read_admin_events(
-    current_admin: Admin = Depends(require_super_admin),
+    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     return get_events_settings(db)
@@ -172,7 +173,7 @@ def read_admin_events(
 @admin_router.put("/events", response_model=EventsSettings)
 def update_admin_events(
     settings: EventsSettings,
-    current_admin: Admin = Depends(require_super_admin),
+    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     return save_events_settings(db, settings)

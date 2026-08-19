@@ -9,30 +9,26 @@ import csv
 from decimal import Decimal
 from io import StringIO
 from pathlib import Path
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Response, status, Query, UploadFile, File
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response, status, Query, UploadFile, File
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, desc, or_, select
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Union
 
 from database import get_db
+from dependencies import get_current_admin, require_role
 from models import (
     Admin, Product, Cart, CartProduct as CartItem, Customer, ProductImage,
     Category, Order, OrderProduct, Payment, ProductReview,
     Ingredient, ProductIngredient, Refund, CustomerBillingAddress,
 )
-from auth import (
+from services.auth_service import (
     CHEF_ROLE,
     STAFF_ADMIN_ROLE,
     SUPER_ADMIN_ROLE,
-    create_access_token,
-    get_current_admin,
+    authenticate_admin,
     hash_password,
     normalize_admin_role,
-    require_chef_or_staff_or_super_admin,
-    require_staff_admin_or_super_admin,
-    require_super_admin,
-    verify_password,
 )
 from schemas.admin import (
     AdminLogin, AdminTokenResponse,
@@ -94,15 +90,9 @@ SalesStats = Dict[str, Union[float, int]]
 
 
 @router.post("/login", response_model=AdminTokenResponse)
-def admin_login(credentials: AdminLogin, db: Session = Depends(get_db)):
+def admin_login(credentials: AdminLogin, request: Request, db: Session = Depends(get_db)):
     admin = db.query(Admin).filter(Admin.email == credentials.email).first()
-    if not admin or not verify_password(credentials.password, admin.password):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Email ou palavra-passe inválido.")
-    if admin.status == 0:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="A conta de administrador está inativa.")
-
-    admin.role = normalize_admin_role(admin.role)
-    access_token = create_access_token(data={"sub": admin.email, "type": "admin"})
+    admin, access_token = authenticate_admin(db, admin, credentials.password, request)
     return {
         "access_token": access_token,
         "token_type": "bearer",
@@ -635,7 +625,7 @@ def _staff_order_filter():
 @router.get("/categories", response_model=List[CategoryResponse])
 def list_categories(
     include_inactive: bool = Query(False),
-    current_admin: Admin = Depends(require_staff_admin_or_super_admin),
+    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
     query = db.query(Category)
@@ -647,7 +637,7 @@ def list_categories(
 @router.post("/categories", response_model=CategoryResponse, status_code=status.HTTP_201_CREATED)
 def create_category(
     category: CategoryCreate,
-    current_admin: Admin = Depends(require_staff_admin_or_super_admin),
+    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
     new_category = Category(
@@ -666,7 +656,7 @@ def create_category(
 def update_category(
     category_id: str,
     category_update: CategoryUpdate,
-    current_admin: Admin = Depends(require_staff_admin_or_super_admin),
+    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
     parsed_category_id = parse_category_id(category_id)
@@ -689,7 +679,7 @@ def update_category(
 @router.delete("/categories/{category_id}", response_model=CategoryResponse)
 def delete_category(
     category_id: str,
-    current_admin: Admin = Depends(require_staff_admin_or_super_admin),
+    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
     parsed_category_id = parse_category_id(category_id)
@@ -722,7 +712,7 @@ def delete_category(
 def list_ingredients(
     include_inactive: bool = Query(False),
     customization_only: bool = Query(False),
-    current_admin: Admin = Depends(require_staff_admin_or_super_admin),
+    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     query = db.query(Ingredient)
@@ -751,7 +741,7 @@ def list_ingredients(
 @router.post("/ingredients", response_model=IngredientResponse, status_code=status.HTTP_201_CREATED)
 def create_ingredient(
     ingredient: IngredientCreate,
-    current_admin: Admin = Depends(require_staff_admin_or_super_admin),
+    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     name = ingredient.name.strip()
@@ -783,7 +773,7 @@ def create_ingredient(
 def update_ingredient(
     ingredient_id: int,
     ingredient_update: IngredientUpdate,
-    current_admin: Admin = Depends(require_staff_admin_or_super_admin),
+    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     ingredient = db.query(Ingredient).filter(Ingredient.ingredient_id == ingredient_id).first()
@@ -815,7 +805,7 @@ def update_ingredient(
 @router.delete("/ingredients/{ingredient_id}", response_model=IngredientResponse)
 def delete_ingredient(
     ingredient_id: int,
-    current_admin: Admin = Depends(require_staff_admin_or_super_admin),
+    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     ingredient = db.query(Ingredient).filter(Ingredient.ingredient_id == ingredient_id).first()
@@ -831,7 +821,7 @@ def delete_ingredient(
 @router.post("/products", response_model=ProductAdminResponse, status_code=status.HTTP_201_CREATED)
 def create_product(
     product: ProductCreate,
-    current_admin: Admin = Depends(require_staff_admin_or_super_admin),
+    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
     category = db.query(Category).filter(Category.category_id == product.category_id, Category.status == 1).first()
@@ -879,7 +869,7 @@ def list_products(
     gluten_free: bool = Query(None),
     contains_alcohol: bool = Query(None),
     include_deleted: bool = Query(False),
-    current_admin: Admin = Depends(require_staff_admin_or_super_admin),
+    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
     query = db.query(Product).options(joinedload(Product.images))
@@ -916,7 +906,7 @@ def list_products(
 @router.get("/products/{product_id}", response_model=ProductAdminResponse)
 def get_product(
     product_id: str,
-    current_admin: Admin = Depends(require_staff_admin_or_super_admin),
+    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
     parsed_product_id = parse_product_id(product_id)
@@ -935,7 +925,7 @@ def get_product(
 def get_product_analytics(
     product_id: str,
     days: int = Query(30, ge=1, le=365),
-    current_admin: Admin = Depends(require_staff_admin_or_super_admin),
+    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
     parsed_product_id = parse_product_id(product_id)
@@ -1006,7 +996,7 @@ def get_product_analytics(
 def update_product(
     product_id: str,
     product_update: ProductUpdate,
-    current_admin: Admin = Depends(require_staff_admin_or_super_admin),
+    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
     parsed_product_id = parse_product_id(product_id)
@@ -1058,7 +1048,7 @@ def update_product(
 @router.post("/products/{product_id}/toggle-status", response_model=ProductAdminResponse)
 def toggle_product_status(
     product_id: str,
-    current_admin: Admin = Depends(require_staff_admin_or_super_admin),
+    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
     parsed_product_id = parse_product_id(product_id)
@@ -1081,7 +1071,7 @@ def toggle_product_status(
 @router.delete("/products/{product_id}", response_model=ProductAdminResponse)
 def delete_product(
     product_id: str,
-    current_admin: Admin = Depends(require_staff_admin_or_super_admin),
+    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
     parsed_product_id = parse_product_id(product_id)
@@ -1101,7 +1091,7 @@ def upload_product_image(
     product_id: str,
     file: UploadFile = File(...),
     replace_existing: bool = Query(True),
-    current_admin: Admin = Depends(require_staff_admin_or_super_admin),
+    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
     parsed_product_id = parse_product_id(product_id)
@@ -1158,7 +1148,7 @@ def upload_product_image(
 def delete_product_image(
     product_id: str,
     image_id: int,
-    current_admin: Admin = Depends(require_staff_admin_or_super_admin),
+    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     parsed_product_id = parse_product_id(product_id)
@@ -1184,7 +1174,7 @@ def delete_product_image(
 def list_orders(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
-    current_admin: Admin = Depends(require_staff_admin_or_super_admin),
+    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
     orders = (
@@ -1202,7 +1192,7 @@ def list_orders(
 def list_staff_orders(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=200),
-    current_admin: Admin = Depends(require_staff_admin_or_super_admin),
+    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     orders = (
@@ -1221,7 +1211,7 @@ def list_staff_orders(
 def list_kitchen_orders(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
-    current_admin: Admin = Depends(require_chef_or_staff_or_super_admin),
+    current_admin: Admin = Depends(require_role(CHEF_ROLE, STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     orders = (
@@ -1248,7 +1238,7 @@ def list_kitchen_orders(
 @router.get("/kitchen/orders/{order_id}", response_model=KitchenOrderResponse)
 def get_kitchen_order(
     order_id: int,
-    current_admin: Admin = Depends(require_chef_or_staff_or_super_admin),
+    current_admin: Admin = Depends(require_role(CHEF_ROLE, STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     order = _get_order_or_404(db, order_id)
@@ -1260,7 +1250,7 @@ def get_kitchen_order(
 @router.get("/orders/{order_id}", response_model=OrderResponse)
 def get_order(
     order_id: int,
-    current_admin: Admin = Depends(require_staff_admin_or_super_admin),
+    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     return _order_response(_get_order_or_404(db, order_id))
@@ -1271,7 +1261,7 @@ def update_order_status(
     order_id: int,
     body: OrderStatusUpdate,
     background_tasks: BackgroundTasks,
-    current_admin: Admin = Depends(require_chef_or_staff_or_super_admin),
+    current_admin: Admin = Depends(require_role(CHEF_ROLE, STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     order = _get_order_or_404(db, order_id)
@@ -1306,7 +1296,7 @@ def update_order_status(
 def pay_counter_order(
     order_id: int,
     background_tasks: BackgroundTasks,
-    current_admin: Admin = Depends(require_staff_admin_or_super_admin),
+    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     order = _get_order_or_404(db, order_id)
@@ -1337,7 +1327,7 @@ def refund_order(
     order_id: int,
     body: RefundRequest,
     background_tasks: BackgroundTasks,
-    current_admin: Admin = Depends(require_staff_admin_or_super_admin),
+    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     order = _get_order_or_404(db, order_id)
@@ -1390,7 +1380,7 @@ def list_refunds(
     staff_member: Optional[int] = Query(None),
     reason: Optional[str] = Query(None),
     refund_status: Optional[str] = Query(None),
-    current_admin: Admin = Depends(require_staff_admin_or_super_admin),
+    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     query = (
@@ -1421,7 +1411,7 @@ def export_refunds(
     staff_member: Optional[int] = Query(None),
     reason: Optional[str] = Query(None),
     refund_status: Optional[str] = Query(None),
-    current_admin: Admin = Depends(require_staff_admin_or_super_admin),
+    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     refunds = list_refunds(date_from, date_to, staff_member, reason, refund_status, current_admin, db)
@@ -1500,7 +1490,7 @@ def list_customers(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     search: str = Query(None),
-    current_admin: Admin = Depends(require_super_admin),
+    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     query = db.query(Customer).options(joinedload(Customer.billing_address))
@@ -1514,7 +1504,7 @@ def list_customers(
 @router.post("/customers", response_model=CustomerAdminResponse, status_code=status.HTTP_201_CREATED)
 def create_customer(
     body: CustomerAdminCreate,
-    current_admin: Admin = Depends(require_super_admin),
+    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     email = body.email.strip().lower()
@@ -1543,7 +1533,7 @@ def create_customer(
 def update_customer(
     customer_id: int,
     body: CustomerAdminUpdate,
-    current_admin: Admin = Depends(require_super_admin),
+    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     customer = (
@@ -1579,7 +1569,7 @@ def update_customer(
 @router.delete("/customers/{customer_id}", response_model=CustomerAdminResponse)
 def delete_customer(
     customer_id: int,
-    current_admin: Admin = Depends(require_super_admin),
+    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     customer = (
@@ -1600,7 +1590,7 @@ def delete_customer(
 
 @router.get("/staff", response_model=List[AdminResponse])
 def list_staff_admins(
-    current_admin: Admin = Depends(require_super_admin),
+    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     admins = db.query(Admin).order_by(Admin.admin_id.asc()).all()
@@ -1613,7 +1603,7 @@ def list_staff_admins(
 @router.post("/staff", response_model=AdminResponse, status_code=status.HTTP_201_CREATED)
 def create_staff_admin(
     body: StaffAdminCreate,
-    current_admin: Admin = Depends(require_super_admin),
+    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     email = body.email.strip().lower()
@@ -1638,7 +1628,7 @@ def create_staff_admin(
 def update_staff_admin(
     admin_id: int,
     body: StaffAdminUpdate,
-    current_admin: Admin = Depends(require_super_admin),
+    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     admin = db.query(Admin).filter(Admin.admin_id == admin_id).first()
@@ -1668,7 +1658,7 @@ def update_staff_admin(
 @router.delete("/staff/{admin_id}", response_model=AdminResponse)
 def delete_staff_admin(
     admin_id: int,
-    current_admin: Admin = Depends(require_super_admin),
+    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     if admin_id == current_admin.admin_id:
@@ -1688,7 +1678,7 @@ def delete_staff_admin(
 
 @router.get("/analytics/dashboard", response_model=DashboardAnalytics)
 def get_dashboard_analytics(
-    current_admin: Admin = Depends(require_super_admin),
+    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
     # Count totals
@@ -1744,7 +1734,7 @@ def get_dashboard_analytics(
 @router.get("/analytics/low-stock", response_model=List[LowStockProduct])
 def get_low_stock_products(
     limit: int = Query(5, ge=1, le=100),
-    current_admin: Admin = Depends(require_super_admin),
+    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
     products = (
@@ -1771,7 +1761,7 @@ def get_low_stock_products(
 @router.get("/analytics/popular-products", response_model=List[PopularProduct])
 def get_popular_products(
     limit: int = Query(5, ge=1, le=20),
-    current_admin: Admin = Depends(require_super_admin),
+    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
     products = (
@@ -1801,7 +1791,7 @@ def get_analytics_series(
     range: str = Query("month", pattern="^(day|month|year|custom)$"),
     start_date: Optional[str] = Query(None),
     end_date: Optional[str] = Query(None),
-    current_admin: Admin = Depends(require_super_admin),
+    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
     start, end, granularity = _analytics_window(range, start_date, end_date)
@@ -1881,7 +1871,7 @@ def get_analytics_series(
 @router.get("/analytics/sales-performance", response_model=SalesPerformanceResponse)
 def get_sales_performance(
     days: int = Query(7, ge=1, le=90),
-    current_admin: Admin = Depends(require_super_admin),
+    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
     """Get sales performance over specified number of days."""

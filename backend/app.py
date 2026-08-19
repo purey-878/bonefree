@@ -1,16 +1,11 @@
 import logging
 from pathlib import Path
 
-from fastapi import BackgroundTasks, FastAPI, Request
-from fastapi import Depends, HTTPException, status
-from fastapi.staticfiles import StaticFiles
-from sqlalchemy.orm import Session
-from sqlalchemy import select
-from core.config import settings
-from database import SessionLocal
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import List, Literal, Optional
+from fastapi.staticfiles import StaticFiles
+
+from core.config import settings
 from migrations import run_or_stamp_migrations
 from routes.admin import router as admin_router
 from routes.cart import alias_router as cart_alias_router
@@ -21,25 +16,8 @@ from routes.profile import router as profile_router
 from routes.reviews import router as reviews_router
 from routes.site_settings import admin_router as site_settings_admin_router
 from routes.site_settings import public_router as site_settings_public_router
-from auth import hash_password, verify_password, create_access_token, get_current_user
-from models import Customer
-from schemas.user import (
-    ForgotPasswordRequest,
-    MessageResponse,
-    ResetPasswordRequest,
-    TokenResponse,
-    UserAuth,
-    UserRegister,
-    UserResponse,
-    VerifyOTPRequest,
-    VerifyOTPResponse,
-)
-from services.auth_email import send_password_reset_email, send_welcome_email, validate_email_config
-from services.password_reset import can_reset_password, clear_password_reset, start_password_reset, verify_password_reset_code
-from datetime import datetime
-
-
-
+from routers.auth import router as auth_router
+from services.auth_email import validate_email_config
 
 logger = logging.getLogger(__name__)
 
@@ -48,50 +26,6 @@ run_or_stamp_migrations()
 missing_email_config = validate_email_config()
 if missing_email_config:
     logger.warning("Auth email SMTP configuration is missing or empty: %s", ", ".join(missing_email_config))
-
-
-
-class Product(BaseModel):
-    id: int
-    category: str
-    name: str
-    description: str
-    image: str | None = None
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-RATE_LIMIT_WINDOW_SECONDS = 15 * 60
-RATE_LIMIT_MAX_ATTEMPTS = 10
-_auth_attempts: dict[str, list[float]] = {}
-
-
-def _rate_limit_auth(request: Request, action: str) -> None:
-    now = datetime.utcnow().timestamp()
-    client = request.client.host if request.client else "unknown"
-    key = f"{action}:{client}"
-    attempts = [timestamp for timestamp in _auth_attempts.get(key, []) if now - timestamp < RATE_LIMIT_WINDOW_SECONDS]
-    if len(attempts) >= RATE_LIMIT_MAX_ATTEMPTS:
-        raise HTTPException(status_code=429, detail="Demasiadas tentativas. Tente novamente mais tarde.")
-    attempts.append(now)
-    _auth_attempts[key] = attempts
-
-
-def _send_welcome_email_background(email: str, name: str | None = None) -> None:
-    try:
-        sent = send_welcome_email(email, name, raise_errors=True)
-    except Exception:
-        logger.exception("Welcome email background task failed for %s.", email)
-        return
-
-    if not sent:
-        logger.error("Welcome email background task failed for %s. Check auth email service logs for details.", email)
-
 
 
 app = FastAPI(
@@ -115,148 +49,19 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
     allow_credentials=True,
-    allow_methods=['*'],
-    allow_headers=['*'],
+    allow_methods=["*"],
+    allow_headers=["*"],
     expose_headers=["Content-Disposition"],
 )
 
-@app.get('/', tags=['Health'])
-def root():
-    return {'status': 'running'}
 
-@app.get('/health', tags=['Health'])
+@app.get("/health", tags=["Health"])
 def health_check():
-    return {'status': 'healthy'}
+    return {"status": "healthy"}
 
 
-@app.post("/register", response_model=TokenResponse, tags=['Auth'])
-def register(user: UserRegister, background_tasks: BackgroundTasks, request: Request, db: Session = Depends(get_db)):
-    """Register a new user"""
-    _rate_limit_auth(request, "register")
-    # Check if email already exists
-    existing = db.query(Customer).filter(Customer.email == user.email).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Este email já está registado.")
-    if user.tax_id:
-        existing_nif = db.query(Customer).filter(Customer.tax_id == user.tax_id).first()
-        if existing_nif:
-            raise HTTPException(status_code=400, detail="Este NIF já está em uso.")
-    
-    # Create new user
-    new_user = Customer(
-        email=user.email,
-        password=hash_password(user.password),
-        name=user.name or "User",
-        last_name=user.last_name or user.email.split("@")[0],
-        phone=user.phone,
-        tax_id=user.tax_id,
-        status=1,
-        created_at=datetime.utcnow()
-    )
-    
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    background_tasks.add_task(_send_welcome_email_background, new_user.email, new_user.name)
-    
-    # Create token
-    access_token = create_access_token(data={"sub": new_user.email})
-    
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-        "user": UserResponse.model_validate(new_user)
-    }
-
-
-@app.post("/password/forgot", response_model=MessageResponse, tags=['Auth'])
-def forgot_password(body: ForgotPasswordRequest, db: Session = Depends(get_db)):
-    """Start a password reset and email a six-digit code."""
-    generic_message = "Se existir uma conta com este email, foi enviado um código de redefinição."
-    db_user = db.query(Customer).filter(Customer.email == body.email).first()
-    if not db_user or db_user.status == 0:
-        return {"message": generic_message}
-
-    code = start_password_reset(db_user)
-    db.commit()
-
-    display_name = f"{db_user.name or ''} {db_user.last_name or ''}".strip() or db_user.name
-    if not send_password_reset_email(db_user.email, code, display_name):
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Não foi possível enviar o email com o código de redefinição. Verifique a configuração do serviço de email.",
-        )
-
-    return {"message": generic_message}
-
-
-@app.post("/password/verify-otp", response_model=VerifyOTPResponse, tags=['Auth'])
-def verify_password_otp(body: VerifyOTPRequest, db: Session = Depends(get_db)):
-    """Verify a password reset code and return a short-lived reset token."""
-    db_user = db.query(Customer).filter(Customer.email == body.email).first()
-    if not db_user:
-        raise HTTPException(status_code=400, detail="Pedido de redefinição inválido.")
-
-    valid, message, reset_token = verify_password_reset_code(db_user, body.code)
-    db.commit()
-    if not valid or not reset_token:
-        raise HTTPException(status_code=400, detail=message)
-
-    return {"message": message, "reset_token": reset_token}
-
-
-@app.post("/password/reset", response_model=MessageResponse, tags=['Auth'])
-def reset_password(body: ResetPasswordRequest, db: Session = Depends(get_db)):
-    """Reset a password after OTP verification."""
-    db_user = db.query(Customer).filter(Customer.email == body.email).first()
-    if not db_user:
-        raise HTTPException(status_code=400, detail="Pedido de redefinição inválido.")
-
-    allowed, message = can_reset_password(db_user, body.reset_token)
-    if not allowed:
-        raise HTTPException(status_code=400, detail=message)
-
-    db_user.password = hash_password(body.new_password)
-    clear_password_reset(db_user)
-    db.commit()
-
-    return {"message": "A palavra-passe foi redefinida."}
-
-
-@app.post("/login", response_model=TokenResponse, tags=['Auth'])
-def login(user: UserAuth, request: Request, db: Session = Depends(get_db)):
-    """Login user"""
-    _rate_limit_auth(request, "login")
-    # Find user by email
-    db_user = db.query(Customer).filter(Customer.email == user.email).first()
-    
-    if not db_user:
-        raise HTTPException(status_code=401, detail="Email ou palavra-passe inválido.")
-    
-    # Verify password
-    if not verify_password(user.password, db_user.password):
-        raise HTTPException(status_code=401, detail="Email ou palavra-passe inválido.")
-
-    if db_user.status == 0:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="A conta de customer está inativa.")
-    
-    # Create token
-    access_token = create_access_token(data={"sub": db_user.email})
-    
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-        "user": UserResponse.model_validate(db_user)
-    }
-
-
-@app.get("/me", response_model=UserResponse, tags=['Auth'])
-def get_me(current_user: Customer = Depends(get_current_user)):
-    """Get current logged in user"""
-    return UserResponse.model_validate(current_user)
-
-
-app.include_router(products_router, prefix='/products', tags=['Products'])
+app.include_router(auth_router)
+app.include_router(products_router, prefix="/products", tags=["Products"])
 app.include_router(cart_router)
 app.include_router(cart_alias_router)
 app.include_router(checkout_router)

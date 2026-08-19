@@ -7,7 +7,8 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
-from auth import get_current_user, get_current_user_optional, require_super_admin
+from dependencies import get_current_user, get_current_user_optional, require_role
+from services.auth_service import SUPER_ADMIN_ROLE
 from database import get_db
 from models import Admin, Customer, Order, OrderProduct, Product, ProductReview, ReviewReaction, ReviewReply
 from schemas.review import (
@@ -293,7 +294,7 @@ def create_review_reply(
     review_id: int,
     body: ReviewReplyCreate,
     db: Session = Depends(get_db),
-    current_admin: Admin = Depends(require_super_admin),
+    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
 ):
     _get_review_or_404(db, review_id)
     reply = ReviewReply(review_id=review_id, admin_id=current_admin.admin_id, text=body.text.strip())
@@ -309,7 +310,7 @@ def update_review_reply(
     reply_id: int,
     body: ReviewReplyCreate,
     db: Session = Depends(get_db),
-    current_admin: Admin = Depends(require_super_admin),
+    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
 ):
     reply = _get_reply_or_404(db, review_id, reply_id)
     reply.text = body.text.strip()
@@ -325,7 +326,7 @@ def delete_review_reply(
     review_id: int,
     reply_id: int,
     db: Session = Depends(get_db),
-    current_admin: Admin = Depends(require_super_admin),
+    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
 ):
     _ = current_admin
     reply = _get_reply_or_404(db, review_id, reply_id)
@@ -339,7 +340,7 @@ def upsert_review_reaction(
     review_id: int,
     body: ReviewReactionCreate,
     db: Session = Depends(get_db),
-    current_admin: Admin = Depends(require_super_admin),
+    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
 ):
     _get_review_or_404(db, review_id)
     reaction = db.query(ReviewReaction).filter(
@@ -360,7 +361,7 @@ def upsert_review_reaction(
 def delete_review_reaction(
     review_id: int,
     db: Session = Depends(get_db),
-    current_admin: Admin = Depends(require_super_admin),
+    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
 ):
     reaction = db.query(ReviewReaction).filter(
         ReviewReaction.review_id == review_id,
