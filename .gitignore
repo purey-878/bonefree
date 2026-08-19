@@ -30,6 +30,7 @@ venv/
 .env
 .env.*
 !.env.example
+examples/
 
 # Local databases and runtime files
 *.db

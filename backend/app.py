@@ -1,7 +1,3 @@
-from core.env_loader import load_env_files
-
-load_env_files()
-
 import logging
 from pathlib import Path
 
@@ -10,6 +6,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from sqlalchemy import select
+from core.config import settings
 from database import SessionLocal
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -99,9 +96,12 @@ def _send_welcome_email_background(email: str, name: str | None = None) -> None:
 
 
 app = FastAPI(
-    title='Bonefree API',
-    version='0.1.0',
-    description='Backend API for the Bonefree project',
+    title=settings.app_name,
+    version=settings.app_version,
+    description="Backend API for the Bonefree project",
+    docs_url="/docs" if settings.docs_enabled else None,
+    redoc_url="/redoc" if settings.docs_enabled else None,
+    openapi_url="/openapi.json" if settings.docs_enabled else None,
 )
 
 PUBLIC_ASSETS_DIR = Path(__file__).resolve().parents[1] / "public" / "assets"
@@ -112,20 +112,9 @@ UPLOADS_DIR = Path(__file__).resolve().parents[1] / "uploads"
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
 
-origins = [
-    'http://127.0.0.1:8000',
-    'http://localhost:5173',
-    'http://127.0.0.1',
-    'http://127.0.0.1:5174',
-
-    # Production frontend
-    'https://bonefree.pt',
-    'https://www.bonefree.pt',
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=['*'],
     allow_headers=['*'],
@@ -280,13 +269,18 @@ app.include_router(site_settings_admin_router)
 
 
 if __name__ == "__main__":
-    import os
     import uvicorn
 
-    port = int(os.environ.get("PORT", 8000))
-
-    uvicorn.run(
-        "app:app",
-        host="0.0.0.0",
-        port=port,
-    )
+    if settings.environment in ("development", "test"):
+        uvicorn.run(
+            "app:app",
+            host="127.0.0.1",
+            port=settings.port,
+            reload=settings.environment == "development",
+            log_level="debug" if settings.debug else "info",
+        )
+    else:
+        print(
+            "Cannot run directly in production environment. "
+            "Use a production ASGI server like Gunicorn or Uvicorn with proper configuration."
+        )

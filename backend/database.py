@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 from sqlalchemy import create_engine
@@ -6,16 +5,9 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.event import listens_for
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-BASE_DIR = Path(__file__).resolve().parent
-DEFAULT_SQLITE_PATH = BASE_DIR / "bonefree_rest_2.db"
-DEFAULT_DATABASE_URL = f"sqlite:///{DEFAULT_SQLITE_PATH.as_posix()}"
+from core.config import settings
 
-# Allow overriding the DB URL via environment variable.
-# The default is a local SQLite database file in the backend directory.
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    DEFAULT_DATABASE_URL,
-)
+DATABASE_URL = settings.database_url
 
 database_url = make_url(DATABASE_URL)
 engine_kwargs = {}
@@ -26,9 +18,9 @@ if database_url.get_backend_name() == "sqlite":
         Path(database_url.database).parent.mkdir(parents=True, exist_ok=True)
 else:
     engine_kwargs.update(
-        pool_pre_ping=True,
-        pool_recycle=1800,
-        pool_timeout=30,
+        pool_pre_ping=settings.database_pool_pre_ping,
+        pool_recycle=settings.database_pool_recycle_seconds,
+        pool_timeout=settings.database_pool_timeout_seconds,
     )
 
 engine = create_engine(DATABASE_URL, **engine_kwargs)
