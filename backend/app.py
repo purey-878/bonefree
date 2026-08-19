@@ -1,11 +1,22 @@
 import logging
 from pathlib import Path
+from typing import cast
 
 from fastapi import FastAPI
+from starlette.types import ExceptionHandler
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from core.config import settings
+from core.errors import AppHTTPException
+from core.exception_handlers import (
+    app_http_exception_handler,
+    http_exception_handler,
+    request_validation_exception_handler,
+    unexpected_exception_handler,
+)
 from migrations import run_or_stamp_migrations
 from routers.admin import router as admin_router
 from routers.auth import router as auth_router
@@ -36,6 +47,10 @@ app = FastAPI(
     redoc_url="/redoc" if settings.docs_enabled else None,
     openapi_url="/openapi.json" if settings.docs_enabled else None,
 )
+app.add_exception_handler(AppHTTPException, cast(ExceptionHandler, app_http_exception_handler))
+app.add_exception_handler(StarletteHTTPException, cast(ExceptionHandler, http_exception_handler))
+app.add_exception_handler(RequestValidationError, cast(ExceptionHandler, request_validation_exception_handler))
+app.add_exception_handler(Exception, cast(ExceptionHandler, unexpected_exception_handler))
 
 PUBLIC_ASSETS_DIR = Path(__file__).resolve().parents[1] / "public" / "assets"
 PUBLIC_ASSETS_DIR.mkdir(parents=True, exist_ok=True)

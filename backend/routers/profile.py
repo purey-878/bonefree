@@ -3,7 +3,7 @@
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy import String, cast, func
 from sqlalchemy.orm import Session, joinedload
 
@@ -15,6 +15,7 @@ from schemas import UserProfileUpdate, UserResponse
 from schemas.checkout import OrderResponse
 from services.order_customization import customization_from_json
 from utils.id_format import format_product_id
+from core.errors import AppHTTPException
 
 router = APIRouter(prefix="/profile", tags=["Profile"])
 
@@ -169,7 +170,7 @@ def update_profile(
         .first()
     )
     if not profile_user:
-        raise HTTPException(status_code=401, detail="Utilizador não encontrado.")
+        raise AppHTTPException(status_code=401, error="authentication_required", message="Authentication required.", details={"reason": "request_failed"})
 
     new_email = updates.get("email")
     if new_email and new_email != profile_user.email:
@@ -178,7 +179,12 @@ def update_profile(
             Customer.customer_id != profile_user.customer_id,
         ).first()
         if existing:
-            raise HTTPException(status_code=400, detail="Este email já está em uso.")
+            raise AppHTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                error="duplicate_email",
+                message="This email is already associated with an existing account.",
+                details={"email": new_email},
+            )
 
     new_nif = updates.get("tax_id")
     if new_nif and new_nif != profile_user.tax_id:
@@ -187,11 +193,21 @@ def update_profile(
             Customer.customer_id != profile_user.customer_id,
         ).first()
         if existing:
-            raise HTTPException(status_code=400, detail="Este NIF já está em uso.")
+            raise AppHTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                error="duplicate_tax_id",
+                message="This tax ID is already associated with an existing account.",
+                details={"tax_id": new_nif},
+            )
 
     allowed_notifications = {"email", "sms", "ambos"}
     if "notificacao_preferida" in updates and updates["notificacao_preferida"] not in allowed_notifications:
-        raise HTTPException(status_code=400, detail="Preferencia de notificacao invalida.")
+        raise AppHTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            error="invalid_notification_preference",
+            message="Notification preference must be one of: email, sms, ambos.",
+            details={"value": updates["notificacao_preferida"], "allowed": sorted(allowed_notifications)},
+        )
 
     for field, value in updates.items():
         if hasattr(profile_user, field):

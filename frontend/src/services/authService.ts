@@ -1,5 +1,6 @@
 import { API_BASE, authHeaders } from "./api";
-import { translateUserMessage } from "../utils/messages";
+import { translateApiError, translateFieldError, translateUserMessage } from "../utils/messages";
+import type { ApiErrorField } from "../utils/messages";
 import type { User, RegisterRequest, ProfileUpdateRequest } from "../types/user";
 import type { OrderResponse } from "../types/checkout";
 
@@ -14,10 +15,33 @@ export interface VerifyOtpResponse {
   reset_token: string;
 }
 
+type ApiErrorResponse = {
+  error?: string;
+  message?: string;
+  detail?: string | { error?: string; message?: string; detail?: string };
+  details?: {
+    fields?: ApiErrorField[];
+  };
+};
+
 async function parseError(response: Response, fallback: string): Promise<Error> {
   try {
-    const error = (await response.json()) as { detail?: string };
-    return new Error(translateUserMessage(error.detail || fallback));
+    const payload = (await response.json()) as ApiErrorResponse;
+
+    if (typeof payload.detail === "object" && payload.detail !== null) {
+      return new Error(
+        translateUserMessage(
+          payload.detail.message || payload.detail.detail || payload.detail.error || fallback,
+        ),
+      );
+    }
+
+    const firstFieldError = payload.details?.fields?.[0];
+    if (firstFieldError) {
+      return new Error(translateFieldError(firstFieldError));
+    }
+
+    return new Error(translateApiError(payload.error, translateUserMessage(payload.message || payload.detail || fallback)));
   } catch {
     return new Error(translateUserMessage(fallback));
   }
@@ -42,7 +66,14 @@ export const authService = {
     const response = await fetch(`${API_BASE}/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        email: data.email,
+        password: data.password,
+        name: data.nome,
+        last_name: data.apelido,
+        phone: data.telefone,
+        tax_id: data.nif,
+      }),
     });
 
     if (!response.ok) {

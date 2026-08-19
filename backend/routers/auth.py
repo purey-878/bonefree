@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Request, status
 from sqlalchemy.orm import Session
 
 from dependencies import get_current_user, get_db
@@ -21,6 +21,7 @@ from schemas.user import (
 from services.auth_email import send_password_reset_email, send_welcome_email
 from services.auth_service import authenticate_customer, create_customer_session, get_client_ip, hash_password
 from services.password_reset import can_reset_password, clear_password_reset, start_password_reset, verify_password_reset_code
+from core.errors import AppHTTPException
 
 router = APIRouter(tags=["Auth"])
 logger = logging.getLogger(__name__)
@@ -36,7 +37,7 @@ def _rate_limit_auth(request: Request, action: str) -> None:
     key = f"{action}:{client}"
     attempts = [timestamp for timestamp in _auth_attempts.get(key, []) if now - timestamp < RATE_LIMIT_WINDOW_SECONDS]
     if len(attempts) >= RATE_LIMIT_MAX_ATTEMPTS:
-        raise HTTPException(status_code=429, detail="Demasiadas tentativas. Tente novamente mais tarde.")
+        raise AppHTTPException(status_code=429, error="rate_limit_exceeded", message="Too many attempts. Please try again later.", details={"reason": "request_failed"})
     attempts.append(now)
     _auth_attempts[key] = attempts
 
@@ -59,12 +60,22 @@ def register(user: UserRegister, background_tasks: BackgroundTasks, request: Req
 
     existing = db.query(Customer).filter(Customer.email == user.email).first()
     if existing:
-        raise HTTPException(status_code=400, detail="Este email já está registado.")
+        raise AppHTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            error="duplicate_email",
+            message="This email is already associated with an existing account.",
+            details={"email": user.email},
+        )
 
     if user.tax_id:
         existing_nif = db.query(Customer).filter(Customer.tax_id == user.tax_id).first()
         if existing_nif:
-            raise HTTPException(status_code=400, detail="Este NIF já está em uso.")
+            raise AppHTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                error="duplicate_tax_id",
+                message="This tax ID is already associated with an existing account.",
+                details={"tax_id": user.tax_id},
+            )
 
     new_user = Customer(
         email=user.email,
@@ -111,10 +122,7 @@ def forgot_password(body: ForgotPasswordRequest, db: Session = Depends(get_db)):
 
     display_name = f"{db_user.name or ''} {db_user.last_name or ''}".strip() or db_user.name
     if not send_password_reset_email(db_user.email, code, display_name):
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Não foi possível enviar o email com o código de redefinição. Verifique a configuração do serviço de email.",
-        )
+        raise AppHTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, error="service_unavailable", message="Service unavailable.", details={"reason": "request_failed"})
 
     return {"message": generic_message}
 
@@ -124,12 +132,22 @@ def verify_password_otp(body: VerifyOTPRequest, db: Session = Depends(get_db)):
     """Verify a password reset code and return a short-lived reset token."""
     db_user = db.query(Customer).filter(Customer.email == body.email).first()
     if not db_user:
-        raise HTTPException(status_code=400, detail="Pedido de redefinição inválido.")
+        raise AppHTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            error="account_not_found",
+            message="Account not found.",
+            details={"email": body.email},
+        )
 
     valid, message, reset_token = verify_password_reset_code(db_user, body.code)
     db.commit()
     if not valid or not reset_token:
-        raise HTTPException(status_code=400, detail=message)
+        raise AppHTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            error="invalid_password_reset_code",
+            message="Invalid or expired password reset code.",
+            details={"email": body.email, "source_message": str(message)},
+        )
 
     return {"message": message, "reset_token": reset_token}
 
@@ -139,11 +157,21 @@ def reset_password(body: ResetPasswordRequest, db: Session = Depends(get_db)):
     """Reset a password after OTP verification."""
     db_user = db.query(Customer).filter(Customer.email == body.email).first()
     if not db_user:
-        raise HTTPException(status_code=400, detail="Pedido de redefinição inválido.")
+        raise AppHTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            error="account_not_found",
+            message="Account not found.",
+            details={"email": body.email},
+        )
 
     allowed, message = can_reset_password(db_user, body.reset_token)
     if not allowed:
-        raise HTTPException(status_code=400, detail=message)
+        raise AppHTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            error="invalid_password_reset_token",
+            message="Invalid or expired password reset token.",
+            details={"email": body.email, "source_message": str(message)},
+        )
 
     db_user.password = hash_password(body.new_password)
     clear_password_reset(db_user)

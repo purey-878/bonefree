@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
@@ -7,6 +7,7 @@ from services.auth_service import SUPER_ADMIN_ROLE
 from database import get_db
 from enums import EntityStatus
 from models import Admin, Product
+from core.errors import AppHTTPException
 from schemas.site_settings import (
     ChefSpecialSettings,
     CompanyDetailsSettings,
@@ -108,7 +109,7 @@ def update_admin_chef_special(
             .first()
         )
         if not product:
-            raise HTTPException(status_code=404, detail="Product especial do chef não encontrado.")
+            raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
     return save_chef_special_settings(db, settings)
 
 

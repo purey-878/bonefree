@@ -5,17 +5,16 @@ import hmac
 import secrets
 from datetime import UTC, datetime, timedelta
 
-from fastapi import HTTPException, Request, status
-from passlib.context import CryptContext
+import bcrypt
+from fastapi import Request, status
 from sqlalchemy import update
 from sqlalchemy.orm import Session as DBSession
 
 from core.config import settings
+from core.errors import AppHTTPException
 from enums import UserRole, UserStatus, is_admin_role, normalize_user_role
 from models import Admin, Customer, Session
 from utils.datetime_utils import to_naive_utc
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 STAFF_ADMIN_ROLE = UserRole.MANAGER
 SUPER_ADMIN_ROLE = UserRole.OWNER
@@ -23,11 +22,18 @@ CHEF_ROLE = UserRole.CHEF
 
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    return bcrypt.hashpw(
+        password.encode("utf-8"),
+        bcrypt.gensalt(),
+    ).decode("utf-8")
 
 
 def _verify_pbkdf2_password(password: str, encoded_password: str) -> bool:
-    salt, stored_hash = encoded_password.split("$", maxsplit=1)
+    try:
+        salt, stored_hash = encoded_password.split("$", maxsplit=1)
+    except ValueError:
+        return False
+
     candidate_hash = hashlib.pbkdf2_hmac(
         "sha256",
         password.encode("utf-8"),
@@ -38,13 +44,13 @@ def _verify_pbkdf2_password(password: str, encoded_password: str) -> bool:
 
 
 def verify_password(password: str, encoded_password: str) -> bool:
-    if "$" in encoded_password and not encoded_password.startswith("$2"):
-        try:
-            return _verify_pbkdf2_password(password, encoded_password)
-        except ValueError:
-            return False
+    if encoded_password.startswith(("$2a$", "$2b$", "$2y$")):
+        return bcrypt.checkpw(
+            password.encode("utf-8"),
+            encoded_password.encode("utf-8"),
+        )
 
-    return pwd_context.verify(password, encoded_password)
+    return _verify_pbkdf2_password(password, encoded_password)
 
 
 def hash_session_token(token: str) -> str:
@@ -121,10 +127,10 @@ def authenticate_customer(
     request: Request,
 ) -> tuple[Customer, str]:
     if customer is None or not verify_password(password, customer.password):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Email ou palavra-passe inválido.")
+        raise AppHTTPException(status_code=status.HTTP_401_UNAUTHORIZED, error="authentication_required", message="Authentication required.", details={"reason": "request_failed"})
 
     if customer.status != UserStatus.ACTIVE:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="A conta de customer está inativa.")
+        raise AppHTTPException(status_code=status.HTTP_403_FORBIDDEN, error="permission_denied", message="Permission denied.", details={"reason": "request_failed"})
 
     token = create_customer_session(
         db,
@@ -143,14 +149,14 @@ def authenticate_admin(
     request: Request,
 ) -> tuple[Admin, str]:
     if admin is None or not verify_password(password, admin.password):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Email ou palavra-passe inválido.")
+        raise AppHTTPException(status_code=status.HTTP_401_UNAUTHORIZED, error="authentication_required", message="Authentication required.", details={"reason": "request_failed"})
 
     if admin.status != UserStatus.ACTIVE:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="A conta de administrador está inativa.")
+        raise AppHTTPException(status_code=status.HTTP_403_FORBIDDEN, error="permission_denied", message="Permission denied.", details={"reason": "request_failed"})
 
     admin.role = normalize_user_role(admin.role)
     if not is_admin_role(admin.role):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Email ou palavra-passe inválido.")
+        raise AppHTTPException(status_code=status.HTTP_401_UNAUTHORIZED, error="authentication_required", message="Authentication required.", details={"reason": "request_failed"})
 
     token = create_admin_session(
         db,

@@ -1,6 +1,6 @@
 
 import re
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select, and_, or_
 from sqlalchemy.orm import Session, joinedload
 from database import get_db
@@ -30,6 +30,7 @@ from services.substitution import (
     suggest_similar_dishes,
 )
 from utils.id_format import format_product_id, parse_product_id
+from core.errors import AppHTTPException
 
 router = APIRouter()
 
@@ -123,7 +124,7 @@ def get_availability_suggestions(
         and_(Product.product_id == parsed_product_id, active_product_filter())
     ).first()
     if not product:
-        raise HTTPException(status_code=404, detail="Product não encontrado.")
+        raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
 
     available = is_product_available(product, quantity, stock_threshold)
     active_products = db.query(Product).filter(active_product_filter()).all()
@@ -170,7 +171,7 @@ def get_customization_options(
         and_(Product.product_id == parsed_product_id, active_product_filter())
     ).first()
     if not product:
-        raise HTTPException(status_code=404, detail="Product não encontrado.")
+        raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
 
     ingredient_rows = []
     if not _is_drink_product(product):
@@ -242,7 +243,7 @@ def get_product_customization(
         and_(Product.product_id == parsed_product_id, active_product_filter())
     ).first()
     if not product:
-        raise HTTPException(status_code=404, detail="Product não encontrado.")
+        raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
 
     ingredient_rows = []
     if not _is_drink_product(product):
@@ -318,7 +319,7 @@ def get_product(product_id: str, db: Session = Depends(get_db)):
         and_(Product.product_id == parsed_product_id, active_product_filter())
     ).first()
     if not product:
-        raise HTTPException(status_code=404, detail="Product não encontrado.")
+        raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
     unavailable = product.product_id in inactive_base_product_ids(db, [product.product_id])
     return ProductResponse.from_orm_custom(
         product,

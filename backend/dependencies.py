@@ -3,11 +3,12 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Depends, Header, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session as DBSession
 
 from core.config import settings
+from core.errors import AppHTTPException
 from database import get_db
 from enums import UserRole, UserStatus, is_admin_role, normalize_admin_role, normalize_user_role
 from models import Admin, Customer, Session
@@ -41,7 +42,7 @@ def get_current_user(
 ) -> Customer:
     token = _extract_session_token(x_session_token, authorization)
     if token is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Autenticação necessária.")
+        raise AppHTTPException(status_code=status.HTTP_401_UNAUTHORIZED, error="authentication_required", message="Authentication required.", details={"reason": "request_failed"})
 
     session = db.scalars(select(Session).where(Session.token_hash == hash_session_token(token))).first()
     now = _current_naive_utc()
@@ -52,11 +53,11 @@ def get_current_user(
         or session.revoked is True
         or session.expires_at <= now
     ):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sessão inválida ou expirada.")
+        raise AppHTTPException(status_code=status.HTTP_401_UNAUTHORIZED, error="authentication_required", message="Authentication required.", details={"reason": "request_failed"})
 
     current_user = session.customer
     if current_user.status != UserStatus.ACTIVE:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="A conta de customer está inativa.")
+        raise AppHTTPException(status_code=status.HTTP_403_FORBIDDEN, error="permission_denied", message="Permission denied.", details={"reason": "request_failed"})
 
     return current_user
 
@@ -92,7 +93,7 @@ def get_current_admin(
 ) -> Admin:
     token = _extract_session_token(x_session_token, authorization)
     if token is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Autenticação necessária.")
+        raise AppHTTPException(status_code=status.HTTP_401_UNAUTHORIZED, error="authentication_required", message="Authentication required.", details={"reason": "request_failed"})
 
     session = db.scalars(select(Session).where(Session.token_hash == hash_session_token(token))).first()
     now = _current_naive_utc()
@@ -111,15 +112,15 @@ def get_current_admin(
             <= now
         )
     ):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sessão inválida ou expirada.")
+        raise AppHTTPException(status_code=status.HTTP_401_UNAUTHORIZED, error="authentication_required", message="Authentication required.", details={"reason": "request_failed"})
 
     current_admin = session.admin
     if current_admin.status != UserStatus.ACTIVE:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="A conta de administrador está inativa.")
+        raise AppHTTPException(status_code=status.HTTP_403_FORBIDDEN, error="permission_denied", message="Permission denied.", details={"reason": "request_failed"})
 
     current_admin.role = normalize_user_role(current_admin.role)
     if not is_admin_role(current_admin.role):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="A conta não tem permissões de administrador.")
+        raise AppHTTPException(status_code=status.HTTP_403_FORBIDDEN, error="permission_denied", message="Permission denied.", details={"reason": "request_failed"})
 
     if session.last_seen_at is None or (now - session.last_seen_at).total_seconds() > 60:
         session.last_seen_at = now
@@ -134,10 +135,7 @@ def require_role(*allowed_roles: str | UserRole) -> Callable:
     def role_checker(current_admin: Admin = Depends(get_current_admin)) -> Admin:
         current_admin.role = normalize_user_role(current_admin.role)
         if current_admin.role not in normalized_allowed_roles:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Não tem permissão para executar esta ação.",
-            )
+            raise AppHTTPException(status_code=status.HTTP_403_FORBIDDEN, error="permission_denied", message="Permission denied.", details={"reason": "request_failed"})
         return current_admin
 
     return role_checker

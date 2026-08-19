@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
@@ -25,6 +25,7 @@ from schemas.review import (
     ReviewReplyResponse,
 )
 from utils.id_format import format_product_id, parse_product_id
+from core.errors import AppHTTPException
 
 router = APIRouter(tags=["Reviews"])
 
@@ -57,7 +58,7 @@ def _review_response(review: ProductReview, current_user: Customer | None = None
 def _get_review_or_404(db: Session, review_id: int) -> ProductReview:
     review = db.query(ProductReview).filter(ProductReview.review_id == review_id).first()
     if not review:
-        raise HTTPException(status_code=404, detail="Avaliação não encontrada.")
+        raise AppHTTPException(status_code=404, error="review_not_found", message="Review not found.", details={"reason": "request_failed"})
     return review
 
 
@@ -67,7 +68,7 @@ def _get_reply_or_404(db: Session, review_id: int, reply_id: int) -> ReviewReply
         ReviewReply.reply_id == reply_id,
     ).first()
     if not reply:
-        raise HTTPException(status_code=404, detail="Resposta da avaliação não encontrada.")
+        raise AppHTTPException(status_code=404, error="review_not_found", message="Review not found.", details={"reason": "request_failed"})
     return reply
 
 
@@ -78,16 +79,16 @@ def _get_active_product(db: Session, product_id: int) -> Product:
         Product.deleted_at.is_(None),
     ).first()
     if not product:
-        raise HTTPException(status_code=404, detail="Product não encontrado.")
+        raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
     return product
 
 
 def _get_review_for_owner(db: Session, review_id: int, current_user: Customer) -> ProductReview:
     review = db.query(ProductReview).filter(ProductReview.review_id == review_id).first()
     if not review:
-        raise HTTPException(status_code=404, detail="Avaliação não encontrada.")
+        raise AppHTTPException(status_code=404, error="review_not_found", message="Review not found.", details={"reason": "request_failed"})
     if review.customer_id != current_user.customer_id:
-        raise HTTPException(status_code=403, detail="Só pode alterar as suas próprias avaliações.")
+        raise AppHTTPException(status_code=403, error="permission_denied", message="Permission denied.", details={"reason": "request_failed"})
     return review
 
 
@@ -105,7 +106,7 @@ def _purchased_order_item(db: Session, current_user: Customer, product_id: int, 
         .first()
     )
     if not item:
-        raise HTTPException(status_code=403, detail="So pode avaliar products que comprou.")
+        raise AppHTTPException(status_code=403, error="permission_denied", message="Permission denied.", details={"reason": "request_failed"})
     return item
 
 
@@ -223,16 +224,23 @@ def create_product_review(
 
     existing_product_review = _existing_product_review(db, current_user, parsed_product_id)
     if existing_product_review:
-        raise HTTPException(
-            status_code=409,
-            detail="Já avaliou este product. Edite a sua avaliação existente.",
+        raise AppHTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            error="product_already_reviewed",
+            message="You have already reviewed this product.",
+            details={"product_id": parsed_product_id, "review_id": existing_product_review.review_id},
         )
 
     existing = db.query(ProductReview).filter(
         ProductReview.order_product_id == body.order_product_id
     ).first()
     if existing:
-        raise HTTPException(status_code=409, detail="Este item comprado já foi avaliado.")
+        raise AppHTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            error="order_item_already_reviewed",
+            message="This order item has already been reviewed.",
+            details={"order_product_id": body.order_product_id, "review_id": existing.review_id},
+        )
 
     review = ProductReview(
         product_id=parsed_product_id,
@@ -246,9 +254,14 @@ def create_product_review(
     db.add(review)
     try:
         db.commit()
-    except IntegrityError:
+    except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Já avaliou este product. Edite a sua avaliação existente.")
+        raise AppHTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            error="review_conflict",
+            message="Review could not be created because it conflicts with an existing review.",
+            details={"product_id": parsed_product_id, "order_product_id": body.order_product_id, "exception": str(exc)},
+        )
 
     db.refresh(review)
     return _review_response(review, current_user)
@@ -262,7 +275,12 @@ def update_product_review(
     current_user: Customer = Depends(get_current_user),
 ):
     if not body.model_fields_set:
-        raise HTTPException(status_code=400, detail="Envie pelo menos um campo da avaliação para atualizar.")
+        raise AppHTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            error="empty_review_update",
+            message="At least one field must be provided to update the review.",
+            details={"review_id": review_id},
+        )
 
     review = _get_review_for_owner(db, review_id, current_user)
     if body.rating is not None:

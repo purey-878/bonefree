@@ -9,7 +9,7 @@ import csv
 from decimal import Decimal
 from io import StringIO
 from pathlib import Path
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response, status, Query, UploadFile, File
+from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response, status, Query, UploadFile, File
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, desc, or_, select
 from datetime import datetime, timedelta
@@ -57,6 +57,7 @@ from services.refund_receipt import (
     send_refund_email,
 )
 from utils.id_format import format_category_id, format_product_id, parse_category_id, parse_product_id
+from core.errors import AppHTTPException
 
 router = APIRouter(prefix="/admin", tags=["Admin Management"])
 logger = logging.getLogger(__name__)
@@ -239,7 +240,7 @@ def _parse_date_param(value: Optional[str], fallback: datetime) -> datetime:
     try:
         return datetime.strptime(value, "%Y-%m-%d")
     except ValueError:
-        raise HTTPException(status_code=400, detail="As datas devem usar o formato YYYY-MM-DD.")
+        raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="invalid_date", message="Date must use YYYY-MM-DD format.", details={"value": value})
 
 
 def _parse_customer_created_at(value: Optional[object]) -> Optional[datetime]:
@@ -273,11 +274,11 @@ def _analytics_window(range_key: str, start_date: Optional[str], end_date: Optio
         start = _parse_date_param(start_date, datetime.combine((now.date() - timedelta(days=29)), datetime.min.time()))
         end = _parse_date_param(end_date, datetime.combine(now.date(), datetime.max.time()))
         if start > end:
-            raise HTTPException(status_code=400, detail="A data inicial deve ser anterior a data final.")
+            raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="invalid_date_range", message="Start date must be before or equal to end date.", details={"start_date": start_date, "end_date": end_date})
         day_span = (end.date() - start.date()).days
         granularity = "day" if day_span <= 90 else "month" if day_span <= 730 else "year"
         return start, end.replace(hour=23, minute=59, second=59, microsecond=999999), granularity
-    raise HTTPException(status_code=400, detail="O intervalo deve ser day, month, year ou custom.")
+    raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="invalid_analytics_range", message="Analytics range is invalid.", details={"range": range_key})
 
 
 def _analytics_keys(start: datetime, end: datetime, granularity: str) -> List[str]:
@@ -375,7 +376,7 @@ def _find_or_create_ingredient(db: Session, payload: ProductIngredientPayload) -
     if payload.ingredient_id is not None:
         ingredient = db.query(Ingredient).filter(Ingredient.ingredient_id == payload.ingredient_id).first()
         if not ingredient:
-            raise HTTPException(status_code=404, detail=f"Ingredient {payload.ingredient_id} não encontrado.")
+            raise AppHTTPException(status_code=404, error="ingredient_not_found", message="Ingredient not found.", details={"reason": "request_failed"})
         if ingredient.status == EntityStatus.INACTIVE:
             ingredient.status = EntityStatus.ACTIVE
         if payload.calories_per_gram is not None:
@@ -384,7 +385,7 @@ def _find_or_create_ingredient(db: Session, payload: ProductIngredientPayload) -
 
     name = (payload.name or "").strip()
     if not name:
-        raise HTTPException(status_code=400, detail="Novos ingredients precisam de um name.")
+        raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="ingredient_name_required", message="Ingredient name is required.", details={"payload": payload.model_dump()})
 
     ingredient = db.query(Ingredient).filter(func.lower(Ingredient.name) == name.lower()).first()
     if ingredient:
@@ -563,18 +564,18 @@ def _get_order_or_404(db: Session, order_id: int) -> Order:
         .first()
     )
     if not order:
-        raise HTTPException(status_code=404, detail="Pedido não encontrado.")
+        raise AppHTTPException(status_code=404, error="order_not_found", message="Order not found.", details={"reason": "request_failed"})
     return order
 
 
 def _ensure_order_status_allowed(current_admin: Admin, next_status: str | OrderState) -> None:
     next_state = OrderState(next_status)
     if current_admin.role == CHEF_ROLE and next_state not in CHEF_ALLOWED_STATES:
-        raise HTTPException(status_code=403, detail="O chef so pode atualizar o state de preparacao da cozinha.")
+        raise AppHTTPException(status_code=403, error="permission_denied", message="Permission denied.", details={"reason": "request_failed"})
     if current_admin.role == SUPER_ADMIN_ROLE and next_state == OrderState.REFUNDED:
         return
     if current_admin.role in {STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE} and next_state not in STAFF_ALLOWED_STATES:
-        raise HTTPException(status_code=400, detail="Estado do pedido inválido.")
+        raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="invalid_order_state_transition", message="Order cannot be moved to the requested state.", details={"order_id": order.order_id, "next_state": str(next_state), "admin_role": str(current_admin.role)})
 
 
 def _is_kitchen_visible(order: Order) -> bool:
@@ -670,7 +671,7 @@ def update_category(
     parsed_category_id = parse_category_id(category_id)
     category = db.query(Category).filter(Category.category_id == parsed_category_id).first()
     if not category:
-        raise HTTPException(status_code=404, detail="Category não encontrada.")
+        raise AppHTTPException(status_code=404, error="category_not_found", message="Category not found.", details={"reason": "request_failed"})
 
     if category_update.category_name is not None:
         category.category_name = category_update.category_name
@@ -693,7 +694,7 @@ def delete_category(
     parsed_category_id = parse_category_id(category_id)
     category = db.query(Category).filter(Category.category_id == parsed_category_id).first()
     if not category:
-        raise HTTPException(status_code=404, detail="Category não encontrada.")
+        raise AppHTTPException(status_code=404, error="category_not_found", message="Category not found.", details={"reason": "request_failed"})
 
     active_products = (
         db.query(func.count(Product.product_id))
@@ -702,7 +703,7 @@ def delete_category(
         or 0
     )
     if active_products > 0:
-        raise HTTPException(status_code=400, detail="Não é possível desativar uma category com products ativos.")
+        raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="category_has_active_products", message="Category cannot be archived while it has active products.", details={"category_id": category.category_id, "active_products": active_products})
 
     category.status = EntityStatus.INACTIVE
     db.commit()
@@ -763,7 +764,7 @@ def create_ingredient(
             db.commit()
             db.refresh(existing)
             return existing
-        raise HTTPException(status_code=400, detail="O ingredient já existe.")
+        raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="duplicate_ingredient_name", message="An ingredient with this name already exists.", details={"name": name})
 
     new_ingredient = Ingredient(
         name=name,
@@ -786,7 +787,7 @@ def update_ingredient(
 ):
     ingredient = db.query(Ingredient).filter(Ingredient.ingredient_id == ingredient_id).first()
     if not ingredient:
-        raise HTTPException(status_code=404, detail="Ingredient não encontrado.")
+        raise AppHTTPException(status_code=404, error="ingredient_not_found", message="Ingredient not found.", details={"reason": "request_failed"})
 
     if ingredient_update.name is not None:
         name = ingredient_update.name.strip()
@@ -796,7 +797,7 @@ def update_ingredient(
             .first()
         )
         if existing:
-            raise HTTPException(status_code=400, detail="O name do ingredient já existe.")
+            raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="duplicate_ingredient_name", message="An ingredient with this name already exists.", details={"name": name})
         ingredient.name = name
     if ingredient_update.type is not None:
         ingredient.type = ingredient_update.type
@@ -818,7 +819,7 @@ def delete_ingredient(
 ):
     ingredient = db.query(Ingredient).filter(Ingredient.ingredient_id == ingredient_id).first()
     if not ingredient:
-        raise HTTPException(status_code=404, detail="Ingredient não encontrado.")
+        raise AppHTTPException(status_code=404, error="ingredient_not_found", message="Ingredient not found.", details={"reason": "request_failed"})
 
     ingredient.status = EntityStatus.INACTIVE
     db.commit()
@@ -834,7 +835,7 @@ def create_product(
 ):
     category = db.query(Category).filter(Category.category_id == product.category_id, Category.status == EntityStatus.ACTIVE).first()
     if not category:
-        raise HTTPException(status_code=404, detail="Category não encontrada.")
+        raise AppHTTPException(status_code=404, error="category_not_found", message="Category not found.", details={"reason": "request_failed"})
 
     new_product = Product(
         name=product.name,
@@ -924,7 +925,7 @@ def get_product(
     ).first()
 
     if not product:
-        raise HTTPException(status_code=404, detail="Product não encontrado.")
+        raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
 
     return _product_admin_response(db, product)
 
@@ -939,7 +940,7 @@ def get_product_analytics(
     parsed_product_id = parse_product_id(product_id)
     product = db.query(Product).filter(Product.product_id == parsed_product_id).first()
     if not product:
-        raise HTTPException(status_code=404, detail="Product não encontrado.")
+        raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
 
     end_date = datetime.utcnow().date()
     start_date = end_date - timedelta(days=days - 1)
@@ -1014,7 +1015,7 @@ def update_product(
     ).first()
 
     if not product:
-        raise HTTPException(status_code=404, detail="Product não encontrado.")
+        raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
 
     if product_update.name is not None:
         product.name = product_update.name
@@ -1027,7 +1028,7 @@ def update_product(
     if product_update.category_id is not None:
         category = db.query(Category).filter(Category.category_id == product_update.category_id, Category.status == EntityStatus.ACTIVE).first()
         if not category:
-            raise HTTPException(status_code=404, detail="Category não encontrada.")
+            raise AppHTTPException(status_code=404, error="category_not_found", message="Category not found.", details={"reason": "request_failed"})
         product.category_id = product_update.category_id
     if product_update.status is not None:
         product.status = product_update.status
@@ -1063,7 +1064,7 @@ def toggle_product_status(
     product = db.query(Product).filter(Product.product_id == parsed_product_id).first()
 
     if not product:
-        raise HTTPException(status_code=404, detail="Product não encontrado.")
+        raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
 
     if product.deleted_at is not None:
         product.status = EntityStatus.ACTIVE
@@ -1085,7 +1086,7 @@ def delete_product(
     parsed_product_id = parse_product_id(product_id)
     product = db.query(Product).filter(Product.product_id == parsed_product_id).first()
     if not product:
-        raise HTTPException(status_code=404, detail="Product não encontrado.")
+        raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
 
     product.status = EntityStatus.INACTIVE
     product.deleted_at = datetime.utcnow()
@@ -1106,12 +1107,12 @@ def upload_product_image(
     # Verify product exists
     product = db.query(Product).filter(Product.product_id == parsed_product_id).first()
     if not product:
-        raise HTTPException(status_code=404, detail="Product não encontrado.")
+        raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
     
     # Validate file type
     allowed_types = {"image/jpeg", "image/png", "image/webp", "image/avif", "image/gif"}
     if file.content_type not in allowed_types:
-        raise HTTPException(status_code=400, detail="Tipo de ficheiro inválido. Permitidos: JPEG, PNG, WebP, AVIF, GIF.")
+        raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="invalid_image_type", message="Image type is not supported.", details={"content_type": file.content_type, "allowed_types": sorted(allowed_types)})
     
     try:
         # Generate unique filename
@@ -1149,7 +1150,7 @@ def upload_product_image(
     
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Erro ao carregar image: {str(e)}")
+        raise AppHTTPException(status_code=500, error="internal_server_error", message="Internal server error.", details={"reason": "request_failed"})
 
 
 @router.delete("/products/{product_id}/images/{image_id}")
@@ -1165,7 +1166,7 @@ def delete_product_image(
         ProductImage.image_id == image_id,
     ).first()
     if not image:
-        raise HTTPException(status_code=404, detail="Imagem não encontrada.")
+        raise AppHTTPException(status_code=404, error="image_not_found", message="Image not found.", details={"reason": "request_failed"})
 
     _delete_uploaded_image_file(image.image_path)
 
@@ -1251,7 +1252,7 @@ def get_kitchen_order(
 ):
     order = _get_order_or_404(db, order_id)
     if not _is_kitchen_visible(order):
-        raise HTTPException(status_code=404, detail="Pedido da cozinha não encontrado.")
+        raise AppHTTPException(status_code=404, error="order_not_found", message="Order not found.", details={"reason": "request_failed"})
     return _kitchen_order_response(order)
 
 
@@ -1274,7 +1275,7 @@ def update_order_status(
 ):
     order = _get_order_or_404(db, order_id)
     if current_admin.role == CHEF_ROLE and not _is_kitchen_visible(order):
-        raise HTTPException(status_code=403, detail="O chef so pode atualizar pedidos ativos da cozinha.")
+        raise AppHTTPException(status_code=403, error="permission_denied", message="Permission denied.", details={"reason": "request_failed"})
     _ensure_order_status_allowed(current_admin, body.state)
     should_confirm_counter_payment = (
         current_admin.role in {STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE}
@@ -1309,9 +1310,9 @@ def pay_counter_order(
 ):
     order = _get_order_or_404(db, order_id)
     if order.payment_method != PaymentMethod.COUNTER:
-        raise HTTPException(status_code=400, detail="Aqui só pedidos com payment ao balcão podem ser marcados como pagos.")
+        raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="invalid_payment_method", message="Order payment method does not allow counter payment confirmation.", details={"order_id": order.order_id, "payment_method": str(order.payment_method)})
     if order.payment_status == PaymentStatus.REFUNDED:
-        raise HTTPException(status_code=400, detail="Pedidos reembolsados não podem ser marcados como pagos.")
+        raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="order_already_refunded", message="Order has already been refunded.", details={"order_id": order.order_id})
 
     was_paid = _confirm_counter_payment(db, order, current_admin)
     if order.state not in KITCHEN_VISIBLE_STATES and order.state not in {OrderState.DELIVERED, OrderState.CANCELLED}:
@@ -1340,11 +1341,11 @@ def refund_order(
 ):
     order = _get_order_or_404(db, order_id)
     if order.payment_status == PaymentStatus.REFUNDED:
-        raise HTTPException(status_code=400, detail="O pedido já foi reembolsado.")
+        raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="order_already_refunded", message="Order has already been refunded.", details={"order_id": order.order_id})
     if order.payment_status != PaymentStatus.PAID:
-        raise HTTPException(status_code=400, detail="Apenas pedidos pagos podem ser reembolsados.")
+        raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="order_not_paid", message="Only paid orders can be refunded.", details={"order_id": order.order_id, "payment_status": str(order.payment_status)})
     if Decimal(str(body.amount)) > Decimal(str(order.total)):
-        raise HTTPException(status_code=400, detail="O value do refund não pode exceder o total do pedido.")
+        raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="refund_amount_exceeds_order_total", message="Refund amount cannot exceed order total.", details={"order_id": order.order_id, "amount": str(body.amount), "total": str(order.total)})
 
     order.payment_status = PaymentStatus.REFUNDED
     order.state = OrderState.REFUNDED
@@ -1517,7 +1518,7 @@ def create_customer(
 ):
     email = body.email.strip().lower()
     if db.query(Customer).filter(Customer.email == email).first():
-        raise HTTPException(status_code=400, detail="O email do customer já existe.")
+        raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="duplicate_customer_email", message="This email is already associated with an existing customer.", details={"email": email})
 
     customer = Customer(
         name=body.name,
@@ -1552,13 +1553,13 @@ def update_customer(
         .first()
     )
     if not customer:
-        raise HTTPException(status_code=404, detail="Customer não encontrado.")
+        raise AppHTTPException(status_code=404, error="customer_not_found", message="Customer not found.", details={"reason": "request_failed"})
 
     if body.email is not None:
         email = body.email.strip().lower()
         existing = db.query(Customer).filter(Customer.email == email, Customer.customer_id != customer_id).first()
         if existing:
-            raise HTTPException(status_code=400, detail="O email do customer já existe.")
+            raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="duplicate_customer_email", message="This email is already associated with an existing customer.", details={"email": email})
         customer.email = email
 
     for field in ("name", "last_name", "phone", "tax_id", "status"):
@@ -1588,7 +1589,7 @@ def delete_customer(
         .first()
     )
     if not customer:
-        raise HTTPException(status_code=404, detail="Customer não encontrado.")
+        raise AppHTTPException(status_code=404, error="customer_not_found", message="Customer not found.", details={"reason": "request_failed"})
     customer.status = UserStatus.SUSPENDED
     db.commit()
     db.refresh(customer)
@@ -1616,7 +1617,7 @@ def create_staff_admin(
 ):
     email = body.email.strip().lower()
     if db.query(Admin).filter(Admin.email == email).first():
-        raise HTTPException(status_code=400, detail="O email do administrador já existe.")
+        raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="duplicate_admin_email", message="This email is already associated with an existing admin.", details={"email": email})
 
     admin = Admin(
         name=body.name,
@@ -1641,13 +1642,13 @@ def update_staff_admin(
 ):
     admin = db.query(Admin).filter(Admin.admin_id == admin_id, Admin.role.in_(ADMIN_ROLES)).first()
     if not admin:
-        raise HTTPException(status_code=404, detail="Administrador não encontrado.")
+        raise AppHTTPException(status_code=404, error="admin_not_found", message="Admin not found.", details={"reason": "request_failed"})
 
     if body.email is not None:
         email = body.email.strip().lower()
         existing = db.query(Admin).filter(Admin.email == email, Admin.admin_id != admin_id).first()
         if existing:
-            raise HTTPException(status_code=400, detail="O email do administrador já existe.")
+            raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="duplicate_admin_email", message="This email is already associated with an existing admin.", details={"email": email})
         admin.email = email
     if body.name is not None:
         admin.name = body.name
@@ -1670,10 +1671,10 @@ def delete_staff_admin(
     db: Session = Depends(get_db),
 ):
     if admin_id == current_admin.admin_id:
-        raise HTTPException(status_code=400, detail="Não pode desativar a sua própria conta de administrador.")
+        raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="cannot_delete_current_admin", message="Current admin account cannot be deleted.", details={"admin_id": admin_id})
     admin = db.query(Admin).filter(Admin.admin_id == admin_id, Admin.role.in_(ADMIN_ROLES)).first()
     if not admin:
-        raise HTTPException(status_code=404, detail="Administrador não encontrado.")
+        raise AppHTTPException(status_code=404, error="admin_not_found", message="Admin not found.", details={"reason": "request_failed"})
     admin.status = UserStatus.SUSPENDED
     db.commit()
     db.refresh(admin)

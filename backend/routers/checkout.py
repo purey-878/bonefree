@@ -7,7 +7,7 @@ from typing import Optional
 from uuid import uuid4
 from urllib.parse import quote
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Response, status
 from sqlalchemy.orm import Session, joinedload
 
 from dependencies import get_current_user_optional
@@ -34,6 +34,7 @@ from services.product_availability import unavailable_due_to_inactive_base
 from services.product_pricing import discounted_product_price
 from services.site_settings import get_loyalty_coupon_settings
 from utils.id_format import format_product_id
+from core.errors import AppHTTPException
 
 try:
     from services.receipt_pdf import receipt_pdf_filename, render_receipt_pdf
@@ -168,7 +169,7 @@ def _get_or_create_checkout_customer(db: Session, body: CheckoutRequest, current
                 Customer.customer_id != customer.customer_id,
             ).first()
             if existing:
-                raise HTTPException(status_code=400, detail="Este NIF já está em uso.")
+                raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="duplicate_tax_id", message="This tax ID is already associated with an existing account.", details={"tax_id": checkout_nif})
         if should_save_checkout_nif:
             customer.tax_id = checkout_nif
         customer.name = body.customer.first_name
@@ -186,7 +187,7 @@ def _get_or_create_checkout_customer(db: Session, body: CheckoutRequest, current
                 Customer.customer_id != customer.customer_id,
             ).first()
             if existing:
-                raise HTTPException(status_code=400, detail="Este NIF já está em uso.")
+                raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="duplicate_tax_id", message="This tax ID is already associated with an existing account.", details={"tax_id": checkout_nif})
         if should_save_checkout_nif:
             customer.tax_id = checkout_nif
         customer.name = body.customer.first_name
@@ -277,10 +278,7 @@ def _available_coupon_query(db: Session, current_user: Customer):
 
 def _calculate_coupon_discount(coupon: Coupon, subtotal: Decimal) -> Decimal:
     if subtotal < Decimal(str(coupon.minimum_order_value)):
-        raise HTTPException(
-            status_code=400,
-            detail=f"O cupão requer um pedido mínimo de {_format_money_pt(Decimal(str(coupon.minimum_order_value)))}.",
-        )
+        raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="coupon_minimum_order_not_met", message="Order subtotal does not meet the coupon minimum value.", details={"coupon_code": coupon.code, "subtotal": str(subtotal), "minimum_order_value": str(coupon.minimum_order_value)})
 
     if normalize_enum(CouponType, coupon.type) == CouponType.PERCENTAGE:
         discount = subtotal * (Decimal(str(coupon.value)) / Decimal("100"))
@@ -297,7 +295,7 @@ def _get_valid_coupon(db: Session, current_user: Customer, code: str | None, sub
 
     coupon = _available_coupon_query(db, current_user).filter(Coupon.code == normalized_code).first()
     if not coupon:
-        raise HTTPException(status_code=400, detail="O cupão é inválido, expirou ou já foi used.")
+        raise AppHTTPException(status_code=status.HTTP_404_NOT_FOUND, error="coupon_not_found", message="Coupon not found or unavailable.", details={"code": normalized_code})
 
     return coupon, _calculate_coupon_discount(coupon, subtotal)
 
@@ -436,7 +434,7 @@ def list_available_coupons(
     current_user: Optional[Customer] = Depends(get_current_user_optional),
 ):
     if not current_user:
-        raise HTTPException(status_code=401, detail="Inicie sessão para ver os cupões.")
+        raise AppHTTPException(status_code=401, error="authentication_required", message="Authentication required.", details={"reason": "request_failed"})
 
     coupons = _available_coupon_query(db, current_user).order_by(Coupon.created_at.desc()).all()
     return [
@@ -459,11 +457,11 @@ def validate_coupon(
     current_user: Optional[Customer] = Depends(get_current_user_optional),
 ):
     if not current_user:
-        raise HTTPException(status_code=401, detail="Inicie sessão para usar cupões.")
+        raise AppHTTPException(status_code=401, error="authentication_required", message="Authentication required.", details={"reason": "request_failed"})
 
     coupon, discount = _get_valid_coupon(db, current_user, body.code, body.subtotal)
     if not coupon:
-        raise HTTPException(status_code=400, detail="O código do cupão é obrigatório.")
+        raise AppHTTPException(status_code=status.HTTP_404_NOT_FOUND, error="coupon_not_found", message="Coupon not found or unavailable.", details={"code": body.code})
 
     return CouponValidationResponse(
         code=coupon.code,
@@ -482,14 +480,14 @@ def create_order(
     current_user: Optional[Customer] = Depends(get_current_user_optional),
 ):
     if not current_user:
-        raise HTTPException(status_code=401, detail="Inicie sessão para finalizar a compra.")
+        raise AppHTTPException(status_code=401, error="authentication_required", message="Authentication required.", details={"reason": "request_failed"})
 
     items = _cart_items_for_user(db, current_user) if current_user else body.items
     if not items:
         items = body.items
 
     if not items:
-        raise HTTPException(status_code=400, detail="Não é possível criar um pedido com o cart vazio.")
+        raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="empty_cart", message="Cart must contain at least one item.", details={"customer_id": current_user.customer_id})
 
     product_ids = [item.product_id for item in items]
     products = (
@@ -506,19 +504,13 @@ def create_order(
     for item in items:
         product = product_map.get(item.product_id)
         if not product or product.status == EntityStatus.INACTIVE or product.deleted_at is not None:
-            raise HTTPException(status_code=404, detail=f"O product '{format_product_id(item.product_id)}' já não está disponível.")
+            raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
 
         if unavailable_due_to_inactive_base(db, product):
-            raise HTTPException(
-                status_code=400,
-                detail=f"'{product.name}' não está disponível neste momento.",
-            )
+            raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="product_unavailable", message="Product is unavailable.", details={"product_id": product.product_id})
 
         if product.stock < item.quantity:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Stock insuficiente para '{product.name}'. Pedido: {item.quantity}, disponível: {product.stock}.",
-            )
+            raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="insufficient_stock", message="Insufficient product stock.", details={"product_id": product.product_id, "requested_quantity": item.quantity, "stock": product.stock})
 
         unit_price = (
             Decimal(str(item.customization.final_unit_price))
@@ -625,7 +617,7 @@ def cancel_order(
     current_user: Optional[Customer] = Depends(get_current_user_optional),
 ):
     if not current_user:
-        raise HTTPException(status_code=401, detail="Inicie sessão para cancelar um pedido.")
+        raise AppHTTPException(status_code=401, error="authentication_required", message="Authentication required.", details={"reason": "request_failed"})
 
     order = (
         db.query(Order)
@@ -637,9 +629,9 @@ def cancel_order(
         .first()
     )
     if not order:
-        raise HTTPException(status_code=404, detail="Pedido não encontrado.")
+        raise AppHTTPException(status_code=404, error="order_not_found", message="Order not found.", details={"reason": "request_failed"})
     if not _can_customer_cancel(order):
-        raise HTTPException(status_code=400, detail="Os pedidos só podem ser cancelados antes da confirmação do payment.")
+        raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="order_cannot_be_cancelled", message="Order cannot be cancelled.", details={"order_id": order.order_id, "state": str(order.state), "payment_status": str(order.payment_status)})
 
     order.state = OrderState.CANCELLED
     order.canceled_at = datetime.utcnow()
@@ -659,10 +651,10 @@ def download_order_receipt_pdf(
     current_user: Optional[Customer] = Depends(get_current_user_optional),
 ):
     if not current_user:
-        raise HTTPException(status_code=401, detail="Inicie sessão para descarregar recibos.")
+        raise AppHTTPException(status_code=401, error="authentication_required", message="Authentication required.", details={"reason": "request_failed"})
 
     if not render_receipt_pdf or not receipt_pdf_filename:
-        raise HTTPException(status_code=503, detail="O serviço de PDF do recibo está indisponível.")
+        raise AppHTTPException(status_code=503, error="service_unavailable", message="Service unavailable.", details={"reason": "request_failed"})
 
     order = (
         db.query(Order)
@@ -677,7 +669,7 @@ def download_order_receipt_pdf(
         .first()
     )
     if not order:
-        raise HTTPException(status_code=404, detail="Recibo do pedido não encontrado.")
+        raise AppHTTPException(status_code=404, error="order_not_found", message="Order not found.", details={"reason": "request_failed"})
 
     receipt = build_saved_order_receipt_payload(order)
     filename = receipt_pdf_filename(receipt)
@@ -699,7 +691,7 @@ def list_order_history(
     current_user: Optional[Customer] = Depends(get_current_user_optional),
 ):
     if not current_user:
-        raise HTTPException(status_code=401, detail="Inicie sessão para ver o histórico de pedidos.")
+        raise AppHTTPException(status_code=401, error="authentication_required", message="Authentication required.", details={"reason": "request_failed"})
 
     orders = (
         db.query(Order)

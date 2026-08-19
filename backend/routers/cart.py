@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 from datetime import datetime
@@ -31,6 +31,7 @@ from services.order_customization import customization_from_json, customization_
 from services.product_availability import unavailable_due_to_inactive_base
 from services.product_pricing import discounted_product_price
 from utils.id_format import format_product_id, parse_product_id
+from core.errors import AppHTTPException
 
 router = APIRouter(prefix="/cart", tags=["Cart"])
 alias_router = APIRouter(prefix="/cart", tags=["Cart"])
@@ -112,16 +113,13 @@ def _get_product_or_404(db: Session, product_id: int) -> Product:
         and_(Product.product_id == product_id, Product.status == EntityStatus.ACTIVE, Product.deleted_at.is_(None))
     ).first()
     if not product:
-        raise HTTPException(status_code=404, detail=f"Product '{format_product_id(product_id)}' não encontrado.")
+        raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
     return product
 
 
 def _ensure_product_orderable(db: Session, product: Product) -> None:
     if unavailable_due_to_inactive_base(db, product):
-        raise HTTPException(
-            status_code=400,
-            detail=f"'{product.name}' não está disponível neste momento.",
-        )
+        raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="product_unavailable", message="Product is unavailable.", details={"product_id": product.product_id})
 
 
 def _delete_cart_items(db: Session, cart_id: int) -> None:
@@ -148,19 +146,21 @@ def _check_stock(product: Product, requested_quantity: int, quantity_already_in_
     quantity_already_in_cart: how many units are already in the cart (for updates).
     """
     if product.stock <= 0:
-        raise HTTPException(
-            status_code=400,
-            detail=f"'{product.name}' está esgotado."
-        )
+        raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="product_out_of_stock", message="Product is out of stock.", details={"product_id": product.product_id, "stock": product.stock})
     if requested_quantity < 1:
-        raise HTTPException(status_code=400, detail="A quantity deve ser pelo menos 1.")
+        raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="invalid_quantity", message="Quantity must be at least 1.", details={"product_id": product.product_id, "quantity": requested_quantity})
     if requested_quantity > product.stock:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                f"Stock insuficiente para '{product.name}'. "
-                f"Pedido: {requested_quantity}, disponível: {product.stock}."
-            ),
+        raise AppHTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            error="insufficient_stock",
+            message="Insufficient product stock.",
+            details={
+                "product_id": product.product_id,
+                "product_name": product.name,
+                "requested_quantity": requested_quantity,
+                "stock": product.stock,
+                "quantity_already_in_cart": quantity_already_in_cart,
+            },
         )
 
 
@@ -216,7 +216,7 @@ def _price_legacy_customization(
             if name.strip().casefold() not in removable_names
         ]
         if invalid_names:
-            raise HTTPException(status_code=400, detail=f"Ingredient '{invalid_names[0]}' não pode ser removido.")
+            raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="invalid_customization_ingredient", message="One or more removed ingredients are invalid.", details={"product_id": product.product_id, "invalid_ingredients": invalid_names})
         customization.remove = [
             removable_names[name.strip().casefold()]
             for name in customization.remove
@@ -236,7 +236,7 @@ def _validate_and_build_customization(
     body: CustomizedCartItemRequest,
 ) -> tuple[ItemCustomization, Decimal, list[dict]]:
     if not bool(getattr(product, "customizable", 0)):
-        raise HTTPException(status_code=400, detail="Este product não permite customização.")
+        raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="product_not_customizable", message="Product cannot be customized.", details={"product_id": product.product_id})
 
     ingredient_rows = (
         db.query(ProductIngredient)
@@ -251,10 +251,10 @@ def _validate_and_build_customization(
     for ingredient_id in sorted(set(body.removed_ingredients)):
         ingredient_row = ingredients.get(ingredient_id)
         if not ingredient_row:
-            raise HTTPException(status_code=400, detail=f"Ingredient {ingredient_id} não pertence ao product.")
+            raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="ingredient_not_in_product", message="Ingredient does not belong to this product.", details={"product_id": product.product_id, "ingredient_id": ingredient_id})
         ingredient_name = ingredient_row.ingredient.name if ingredient_row.ingredient else str(ingredient_id)
         if not ingredient_row.ingredient or ingredient_row.ingredient.type != IngredientType.NORMAL or not bool(ingredient_row.removable):
-            raise HTTPException(status_code=400, detail=f"Ingredient '{ingredient_name}' não pode ser removido.")
+            raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="ingredient_not_removable", message="Ingredient cannot be removed from this product.", details={"product_id": product.product_id, "ingredient_id": ingredient_id})
 
         remove_names.append(ingredient_name)
         customization_rows.append({
@@ -302,9 +302,9 @@ def _validate_and_build_customization(
     for extra in body.extras:
         option = options.get(extra.option_id)
         if not option or option.type not in (ProductCustomizationOptionType.EXTRA, ProductCustomizationOptionType.ADD):
-            raise HTTPException(status_code=400, detail=f"Opção extra {extra.option_id} não pertence ao product.")
+            raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="invalid_customization_option", message="Customization option is invalid for this product.", details={"product_id": product.product_id, "option_id": extra.option_id})
         if extra.quantity > option.max_quantity:
-            raise HTTPException(status_code=400, detail=f"Quantidade máxima para '{option.name}' é {option.max_quantity}.")
+            raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="customization_quantity_exceeded", message="Customization option quantity exceeds the maximum allowed.", details={"product_id": product.product_id, "option_id": extra.option_id, "quantity": extra.quantity, "max_quantity": option.max_quantity})
 
         extra_total = CUSTOMIZATION_ADD_SURCHARGE * extra.quantity
         final_unit_price += extra_total
@@ -322,11 +322,11 @@ def _validate_and_build_customization(
     for substitution in body.substitutions:
         original = ingredients.get(substitution.original_ingredient_id)
         if not original:
-            raise HTTPException(status_code=400, detail=f"Ingredient {substitution.original_ingredient_id} não pertence ao product.")
+            raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="ingredient_not_in_product", message="Ingredient does not belong to this product.", details={"product_id": product.product_id, "ingredient_id": substitution.original_ingredient_id})
         if not bool(original.substitutable):
-            raise HTTPException(status_code=400, detail=f"Ingredient '{original.ingredient.name}' não pode ser substituído.")
+            raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="ingredient_not_substitutable", message="Ingredient cannot be substituted.", details={"product_id": product.product_id, "ingredient_id": substitution.original_ingredient_id})
         if substitution.original_ingredient_id in seen_originals:
-            raise HTTPException(status_code=400, detail="Cada ingredient só pode ter uma substituição.")
+            raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="duplicate_substitution", message="Ingredient can only be substituted once.", details={"product_id": product.product_id, "ingredient_id": substitution.original_ingredient_id})
         seen_originals.add(substitution.original_ingredient_id)
 
         replacement = next(
@@ -342,7 +342,7 @@ def _validate_and_build_customization(
             None,
         )
         if not replacement:
-            raise HTTPException(status_code=400, detail="Substituição não permitida para este product.")
+            raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="invalid_substitution_option", message="Replacement option is invalid for this ingredient.", details={"product_id": product.product_id, "ingredient_id": substitution.original_ingredient_id, "new_ingredient_id": substitution.new_ingredient_id})
 
         final_unit_price += Decimal(str(replacement.extra_price))
         substitution_names.append(f"{original.ingredient.name} -> {_format_option_name(replacement)}")
@@ -596,7 +596,7 @@ def update_item(
         )
 
     if not item:
-        raise HTTPException(status_code=404, detail="Item não encontrado no cart.")
+        raise AppHTTPException(status_code=404, error="cart_item_not_found", message="Cart item not found.", details={"reason": "request_failed"})
 
     product = _get_product_or_404(db, item.product_id)
     _ensure_product_orderable(db, product)
@@ -639,7 +639,7 @@ def remove_item(
         )
 
     if not item:
-        raise HTTPException(status_code=404, detail="Item não encontrado no cart.")
+        raise AppHTTPException(status_code=404, error="cart_item_not_found", message="Cart item not found.", details={"reason": "request_failed"})
 
     db.delete(item)
     db.commit()
@@ -703,7 +703,7 @@ def merge_cart(
                 guest_item.quantity,
                 guest_item.customization,
             )
-        except HTTPException:
+        except AppHTTPException:
             skipped.append(guest_item.product_id)
             continue
 
