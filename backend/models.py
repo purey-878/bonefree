@@ -31,6 +31,12 @@ class Admin(AppBaseModel):
     status: Mapped[int] = mapped_column(Integer, default=1, nullable=True)
     role: Mapped[str] = mapped_column(String(30), default='staff_admin', nullable=False)
 
+    sessions: Mapped[List["AdminSession"]] = relationship(
+        "AdminSession",
+        back_populates="admin",
+        cascade="all, delete-orphan",
+    )
+
 
 class Category(AppBaseModel):
     __tablename__ = 'category'
@@ -143,6 +149,39 @@ class Customer(AppBaseModel):
     reviews: Mapped[List[ProductReview]] = relationship("ProductReview", back_populates="customer")
     # Parent-side 0..N: a client may exist without any coupons.
     coupons: Mapped[List[Coupon]] = relationship("Coupon", back_populates="customer")
+    sessions: Mapped[List["Session"]] = relationship(
+        "Session",
+        back_populates="customer",
+        cascade="all, delete-orphan",
+    )
+
+
+class Session(AppBaseModel):
+    __tablename__ = "session"
+
+    customer_id: Mapped[int] = mapped_column(Integer, ForeignKey('customer.id', ondelete='CASCADE'), nullable=False, index=True)
+    token_hash: Mapped[str] = mapped_column(String(255), nullable=False, unique=True, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime, default=naive_utc_now, onupdate=naive_utc_now, nullable=False)
+    ip_address: Mapped[str] = mapped_column(String(45), nullable=True)
+    user_agent: Mapped[str] = mapped_column(String(500), nullable=True)
+    revoked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="0")
+
+    customer: Mapped[Customer] = relationship("Customer", back_populates="sessions")
+
+
+class AdminSession(AppBaseModel):
+    __tablename__ = "admin_session"
+
+    admin_id: Mapped[int] = mapped_column(Integer, ForeignKey('admin.id', ondelete='CASCADE'), nullable=False, index=True)
+    token_hash: Mapped[str] = mapped_column(String(255), nullable=False, unique=True, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime, default=naive_utc_now, onupdate=naive_utc_now, nullable=False)
+    ip_address: Mapped[str] = mapped_column(String(45), nullable=True)
+    user_agent: Mapped[str] = mapped_column(String(500), nullable=True)
+    revoked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="0")
+
+    admin: Mapped[Admin] = relationship("Admin", back_populates="sessions")
 
 
 class CustomerBillingAddress(AppBaseModel):

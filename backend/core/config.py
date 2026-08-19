@@ -30,6 +30,14 @@ class Settings(BaseSettings):
         default=f"sqlite:///{(BASE_DIR / 'bonefree_rest_2.db').as_posix()}",
         validation_alias="DATABASE_URL",
     )
+    database_pool_size: int = Field(
+        default=5,
+        validation_alias="DATABASE_POOL_SIZE",
+    )
+    database_max_overflow: int = Field(
+        default=10,
+        validation_alias="DATABASE_MAX_OVERFLOW",
+    )
     database_pool_pre_ping: bool = Field(
         default=True,
         validation_alias="DATABASE_POOL_PRE_PING",
@@ -41,6 +49,10 @@ class Settings(BaseSettings):
     database_pool_timeout_seconds: int = Field(
         default=30,
         validation_alias="DATABASE_POOL_TIMEOUT_SECONDS",
+    )
+    database_connect_timeout_seconds: int = Field(
+        default=10,
+        validation_alias="DATABASE_CONNECT_TIMEOUT_SECONDS",
     )
     auto_apply_migrations: bool = Field(default=True, validation_alias="AUTO_APPLY_MIGRATIONS")
     dev_reset_database_on_migration_error: bool = Field(
