@@ -17,17 +17,17 @@ from services.substitution import (  # noqa: E402
 
 @dataclass
 class FakeCategory:
-    nome_categoria: str
+    category_name: str
 
 
 @dataclass
 class FakeProduct:
-    id_produto: str
-    nome: str
-    descricao_produto: str
-    preco: Decimal
+    product_id: str
+    name: str
+    product_description: str
+    price: Decimal
     stock: int
-    categoria: FakeCategory
+    category: FakeCategory
     status: int = 1
     deleted_at: object = None
     nutrition: dict | None = None
@@ -44,12 +44,12 @@ def product(
     nutrition: dict | None = None,
 ) -> FakeProduct:
     return FakeProduct(
-        id_produto=product_id,
-        nome=name,
-        descricao_produto=description,
-        preco=Decimal(price),
+        product_id=product_id,
+        name=name,
+        product_description=description,
+        price=Decimal(price),
         stock=stock,
-        categoria=FakeCategory(category),
+        category=FakeCategory(category),
         status=status,
         nutrition=nutrition,
     )
@@ -127,7 +127,7 @@ class SubstitutionServiceTests(unittest.TestCase):
             limit=3,
         )
 
-        self.assertEqual([item.product.id_produto for item in ranked], ["P2", "P3", "P4"])
+        self.assertEqual([item.product.product_id for item in ranked], ["P2", "P3", "P4"])
         self.assertGreater(ranked[0].score, ranked[1].score)
         self.assertIn("same category", ranked[0].reason)
 
@@ -171,7 +171,7 @@ class SubstitutionServiceTests(unittest.TestCase):
             limit=5,
         )
 
-        self.assertEqual([item.product.id_produto for item in ranked], ["P2"])
+        self.assertEqual([item.product.product_id for item in ranked], ["P2"])
         self.assertIn("currently available", ranked[0].reason)
 
 

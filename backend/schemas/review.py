@@ -11,14 +11,14 @@ ReactionType = Literal["like", "heart", "helpful", "flag"]
 
 
 class ReviewReplyCreate(BaseModel):
-    texto: str = Field(..., min_length=1, max_length=2000)
+    text: str = Field(..., min_length=1, max_length=2000)
 
 
 class ReviewReplyResponse(BaseModel):
-    id_reply: int
-    id_review: int
-    id_admin: int
-    texto: str
+    reply_id: int
+    review_id: int
+    admin_id: int
+    text: str
     created_at: datetime
     updated_at: datetime
 
@@ -26,26 +26,26 @@ class ReviewReplyResponse(BaseModel):
 
 
 class ReviewReactionCreate(BaseModel):
-    tipo: ReactionType
+    type: ReactionType
 
 
 class ReviewReactionResponse(BaseModel):
-    id_reaction: int
-    id_review: int
-    id_admin: int
-    tipo: ReactionType
+    reaction_id: int
+    review_id: int
+    admin_id: int
+    type: ReactionType
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class ProdutoReviewCreate(BaseModel):
-    id_encomenda_produto: int = Field(..., ge=1)
+    order_product_id: int = Field(..., ge=1)
     rating: int = Field(..., ge=1, le=5)
-    titulo: str | None = Field(default=None, max_length=120)
-    comentario: str | None = Field(default=None, max_length=1000)
+    title: str | None = Field(default=None, max_length=120)
+    comment: str | None = Field(default=None, max_length=1000)
 
-    @field_validator("titulo", "comentario")
+    @field_validator("title", "comment")
     @classmethod
     def empty_string_to_none(cls, value: str | None) -> str | None:
         if value is None:
@@ -56,10 +56,10 @@ class ProdutoReviewCreate(BaseModel):
 
 class ProdutoReviewUpdate(BaseModel):
     rating: int | None = Field(default=None, ge=1, le=5)
-    titulo: str | None = Field(default=None, max_length=120)
-    comentario: str | None = Field(default=None, max_length=1000)
+    title: str | None = Field(default=None, max_length=120)
+    comment: str | None = Field(default=None, max_length=1000)
 
-    @field_validator("titulo", "comentario")
+    @field_validator("title", "comment")
     @classmethod
     def empty_string_to_none(cls, value: str | None) -> str | None:
         if value is None:
@@ -69,18 +69,18 @@ class ProdutoReviewUpdate(BaseModel):
 
 
 class ProdutoReviewResponse(BaseModel):
-    id_review: int
-    id_produto: int
+    review_id: int
+    product_id: int
     id_produto_display: str
-    id_cliente: int
-    id_encomenda_produto: int | None
+    customer_id: int
+    order_product_id: int | None
     cliente_nome: str | None = None
     rating: int
-    titulo: str | None
-    comentario: str | None
+    title: str | None
+    comment: str | None
     status: ReviewStatus
-    data_criacao: datetime
-    data_atualizacao: datetime
+    created_at: datetime
+    updated_at: datetime
     is_owner: bool = False
     reply: ReviewReplyResponse | None = None
     replies: list[ReviewReplyResponse] = Field(default_factory=list)
@@ -88,19 +88,19 @@ class ProdutoReviewResponse(BaseModel):
 
 
 class ProdutoReviewStatsResponse(BaseModel):
-    id_produto: int
+    product_id: int
     id_produto_display: str
     rating_medio: float | None = None
     total_reviews: int = 0
 
 
 class ProdutoReviewEligibilityItem(BaseModel):
-    id_encomenda_produto: int
-    id_encomenda: int
-    id_produto: int
+    order_product_id: int
+    order_id: int
+    product_id: int
     id_produto_display: str
     nome_produto: str
-    data_encomenda: datetime
+    ordered_at: datetime
     existing_review: ProdutoReviewResponse | None = None
 
 

@@ -71,19 +71,19 @@ PAYMENT_LABELS = {
 
 
 def build_order_receipt_payload(
-    encomenda: Encomenda,
+    order: Encomenda,
     checkout: CheckoutRequest,
     delivery_fee: Decimal,
     service_fee: Decimal,
 ) -> dict[str, Any]:
     """Map a saved order into the receipt template contract."""
     customer_name = f"{checkout.customer.first_name} {checkout.customer.last_name}".strip()
-    customer_email = checkout.customer.email or encomenda.cliente.email
-    coupon_discount = _order_discount(encomenda)
+    customer_email = checkout.customer.email or order.customer.email
+    coupon_discount = _order_discount(order)
     service_fee_amount = Decimal(str(service_fee))
-    subtotal = _order_subtotal(encomenda)
-    payment_date = _payment_datetime(encomenda)
-    customer = encomenda.cliente
+    subtotal = _order_subtotal(order)
+    payment_date = _payment_datetime(order)
+    customer = order.customer
 
     return {
         "company_name": _company_name(),
@@ -96,56 +96,56 @@ def build_order_receipt_payload(
         "company_email": os.getenv("RECEIPT_COMPANY_EMAIL", "carambolarubra@gmail.com"),
         "company_phone": os.getenv("RECEIPT_COMPANY_PHONE", "+351 968 107 703"),
         "customer_name": customer_name,
-        "customer_nif": _customer_field(customer, "nif"),
+        "customer_nif": _customer_field(customer, "tax_id"),
         "customer_email": customer_email,
-        "customer_phone": checkout.customer.phone or _customer_field(customer, "telefone"),
+        "customer_phone": checkout.customer.phone or _customer_field(customer, "phone"),
         "customer_address": _invoice_address(customer),
-        "order_id": f"ENC-{encomenda.id_encomenda:06d}",
-        "document_number": _document_number(encomenda),
-        "issue_datetime": _format_datetime_pt(encomenda.data_encomenda),
+        "order_id": f"ENC-{order.order_id:06d}",
+        "document_number": _document_number(order),
+        "issue_datetime": _format_datetime_pt(order.ordered_at),
         "payment_date": _format_datetime_pt(payment_date),
-        "order_reference": f"ENC-{encomenda.id_encomenda:06d}",
-        "order_date": _format_datetime_pt(encomenda.data_encomenda),
+        "order_reference": f"ENC-{order.order_id:06d}",
+        "order_date": _format_datetime_pt(order.ordered_at),
         "payment_method": PAYMENT_LABELS.get(checkout.payment_method, checkout.payment_method.title()),
-        "payment_status": _payment_status_label(encomenda),
-        "payment_reference": _payment_reference(encomenda),
-        "coupon_code": _order_coupon_code(encomenda),
+        "payment_status": _payment_status_label(order),
+        "payment_reference": _payment_reference(order),
+        "coupon_code": _order_coupon_code(order),
         "billing_address": _customer_address(customer_name, checkout, customer),
         "shipping_address": _shipping_address(checkout),
-        "items": _receipt_items(encomenda, coupon_discount, subtotal),
+        "items": _receipt_items(order, coupon_discount, subtotal),
         "subtotal_amount": subtotal,
         "discount_amount": coupon_discount,
         "shipping_amount": Decimal(str(delivery_fee)),
         "service_fee_amount": service_fee_amount,
-        "total_amount_value": Decimal(str(encomenda.total)),
+        "total_amount_value": Decimal(str(order.total)),
         "subtotal": _format_money(subtotal),
         "discount": _format_money(coupon_discount) if coupon_discount > 0 else None,
         "tax": os.getenv("RECEIPT_TAX_LABEL", "Incluído"),
         "shipping": _format_money(delivery_fee),
         "service_fee": _format_money(service_fee_amount) if service_fee_amount > 0 else None,
-        "total_amount": _format_money(encomenda.total),
+        "total_amount": _format_money(order.total),
         "iva_rate": _iva_rate(),
         "iva_exemption_reason": _iva_exemption_reason(),
         "public_base_url": _public_base_url(),
     }
 
 
-def build_saved_order_receipt_payload(encomenda: Encomenda) -> dict[str, Any]:
+def build_saved_order_receipt_payload(order: Encomenda) -> dict[str, Any]:
     """Build a receipt payload from an already-saved order.
 
     This is used when counter payments are confirmed after checkout, where the
     original checkout request object is no longer available.
     """
-    customer = encomenda.cliente
+    customer = order.customer
     customer_name = (
-        f"{customer.nome or ''} {customer.apelido or ''}".strip()
+        f"{customer.name or ''} {customer.last_name or ''}".strip()
         if customer else "Cliente"
     ) or "Cliente"
     customer_email = customer.email if customer else ""
-    subtotal = _order_subtotal(encomenda)
-    coupon_discount = _order_discount(encomenda)
-    service_fee = Decimal(str(encomenda.total)) + coupon_discount - subtotal
-    payment_date = _payment_datetime(encomenda)
+    subtotal = _order_subtotal(order)
+    coupon_discount = _order_discount(order)
+    service_fee = Decimal(str(order.total)) + coupon_discount - subtotal
+    payment_date = _payment_datetime(order)
 
     return {
         "company_name": _company_name(),
@@ -158,34 +158,34 @@ def build_saved_order_receipt_payload(encomenda: Encomenda) -> dict[str, Any]:
         "company_email": os.getenv("RECEIPT_COMPANY_EMAIL", "carambolarubra@gmail.com"),
         "company_phone": os.getenv("RECEIPT_COMPANY_PHONE", "+351 968 107 703"),
         "customer_name": customer_name,
-        "customer_nif": _customer_field(customer, "nif"),
+        "customer_nif": _customer_field(customer, "tax_id"),
         "customer_email": customer_email,
-        "customer_phone": _customer_field(customer, "telefone"),
+        "customer_phone": _customer_field(customer, "phone"),
         "customer_address": _invoice_address(customer),
-        "order_id": f"ENC-{encomenda.id_encomenda:06d}",
-        "document_number": _document_number(encomenda),
-        "issue_datetime": _format_datetime_pt(encomenda.data_encomenda),
+        "order_id": f"ENC-{order.order_id:06d}",
+        "document_number": _document_number(order),
+        "issue_datetime": _format_datetime_pt(order.ordered_at),
         "payment_date": _format_datetime_pt(payment_date),
-        "order_reference": f"ENC-{encomenda.id_encomenda:06d}",
-        "order_date": _format_datetime_pt(encomenda.data_encomenda),
-        "payment_method": _saved_payment_label(encomenda),
-        "payment_status": _payment_status_label(encomenda),
-        "payment_reference": _payment_reference(encomenda),
-        "coupon_code": _order_coupon_code(encomenda),
+        "order_reference": f"ENC-{order.order_id:06d}",
+        "order_date": _format_datetime_pt(order.ordered_at),
+        "payment_method": _saved_payment_label(order),
+        "payment_status": _payment_status_label(order),
+        "payment_reference": _payment_reference(order),
+        "coupon_code": _order_coupon_code(order),
         "billing_address": _saved_customer_address(customer_name, customer),
-        "shipping_address": _saved_shipping_address(encomenda),
-        "items": _receipt_items(encomenda, coupon_discount, subtotal),
+        "shipping_address": _saved_shipping_address(order),
+        "items": _receipt_items(order, coupon_discount, subtotal),
         "subtotal_amount": subtotal,
         "discount_amount": coupon_discount,
         "shipping_amount": Decimal("0"),
         "service_fee_amount": service_fee if service_fee > 0 else Decimal("0"),
-        "total_amount_value": Decimal(str(encomenda.total)),
+        "total_amount_value": Decimal(str(order.total)),
         "subtotal": _format_money(subtotal),
         "discount": _format_money(coupon_discount) if coupon_discount > 0 else None,
         "tax": os.getenv("RECEIPT_TAX_LABEL", "Incluído"),
         "shipping": _format_money(Decimal("0")),
         "service_fee": _format_money(service_fee) if service_fee > 0 else None,
-        "total_amount": _format_money(encomenda.total),
+        "total_amount": _format_money(order.total),
         "iva_rate": _iva_rate(),
         "iva_exemption_reason": _iva_exemption_reason(),
         "public_base_url": _public_base_url(),
@@ -535,41 +535,41 @@ def _saved_customer_address(customer_name: str, customer: Any) -> str:
     lines = [
         customer_name,
         customer.email,
-        customer.telefone,
+        customer.phone,
         _invoice_address(customer),
     ]
     return "\n".join(line for line in lines if line)
 
 
 def _invoice_address(customer: Any) -> str:
-    address = getattr(customer, "endereco_fatura", None) if customer else None
+    address = getattr(customer, "billing_address", None) if customer else None
     if not address:
         return ""
 
     return "\n".join(
         line
         for line in (
-            getattr(address, "morada", None),
+            getattr(address, "address", None),
             " ".join(
                 part
                 for part in (
-                    getattr(address, "codigo_postal", None),
-                    getattr(address, "cidade", None),
+                    getattr(address, "postal_code", None),
+                    getattr(address, "city", None),
                 )
                 if part
             ),
-            getattr(address, "pais", None),
+            getattr(address, "country", None),
         )
         if line
     )
 
 
-def _saved_shipping_address(encomenda: Encomenda) -> str:
+def _saved_shipping_address(order: Encomenda) -> str:
     address = os.getenv(
         "RECEIPT_PICKUP_ADDRESS",
         "Comer no restaurante BONEFREE\nR. Eng. Henrique Mendia 28A\n2825-450 Costa da Caparica\nPortugal",
     )
-    table_number = _note_value(encomenda.notas, "table_number")
+    table_number = _note_value(order.notes, "table_number")
     if not table_number:
         return address
 
@@ -580,27 +580,27 @@ def _address_lines(checkout: CheckoutRequest) -> list[str]:
     return []
 
 
-def _receipt_items(encomenda: Encomenda, discount: Decimal, subtotal: Decimal) -> list[dict[str, Any]]:
-    allocations = _allocate_discount(encomenda.itens, discount, subtotal)
+def _receipt_items(order: Encomenda, discount: Decimal, subtotal: Decimal) -> list[dict[str, Any]]:
+    allocations = _allocate_discount(order.items, discount, subtotal)
     receipt_items = []
 
-    for item, line_discount in zip(encomenda.itens, allocations):
-        unit_price = Decimal(str(item.preco_unitario)).quantize(Decimal("0.01"))
-        quantity = Decimal(item.quantidade)
+    for item, line_discount in zip(order.items, allocations):
+        unit_price = Decimal(str(item.unit_price)).quantize(Decimal("0.01"))
+        quantity = Decimal(item.quantity)
         line_gross = (unit_price * quantity).quantize(Decimal("0.01"))
         line_total = (line_gross - line_discount).quantize(Decimal("0.01"))
 
         receipt_items.append(
             {
-                "name": item.nome_produto_snapshot or (item.produto.nome if item.produto else item.id_produto),
-                "quantity": item.quantidade,
+                "name": item.product_name_snapshot or (item.product.name if item.product else item.product_id),
+                "quantity": item.quantity,
                 "unit_price_amount": unit_price,
                 "line_gross_amount": line_gross,
                 "discount_amount": line_discount,
                 "line_total_amount": line_total,
                 "unit_price": _format_money(unit_price),
                 "price": _format_money(line_gross),
-                "customizations": customization_lines(item.customizacao),
+                "customizations": customization_lines(item.customization),
             }
         )
 
@@ -615,7 +615,7 @@ def _allocate_discount(items: list[Any], discount: Decimal, subtotal: Decimal) -
     allocations: list[Decimal] = []
     allocated = Decimal("0.00")
     for index, item in enumerate(items):
-        line_gross = Decimal(str(item.preco_unitario)) * Decimal(item.quantidade)
+        line_gross = Decimal(str(item.unit_price)) * Decimal(item.quantity)
         if index == len(items) - 1:
             line_discount = discount - allocated
         else:
@@ -626,21 +626,21 @@ def _allocate_discount(items: list[Any], discount: Decimal, subtotal: Decimal) -
     return allocations
 
 
-def _order_subtotal(encomenda: Encomenda) -> Decimal:
-    stored = Decimal(str(getattr(encomenda, "subtotal", 0) or 0)).quantize(Decimal("0.01"))
+def _order_subtotal(order: Encomenda) -> Decimal:
+    stored = Decimal(str(getattr(order, "subtotal", 0) or 0)).quantize(Decimal("0.01"))
     if stored > 0:
         return stored
     return sum(
-        Decimal(str(item.preco_unitario)) * Decimal(item.quantidade)
-        for item in encomenda.itens
+        Decimal(str(item.unit_price)) * Decimal(item.quantity)
+        for item in order.items
     ).quantize(Decimal("0.01"))
 
 
-def _order_discount(encomenda: Encomenda) -> Decimal:
-    stored = Decimal(str(getattr(encomenda, "desconto_total", 0) or 0)).quantize(Decimal("0.01"))
+def _order_discount(order: Encomenda) -> Decimal:
+    stored = Decimal(str(getattr(order, "total_discount", 0) or 0)).quantize(Decimal("0.01"))
     if stored > 0:
         return stored
-    raw_value = _note_value(encomenda.notas, "coupon_discount")
+    raw_value = _note_value(order.notes, "coupon_discount")
     if not raw_value:
         return Decimal("0")
     try:
@@ -649,8 +649,8 @@ def _order_discount(encomenda: Encomenda) -> Decimal:
         return Decimal("0")
 
 
-def _order_coupon_code(encomenda: Encomenda) -> str:
-    return _note_value(encomenda.notas, "coupon") or ""
+def _order_coupon_code(order: Encomenda) -> str:
+    return _note_value(order.notes, "coupon") or ""
 
 
 def _note_value(notes: str | None, key: str) -> str | None:
@@ -664,14 +664,14 @@ def _note_value(notes: str | None, key: str) -> str | None:
     return None
 
 
-def _saved_payment_label(encomenda: Encomenda) -> str:
-    checkout_payment = _note_value(encomenda.notas, "checkout_payment")
-    payment_method = checkout_payment or encomenda.metodo_pagamento
+def _saved_payment_label(order: Encomenda) -> str:
+    checkout_payment = _note_value(order.notes, "checkout_payment")
+    payment_method = checkout_payment or order.payment_method
     return PAYMENT_LABELS.get(payment_method, payment_method.title())
 
 
-def _payment_status_label(encomenda: Encomenda) -> str:
-    status = getattr(getattr(encomenda, "pagamento", None), "estado", None) or getattr(encomenda, "estado_pagamento", None)
+def _payment_status_label(order: Encomenda) -> str:
+    status = getattr(getattr(order, "payment", None), "state", None) or getattr(order, "payment_status", None)
     labels = {
         "aprovado": "Pago",
         "pago": "Pago",
@@ -683,9 +683,9 @@ def _payment_status_label(encomenda: Encomenda) -> str:
     return labels.get(str(status or "").strip(), str(status or "").strip().title())
 
 
-def _payment_reference(encomenda: Encomenda) -> str:
-    pagamento = getattr(encomenda, "pagamento", None)
-    reference = getattr(pagamento, "referencia_transacao", None) if pagamento else None
+def _payment_reference(order: Encomenda) -> str:
+    payment = getattr(order, "payment", None)
+    reference = getattr(payment, "transaction_reference", None) if payment else None
     return str(reference).strip() if reference else ""
 
 
@@ -697,16 +697,16 @@ def _customer_field(customer: Any, field: str) -> str:
     return str(value).strip() if value not in (None, "") else ""
 
 
-def _document_number(encomenda: Encomenda) -> str:
-    year = encomenda.data_encomenda.year if encomenda.data_encomenda else datetime.utcnow().year
-    return f"FR {year}/{encomenda.id_encomenda:06d}"
+def _document_number(order: Encomenda) -> str:
+    year = order.ordered_at.year if order.ordered_at else datetime.utcnow().year
+    return f"FR {year}/{order.order_id:06d}"
 
 
-def _payment_datetime(encomenda: Encomenda) -> Any:
-    pagamento = getattr(encomenda, "pagamento", None)
-    if pagamento and pagamento.data_pagamento:
-        return pagamento.data_pagamento
-    return encomenda.data_encomenda
+def _payment_datetime(order: Encomenda) -> Any:
+    payment = getattr(order, "payment", None)
+    if payment and payment.paid_at:
+        return payment.paid_at
+    return order.ordered_at
 
 
 def _format_datetime_pt(value: Any) -> str:

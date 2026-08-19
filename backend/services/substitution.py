@@ -76,27 +76,27 @@ class RankedSuggestion:
 
 
 def product_id(product: Any) -> str:
-    return str(getattr(product, "id_produto", getattr(product, "id", "")))
+    return str(getattr(product, "product_id", getattr(product, "id", "")))
 
 
 def product_name(product: Any) -> str:
-    return str(getattr(product, "nome", getattr(product, "name", "")) or "")
+    return str(getattr(product, "name", getattr(product, "name", "")) or "")
 
 
 def product_description(product: Any) -> str:
-    return str(getattr(product, "descricao_produto", getattr(product, "description", "")) or "")
+    return str(getattr(product, "product_description", getattr(product, "description", "")) or "")
 
 
 def product_category(product: Any) -> str:
-    categoria = getattr(product, "categoria", None)
-    if categoria is not None:
-        nome_categoria = getattr(categoria, "nome_categoria", None)
-        if nome_categoria:
-            return str(nome_categoria)
+    category = getattr(product, "category", None)
+    if category is not None:
+        category_name = getattr(category, "category_name", None)
+        if category_name:
+            return str(category_name)
 
     return str(
         getattr(product, "category", None)
-        or getattr(product, "id_categoria", "")
+        or getattr(product, "category_id", "")
         or ""
     )
 
@@ -109,7 +109,7 @@ def product_stock(product: Any) -> int:
 
 
 def product_price(product: Any) -> float | None:
-    price = getattr(product, "preco", getattr(product, "price", None))
+    price = getattr(product, "price", getattr(product, "price", None))
     if price is None:
         return None
 
@@ -135,7 +135,7 @@ def is_product_available(
 ) -> bool:
     """Return True when the product has enough stock above the threshold."""
     if quantity < 1:
-        raise ValueError("A quantidade deve ser pelo menos 1.")
+        raise ValueError("A quantity deve ser pelo menos 1.")
     if stock_threshold < 0:
         raise ValueError("O limite de stock não pode ser negativo.")
 

@@ -137,27 +137,27 @@ def register(user: UserRegister, background_tasks: BackgroundTasks, request: Req
     existing = db.query(Cliente).filter(Cliente.email == user.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Este email já está registado.")
-    if user.nif:
-        existing_nif = db.query(Cliente).filter(Cliente.nif == user.nif).first()
+    if user.tax_id:
+        existing_nif = db.query(Cliente).filter(Cliente.tax_id == user.tax_id).first()
         if existing_nif:
             raise HTTPException(status_code=400, detail="Este NIF já está em uso.")
     
     # Create new user
     new_user = Cliente(
         email=user.email,
-        palavra_passe=hash_password(user.password),
-        nome=user.nome or "User",
-        apelido=user.apelido or user.email.split("@")[0],
-        telefone=user.telefone,
-        nif=user.nif,
+        password=hash_password(user.password),
+        name=user.name or "User",
+        last_name=user.last_name or user.email.split("@")[0],
+        phone=user.phone,
+        tax_id=user.tax_id,
         status=1,
-        data_criacao=datetime.utcnow()
+        created_at=datetime.utcnow()
     )
     
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
-    background_tasks.add_task(_send_welcome_email_background, new_user.email, new_user.nome)
+    background_tasks.add_task(_send_welcome_email_background, new_user.email, new_user.name)
     
     # Create token
     access_token = create_access_token(data={"sub": new_user.email})
@@ -180,7 +180,7 @@ def forgot_password(body: ForgotPasswordRequest, db: Session = Depends(get_db)):
     code = start_password_reset(db_user)
     db.commit()
 
-    display_name = f"{db_user.nome or ''} {db_user.apelido or ''}".strip() or db_user.nome
+    display_name = f"{db_user.name or ''} {db_user.last_name or ''}".strip() or db_user.name
     if not send_password_reset_email(db_user.email, code, display_name):
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -216,7 +216,7 @@ def reset_password(body: ResetPasswordRequest, db: Session = Depends(get_db)):
     if not allowed:
         raise HTTPException(status_code=400, detail=message)
 
-    db_user.palavra_passe = hash_password(body.new_password)
+    db_user.password = hash_password(body.new_password)
     clear_password_reset(db_user)
     db.commit()
 
@@ -234,11 +234,11 @@ def login(user: UserAuth, request: Request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Email ou palavra-passe inválido.")
     
     # Verify password
-    if not verify_password(user.password, db_user.palavra_passe):
+    if not verify_password(user.password, db_user.password):
         raise HTTPException(status_code=401, detail="Email ou palavra-passe inválido.")
 
     if db_user.status == 0:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="A conta de cliente está inativa.")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="A conta de customer está inativa.")
     
     # Create token
     access_token = create_access_token(data={"sub": db_user.email})

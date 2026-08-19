@@ -38,9 +38,9 @@ class PortugueseValidationTests(unittest.TestCase):
         self.assertEqual(normalize_phone("+351 912 345 678"), "+351912345678")
 
     def test_phone_rejects_symbols_and_invalid_numbers(self):
-        with self.assertRaisesRegex(ValueError, "O número de telefone deve conter apenas dígitos."):
+        with self.assertRaisesRegex(ValueError, "O número de phone deve conter apenas dígitos."):
             normalize_phone("912-345-678")
-        with self.assertRaisesRegex(ValueError, "Número de telefone português inválido."):
+        with self.assertRaisesRegex(ValueError, "Número de phone português inválido."):
             normalize_phone("212345678")
 
     def test_name_supports_portuguese_characters(self):
@@ -50,9 +50,9 @@ class PortugueseValidationTests(unittest.TestCase):
         self.assertEqual(validate_name("D’Oliveira"), "D’Oliveira")
 
     def test_name_rejects_numbers_and_symbols(self):
-        with self.assertRaisesRegex(ValueError, "O nome não pode conter apenas números."):
+        with self.assertRaisesRegex(ValueError, "O name não pode conter apenas números."):
             validate_name("123456")
-        with self.assertRaisesRegex(ValueError, "Introduza um nome completo valido."):
+        with self.assertRaisesRegex(ValueError, "Introduza um name completo valido."):
             validate_name("abc123@@")
 
     def test_email_rejects_malformed_and_disposable(self):
@@ -78,7 +78,7 @@ class PortugueseValidationTests(unittest.TestCase):
             last_name="Silva",
             email="joao@example.com",
             phone="+351 912 345 678",
-            nif="123456789",
+            tax_id="123456789",
         )
         self.assertEqual(customer.phone, "+351912345678")
         with self.assertRaises(Exception):
@@ -87,15 +87,15 @@ class PortugueseValidationTests(unittest.TestCase):
                 last_name="Silva",
                 email="joao@example.com",
                 phone="912345678",
-                nif="123456788",
+                tax_id="123456788",
             )
 
     def test_auth_schemas_enforce_password_policy(self):
         user = UserRegister(
             email="maria@example.com",
             password="Valid1!x",
-            nome="Maria",
-            apelido="Costa",
+            name="Maria",
+            last_name="Costa",
         )
         self.assertEqual(user.email, "maria@example.com")
         with self.assertRaises(Exception):

@@ -1,4 +1,4 @@
-"""Checkout routes backed by the bonefree_resturante encomenda schema."""
+"""Checkout routes backed by the bonefree_resturante order schema."""
 
 import logging
 from datetime import datetime
@@ -49,15 +49,15 @@ IVA_PERCENTUAL = Decimal("13.00")
 ONLINE_PAYMENT_METHODS = {"cartao", "mbway", "digital"}
 
 
-def _product_image_path(produto: Produto | None) -> str | None:
-    if not produto:
+def _product_image_path(product: Produto | None) -> str | None:
+    if not product:
         return None
 
     image_path = None
-    if produto.imagens:
-        image_path = produto.imagens[0].caminho_imagem
-    elif produto.imagem:
-        image_path = produto.imagem
+    if product.imagens:
+        image_path = product.imagens[0].image_path
+    elif product.image:
+        image_path = product.image
 
     if not image_path:
         return None
@@ -80,10 +80,10 @@ def _is_online_payment(method: str | None) -> bool:
     return method in ONLINE_PAYMENT_METHODS
 
 
-def _included_iva(total: Decimal, iva_percentual: Decimal = IVA_PERCENTUAL) -> Decimal:
+def _included_iva(total: Decimal, vat_percentage: Decimal = IVA_PERCENTUAL) -> Decimal:
     if total <= 0:
         return Decimal("0.00")
-    multiplier = Decimal("1") + (iva_percentual / Decimal("100"))
+    multiplier = Decimal("1") + (vat_percentage / Decimal("100"))
     return (total - (total / multiplier)).quantize(Decimal("0.01"))
 
 
@@ -99,31 +99,31 @@ def _format_money_pt(value: Decimal) -> str:
     return f"{sign}{'.'.join(groups)},{cents} €"
 
 
-def _response_payment_method(encomenda: Encomenda) -> str:
-    checkout_payment = _note_value(encomenda.notas, "checkout_payment")
+def _response_payment_method(order: Encomenda) -> str:
+    checkout_payment = _note_value(order.notes, "checkout_payment")
     if checkout_payment == "qr_pay":
         return "mbway"
     if checkout_payment in {"card", "cash", "mbway"}:
         return checkout_payment
-    if encomenda.metodo_pagamento == "balcao":
+    if order.payment_method == "balcao":
         return "cash"
-    if encomenda.metodo_pagamento == "mbway":
+    if order.payment_method == "mbway":
         return "mbway"
     return "card"
 
 
 def _cart_items_for_user(db: Session, current_user: Cliente) -> list[CheckoutItem]:
-    cart = db.query(Carrinho).filter(Carrinho.id_cliente == current_user.id_cliente).first()
+    cart = db.query(Carrinho).filter(Carrinho.customer_id == current_user.customer_id).first()
     if not cart:
         return []
 
     return [
         CheckoutItem(
-            id_produto=item.id_produto,
-            quantidade=item.quantidade,
-            customizacao=customization_from_json(item.customizacao),
+            product_id=item.product_id,
+            quantity=item.quantity,
+            customization=customization_from_json(item.customization),
         )
-        for item in cart.itens
+        for item in cart.items
     ]
 
 
@@ -131,76 +131,76 @@ def _clear_user_cart(db: Session, current_user: Optional[Cliente]) -> None:
     if not current_user:
         return
 
-    cart = db.query(Carrinho).filter(Carrinho.id_cliente == current_user.id_cliente).first()
+    cart = db.query(Carrinho).filter(Carrinho.customer_id == current_user.customer_id).first()
     if not cart:
         return
 
     cart_item_ids = [
-        cart_log_id
-        for (cart_log_id,) in db.query(CarrinhoProduto.cart_log_id)
-        .filter(CarrinhoProduto.id_carrinho == cart.id_carrinho)
+        cart_product_id
+        for (cart_product_id,) in db.query(CarrinhoProduto.cart_product_id)
+        .filter(CarrinhoProduto.cart_id == cart.cart_id)
         .all()
     ]
     if not cart_item_ids:
         return
 
     db.query(CarrinhoProdutoCustomizacao).filter(
-        CarrinhoProdutoCustomizacao.cart_log_id.in_(cart_item_ids)
+        CarrinhoProdutoCustomizacao.cart_product_id.in_(cart_item_ids)
     ).delete(synchronize_session=False)
     db.query(CarrinhoProduto).filter(
-        CarrinhoProduto.cart_log_id.in_(cart_item_ids)
+        CarrinhoProduto.cart_product_id.in_(cart_item_ids)
     ).delete(synchronize_session=False)
 
 
 def _get_or_create_checkout_customer(db: Session, body: CheckoutRequest, current_user: Optional[Cliente]) -> Cliente:
-    nif_provided = "nif" in body.customer.model_fields_set
-    checkout_nif = (body.customer.nif or "").strip() or None
+    nif_provided = "tax_id" in body.customer.model_fields_set
+    checkout_nif = (body.customer.tax_id or "").strip() or None
 
     if current_user:
-        customer = db.query(Cliente).filter(Cliente.id_cliente == current_user.id_cliente).first() or current_user
-        should_save_checkout_nif = nif_provided and checkout_nif and not customer.nif
+        customer = db.query(Cliente).filter(Cliente.customer_id == current_user.customer_id).first() or current_user
+        should_save_checkout_nif = nif_provided and checkout_nif and not customer.tax_id
         if should_save_checkout_nif:
             existing = db.query(Cliente).filter(
-                Cliente.nif == checkout_nif,
-                Cliente.id_cliente != customer.id_cliente,
+                Cliente.tax_id == checkout_nif,
+                Cliente.customer_id != customer.customer_id,
             ).first()
             if existing:
                 raise HTTPException(status_code=400, detail="Este NIF já está em uso.")
         if should_save_checkout_nif:
-            customer.nif = checkout_nif
-        customer.nome = body.customer.first_name
-        customer.apelido = body.customer.last_name
+            customer.tax_id = checkout_nif
+        customer.name = body.customer.first_name
+        customer.last_name = body.customer.last_name
         if body.customer.phone:
-            customer.telefone = body.customer.phone
+            customer.phone = body.customer.phone
         return customer
 
     customer = db.query(Cliente).filter(Cliente.email == body.customer.email).first()
     if customer:
-        should_save_checkout_nif = nif_provided and checkout_nif and not customer.nif
+        should_save_checkout_nif = nif_provided and checkout_nif and not customer.tax_id
         if should_save_checkout_nif:
             existing = db.query(Cliente).filter(
-                Cliente.nif == checkout_nif,
-                Cliente.id_cliente != customer.id_cliente,
+                Cliente.tax_id == checkout_nif,
+                Cliente.customer_id != customer.customer_id,
             ).first()
             if existing:
                 raise HTTPException(status_code=400, detail="Este NIF já está em uso.")
         if should_save_checkout_nif:
-            customer.nif = checkout_nif
-        customer.nome = body.customer.first_name
-        customer.apelido = body.customer.last_name
+            customer.tax_id = checkout_nif
+        customer.name = body.customer.first_name
+        customer.last_name = body.customer.last_name
         if body.customer.phone:
-            customer.telefone = body.customer.phone
+            customer.phone = body.customer.phone
         return customer
 
     customer = Cliente(
-        nome=body.customer.first_name,
-        apelido=body.customer.last_name,
+        name=body.customer.first_name,
+        last_name=body.customer.last_name,
         email=body.customer.email,
-        telefone=body.customer.phone,
-        nif=checkout_nif,
-        palavra_passe=hash_password(uuid4().hex),
+        phone=body.customer.phone,
+        tax_id=checkout_nif,
+        password=hash_password(uuid4().hex),
         status=1,
-        data_criacao=datetime.utcnow(),
+        created_at=datetime.utcnow(),
     )
     db.add(customer)
     db.flush()
@@ -265,23 +265,23 @@ def _normalize_coupon_code(value: str | None) -> str | None:
 def _available_coupon_query(db: Session, current_user: Cliente):
     now = datetime.utcnow()
     return db.query(Cupom).filter(
-        Cupom.id_cliente == current_user.id_cliente,
-        Cupom.usado.is_(False),
-        ((Cupom.expira_em.is_(None)) | (Cupom.expira_em > now)),
+        Cupom.customer_id == current_user.customer_id,
+        Cupom.used.is_(False),
+        ((Cupom.expires_at.is_(None)) | (Cupom.expires_at > now)),
     )
 
 
 def _calculate_coupon_discount(coupon: Cupom, subtotal: Decimal) -> Decimal:
-    if subtotal < Decimal(str(coupon.valor_minimo_pedido)):
+    if subtotal < Decimal(str(coupon.minimum_order_value)):
         raise HTTPException(
             status_code=400,
-            detail=f"O cupão requer um pedido mínimo de {_format_money_pt(Decimal(str(coupon.valor_minimo_pedido)))}.",
+            detail=f"O cupão requer um pedido mínimo de {_format_money_pt(Decimal(str(coupon.minimum_order_value)))}.",
         )
 
-    if coupon.tipo == "PERCENTAGEM":
-        discount = subtotal * (Decimal(str(coupon.valor)) / Decimal("100"))
+    if coupon.type == "PERCENTAGEM":
+        discount = subtotal * (Decimal(str(coupon.value)) / Decimal("100"))
     else:
-        discount = Decimal(str(coupon.valor))
+        discount = Decimal(str(coupon.value))
 
     return min(subtotal, discount).quantize(Decimal("0.01"))
 
@@ -291,17 +291,17 @@ def _get_valid_coupon(db: Session, current_user: Cliente, code: str | None, subt
     if not normalized_code:
         return None, Decimal("0")
 
-    coupon = _available_coupon_query(db, current_user).filter(Cupom.codigo == normalized_code).first()
+    coupon = _available_coupon_query(db, current_user).filter(Cupom.code == normalized_code).first()
     if not coupon:
-        raise HTTPException(status_code=400, detail="O cupão é inválido, expirou ou já foi usado.")
+        raise HTTPException(status_code=400, detail="O cupão é inválido, expirou ou já foi used.")
 
     return coupon, _calculate_coupon_discount(coupon, subtotal)
 
 
 def _get_or_create_loyalty(db: Session, current_user: Cliente) -> ClienteLoyalty:
-    loyalty = db.query(ClienteLoyalty).filter(ClienteLoyalty.id_cliente == current_user.id_cliente).first()
+    loyalty = db.query(ClienteLoyalty).filter(ClienteLoyalty.customer_id == current_user.customer_id).first()
     if not loyalty:
-        loyalty = ClienteLoyalty(id_cliente=current_user.id_cliente, pedidos_acima_50=0, total_cupons_ganhos=0)
+        loyalty = ClienteLoyalty(customer_id=current_user.customer_id, orders_above_50=0, total_coupons_earned=0)
         db.add(loyalty)
         db.flush()
     return loyalty
@@ -320,8 +320,8 @@ def _coupon_code_prefix(discount_type: str, discount_value: Decimal) -> str:
 def _new_coupon_code(db: Session, current_user: Cliente, discount_type: str, discount_value: Decimal) -> str:
     prefix = _coupon_code_prefix(discount_type, discount_value)
     for _ in range(10):
-        code = f"{prefix}-{current_user.id_cliente}-{uuid4().hex[:6].upper()}"
-        exists = db.query(Cupom).filter(Cupom.codigo == code).first()
+        code = f"{prefix}-{current_user.customer_id}-{uuid4().hex[:6].upper()}"
+        exists = db.query(Cupom).filter(Cupom.code == code).first()
         if not exists:
             return code
     return f"{prefix}-{uuid4().hex[:12].upper()}"
@@ -335,95 +335,95 @@ def _award_loyalty_coupon_if_eligible(db: Session, current_user: Cliente, qualif
     if qualifying_subtotal < qualifying_minimum:
         return None
 
-    loyalty = db.query(ClienteLoyalty).filter(ClienteLoyalty.id_cliente == current_user.id_cliente).first()
-    if not settings.enabled and (not loyalty or loyalty.pedidos_acima_50 <= 0):
+    loyalty = db.query(ClienteLoyalty).filter(ClienteLoyalty.customer_id == current_user.customer_id).first()
+    if not settings.enabled and (not loyalty or loyalty.orders_above_50 <= 0):
         return None
 
     if not loyalty:
         loyalty = _get_or_create_loyalty(db, current_user)
 
-    loyalty.pedidos_acima_50 += 1
-    loyalty.atualizado_em = datetime.utcnow()
+    loyalty.orders_above_50 += 1
+    loyalty.updated_at = datetime.utcnow()
 
-    if loyalty.pedidos_acima_50 < qualifying_count:
+    if loyalty.orders_above_50 < qualifying_count:
         return None
 
-    loyalty.pedidos_acima_50 -= qualifying_count
-    loyalty.total_cupons_ganhos += 1
+    loyalty.orders_above_50 -= qualifying_count
+    loyalty.total_coupons_earned += 1
     if not settings.enabled:
-        loyalty.pedidos_acima_50 = 0
+        loyalty.orders_above_50 = 0
 
     discount_value = Decimal(str(settings.discount_value))
     coupon_minimum_order = Decimal(str(settings.coupon_minimum_order))
     code = _new_coupon_code(db, current_user, settings.discount_type, discount_value)
     db.add(Cupom(
-        id_cliente=current_user.id_cliente,
-        codigo=code,
-        tipo=settings.discount_type,
-        valor=discount_value,
-        valor_minimo_pedido=coupon_minimum_order,
-        usado=False,
+        customer_id=current_user.customer_id,
+        code=code,
+        type=settings.discount_type,
+        value=discount_value,
+        minimum_order_value=coupon_minimum_order,
+        used=False,
     ))
     return code
 
 
-def _order_response(encomenda: Encomenda) -> dict:
-    subtotal = Decimal(str(getattr(encomenda, "subtotal", 0) or 0))
+def _order_response(order: Encomenda) -> dict:
+    subtotal = Decimal(str(getattr(order, "subtotal", 0) or 0))
     if subtotal <= 0:
-        subtotal = sum(Decimal(str(item.preco_unitario)) * item.quantidade for item in encomenda.itens)
-    discount = Decimal(str(getattr(encomenda, "desconto_total", 0) or 0))
+        subtotal = sum(Decimal(str(item.unit_price)) * item.quantity for item in order.items)
+    discount = Decimal(str(getattr(order, "total_discount", 0) or 0))
     if discount <= 0:
-        discount = _coupon_discount_from_notes(encomenda.notas)
-    fees = Decimal(str(encomenda.total)) + discount - subtotal
-    response_payment = _response_payment_method(encomenda)
+        discount = _coupon_discount_from_notes(order.notes)
+    fees = Decimal(str(order.total)) + discount - subtotal
+    response_payment = _response_payment_method(order)
     latest_refund = sorted(
-        encomenda.reembolsos or [],
-        key=lambda refund: refund.data_reembolso or datetime.min,
+        order.refunds or [],
+        key=lambda refund: refund.refunded_at or datetime.min,
         reverse=True,
     )
     refund = latest_refund[0] if latest_refund else None
 
     return {
-        "id_pedido": encomenda.id_encomenda,
-        "numero_pedido": f"ENC-{encomenda.id_encomenda:06d}",
-        "status": encomenda.estado,
-        "estado_pagamento": encomenda.estado_pagamento,
-        "can_cancel": _can_customer_cancel(encomenda),
-        "cancellation_source": encomenda.origem_cancelamento,
-        "cancelled_at": encomenda.data_cancelamento,
+        "id_pedido": order.order_id,
+        "numero_pedido": f"ENC-{order.order_id:06d}",
+        "status": order.state,
+        "payment_status": order.payment_status,
+        "can_cancel": _can_customer_cancel(order),
+        "cancellation_source": order.cancellation_origin,
+        "cancelled_at": order.canceled_at,
         "refund_status": "Approved" if refund else "None",
-        "refund_amount": refund.valor if refund else None,
-        "refund_reason": refund.motivo if refund else None,
-        "refund_date": refund.data_reembolso if refund else None,
-        "metodo_entrega": _fulfillment_from_notes(encomenda.notas),
-        "metodo_pagamento": response_payment,
+        "refund_amount": refund.value if refund else None,
+        "refund_reason": refund.reason if refund else None,
+        "refund_date": refund.refunded_at if refund else None,
+        "metodo_entrega": _fulfillment_from_notes(order.notes),
+        "payment_method": response_payment,
         "subtotal": subtotal,
         "desconto": discount,
         "taxa_entrega": Decimal("0"),
         "taxa_servico": fees if fees > 0 else Decimal("0"),
-        "total": encomenda.total,
-        "cupom_codigo": _coupon_code_from_notes(encomenda.notas),
-        "cupom_gerado": _generated_coupon_from_notes(encomenda.notas),
-        "data_criacao": encomenda.data_encomenda,
-        "itens": [
+        "total": order.total,
+        "cupom_codigo": _coupon_code_from_notes(order.notes),
+        "cupom_gerado": _generated_coupon_from_notes(order.notes),
+        "created_at": order.ordered_at,
+        "items": [
             {
-                "id_produto": item.id_produto,
-                "id_produto_display": format_product_id(item.id_produto),
-                "nome_produto": item.nome_produto_snapshot or (item.produto.nome if item.produto else format_product_id(item.id_produto)),
-                "preco_unitario": item.preco_unitario,
-                "quantidade": item.quantidade,
-                "customizacao": customization_from_json(item.customizacao),
-                "subtotal": Decimal(str(item.preco_unitario)) * item.quantidade,
-                "imagem": _product_image_path(item.produto),
-                "calorias": item.produto.total_calorias if item.produto else None,
+                "product_id": item.product_id,
+                "id_produto_display": format_product_id(item.product_id),
+                "nome_produto": item.product_name_snapshot or (item.product.name if item.product else format_product_id(item.product_id)),
+                "unit_price": item.unit_price,
+                "quantity": item.quantity,
+                "customization": customization_from_json(item.customization),
+                "subtotal": Decimal(str(item.unit_price)) * item.quantity,
+                "image": _product_image_path(item.product),
+                "calorias": item.product.total_calories if item.product else None,
             }
-            for item in encomenda.itens
+            for item in order.items
         ],
     }
 
 
-def _can_customer_cancel(encomenda: Encomenda) -> bool:
-    return encomenda.estado == "pendente" and encomenda.estado_pagamento == "nao_pago"
+def _can_customer_cancel(order: Encomenda) -> bool:
+    return order.state == "pendente" and order.payment_status == "nao_pago"
 
 
 @router.get("/coupons", response_model=list[CouponResponse])
@@ -434,15 +434,15 @@ def list_available_coupons(
     if not current_user:
         raise HTTPException(status_code=401, detail="Inicie sessão para ver os cupões.")
 
-    coupons = _available_coupon_query(db, current_user).order_by(Cupom.criado_em.desc()).all()
+    coupons = _available_coupon_query(db, current_user).order_by(Cupom.created_at.desc()).all()
     return [
         CouponResponse(
-            id_cupom=coupon.id_cupom,
-            codigo=coupon.codigo,
-            tipo=coupon.tipo,
-            valor=coupon.valor,
-            valor_minimo_pedido=coupon.valor_minimo_pedido,
-            expira_em=coupon.expira_em,
+            coupon_id=coupon.coupon_id,
+            code=coupon.code,
+            type=coupon.type,
+            value=coupon.value,
+            minimum_order_value=coupon.minimum_order_value,
+            expires_at=coupon.expires_at,
         )
         for coupon in coupons
     ]
@@ -457,16 +457,16 @@ def validate_coupon(
     if not current_user:
         raise HTTPException(status_code=401, detail="Inicie sessão para usar cupões.")
 
-    coupon, discount = _get_valid_coupon(db, current_user, body.codigo, body.subtotal)
+    coupon, discount = _get_valid_coupon(db, current_user, body.code, body.subtotal)
     if not coupon:
         raise HTTPException(status_code=400, detail="O código do cupão é obrigatório.")
 
     return CouponValidationResponse(
-        codigo=coupon.codigo,
+        code=coupon.code,
         desconto=discount,
-        valor=coupon.valor,
-        tipo=coupon.tipo,
-        valor_minimo_pedido=coupon.valor_minimo_pedido,
+        value=coupon.value,
+        type=coupon.type,
+        minimum_order_value=coupon.minimum_order_value,
     )
 
 
@@ -485,54 +485,54 @@ def create_order(
         items = body.items
 
     if not items:
-        raise HTTPException(status_code=400, detail="Não é possível criar um pedido com o carrinho vazio.")
+        raise HTTPException(status_code=400, detail="Não é possível criar um pedido com o cart vazio.")
 
-    product_ids = [item.id_produto for item in items]
+    product_ids = [item.product_id for item in items]
     products = (
         db.query(Produto)
         .options(joinedload(Produto.imagens))
-        .filter(Produto.id_produto.in_(product_ids))
+        .filter(Produto.product_id.in_(product_ids))
         .all()
     )
-    product_map = {product.id_produto: product for product in products}
+    product_map = {product.product_id: product for product in products}
 
     subtotal = Decimal("0")
     order_items: list[dict] = []
 
     for item in items:
-        product = product_map.get(item.id_produto)
+        product = product_map.get(item.product_id)
         if not product or product.status == 0 or product.deleted_at is not None:
-            raise HTTPException(status_code=404, detail=f"O produto '{format_product_id(item.id_produto)}' já não está disponível.")
+            raise HTTPException(status_code=404, detail=f"O product '{format_product_id(item.product_id)}' já não está disponível.")
 
         if unavailable_due_to_inactive_base(db, product):
             raise HTTPException(
                 status_code=400,
-                detail=f"'{product.nome}' não está disponível neste momento.",
+                detail=f"'{product.name}' não está disponível neste momento.",
             )
 
-        if product.stock < item.quantidade:
+        if product.stock < item.quantity:
             raise HTTPException(
                 status_code=400,
-                detail=f"Stock insuficiente para '{product.nome}'. Pedido: {item.quantidade}, disponível: {product.stock}.",
+                detail=f"Stock insuficiente para '{product.name}'. Pedido: {item.quantity}, disponível: {product.stock}.",
             )
 
         unit_price = (
-            Decimal(str(item.customizacao.preco_unitario_final))
-            if item.customizacao and item.customizacao.preco_unitario_final is not None
+            Decimal(str(item.customization.preco_unitario_final))
+            if item.customization and item.customization.preco_unitario_final is not None
             else discounted_product_price(product)
         )
-        line_total = unit_price * item.quantidade
+        line_total = unit_price * item.quantity
         subtotal += line_total
-        product.stock -= item.quantidade
-        product.vendido = (product.vendido or 0) + item.quantidade
+        product.stock -= item.quantity
+        product.sold = (product.sold or 0) + item.quantity
 
         order_items.append({
-            "id_produto": product.id_produto,
-            "nome_produto_snapshot": product.nome,
-            "desconto_percentual_snapshot": Decimal(str(product.desconto_percentual or 0)),
-            "preco_unitario": unit_price,
-            "quantidade": item.quantidade,
-            "customizacao": customization_to_json(item.customizacao),
+            "product_id": product.product_id,
+            "product_name_snapshot": product.name,
+            "discount_percentage_snapshot": Decimal(str(product.desconto_percentual or 0)),
+            "unit_price": unit_price,
+            "quantity": item.quantity,
+            "customization": customization_to_json(item.customization),
         })
 
     customer = _get_or_create_checkout_customer(db, body, current_user)
@@ -541,65 +541,65 @@ def create_order(
     delivery_fee = Decimal("0")
     coupon, coupon_discount = _get_valid_coupon(db, current_user, body.promo_code, subtotal)
     total = subtotal - coupon_discount + delivery_fee + SERVICE_FEE
-    iva_valor = _included_iva(total)
+    vat_amount = _included_iva(total)
     generated_coupon_code = _award_loyalty_coupon_if_eligible(db, current_user, subtotal)
     note_parts: list[str] = []
     if coupon:
-        note_parts.extend([f"coupon={coupon.codigo}", f"coupon_discount={coupon_discount:.2f}"])
-        coupon.usado = True
-        coupon.usado_em = datetime.utcnow()
+        note_parts.extend([f"coupon={coupon.code}", f"coupon_discount={coupon_discount:.2f}"])
+        coupon.used = True
+        coupon.used_at = datetime.utcnow()
     if generated_coupon_code:
         note_parts.append(f"coupon_generated={generated_coupon_code}")
     order_notes = _checkout_notes(body, note_parts)
 
-    encomenda = Encomenda(
-        id_cliente=customer.id_cliente,
-        id_admin=None,
-        estado="confirmada" if online_payment else "pendente",
-        metodo_pagamento=db_method,
-        estado_pagamento="pago" if online_payment else "nao_pago",
+    order = Encomenda(
+        customer_id=customer.customer_id,
+        admin_id=None,
+        state="confirmada" if online_payment else "pendente",
+        payment_method=db_method,
+        payment_status="pago" if online_payment else "nao_pago",
         subtotal=subtotal,
-        iva_percentual=IVA_PERCENTUAL,
-        iva_valor=iva_valor,
-        desconto_total=coupon_discount,
+        vat_percentage=IVA_PERCENTUAL,
+        vat_amount=vat_amount,
+        total_discount=coupon_discount,
         total=total,
-        notas=order_notes,
-        itens=[
+        notes=order_notes,
+        items=[
             EncomendaProduto(
-                id_produto=item["id_produto"],
-                quantidade=item["quantidade"],
-                preco_unitario=item["preco_unitario"],
-                nome_produto_snapshot=item["nome_produto_snapshot"],
-                desconto_percentual_snapshot=item["desconto_percentual_snapshot"],
-                iva_percentual_snapshot=IVA_PERCENTUAL,
-                customizacao=item["customizacao"],
+                product_id=item["product_id"],
+                quantity=item["quantity"],
+                unit_price=item["unit_price"],
+                product_name_snapshot=item["product_name_snapshot"],
+                discount_percentage_snapshot=item["discount_percentage_snapshot"],
+                vat_percentage_snapshot=IVA_PERCENTUAL,
+                customization=item["customization"],
             )
             for item in order_items
         ],
     )
 
-    db.add(encomenda)
+    db.add(order)
     db.flush()
 
     db.add(Pagamento(
-        id_encomenda=encomenda.id_encomenda,
-        metodo=db_method,
-        estado="aprovado" if online_payment else "pendente",
-        valor=total,
-        referencia_transacao=f"{'MBW' if db_method == 'mbway' else 'TXN' if online_payment else 'BAL'}-{datetime.utcnow().strftime('%Y%m%d')}-{encomenda.id_encomenda:03d}",
-        data_pagamento=datetime.utcnow() if online_payment else None,
+        order_id=order.order_id,
+        method=db_method,
+        state="aprovado" if online_payment else "pendente",
+        value=total,
+        transaction_reference=f"{'MBW' if db_method == 'mbway' else 'TXN' if online_payment else 'BAL'}-{datetime.utcnow().strftime('%Y%m%d')}-{order.order_id:03d}",
+        paid_at=datetime.utcnow() if online_payment else None,
     ))
 
     db.flush()
     if online_payment:
-        ensure_invoice_for_order(db, encomenda)
+        ensure_invoice_for_order(db, order)
     _clear_user_cart(db, current_user)
     db.commit()
 
     saved = (
         db.query(Encomenda)
-        .options(joinedload(Encomenda.itens).joinedload(EncomendaProduto.produto))
-        .filter(Encomenda.id_encomenda == encomenda.id_encomenda)
+        .options(joinedload(Encomenda.items).joinedload(EncomendaProduto.product))
+        .filter(Encomenda.order_id == order.order_id)
         .first()
     )
     response = _order_response(saved)
@@ -609,7 +609,7 @@ def create_order(
             receipt_payload = build_order_receipt_payload(saved, body, delivery_fee, SERVICE_FEE)
             background_tasks.add_task(send_purchase_receipt, receipt_payload)
         except Exception:
-            logger.exception("Failed to schedule receipt email for order %s.", encomenda.id_encomenda)
+            logger.exception("Failed to schedule receipt email for order %s.", order.order_id)
 
     return response
 
@@ -623,29 +623,29 @@ def cancel_order(
     if not current_user:
         raise HTTPException(status_code=401, detail="Inicie sessão para cancelar um pedido.")
 
-    encomenda = (
+    order = (
         db.query(Encomenda)
-        .options(joinedload(Encomenda.itens).joinedload(EncomendaProduto.produto))
+        .options(joinedload(Encomenda.items).joinedload(EncomendaProduto.product))
         .filter(
-            Encomenda.id_encomenda == order_id,
-            Encomenda.id_cliente == current_user.id_cliente,
+            Encomenda.order_id == order_id,
+            Encomenda.customer_id == current_user.customer_id,
         )
         .first()
     )
-    if not encomenda:
+    if not order:
         raise HTTPException(status_code=404, detail="Pedido não encontrado.")
-    if not _can_customer_cancel(encomenda):
-        raise HTTPException(status_code=400, detail="Os pedidos só podem ser cancelados antes da confirmação do pagamento.")
+    if not _can_customer_cancel(order):
+        raise HTTPException(status_code=400, detail="Os pedidos só podem ser cancelados antes da confirmação do payment.")
 
-    encomenda.estado = "cancelada"
-    encomenda.data_cancelamento = datetime.utcnow()
-    encomenda.origem_cancelamento = "Customer"
-    encomenda.data_atualizacao = datetime.utcnow()
-    if encomenda.pagamento:
-        encomenda.pagamento.estado = "rejeitado"
+    order.state = "cancelada"
+    order.canceled_at = datetime.utcnow()
+    order.cancellation_origin = "Customer"
+    order.updated_at = datetime.utcnow()
+    if order.payment:
+        order.payment.state = "rejeitado"
     db.commit()
-    db.refresh(encomenda)
-    return _order_response(encomenda)
+    db.refresh(order)
+    return _order_response(order)
 
 
 @router.get("/orders/{order_id}/receipt.pdf")
@@ -660,22 +660,22 @@ def download_order_receipt_pdf(
     if not render_receipt_pdf or not receipt_pdf_filename:
         raise HTTPException(status_code=503, detail="O serviço de PDF do recibo está indisponível.")
 
-    encomenda = (
+    order = (
         db.query(Encomenda)
         .options(
-            joinedload(Encomenda.cliente),
-            joinedload(Encomenda.itens).joinedload(EncomendaProduto.produto),
+            joinedload(Encomenda.customer),
+            joinedload(Encomenda.items).joinedload(EncomendaProduto.product),
         )
         .filter(
-            Encomenda.id_encomenda == order_id,
-            Encomenda.id_cliente == current_user.id_cliente,
+            Encomenda.order_id == order_id,
+            Encomenda.customer_id == current_user.customer_id,
         )
         .first()
     )
-    if not encomenda:
+    if not order:
         raise HTTPException(status_code=404, detail="Recibo do pedido não encontrado.")
 
-    receipt = build_saved_order_receipt_payload(encomenda)
+    receipt = build_saved_order_receipt_payload(order)
     filename = receipt_pdf_filename(receipt)
     headers = {
         "Content-Disposition": f"attachment; filename=\"{filename}\"; filename*=UTF-8''{quote(filename)}",
@@ -699,9 +699,9 @@ def list_order_history(
 
     encomendas = (
         db.query(Encomenda)
-        .options(joinedload(Encomenda.itens).joinedload(EncomendaProduto.produto))
-        .filter(Encomenda.id_cliente == current_user.id_cliente)
-        .order_by(Encomenda.data_encomenda.desc())
+        .options(joinedload(Encomenda.items).joinedload(EncomendaProduto.product))
+        .filter(Encomenda.customer_id == current_user.customer_id)
+        .order_by(Encomenda.ordered_at.desc())
         .all()
     )
-    return [_order_response(encomenda) for encomenda in encomendas]
+    return [_order_response(order) for order in encomendas]

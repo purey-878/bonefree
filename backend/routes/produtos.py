@@ -40,8 +40,8 @@ def active_product_filter():
     )
 
 
-def _is_drink_product(produto: Produto) -> bool:
-    category_name = produto.categoria.nome_categoria if produto.categoria else ""
+def _is_drink_product(product: Produto) -> bool:
+    category_name = product.category.category_name if product.category else ""
     return "bebida" in category_name.casefold()
 
 
@@ -58,20 +58,20 @@ def _parse_quantity_to_grams(quantity: str | None) -> float | None:
 
 
 def _ingredient_nutrition_response(row: ProdutoIngrediente) -> ProdutoIngredientNutrition | None:
-    ingredient = row.ingrediente
+    ingredient = row.ingredient
     if not ingredient:
         return None
 
-    grams = _parse_quantity_to_grams(row.quantidade)
-    calories_per_gram = float(ingredient.calorias_por_grama) if ingredient.calorias_por_grama is not None else None
+    grams = _parse_quantity_to_grams(row.quantity)
+    calories_per_gram = float(ingredient.calories_per_gram) if ingredient.calories_per_gram is not None else None
     calories = grams * calories_per_gram if grams is not None and calories_per_gram is not None else 0
     return ProdutoIngredientNutrition(
-        id_ingrediente=row.id_ingrediente,
-        nome=ingredient.nome,
-        tipo=ingredient.tipo,
+        ingredient_id=row.ingredient_id,
+        name=ingredient.name,
+        type=ingredient.type,
         status=int(ingredient.status or 0),
-        quantidade=row.quantidade,
-        calorias_por_grama=calories_per_gram,
+        quantity=row.quantity,
+        calories_per_gram=calories_per_gram,
         calorias=round(calories, 2),
     )
 
@@ -79,9 +79,9 @@ def _ingredient_nutrition_response(row: ProdutoIngrediente) -> ProdutoIngredient
 def _product_ingredient_nutrition(db: Session, produto_id: int) -> list[ProdutoIngredientNutrition]:
     rows = (
         db.query(ProdutoIngrediente)
-        .join(ProdutoIngrediente.ingrediente)
-        .filter(ProdutoIngrediente.id_produto == produto_id)
-        .order_by(ProdutoIngrediente.id_ingrediente)
+        .join(ProdutoIngrediente.ingredient)
+        .filter(ProdutoIngrediente.product_id == produto_id)
+        .order_by(ProdutoIngrediente.ingredient_id)
         .all()
     )
     return [
@@ -95,16 +95,16 @@ def _product_ingredient_nutrition(db: Session, produto_id: int) -> list[ProdutoI
 def list_produtos(db: Session = Depends(get_db)):
     """Get all active products with their images."""
     query = select(Produto).where(active_product_filter()).options(joinedload(Produto.imagens))
-    produtos = db.scalars(query).unique().all()
-    inactive_base_ids = inactive_base_product_ids(db, [produto.id_produto for produto in produtos])
+    products = db.scalars(query).unique().all()
+    inactive_base_ids = inactive_base_product_ids(db, [product.product_id for product in products])
     return [
         ProdutoResponse.from_orm_custom(
-            produto,
-            unavailable_due_to_inactive_base=produto.id_produto in inactive_base_ids,
+            product,
+            unavailable_due_to_inactive_base=product.product_id in inactive_base_ids,
             unavailable_reason=INACTIVE_BASE_REASON,
-            ingredientes=_product_ingredient_nutrition(db, produto.id_produto),
+            ingredients=_product_ingredient_nutrition(db, product.product_id),
         )
-        for produto in produtos
+        for product in products
     ]
 
 
@@ -118,27 +118,27 @@ def get_availability_suggestions(
 ):
     parsed_produto_id = parse_product_id(produto_id)
     """Return stock-out substitutes and similar available dishes for a product."""
-    produto = db.query(Produto).filter(
-        and_(Produto.id_produto == parsed_produto_id, active_product_filter())
+    product = db.query(Produto).filter(
+        and_(Produto.product_id == parsed_produto_id, active_product_filter())
     ).first()
-    if not produto:
+    if not product:
         raise HTTPException(status_code=404, detail="Produto não encontrado.")
 
-    available = is_product_available(produto, quantity, stock_threshold)
+    available = is_product_available(product, quantity, stock_threshold)
     active_products = db.query(Produto).filter(active_product_filter()).all()
 
     substitutes = []
     similar_dishes = []
     if not available:
         substitutes = rank_substitutions(
-            produto,
+            product,
             active_products,
             quantity=quantity,
             stock_threshold=stock_threshold,
             limit=limit,
         )
         similar_dishes = suggest_similar_dishes(
-            produto,
+            product,
             active_products,
             quantity=quantity,
             stock_threshold=stock_threshold,
@@ -146,13 +146,13 @@ def get_availability_suggestions(
         )
 
     return AvailabilitySuggestionResponse(
-        id_produto=produto.id_produto,
-        id_produto_display=format_product_id(produto.id_produto),
-        nome=product_name(produto),
+        product_id=product.product_id,
+        id_produto_display=format_product_id(product.product_id),
+        name=product_name(product),
         requested_quantity=quantity,
         stock_threshold=stock_threshold,
         available=available,
-        availability_reason=availability_reason(produto, quantity, stock_threshold),
+        availability_reason=availability_reason(product, quantity, stock_threshold),
         substitutes=[_suggestion_response(item) for item in substitutes],
         similar_dishes=[_suggestion_response(item) for item in similar_dishes],
     )
@@ -165,59 +165,59 @@ def get_customization_options(
 ):
     parsed_produto_id = parse_product_id(produto_id)
     """Return item-level customization choices for a product."""
-    produto = db.query(Produto).filter(
-        and_(Produto.id_produto == parsed_produto_id, active_product_filter())
+    product = db.query(Produto).filter(
+        and_(Produto.product_id == parsed_produto_id, active_product_filter())
     ).first()
-    if not produto:
+    if not product:
         raise HTTPException(status_code=404, detail="Produto não encontrado.")
 
     ingredient_rows = []
-    if not _is_drink_product(produto):
+    if not _is_drink_product(product):
         ingredient_rows = (
             db.query(ProdutoIngrediente)
-            .join(ProdutoIngrediente.ingrediente)
+            .join(ProdutoIngrediente.ingredient)
             .filter(
-                ProdutoIngrediente.id_produto == parsed_produto_id,
-                ProdutoIngrediente.removivel == 1,
+                ProdutoIngrediente.product_id == parsed_produto_id,
+                ProdutoIngrediente.removable == 1,
                 Ingrediente.status == 1,
-                Ingrediente.tipo == "INGREDIENTES_NORMAIS",
+                Ingrediente.type == "INGREDIENTES_NORMAIS",
             )
-            .order_by(Ingrediente.nome)
+            .order_by(Ingrediente.name)
             .all()
         )
     remove_options = []
     seen_remove = set()
     for row in ingredient_rows:
-        if not row.ingrediente:
+        if not row.ingredient:
             continue
-        name = row.ingrediente.nome.strip()
+        name = row.ingredient.name.strip()
         key = name.casefold()
         if name and key not in seen_remove:
             seen_remove.add(key)
             remove_options.append(name)
 
     extra_filters = (
-        ProdutoOpcaoCustomizacao.id_produto == parsed_produto_id,
-        ProdutoOpcaoCustomizacao.tipo == "EXTRA",
+        ProdutoOpcaoCustomizacao.product_id == parsed_produto_id,
+        ProdutoOpcaoCustomizacao.type == "EXTRA",
         ProdutoOpcaoCustomizacao.status == 1,
     )
-    has_product_extra_options = db.query(ProdutoOpcaoCustomizacao.id_opcao).filter(*extra_filters).first() is not None
+    has_product_extra_options = db.query(ProdutoOpcaoCustomizacao.option_id).filter(*extra_filters).first() is not None
     extra_rows = (
         db.query(ProdutoOpcaoCustomizacao)
         .filter(
             *extra_filters,
             or_(
-                ProdutoOpcaoCustomizacao.id_ingrediente.is_(None),
-                ProdutoOpcaoCustomizacao.ingrediente.has(Ingrediente.status == 1),
+                ProdutoOpcaoCustomizacao.ingredient_id.is_(None),
+                ProdutoOpcaoCustomizacao.ingredient.has(Ingrediente.status == 1),
             ),
         )
-        .order_by(ProdutoOpcaoCustomizacao.nome)
+        .order_by(ProdutoOpcaoCustomizacao.name)
         .all()
     )
     add_options = []
     seen_add = set()
     for option in extra_rows:
-        name = option.nome.strip()
+        name = option.name.strip()
         key = name.casefold()
         if name and key not in seen_add:
             seen_add.add(key)
@@ -230,39 +230,39 @@ def get_customization_options(
     )
 
 
-@router.get('/{produto_id}/customizacao', response_model=ProductCustomizationResponse)
+@router.get('/{produto_id}/customization', response_model=ProductCustomizationResponse)
 def get_produto_customizacao(
     produto_id: str,
     db: Session = Depends(get_db),
 ):
     parsed_produto_id = parse_product_id(produto_id)
     """Return database-backed customization options for a product."""
-    produto = db.query(Produto).filter(
-        and_(Produto.id_produto == parsed_produto_id, active_product_filter())
+    product = db.query(Produto).filter(
+        and_(Produto.product_id == parsed_produto_id, active_product_filter())
     ).first()
-    if not produto:
+    if not product:
         raise HTTPException(status_code=404, detail="Produto não encontrado.")
 
     ingredientes_rows = []
-    if not _is_drink_product(produto):
+    if not _is_drink_product(product):
         ingredientes_rows = (
             db.query(ProdutoIngrediente)
-            .join(ProdutoIngrediente.ingrediente)
-            .filter(ProdutoIngrediente.id_produto == parsed_produto_id, Ingrediente.tipo != "BEBIDA")
-            .order_by(ProdutoIngrediente.id_ingrediente)
+            .join(ProdutoIngrediente.ingredient)
+            .filter(ProdutoIngrediente.product_id == parsed_produto_id, Ingrediente.type != "BEBIDA")
+            .order_by(ProdutoIngrediente.ingredient_id)
             .all()
         )
-    ingredientes = [
+    ingredients = [
         CustomizationIngredientResponse(
-            id_ingrediente=row.id_ingrediente,
-            nome=row.ingrediente.nome,
-            tipo=row.ingrediente.tipo,
-            removivel=bool(row.removivel) and row.ingrediente.tipo == "INGREDIENTES_NORMAIS",
-            substituivel=bool(row.substituivel),
-            incluido_por_defeito=bool(row.incluido_por_defeito),
+            ingredient_id=row.ingredient_id,
+            name=row.ingredient.name,
+            type=row.ingredient.type,
+            removable=bool(row.removable) and row.ingredient.type == "INGREDIENTES_NORMAIS",
+            substitutable=bool(row.substitutable),
+            included_by_default=bool(row.included_by_default),
         )
         for row in ingredientes_rows
-        if row.ingrediente and row.ingrediente.status == 1
+        if row.ingredient and row.ingredient.status == 1
     ]
 
     grouped_options = {
@@ -274,38 +274,38 @@ def get_produto_customizacao(
     options = (
         db.query(ProdutoOpcaoCustomizacao)
         .filter(
-            ProdutoOpcaoCustomizacao.id_produto == parsed_produto_id,
+            ProdutoOpcaoCustomizacao.product_id == parsed_produto_id,
             ProdutoOpcaoCustomizacao.status == 1,
-            ProdutoOpcaoCustomizacao.tipo.in_(tuple(grouped_options.keys())),
+            ProdutoOpcaoCustomizacao.type.in_(tuple(grouped_options.keys())),
             or_(
-                ProdutoOpcaoCustomizacao.id_ingrediente.is_(None),
-                ProdutoOpcaoCustomizacao.ingrediente.has(Ingrediente.status == 1),
+                ProdutoOpcaoCustomizacao.ingredient_id.is_(None),
+                ProdutoOpcaoCustomizacao.ingredient.has(Ingrediente.status == 1),
             ),
         )
-        .order_by(ProdutoOpcaoCustomizacao.tipo, ProdutoOpcaoCustomizacao.nome)
+        .order_by(ProdutoOpcaoCustomizacao.type, ProdutoOpcaoCustomizacao.name)
         .all()
     )
     for option in options:
-        grouped_options[option.tipo].append(
+        grouped_options[option.type].append(
             CustomizationOptionResponse(
-                id_opcao=option.id_opcao,
-                id_ingrediente=option.id_ingrediente,
-                nome=option.nome,
-                tipo=option.tipo,
-                preco_extra=option.preco_extra,
-                max_quantidade=option.max_quantidade,
+                option_id=option.option_id,
+                ingredient_id=option.ingredient_id,
+                name=option.name,
+                type=option.type,
+                extra_price=option.extra_price,
+                max_quantity=option.max_quantity,
             )
         )
 
     return ProductCustomizationResponse(
-        id_produto=produto.id_produto,
-        id_produto_display=format_product_id(produto.id_produto),
-        nome=produto.nome,
-        customizavel=bool(produto.customizavel),
-        preco_base=discounted_product_price(produto),
-        ingredientes=ingredientes,
-        ingredientes_removiveis=[item for item in ingredientes if item.removivel],
-        ingredientes_substituiveis=[item for item in ingredientes if item.substituivel],
+        product_id=product.product_id,
+        id_produto_display=format_product_id(product.product_id),
+        name=product.name,
+        customizable=bool(product.customizable),
+        preco_base=discounted_product_price(product),
+        ingredients=ingredients,
+        ingredientes_removiveis=[item for item in ingredients if item.removable],
+        ingredientes_substituiveis=[item for item in ingredients if item.substitutable],
         opcoes=grouped_options,
     )
 
@@ -314,28 +314,28 @@ def get_produto_customizacao(
 def get_produto(produto_id: str, db: Session = Depends(get_db)):
     """Get a single active product by ID, including its images."""
     parsed_produto_id = parse_product_id(produto_id)
-    produto = db.query(Produto).options(joinedload(Produto.imagens)).filter(
-        and_(Produto.id_produto == parsed_produto_id, active_product_filter())
+    product = db.query(Produto).options(joinedload(Produto.imagens)).filter(
+        and_(Produto.product_id == parsed_produto_id, active_product_filter())
     ).first()
-    if not produto:
+    if not product:
         raise HTTPException(status_code=404, detail="Produto não encontrado.")
-    unavailable = produto.id_produto in inactive_base_product_ids(db, [produto.id_produto])
+    unavailable = product.product_id in inactive_base_product_ids(db, [product.product_id])
     return ProdutoResponse.from_orm_custom(
-        produto,
+        product,
         unavailable_due_to_inactive_base=unavailable,
         unavailable_reason=INACTIVE_BASE_REASON,
-        ingredientes=_product_ingredient_nutrition(db, produto.id_produto),
+        ingredients=_product_ingredient_nutrition(db, product.product_id),
     )
 
 
 def _suggestion_response(suggestion) -> StockSuggestion:
     product = suggestion.product
     return StockSuggestion(
-        id_produto=product.id_produto,
-        id_produto_display=format_product_id(product.id_produto),
-        nome=product_name(product),
-        categoria=product_category(product),
-        preco=product_price(product),
+        product_id=product.product_id,
+        id_produto_display=format_product_id(product.product_id),
+        name=product_name(product),
+        category=product_category(product),
+        price=product_price(product),
         stock=product_stock(product),
         score=suggestion.score,
         reason=suggestion.reason,

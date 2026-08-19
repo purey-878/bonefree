@@ -19,8 +19,8 @@ class AdminLogin(BaseModel):
 
 class AdminResponse(BaseModel):
     """Response model for authenticated admin."""
-    id_admin: int
-    nome: str
+    admin_id: int
+    name: str
     email: str
     role: str
     status: int
@@ -36,7 +36,7 @@ class AdminTokenResponse(BaseModel):
 
 
 class StaffAdminCreate(BaseModel):
-    nome: str = Field(..., min_length=1, max_length=100)
+    name: str = Field(..., min_length=1, max_length=100)
     email: EmailStr
     password: str = Field(..., min_length=6, max_length=128)
     role: str = "staff_admin"
@@ -51,7 +51,7 @@ class StaffAdminCreate(BaseModel):
 
 
 class StaffAdminUpdate(BaseModel):
-    nome: Optional[str] = Field(None, min_length=1, max_length=100)
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
     email: Optional[EmailStr] = None
     password: Optional[str] = Field(None, min_length=6, max_length=128)
     role: Optional[str] = None
@@ -66,136 +66,136 @@ class StaffAdminUpdate(BaseModel):
 
 
 class ClienteAdminResponse(BaseModel):
-    id_cliente: int
-    nome: Optional[str] = None
-    apelido: Optional[str] = None
+    customer_id: int
+    name: Optional[str] = None
+    last_name: Optional[str] = None
     email: str
-    telefone: Optional[str] = None
-    nif: Optional[str] = None
-    morada: Optional[str] = None
-    codigo_postal: Optional[str] = None
-    cidade: Optional[str] = None
+    phone: Optional[str] = None
+    tax_id: Optional[str] = None
+    address: Optional[str] = None
+    postal_code: Optional[str] = None
+    city: Optional[str] = None
     status: Optional[int] = None
-    data_criacao: Optional[datetime] = None
+    created_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class ClienteAdminCreate(BaseModel):
-    nome: str = Field(..., min_length=1, max_length=100)
-    apelido: Optional[str] = Field(None, max_length=100)
+    name: str = Field(..., min_length=1, max_length=100)
+    last_name: Optional[str] = Field(None, max_length=100)
     email: EmailStr
     password: str = Field(..., min_length=6, max_length=128)
-    telefone: Optional[str] = Field(None, max_length=20)
-    nif: Optional[str] = Field(None, max_length=20)
-    morada: Optional[str] = Field(None, max_length=255)
-    codigo_postal: Optional[str] = Field(None, max_length=20)
-    cidade: Optional[str] = Field(None, max_length=100)
+    phone: Optional[str] = Field(None, max_length=20)
+    tax_id: Optional[str] = Field(None, max_length=20)
+    address: Optional[str] = Field(None, max_length=255)
+    postal_code: Optional[str] = Field(None, max_length=20)
+    city: Optional[str] = Field(None, max_length=100)
     status: int = 1
 
 
 class ClienteAdminUpdate(BaseModel):
-    nome: Optional[str] = Field(None, min_length=1, max_length=100)
-    apelido: Optional[str] = Field(None, max_length=100)
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    last_name: Optional[str] = Field(None, max_length=100)
     email: Optional[EmailStr] = None
     password: Optional[str] = Field(None, min_length=6, max_length=128)
-    telefone: Optional[str] = Field(None, max_length=20)
-    nif: Optional[str] = Field(None, max_length=20)
-    morada: Optional[str] = Field(None, max_length=255)
-    codigo_postal: Optional[str] = Field(None, max_length=20)
-    cidade: Optional[str] = Field(None, max_length=100)
+    phone: Optional[str] = Field(None, max_length=20)
+    tax_id: Optional[str] = Field(None, max_length=20)
+    address: Optional[str] = Field(None, max_length=255)
+    postal_code: Optional[str] = Field(None, max_length=20)
+    city: Optional[str] = Field(None, max_length=100)
     status: Optional[int] = None
 
 
 # Product Management Schemas
 class ProductIngredientPayload(BaseModel):
     """Ingredient assignment for a product."""
-    id_ingrediente: Optional[int] = None
-    nome: Optional[str] = Field(None, min_length=1, max_length=120)
-    tipo: str = "INGREDIENTES_NORMAIS"
-    incluido_por_defeito: bool = True
-    removivel: bool = True
-    substituivel: bool = False
-    quantidade: Optional[str] = Field(None, max_length=50)
-    calorias_por_grama: Optional[float] = Field(None, ge=0)
+    ingredient_id: Optional[int] = None
+    name: Optional[str] = Field(None, min_length=1, max_length=120)
+    type: str = "INGREDIENTES_NORMAIS"
+    included_by_default: bool = True
+    removable: bool = True
+    substitutable: bool = False
+    quantity: Optional[str] = Field(None, max_length=50)
+    calories_per_gram: Optional[float] = Field(None, ge=0)
 
-    @field_validator("tipo")
+    @field_validator("type")
     @classmethod
     def validate_tipo(cls, value: str) -> str:
         normalized = value.strip().upper()
         if normalized not in INGREDIENT_TYPES:
-            raise ValueError("Tipo de ingrediente inválido.")
+            raise ValueError("Tipo de ingredient inválido.")
         return normalized
 
 
 class IngredientCreate(BaseModel):
-    nome: str = Field(..., min_length=1, max_length=120)
-    tipo: str = "INGREDIENTES_NORMAIS"
+    name: str = Field(..., min_length=1, max_length=120)
+    type: str = "INGREDIENTES_NORMAIS"
     status: int = 1
-    calorias_por_grama: Optional[float] = Field(None, ge=0)
+    calories_per_gram: Optional[float] = Field(None, ge=0)
 
-    @field_validator("tipo")
+    @field_validator("type")
     @classmethod
     def validate_tipo(cls, value: str) -> str:
         normalized = value.strip().upper()
         if normalized not in INGREDIENT_TYPES:
-            raise ValueError("Tipo de ingrediente inválido.")
+            raise ValueError("Tipo de ingredient inválido.")
         return normalized
 
 
 class IngredientUpdate(BaseModel):
-    nome: Optional[str] = Field(None, min_length=1, max_length=120)
-    tipo: Optional[str] = None
+    name: Optional[str] = Field(None, min_length=1, max_length=120)
+    type: Optional[str] = None
     status: Optional[int] = None
-    calorias_por_grama: Optional[float] = Field(None, ge=0)
+    calories_per_gram: Optional[float] = Field(None, ge=0)
 
-    @field_validator("tipo")
+    @field_validator("type")
     @classmethod
     def validate_tipo(cls, value: Optional[str]) -> Optional[str]:
         if value is None:
             return value
         normalized = value.strip().upper()
         if normalized not in INGREDIENT_TYPES:
-            raise ValueError("Tipo de ingrediente inválido.")
+            raise ValueError("Tipo de ingredient inválido.")
         return normalized
 
 
 class IngredientResponse(BaseModel):
-    id_ingrediente: int
-    nome: str
-    tipo: str
+    ingredient_id: int
+    name: str
+    type: str
     status: int
-    calorias_por_grama: Optional[float] = None
+    calories_per_gram: Optional[float] = None
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class ProductIngredientResponse(BaseModel):
-    id_ingrediente: int
-    nome: str
-    tipo: str
-    incluido_por_defeito: bool = True
-    removivel: bool = True
-    substituivel: bool = False
-    quantidade: Optional[str] = None
-    calorias_por_grama: Optional[float] = None
+    ingredient_id: int
+    name: str
+    type: str
+    included_by_default: bool = True
+    removable: bool = True
+    substitutable: bool = False
+    quantity: Optional[str] = None
+    calories_per_gram: Optional[float] = None
 
 
 class ProdutoBase(BaseModel):
     """Base product schema for create/update."""
-    nome: str
-    descricao_produto: Optional[str] = None
-    preco: float
+    name: str
+    product_description: Optional[str] = None
+    price: float
     stock: int
-    id_categoria: CategoryId
-    customizavel: bool = True
+    category_id: CategoryId
+    customizable: bool = True
     menu_tags: Optional[str] = None
-    destaque: bool = False
+    featured: bool = False
     desconto_percentual: float = Field(0, ge=0, le=100)
     gluten_free: bool = False
     contains_alcohol: bool = False
-    total_calorias: Optional[float] = Field(None, ge=0)
-    ingredientes: List[ProductIngredientPayload] = Field(default_factory=list)
+    total_calories: Optional[float] = Field(None, ge=0)
+    ingredients: List[ProductIngredientPayload] = Field(default_factory=list)
 
     @field_validator("menu_tags")
     @classmethod
@@ -220,20 +220,20 @@ class ProdutoCreate(ProdutoBase):
 
 class ProdutoUpdate(BaseModel):
     """Schema for updating a product."""
-    nome: Optional[str] = None
-    descricao_produto: Optional[str] = None
-    preco: Optional[float] = None
+    name: Optional[str] = None
+    product_description: Optional[str] = None
+    price: Optional[float] = None
     stock: Optional[int] = None
-    id_categoria: Optional[CategoryId] = None
+    category_id: Optional[CategoryId] = None
     status: Optional[int] = None
-    customizavel: Optional[bool] = None
+    customizable: Optional[bool] = None
     menu_tags: Optional[str] = None
-    destaque: Optional[bool] = None
+    featured: Optional[bool] = None
     desconto_percentual: Optional[float] = Field(None, ge=0, le=100)
     gluten_free: Optional[bool] = None
     contains_alcohol: Optional[bool] = None
-    total_calorias: Optional[float] = Field(None, ge=0)
-    ingredientes: Optional[List[ProductIngredientPayload]] = None
+    total_calories: Optional[float] = Field(None, ge=0)
+    ingredients: Optional[List[ProductIngredientPayload]] = None
 
     @field_validator("menu_tags")
     @classmethod
@@ -254,33 +254,33 @@ class ProdutoUpdate(BaseModel):
 class ImagemProdutoResponse(BaseModel):
     """Response model for product image."""
     id_imagem: int
-    caminho_imagem: str
+    image_path: str
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class ProdutoAdminResponse(BaseModel):
     """Response model for product in admin context."""
-    id_produto: int
+    product_id: int
     id_produto_display: str
-    nome: str
-    descricao_produto: Optional[str]
-    preco: float
+    name: str
+    product_description: Optional[str]
+    price: float
     stock: int
-    id_categoria: int
+    category_id: int
     id_categoria_display: str
-    vendido: Optional[int]
+    sold: Optional[int]
     status: Optional[int]
-    customizavel: bool = True
+    customizable: bool = True
     menu_tags: Optional[str] = None
-    destaque: bool = False
+    featured: bool = False
     desconto_percentual: float = 0
     gluten_free: bool = False
     contains_alcohol: bool = False
-    total_calorias: Optional[float] = None
+    total_calories: Optional[float] = None
     deleted_at: Optional[datetime]
     imagens: Optional[List[ImagemProdutoResponse]] = []
-    ingredientes: List[ProductIngredientResponse] = Field(default_factory=list)
+    ingredients: List[ProductIngredientResponse] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -288,13 +288,13 @@ class ProdutoAdminResponse(BaseModel):
 # Order Schemas
 class CartItemResponse(BaseModel):
     """Response model for cart item."""
-    id_produto: int
+    product_id: int
     id_produto_display: str
-    nome: str
-    quantidade: int
-    preco: float
+    name: str
+    quantity: int
+    price: float
     total: float
-    customizacao: Optional[str] = None
+    customization: Optional[str] = None
     customizacao_resumo: List[str] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
@@ -302,21 +302,21 @@ class CartItemResponse(BaseModel):
 
 class OrderResponse(BaseModel):
     """Response model for order."""
-    id_carrinho: int
-    id_cliente: int
+    cart_id: int
+    customer_id: int
     cliente_email: str
     cliente_nome: Optional[str]
     cliente_telefone: Optional[str] = None
-    data_criacao: datetime
-    estado: str
-    metodo_pagamento: str
-    estado_pagamento: str
+    created_at: datetime
+    state: str
+    payment_method: str
+    payment_status: str
     total: float
-    notas: Optional[str] = None
+    notes: Optional[str] = None
     fulfillment_method: str = "pickup"
     table_number: Optional[int] = None
-    data_cancelamento: Optional[datetime] = None
-    origem_cancelamento: Optional[str] = None
+    canceled_at: Optional[datetime] = None
+    cancellation_origin: Optional[str] = None
     refund_status: str = "None"
     refund_id: Optional[int] = None
     refund_amount: Optional[float] = None
@@ -332,9 +332,9 @@ class OrderResponse(BaseModel):
 
 
 class OrderStatusUpdate(BaseModel):
-    estado: str
+    state: str
 
-    @field_validator("estado")
+    @field_validator("state")
     @classmethod
     def validate_estado(cls, value: str) -> str:
         if value not in ORDER_STATES:
@@ -349,13 +349,13 @@ class CounterPaymentResponse(BaseModel):
 
 class KitchenOrderResponse(BaseModel):
     """Reduced order response for kitchen preparation screens."""
-    id_carrinho: int
-    data_criacao: datetime
-    estado: str
-    notas: Optional[str] = None
+    cart_id: int
+    created_at: datetime
+    state: str
+    notes: Optional[str] = None
     fulfillment_method: str = "pickup"
     table_number: Optional[int] = None
-    data_atualizacao: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
     total_items: int
     items: List[CartItemResponse]
 
@@ -385,15 +385,15 @@ class RefundRequest(BaseModel):
     @classmethod
     def validate_reason(cls, value: str) -> str:
         if value not in REFUND_REASONS:
-            raise ValueError("Motivo do reembolso inválido.")
+            raise ValueError("Motivo do refund inválido.")
         return value
 
 
 class RefundResponse(BaseModel):
-    id_reembolso: int
-    id_encomenda: int
-    refund_id: str
-    order_id: str
+    refund_id: int
+    order_id: int
+    receipt_number: str
+    order_number: str
     original_invoice_number: str
     customer_name: str
     customer_email: str
@@ -412,22 +412,22 @@ class RefundResponse(BaseModel):
 # Analytics Schemas
 class ProdutoEstoqueMinimo(BaseModel):
     """Response for low stock product."""
-    id_produto: int
+    product_id: int
     id_produto_display: str
-    nome: str
+    name: str
     stock: int
-    preco: float
-    categoria: str
+    price: float
+    category: str
 
 
 class ProdutoPopular(BaseModel):
     """Response for popular product."""
-    id_produto: int
+    product_id: int
     id_produto_display: str
-    nome: str
-    vendido: int
-    preco: float
-    categoria: str
+    name: str
+    sold: int
+    price: float
+    category: str
 
 
 class VendaPeriodicaResponse(BaseModel):
@@ -457,7 +457,7 @@ class DashboardSalesGraphs(BaseModel):
 
 class ProductAnalyticsResponse(BaseModel):
     """Analytics for a single product."""
-    id_produto: int
+    product_id: int
     id_produto_display: str
     total_vendas: float
     quantidade_vendida: int
@@ -473,7 +473,7 @@ class AnalyticsSeriesPoint(BaseModel):
     """Point for a generic analytics chart."""
     periodo: str
     label: str
-    valor: float
+    value: float
     quantidade_vendida: int = 0
     numero_pedidos: int = 0
 
@@ -501,10 +501,10 @@ class DashboardAnalytics(BaseModel):
 
 class CategoryResponse(BaseModel):
     """Response model for category."""
-    id_categoria: int
+    category_id: int
     id_categoria_display: str
-    nome_categoria: str
-    descricao_categoria: Optional[str] = None
+    category_name: str
+    category_description: Optional[str] = None
     status: Optional[int] = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -512,12 +512,12 @@ class CategoryResponse(BaseModel):
 
 class CategoryCreate(BaseModel):
     """Schema for creating a category."""
-    nome_categoria: str
-    descricao_categoria: Optional[str] = None
+    category_name: str
+    category_description: Optional[str] = None
 
 
 class CategoryUpdate(BaseModel):
     """Schema for updating a category."""
-    nome_categoria: Optional[str] = None
-    descricao_categoria: Optional[str] = None
+    category_name: Optional[str] = None
+    category_description: Optional[str] = None
     status: Optional[int] = None

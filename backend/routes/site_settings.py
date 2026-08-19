@@ -99,7 +99,7 @@ def update_admin_chef_special(
         product = (
             db.query(Produto)
             .filter(
-                Produto.id_produto == settings.product_id,
+                Produto.product_id == settings.product_id,
                 or_(Produto.status == 1, Produto.status.is_(None)),
                 Produto.deleted_at.is_(None),
             )

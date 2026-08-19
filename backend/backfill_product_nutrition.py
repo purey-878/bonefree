@@ -1,9 +1,9 @@
 """Backfill product ingredient quantities and product calorie totals.
 
 The public product detail page derives the calorie breakdown from:
-produto_ingrediente.quantidade * ingrediente.calorias_por_grama.
+produto_ingrediente.quantity * ingredient.calories_per_gram.
 This script fills curated serving quantities for active food products and
-recomputes produto.total_calorias from the linked ingredients.
+recomputes product.total_calories from the linked ingredients.
 """
 
 from __future__ import annotations
@@ -347,26 +347,26 @@ def get_or_create_ingredient(
     fallback_calories: Decimal | None = None,
 ) -> tuple[int, str, Decimal]:
     row = cur.execute(
-        "select id_ingrediente, tipo, calorias_por_grama from ingrediente where lower(nome) = lower(?)",
+        "select ingredient_id, type, calories_per_gram from ingredient where lower(name) = lower(?)",
         (name,),
     ).fetchone()
     if row is None:
         if fallback_calories is None:
             raise ValueError(f"Ingredient {name!r} does not exist and has no calorie default.")
         cur.execute(
-            "insert into ingrediente (nome, tipo, status, calorias_por_grama) values (?, ?, 1, ?)",
+            "insert into ingredient (name, type, status, calories_per_gram) values (?, ?, 1, ?)",
             (name, fallback_type, str(fallback_calories)),
         )
         return cur.lastrowid, fallback_type, fallback_calories
 
-    ingredient_id = int(row["id_ingrediente"])
-    ingredient_type = row["tipo"]
-    calories = row["calorias_por_grama"]
+    ingredient_id = int(row["ingredient_id"])
+    ingredient_type = row["type"]
+    calories = row["calories_per_gram"]
     if calories is None:
         if fallback_calories is None:
-            raise ValueError(f"Ingredient {name!r} is missing calorias_por_grama.")
+            raise ValueError(f"Ingredient {name!r} is missing calories_per_gram.")
         cur.execute(
-            "update ingrediente set calorias_por_grama = ? where id_ingrediente = ?",
+            "update ingredient set calories_per_gram = ? where ingredient_id = ?",
             (str(fallback_calories), ingredient_id),
         )
         calories = fallback_calories
@@ -386,9 +386,9 @@ def main() -> None:
     for product_name, quantities in PRODUCT_INGREDIENT_QUANTITIES.items():
         product = cur.execute(
             """
-            select p.id_produto
-            from produto p
-            where p.nome = ?
+            select p.product_id
+            from product p
+            where p.name = ?
               and coalesce(p.status, 1) = 1
               and p.deleted_at is null
             """,
@@ -397,7 +397,7 @@ def main() -> None:
         if product is None:
             raise ValueError(f"Active food product {product_name!r} was not found.")
 
-        product_id = int(product["id_produto"])
+        product_id = int(product["product_id"])
         total = Decimal("0")
 
         for ingredient_name, quantity in quantities.items():
@@ -412,15 +412,15 @@ def main() -> None:
             total += grams * calories_per_gram
 
             existing = cur.execute(
-                "select 1 from produto_ingrediente where id_produto = ? and id_ingrediente = ?",
+                "select 1 from produto_ingrediente where product_id = ? and ingredient_id = ?",
                 (product_id, ingredient_id),
             ).fetchone()
             if existing:
                 cur.execute(
                     """
                     update produto_ingrediente
-                    set quantidade = ?
-                    where id_produto = ? and id_ingrediente = ?
+                    set quantity = ?
+                    where product_id = ? and ingredient_id = ?
                     """,
                     (quantity, product_id, ingredient_id),
                 )
@@ -429,7 +429,7 @@ def main() -> None:
                 cur.execute(
                     """
                     insert into produto_ingrediente (
-                        id_produto, id_ingrediente, incluido_por_defeito, removivel, substituivel, quantidade
+                        product_id, ingredient_id, included_by_default, removable, substitutable, quantity
                     ) values (?, ?, 1, ?, 0, ?)
                     """,
                     (product_id, ingredient_id, 1 if ingredient_type == "INGREDIENTES_NORMAIS" else 0, quantity),
@@ -438,7 +438,7 @@ def main() -> None:
 
         total = total.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
         cur.execute(
-            "update produto set total_calorias = ? where id_produto = ?",
+            "update product set total_calories = ? where product_id = ?",
             (str(total), product_id),
         )
         updated_products += 1

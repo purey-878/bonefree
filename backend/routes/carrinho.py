@@ -32,7 +32,7 @@ from services.product_pricing import discounted_product_price
 from utils.id_format import format_product_id, parse_product_id
 
 router = APIRouter(prefix="/cart", tags=["Carrinho"])
-alias_router = APIRouter(prefix="/carrinho", tags=["Carrinho"])
+alias_router = APIRouter(prefix="/cart", tags=["Carrinho"])
 CUSTOMIZATION_ADD_SURCHARGE = Decimal("1.00")
 
 
@@ -40,13 +40,13 @@ CUSTOMIZATION_ADD_SURCHARGE = Decimal("1.00")
 # HELPERS
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _product_image_path(produto: Produto) -> str | None:
+def _product_image_path(product: Produto) -> str | None:
     """Return a frontend asset path for a product image."""
     image_path = None
-    if produto.imagens:
-        image_path = produto.imagens[0].caminho_imagem
-    elif produto.imagem:
-        image_path = produto.imagem
+    if product.imagens:
+        image_path = product.imagens[0].image_path
+    elif product.image:
+        image_path = product.image
 
     if image_path:
         if image_path.startswith(("http://", "https://", "/assets/", "/uploads/", "/menu-images/")):
@@ -55,18 +55,18 @@ def _product_image_path(produto: Produto) -> str | None:
             return f"/{image_path}"
         return f"/menu-images/{image_path}"
 
-    if produto.nome:
-        filename = produto.nome.lower().replace(' ', '').replace('ã', 'a').replace('é', 'e').replace('ç', 'c')
+    if product.name:
+        filename = product.name.lower().replace(' ', '').replace('ã', 'a').replace('é', 'e').replace('ç', 'c')
         filename = ''.join(c for c in filename if c.isalnum())
         return f"/menu-images/{filename}.webp"
 
     return None
 
-def _get_or_create_carrinho(db: Session, id_cliente: int) -> Carrinho:
+def _get_or_create_carrinho(db: Session, customer_id: int) -> Carrinho:
     """Return the customer's cart, creating one if it doesn't exist yet."""
-    cart = db.query(Carrinho).filter(Carrinho.id_cliente == id_cliente).first()
+    cart = db.query(Carrinho).filter(Carrinho.customer_id == customer_id).first()
     if not cart:
-        cart = Carrinho(id_cliente=id_cliente, data_criacao=datetime.utcnow().date())
+        cart = Carrinho(customer_id=customer_id, created_at=datetime.utcnow().date())
         db.add(cart)
         db.commit()
         db.refresh(cart)
@@ -75,96 +75,96 @@ def _get_or_create_carrinho(db: Session, id_cliente: int) -> Carrinho:
 
 def _build_item_out(item: CarrinhoProduto) -> CarrinhoItemOut:
     """Convert a CarrinhoProduto ORM row into the response schema."""
-    produto = item.produto
-    imagem = _product_image_path(produto)
+    product = item.product
+    image = _product_image_path(product)
     
-    customizacao = customization_from_json(item.customizacao)
-    preco = (
-        Decimal(str(customizacao.preco_unitario_final))
-        if customizacao and customizacao.preco_unitario_final is not None
-        else discounted_product_price(produto)
+    customization = customization_from_json(item.customization)
+    price = (
+        Decimal(str(customization.preco_unitario_final))
+        if customization and customization.preco_unitario_final is not None
+        else discounted_product_price(product)
     )
-    quantidade = item.quantidade
+    quantity = item.quantity
     return CarrinhoItemOut(
-        cart_log_id=item.cart_log_id,
-        id_produto=produto.id_produto,
-        id_produto_display=format_product_id(produto.id_produto),
-        nome=produto.nome,
-        preco=preco,
-        quantidade=quantidade,
-        stock=produto.stock,
-        caminho_imagem=imagem,
-        customizacao=customizacao,
-        subtotal=preco * quantidade,
+        cart_product_id=item.cart_product_id,
+        product_id=product.product_id,
+        id_produto_display=format_product_id(product.product_id),
+        name=product.name,
+        price=price,
+        quantity=quantity,
+        stock=product.stock,
+        image_path=image,
+        customization=customization,
+        subtotal=price * quantity,
     )
 
 
 def _build_cart_out(cart: Carrinho) -> CarrinhoOut:
     """Convert a Carrinho ORM object into the full response schema."""
-    itens = [_build_item_out(i) for i in cart.itens]
-    total = sum(i.subtotal for i in itens)
-    return CarrinhoOut(id_carrinho=cart.id_carrinho, itens=itens, total=total)
+    items = [_build_item_out(i) for i in cart.items]
+    total = sum(i.subtotal for i in items)
+    return CarrinhoOut(cart_id=cart.cart_id, items=items, total=total)
 
 
-def _get_produto_or_404(db: Session, id_produto: int) -> Produto:
-    produto = db.query(Produto).filter(
-        and_(Produto.id_produto == id_produto, Produto.status == 1, Produto.deleted_at.is_(None))
+def _get_produto_or_404(db: Session, product_id: int) -> Produto:
+    product = db.query(Produto).filter(
+        and_(Produto.product_id == product_id, Produto.status == 1, Produto.deleted_at.is_(None))
     ).first()
-    if not produto:
-        raise HTTPException(status_code=404, detail=f"Produto '{format_product_id(id_produto)}' não encontrado.")
-    return produto
+    if not product:
+        raise HTTPException(status_code=404, detail=f"Produto '{format_product_id(product_id)}' não encontrado.")
+    return product
 
 
-def _ensure_product_orderable(db: Session, produto: Produto) -> None:
-    if unavailable_due_to_inactive_base(db, produto):
+def _ensure_product_orderable(db: Session, product: Produto) -> None:
+    if unavailable_due_to_inactive_base(db, product):
         raise HTTPException(
             status_code=400,
-            detail=f"'{produto.nome}' não está disponível neste momento.",
+            detail=f"'{product.name}' não está disponível neste momento.",
         )
 
 
 def _delete_cart_items(db: Session, cart_id: int) -> None:
     cart_item_ids = [
-        cart_log_id
-        for (cart_log_id,) in db.query(CarrinhoProduto.cart_log_id)
-        .filter(CarrinhoProduto.id_carrinho == cart_id)
+        cart_product_id
+        for (cart_product_id,) in db.query(CarrinhoProduto.cart_product_id)
+        .filter(CarrinhoProduto.cart_id == cart_id)
         .all()
     ]
     if not cart_item_ids:
         return
 
     db.query(CarrinhoProdutoCustomizacao).filter(
-        CarrinhoProdutoCustomizacao.cart_log_id.in_(cart_item_ids)
+        CarrinhoProdutoCustomizacao.cart_product_id.in_(cart_item_ids)
     ).delete(synchronize_session=False)
     db.query(CarrinhoProduto).filter(
-        CarrinhoProduto.cart_log_id.in_(cart_item_ids)
+        CarrinhoProduto.cart_product_id.in_(cart_item_ids)
     ).delete(synchronize_session=False)
 
 
-def _check_stock(produto: Produto, quantidade_pedida: int, quantidade_ja_no_carrinho: int = 0):
+def _check_stock(product: Produto, quantidade_pedida: int, quantidade_ja_no_carrinho: int = 0):
     """
     Raises 400 if the requested quantity exceeds available stock.
     quantidade_ja_no_carrinho: how many units are already in the cart (for updates).
     """
-    if produto.stock <= 0:
+    if product.stock <= 0:
         raise HTTPException(
             status_code=400,
-            detail=f"'{produto.nome}' está esgotado."
+            detail=f"'{product.name}' está esgotado."
         )
     if quantidade_pedida < 1:
-        raise HTTPException(status_code=400, detail="A quantidade deve ser pelo menos 1.")
-    if quantidade_pedida > produto.stock:
+        raise HTTPException(status_code=400, detail="A quantity deve ser pelo menos 1.")
+    if quantidade_pedida > product.stock:
         raise HTTPException(
             status_code=400,
             detail=(
-                f"Stock insuficiente para '{produto.nome}'. "
-                f"Pedido: {quantidade_pedida}, disponível: {produto.stock}."
+                f"Stock insuficiente para '{product.name}'. "
+                f"Pedido: {quantidade_pedida}, disponível: {product.stock}."
             ),
         )
 
 
 def _format_option_name(option: ProdutoOpcaoCustomizacao) -> str:
-    return option.nome.replace("Extra ", "", 1).replace("Substituir por ", "", 1).strip()
+    return option.name.replace("Extra ", "", 1).replace("Substituir por ", "", 1).strip()
 
 
 def _custom_action_for_option(option_type: str) -> str:
@@ -175,138 +175,138 @@ def _custom_action_for_option(option_type: str) -> str:
 
 def _price_legacy_customization(
     db: Session,
-    produto: Produto,
-    customizacao: ItemCustomization | None,
+    product: Produto,
+    customization: ItemCustomization | None,
 ) -> ItemCustomization | None:
-    if not customizacao:
+    if not customization:
         return None
     has_choices = bool(
-        customizacao.remove
-        or customizacao.add
-        or customizacao.preferences
-        or customizacao.note
-        or customizacao.ingredientes_removidos
-        or customizacao.extras
-        or customizacao.substituicoes
+        customization.remove
+        or customization.add
+        or customization.preferences
+        or customization.note
+        or customization.ingredientes_removidos
+        or customization.extras
+        or customization.substituicoes
     )
     if not has_choices:
         return None
 
-    if customizacao.remove:
+    if customization.remove:
         rows = (
             db.query(ProdutoIngrediente)
-            .join(ProdutoIngrediente.ingrediente)
+            .join(ProdutoIngrediente.ingredient)
             .filter(
-                ProdutoIngrediente.id_produto == produto.id_produto,
-                ProdutoIngrediente.removivel == 1,
-                ProdutoIngrediente.ingrediente.has(tipo="INGREDIENTES_NORMAIS", status=1),
+                ProdutoIngrediente.product_id == product.product_id,
+                ProdutoIngrediente.removable == 1,
+                ProdutoIngrediente.ingredient.has(type="INGREDIENTES_NORMAIS", status=1),
             )
             .all()
         )
         removable_names = {
-            row.ingrediente.nome.strip().casefold(): row.ingrediente.nome.strip()
+            row.ingredient.name.strip().casefold(): row.ingredient.name.strip()
             for row in rows
-            if row.ingrediente and row.ingrediente.nome.strip()
+            if row.ingredient and row.ingredient.name.strip()
         }
         invalid_names = [
-            name for name in customizacao.remove
+            name for name in customization.remove
             if name.strip().casefold() not in removable_names
         ]
         if invalid_names:
             raise HTTPException(status_code=400, detail=f"Ingrediente '{invalid_names[0]}' não pode ser removido.")
-        customizacao.remove = [
+        customization.remove = [
             removable_names[name.strip().casefold()]
-            for name in customizacao.remove
+            for name in customization.remove
             if name.strip().casefold() in removable_names
         ]
 
-    customizacao.preco_unitario_final = (
-        discounted_product_price(produto)
-        + (CUSTOMIZATION_ADD_SURCHARGE * len(customizacao.add or []))
+    customization.preco_unitario_final = (
+        discounted_product_price(product)
+        + (CUSTOMIZATION_ADD_SURCHARGE * len(customization.add or []))
     )
-    return customizacao
+    return customization
 
 
 def _validate_and_build_customization(
     db: Session,
-    produto: Produto,
+    product: Produto,
     body: CustomizedCartItemRequest,
 ) -> tuple[ItemCustomization, Decimal, list[dict]]:
-    if not bool(getattr(produto, "customizavel", 0)):
-        raise HTTPException(status_code=400, detail="Este produto não permite customização.")
+    if not bool(getattr(product, "customizable", 0)):
+        raise HTTPException(status_code=400, detail="Este product não permite customização.")
 
     ingredient_rows = (
         db.query(ProdutoIngrediente)
-        .join(ProdutoIngrediente.ingrediente)
-        .filter(ProdutoIngrediente.id_produto == produto.id_produto)
+        .join(ProdutoIngrediente.ingredient)
+        .filter(ProdutoIngrediente.product_id == product.product_id)
         .all()
     )
-    ingredients = {row.id_ingrediente: row for row in ingredient_rows}
+    ingredients = {row.ingredient_id: row for row in ingredient_rows}
 
     remove_names: list[str] = []
     customization_rows: list[dict] = []
     for ingredient_id in sorted(set(body.ingredientes_removidos)):
         ingredient_row = ingredients.get(ingredient_id)
         if not ingredient_row:
-            raise HTTPException(status_code=400, detail=f"Ingrediente {ingredient_id} não pertence ao produto.")
-        ingredient_name = ingredient_row.ingrediente.nome if ingredient_row.ingrediente else str(ingredient_id)
-        if not ingredient_row.ingrediente or ingredient_row.ingrediente.tipo != "INGREDIENTES_NORMAIS" or not bool(ingredient_row.removivel):
+            raise HTTPException(status_code=400, detail=f"Ingrediente {ingredient_id} não pertence ao product.")
+        ingredient_name = ingredient_row.ingredient.name if ingredient_row.ingredient else str(ingredient_id)
+        if not ingredient_row.ingredient or ingredient_row.ingredient.type != "INGREDIENTES_NORMAIS" or not bool(ingredient_row.removable):
             raise HTTPException(status_code=400, detail=f"Ingrediente '{ingredient_name}' não pode ser removido.")
 
         remove_names.append(ingredient_name)
         customization_rows.append({
-            "id_ingrediente": ingredient_id,
-            "id_opcao": None,
-            "acao": "REMOVER_INGREDIENTE",
-            "quantidade": 1,
-            "preco_extra": Decimal("0"),
+            "ingredient_id": ingredient_id,
+            "option_id": None,
+            "action": "REMOVER_INGREDIENTE",
+            "quantity": 1,
+            "extra_price": Decimal("0"),
         })
 
-    option_ids = [extra.id_opcao for extra in body.extras]
+    option_ids = [extra.option_id for extra in body.extras]
     option_ids.extend(
-        option.id_opcao
+        option.option_id
         for substitution in body.substituicoes
         for option in db.query(ProdutoOpcaoCustomizacao).filter(
-            ProdutoOpcaoCustomizacao.id_produto == produto.id_produto,
-            ProdutoOpcaoCustomizacao.id_ingrediente == substitution.id_ingrediente_novo,
+            ProdutoOpcaoCustomizacao.product_id == product.product_id,
+            ProdutoOpcaoCustomizacao.ingredient_id == substitution.id_ingrediente_novo,
             ProdutoOpcaoCustomizacao.status == 1,
-            ProdutoOpcaoCustomizacao.tipo.in_(("SUBSTITUIR_MOLHO", "SUBSTITUIR_ACOMPANHAMENTO")),
-            ProdutoOpcaoCustomizacao.ingrediente.has(status=1),
+            ProdutoOpcaoCustomizacao.type.in_(("SUBSTITUIR_MOLHO", "SUBSTITUIR_ACOMPANHAMENTO")),
+            ProdutoOpcaoCustomizacao.ingredient.has(status=1),
         ).all()
     )
     options = {}
     if option_ids:
         options = {
-            option.id_opcao: option
+            option.option_id: option
             for option in db.query(ProdutoOpcaoCustomizacao).filter(
-                ProdutoOpcaoCustomizacao.id_opcao.in_(option_ids),
-                ProdutoOpcaoCustomizacao.id_produto == produto.id_produto,
+                ProdutoOpcaoCustomizacao.option_id.in_(option_ids),
+                ProdutoOpcaoCustomizacao.product_id == product.product_id,
                 ProdutoOpcaoCustomizacao.status == 1,
                 or_(
-                    ProdutoOpcaoCustomizacao.id_ingrediente.is_(None),
-                    ProdutoOpcaoCustomizacao.ingrediente.has(status=1),
+                    ProdutoOpcaoCustomizacao.ingredient_id.is_(None),
+                    ProdutoOpcaoCustomizacao.ingredient.has(status=1),
                 ),
             ).all()
         }
 
     add_names: list[str] = []
-    final_unit_price = discounted_product_price(produto)
+    final_unit_price = discounted_product_price(product)
     for extra in body.extras:
-        option = options.get(extra.id_opcao)
-        if not option or option.tipo not in ("EXTRA", "ADICIONAR"):
-            raise HTTPException(status_code=400, detail=f"Opção extra {extra.id_opcao} não pertence ao produto.")
-        if extra.quantidade > option.max_quantidade:
-            raise HTTPException(status_code=400, detail=f"Quantidade máxima para '{option.nome}' é {option.max_quantidade}.")
+        option = options.get(extra.option_id)
+        if not option or option.type not in ("EXTRA", "ADICIONAR"):
+            raise HTTPException(status_code=400, detail=f"Opção extra {extra.option_id} não pertence ao product.")
+        if extra.quantity > option.max_quantity:
+            raise HTTPException(status_code=400, detail=f"Quantidade máxima para '{option.name}' é {option.max_quantity}.")
 
-        extra_total = CUSTOMIZATION_ADD_SURCHARGE * extra.quantidade
+        extra_total = CUSTOMIZATION_ADD_SURCHARGE * extra.quantity
         final_unit_price += extra_total
-        add_names.append(f"{extra.quantidade}x {_format_option_name(option)}")
+        add_names.append(f"{extra.quantity}x {_format_option_name(option)}")
         customization_rows.append({
-            "id_ingrediente": option.id_ingrediente,
-            "id_opcao": option.id_opcao,
-            "acao": "ADICIONAR_EXTRA",
-            "quantidade": extra.quantidade,
-            "preco_extra": CUSTOMIZATION_ADD_SURCHARGE,
+            "ingredient_id": option.ingredient_id,
+            "option_id": option.option_id,
+            "action": "ADICIONAR_EXTRA",
+            "quantity": extra.quantity,
+            "extra_price": CUSTOMIZATION_ADD_SURCHARGE,
         })
 
     substitution_names: list[str] = []
@@ -314,32 +314,32 @@ def _validate_and_build_customization(
     for substitution in body.substituicoes:
         original = ingredients.get(substitution.id_ingrediente_original)
         if not original:
-            raise HTTPException(status_code=400, detail=f"Ingrediente {substitution.id_ingrediente_original} não pertence ao produto.")
-        if not bool(original.substituivel):
-            raise HTTPException(status_code=400, detail=f"Ingrediente '{original.ingrediente.nome}' não pode ser substituído.")
+            raise HTTPException(status_code=400, detail=f"Ingrediente {substitution.id_ingrediente_original} não pertence ao product.")
+        if not bool(original.substitutable):
+            raise HTTPException(status_code=400, detail=f"Ingrediente '{original.ingredient.name}' não pode ser substituído.")
         if substitution.id_ingrediente_original in seen_originals:
-            raise HTTPException(status_code=400, detail="Cada ingrediente só pode ter uma substituição.")
+            raise HTTPException(status_code=400, detail="Cada ingredient só pode ter uma substituição.")
         seen_originals.add(substitution.id_ingrediente_original)
 
         replacement = next(
             (
                 option for option in options.values()
-                if option.id_ingrediente == substitution.id_ingrediente_novo
-                and option.tipo in ("SUBSTITUIR_MOLHO", "SUBSTITUIR_ACOMPANHAMENTO")
+                if option.ingredient_id == substitution.id_ingrediente_novo
+                and option.type in ("SUBSTITUIR_MOLHO", "SUBSTITUIR_ACOMPANHAMENTO")
             ),
             None,
         )
         if not replacement:
-            raise HTTPException(status_code=400, detail="Substituição não permitida para este produto.")
+            raise HTTPException(status_code=400, detail="Substituição não permitida para este product.")
 
-        final_unit_price += Decimal(str(replacement.preco_extra))
-        substitution_names.append(f"{original.ingrediente.nome} -> {_format_option_name(replacement)}")
+        final_unit_price += Decimal(str(replacement.extra_price))
+        substitution_names.append(f"{original.ingredient.name} -> {_format_option_name(replacement)}")
         customization_rows.append({
-            "id_ingrediente": substitution.id_ingrediente_original,
-            "id_opcao": replacement.id_opcao,
-            "acao": _custom_action_for_option(replacement.tipo),
-            "quantidade": 1,
-            "preco_extra": Decimal(str(replacement.preco_extra)),
+            "ingredient_id": substitution.id_ingrediente_original,
+            "option_id": replacement.option_id,
+            "action": _custom_action_for_option(replacement.type),
+            "quantity": 1,
+            "extra_price": Decimal(str(replacement.extra_price)),
         })
 
     customization = ItemCustomization(
@@ -358,74 +358,74 @@ def _validate_and_build_customization(
 def _find_cart_line(
     db: Session,
     cart_id: int,
-    id_produto: int,
+    product_id: int,
     customizacao_json: str | None,
 ) -> CarrinhoProduto | None:
     query = db.query(CarrinhoProduto).filter(
-        CarrinhoProduto.id_carrinho == cart_id,
-        CarrinhoProduto.id_produto == id_produto,
+        CarrinhoProduto.cart_id == cart_id,
+        CarrinhoProduto.product_id == product_id,
     )
 
     if customizacao_json is None:
-        query = query.filter(CarrinhoProduto.customizacao.is_(None))
+        query = query.filter(CarrinhoProduto.customization.is_(None))
     else:
-        query = query.filter(CarrinhoProduto.customizacao == customizacao_json)
+        query = query.filter(CarrinhoProduto.customization == customizacao_json)
 
     return query.first()
 
 
 def _cart_item_out_from_product(
-    produto: Produto,
-    quantidade: int,
+    product: Produto,
+    quantity: int,
     unit_price: Decimal,
-    customizacao: ItemCustomization,
+    customization: ItemCustomization,
 ) -> CarrinhoItemOut:
-    imagem = _product_image_path(produto)
+    image = _product_image_path(product)
     return CarrinhoItemOut(
-        cart_log_id=0,
-        id_produto=produto.id_produto,
-        id_produto_display=format_product_id(produto.id_produto),
-        nome=produto.nome,
-        preco=unit_price,
-        quantidade=quantidade,
-        stock=produto.stock,
-        caminho_imagem=imagem,
-        customizacao=customizacao,
-        subtotal=unit_price * quantidade,
+        cart_product_id=0,
+        product_id=product.product_id,
+        id_produto_display=format_product_id(product.product_id),
+        name=product.name,
+        price=unit_price,
+        quantity=quantity,
+        stock=product.stock,
+        image_path=image,
+        customization=customization,
+        subtotal=unit_price * quantity,
     )
 
 
 def _trusted_guest_customization(
     db: Session,
-    produto: Produto,
-    quantidade: int,
-    customizacao: ItemCustomization | None,
+    product: Produto,
+    quantity: int,
+    customization: ItemCustomization | None,
 ) -> tuple[ItemCustomization | None, list[dict]]:
-    if not customizacao:
+    if not customization:
         return None, []
 
     has_structured_choices = bool(
-        customizacao.ingredientes_removidos
-        or customizacao.extras
-        or customizacao.substituicoes
+        customization.ingredientes_removidos
+        or customization.extras
+        or customization.substituicoes
     )
     if has_structured_choices:
         body = CustomizedCartItemRequest(
-            id_produto=produto.id_produto,
-            quantidade=quantidade,
-            ingredientes_removidos=customizacao.ingredientes_removidos,
-            extras=customizacao.extras,
-            substituicoes=customizacao.substituicoes,
-            observacoes=customizacao.note,
+            product_id=product.product_id,
+            quantity=quantity,
+            ingredientes_removidos=customization.ingredientes_removidos,
+            extras=customization.extras,
+            substituicoes=customization.substituicoes,
+            observacoes=customization.note,
         )
-        trusted, _, customization_rows = _validate_and_build_customization(db, produto, body)
+        trusted, _, customization_rows = _validate_and_build_customization(db, product, body)
         return trusted, customization_rows
 
-    return _price_legacy_customization(db, produto, ItemCustomization(
-        remove=customizacao.remove,
-        add=customizacao.add,
-        preferences=customizacao.preferences,
-        note=customizacao.note,
+    return _price_legacy_customization(db, product, ItemCustomization(
+        remove=customization.remove,
+        add=customization.add,
+        preferences=customization.preferences,
+        note=customization.note,
     )), []
 
 
@@ -441,9 +441,9 @@ def get_carrinho(
 ):
     # If user is not authenticated, return empty guest cart
     if not current_user:
-        return CarrinhoOut(id_carrinho=None, itens=[], total=Decimal("0"))
+        return CarrinhoOut(cart_id=None, items=[], total=Decimal("0"))
     
-    cart = _get_or_create_carrinho(db, current_user.id_cliente)
+    cart = _get_or_create_carrinho(db, current_user.customer_id)
     return _build_cart_out(cart)
 
 
@@ -454,36 +454,36 @@ def add_item(
     db: Session = Depends(get_db),
     current_user: Optional[Cliente] = Depends(get_current_user_optional),
 ):
-    produto = _get_produto_or_404(db, body.id_produto)
-    _ensure_product_orderable(db, produto)
-    customizacao = _price_legacy_customization(db, produto, body.customizacao)
-    customizacao_json = customization_to_json(customizacao)
+    product = _get_produto_or_404(db, body.product_id)
+    _ensure_product_orderable(db, product)
+    customization = _price_legacy_customization(db, product, body.customization)
+    customizacao_json = customization_to_json(customization)
     
     # If user is not authenticated, just validate and return empty cart response
     # Frontend will handle localStorage for guest cart
     if not current_user:
-        _check_stock(produto, body.quantidade)
+        _check_stock(product, body.quantity)
         # Return empty guest cart - frontend stores in localStorage
-        return CarrinhoOut(id_carrinho=None, itens=[], total=Decimal("0"))
+        return CarrinhoOut(cart_id=None, items=[], total=Decimal("0"))
     
-    cart = _get_or_create_carrinho(db, current_user.id_cliente)
+    cart = _get_or_create_carrinho(db, current_user.customer_id)
 
     existing = (
-        _find_cart_line(db, cart.id_carrinho, body.id_produto, customizacao_json)
+        _find_cart_line(db, cart.cart_id, body.product_id, customizacao_json)
     )
 
-    nova_quantidade = (existing.quantidade if existing else 0) + body.quantidade
-    _check_stock(produto, nova_quantidade)
+    nova_quantidade = (existing.quantity if existing else 0) + body.quantity
+    _check_stock(product, nova_quantidade)
 
     if existing:
-        existing.quantidade = nova_quantidade
+        existing.quantity = nova_quantidade
     else:
         db.add(
             CarrinhoProduto(
-                id_carrinho=cart.id_carrinho,
-                id_produto=body.id_produto,
-                quantidade=body.quantidade,
-                customizacao=customizacao_json,
+                cart_id=cart.cart_id,
+                product_id=body.product_id,
+                quantity=body.quantity,
+                customization=customizacao_json,
             )
         )
 
@@ -497,44 +497,44 @@ def _add_customized_item_impl(
     db: Session,
     current_user: Optional[Cliente],
 ) -> CarrinhoOut:
-    produto = _get_produto_or_404(db, body.id_produto)
-    _ensure_product_orderable(db, produto)
-    _check_stock(produto, body.quantidade)
-    customizacao, unit_price, customization_rows = _validate_and_build_customization(db, produto, body)
-    customizacao_json = customization_to_json(customizacao)
+    product = _get_produto_or_404(db, body.product_id)
+    _ensure_product_orderable(db, product)
+    _check_stock(product, body.quantity)
+    customization, unit_price, customization_rows = _validate_and_build_customization(db, product, body)
+    customizacao_json = customization_to_json(customization)
 
     if not current_user:
         return CarrinhoOut(
-            id_carrinho=None,
-            itens=[_cart_item_out_from_product(produto, body.quantidade, unit_price, customizacao)],
-            total=unit_price * body.quantidade,
+            cart_id=None,
+            items=[_cart_item_out_from_product(product, body.quantity, unit_price, customization)],
+            total=unit_price * body.quantity,
         )
 
-    cart = _get_or_create_carrinho(db, current_user.id_cliente)
-    existing = _find_cart_line(db, cart.id_carrinho, body.id_produto, customizacao_json)
-    nova_quantidade = (existing.quantidade if existing else 0) + body.quantidade
-    _check_stock(produto, nova_quantidade)
+    cart = _get_or_create_carrinho(db, current_user.customer_id)
+    existing = _find_cart_line(db, cart.cart_id, body.product_id, customizacao_json)
+    nova_quantidade = (existing.quantity if existing else 0) + body.quantity
+    _check_stock(product, nova_quantidade)
 
     if existing:
-        existing.quantidade = nova_quantidade
+        existing.quantity = nova_quantidade
     else:
         existing = CarrinhoProduto(
-            id_carrinho=cart.id_carrinho,
-            id_produto=body.id_produto,
-            quantidade=body.quantidade,
-            customizacao=customizacao_json,
+            cart_id=cart.cart_id,
+            product_id=body.product_id,
+            quantity=body.quantity,
+            customization=customizacao_json,
         )
         db.add(existing)
         db.flush()
         for row in customization_rows:
             db.add(CarrinhoProdutoCustomizacao(
-                cart_log_id=existing.cart_log_id,
-                id_ingrediente=row["id_ingrediente"],
-                id_opcao=row["id_opcao"],
-                acao=row["acao"],
-                quantidade=row["quantidade"],
-                preco_extra=row["preco_extra"],
-                notas=body.observacoes,
+                cart_product_id=existing.cart_product_id,
+                ingredient_id=row["ingredient_id"],
+                option_id=row["option_id"],
+                action=row["action"],
+                quantity=row["quantity"],
+                extra_price=row["extra_price"],
+                notes=body.observacoes,
             ))
 
     db.commit()
@@ -542,8 +542,8 @@ def _add_customized_item_impl(
     return _build_cart_out(cart)
 
 
-@router.post("/itens/customizado", response_model=CarrinhoOut)
-@alias_router.post("/itens/customizado", response_model=CarrinhoOut)
+@router.post("/items/customizado", response_model=CarrinhoOut)
+@alias_router.post("/items/customizado", response_model=CarrinhoOut)
 def add_customized_item(
     body: CustomizedCartItemRequest,
     db: Session = Depends(get_db),
@@ -561,73 +561,73 @@ def update_item(
 ):
     # If user is not authenticated, just validate and return empty cart response
     if not current_user:
-        produto = _get_produto_or_404(db, body.id_produto)
-        _ensure_product_orderable(db, produto)
-        _check_stock(produto, body.quantidade)
-        return CarrinhoOut(id_carrinho=None, itens=[], total=Decimal("0"))
+        product = _get_produto_or_404(db, body.product_id)
+        _ensure_product_orderable(db, product)
+        _check_stock(product, body.quantity)
+        return CarrinhoOut(cart_id=None, items=[], total=Decimal("0"))
     
-    cart = _get_or_create_carrinho(db, current_user.id_cliente)
+    cart = _get_or_create_carrinho(db, current_user.customer_id)
 
-    if body.cart_log_id is not None:
+    if body.cart_product_id is not None:
         item = db.query(CarrinhoProduto).filter(
-            CarrinhoProduto.id_carrinho == cart.id_carrinho,
-            CarrinhoProduto.cart_log_id == body.cart_log_id,
+            CarrinhoProduto.cart_id == cart.cart_id,
+            CarrinhoProduto.cart_product_id == body.cart_product_id,
         ).first()
     else:
         item = (
             db.query(CarrinhoProduto)
             .filter(
-                CarrinhoProduto.id_carrinho == cart.id_carrinho,
-                CarrinhoProduto.id_produto == body.id_produto,
+                CarrinhoProduto.cart_id == cart.cart_id,
+                CarrinhoProduto.product_id == body.product_id,
             )
             .first()
         )
 
     if not item:
-        raise HTTPException(status_code=404, detail="Item não encontrado no carrinho.")
+        raise HTTPException(status_code=404, detail="Item não encontrado no cart.")
 
-    produto = _get_produto_or_404(db, item.id_produto)
-    _ensure_product_orderable(db, produto)
-    _check_stock(produto, body.quantidade)
-    item.quantidade = body.quantidade
+    product = _get_produto_or_404(db, item.product_id)
+    _ensure_product_orderable(db, product)
+    _check_stock(product, body.quantity)
+    item.quantity = body.quantity
     db.commit()
     db.refresh(cart)
     return _build_cart_out(cart)
 
 
-# DELETE /cart/remove/{id_produto}  ── remove one item
-@router.delete("/remove/{id_produto}", response_model=CarrinhoOut)
+# DELETE /cart/remove/{product_id}  ── remove one item
+@router.delete("/remove/{product_id}", response_model=CarrinhoOut)
 def remove_item(
-    id_produto: str,
-    cart_log_id: Optional[int] = Query(None),
+    product_id: str,
+    cart_product_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
     current_user: Optional[Cliente] = Depends(get_current_user_optional),
 ):
-    parsed_id_produto = parse_product_id(id_produto)
+    parsed_id_produto = parse_product_id(product_id)
     # If user is not authenticated, just validate product exists
     if not current_user:
         _get_produto_or_404(db, parsed_id_produto)
-        return CarrinhoOut(id_carrinho=None, itens=[], total=Decimal("0"))
+        return CarrinhoOut(cart_id=None, items=[], total=Decimal("0"))
     
-    cart = _get_or_create_carrinho(db, current_user.id_cliente)
+    cart = _get_or_create_carrinho(db, current_user.customer_id)
 
-    if cart_log_id is not None:
+    if cart_product_id is not None:
         item = db.query(CarrinhoProduto).filter(
-            CarrinhoProduto.id_carrinho == cart.id_carrinho,
-            CarrinhoProduto.cart_log_id == cart_log_id,
+            CarrinhoProduto.cart_id == cart.cart_id,
+            CarrinhoProduto.cart_product_id == cart_product_id,
         ).first()
     else:
         item = (
             db.query(CarrinhoProduto)
             .filter(
-                CarrinhoProduto.id_carrinho == cart.id_carrinho,
-                CarrinhoProduto.id_produto == parsed_id_produto,
+                CarrinhoProduto.cart_id == cart.cart_id,
+                CarrinhoProduto.product_id == parsed_id_produto,
             )
             .first()
         )
 
     if not item:
-        raise HTTPException(status_code=404, detail="Item não encontrado no carrinho.")
+        raise HTTPException(status_code=404, detail="Item não encontrado no cart.")
 
     db.delete(item)
     db.commit()
@@ -643,10 +643,10 @@ def clear_cart(
 ):
     # If user is not authenticated, just return empty cart
     if not current_user:
-        return CarrinhoOut(id_carrinho=None, itens=[], total=Decimal("0"))
+        return CarrinhoOut(cart_id=None, items=[], total=Decimal("0"))
     
-    cart = _get_or_create_carrinho(db, current_user.id_cliente)
-    _delete_cart_items(db, cart.id_carrinho)
+    cart = _get_or_create_carrinho(db, current_user.customer_id)
+    _delete_cart_items(db, cart.cart_id)
     db.commit()
     db.refresh(cart)
     return _build_cart_out(cart)
@@ -669,70 +669,70 @@ def merge_carrinho(
     Returns lists of merged / capped / skipped product ids so the
     frontend can show the user what happened.
     """
-    cart = _get_or_create_carrinho(db, current_user.id_cliente)
+    cart = _get_or_create_carrinho(db, current_user.customer_id)
 
     merged: List[int] = []
     capped: List[int] = []
     skipped: List[int] = []
 
-    for guest_item in body.itens:
-        produto = db.query(Produto).filter(
-            Produto.id_produto == guest_item.id_produto,
+    for guest_item in body.items:
+        product = db.query(Produto).filter(
+            Produto.product_id == guest_item.product_id,
             Produto.status == 1,
             Produto.deleted_at.is_(None),
         ).first()
-        if not produto or produto.stock <= 0 or unavailable_due_to_inactive_base(db, produto):
-            skipped.append(guest_item.id_produto)
+        if not product or product.stock <= 0 or unavailable_due_to_inactive_base(db, product):
+            skipped.append(guest_item.product_id)
             continue
         try:
             trusted_customization, customization_rows = _trusted_guest_customization(
                 db,
-                produto,
-                guest_item.quantidade,
-                guest_item.customizacao,
+                product,
+                guest_item.quantity,
+                guest_item.customization,
             )
         except HTTPException:
-            skipped.append(guest_item.id_produto)
+            skipped.append(guest_item.product_id)
             continue
 
         customizacao_json = customization_to_json(trusted_customization)
 
         # Product not found or out of stock → skip
         existing = (
-            _find_cart_line(db, cart.id_carrinho, guest_item.id_produto, customizacao_json)
+            _find_cart_line(db, cart.cart_id, guest_item.product_id, customizacao_json)
         )
 
-        quantidade_atual = existing.quantidade if existing else 0
-        quantidade_pretendida = quantidade_atual + guest_item.quantidade
+        quantidade_atual = existing.quantity if existing else 0
+        quantidade_pretendida = quantidade_atual + guest_item.quantity
 
         # Cap to available stock
-        if quantidade_pretendida > produto.stock:
-            quantidade_final = produto.stock
-            capped.append(guest_item.id_produto)
+        if quantidade_pretendida > product.stock:
+            quantidade_final = product.stock
+            capped.append(guest_item.product_id)
         else:
             quantidade_final = quantidade_pretendida
-            merged.append(guest_item.id_produto)
+            merged.append(guest_item.product_id)
 
         if existing:
-            existing.quantidade = quantidade_final
+            existing.quantity = quantidade_final
         else:
             item = CarrinhoProduto(
-                id_carrinho=cart.id_carrinho,
-                id_produto=guest_item.id_produto,
-                quantidade=quantidade_final,
-                customizacao=customizacao_json,
+                cart_id=cart.cart_id,
+                product_id=guest_item.product_id,
+                quantity=quantidade_final,
+                customization=customizacao_json,
             )
             db.add(item)
             db.flush()
             for row in customization_rows:
                 db.add(CarrinhoProdutoCustomizacao(
-                    cart_log_id=item.cart_log_id,
-                    id_ingrediente=row["id_ingrediente"],
-                    id_opcao=row["id_opcao"],
-                    acao=row["acao"],
-                    quantidade=row["quantidade"],
-                    preco_extra=row["preco_extra"],
-                    notas=trusted_customization.note if trusted_customization else None,
+                    cart_product_id=item.cart_product_id,
+                    ingredient_id=row["ingredient_id"],
+                    option_id=row["option_id"],
+                    action=row["action"],
+                    quantity=row["quantity"],
+                    extra_price=row["extra_price"],
+                    notes=trusted_customization.note if trusted_customization else None,
                 ))
 
     db.commit()
@@ -742,5 +742,5 @@ def merge_carrinho(
         merged=merged,
         capped=capped,
         skipped=skipped,
-        carrinho=_build_cart_out(cart),
+        cart=_build_cart_out(cart),
     )

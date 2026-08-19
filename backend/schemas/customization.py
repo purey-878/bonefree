@@ -7,8 +7,8 @@ from .id_types import ProductId
 
 
 class CustomizationExtraSelection(BaseModel):
-    id_opcao: int
-    quantidade: int = Field(1, ge=1)
+    option_id: int
+    quantity: int = Field(1, ge=1)
 
 
 class CustomizationSubstitutionSelection(BaseModel):
@@ -17,8 +17,8 @@ class CustomizationSubstitutionSelection(BaseModel):
 
 
 class CustomizedCartItemRequest(BaseModel):
-    id_produto: ProductId
-    quantidade: int = Field(1, ge=1)
+    product_id: ProductId
+    quantity: int = Field(1, ge=1)
     ingredientes_removidos: List[int] = Field(default_factory=list)
     extras: List[CustomizationExtraSelection] = Field(default_factory=list)
     substituicoes: List[CustomizationSubstitutionSelection] = Field(default_factory=list)
@@ -26,30 +26,30 @@ class CustomizedCartItemRequest(BaseModel):
 
 
 class CustomizationIngredientResponse(BaseModel):
-    id_ingrediente: int
-    nome: str
-    tipo: str
-    removivel: bool
-    substituivel: bool
-    incluido_por_defeito: bool
+    ingredient_id: int
+    name: str
+    type: str
+    removable: bool
+    substitutable: bool
+    included_by_default: bool
 
 
 class CustomizationOptionResponse(BaseModel):
-    id_opcao: int
-    id_ingrediente: Optional[int] = None
-    nome: str
-    tipo: str
-    preco_extra: Decimal
-    max_quantidade: int
+    option_id: int
+    ingredient_id: Optional[int] = None
+    name: str
+    type: str
+    extra_price: Decimal
+    max_quantity: int
 
 
 class ProductCustomizationResponse(BaseModel):
-    id_produto: int
+    product_id: int
     id_produto_display: str
-    nome: str
-    customizavel: bool
+    name: str
+    customizable: bool
     preco_base: Decimal
-    ingredientes: List[CustomizationIngredientResponse]
+    ingredients: List[CustomizationIngredientResponse]
     ingredientes_removiveis: List[CustomizationIngredientResponse]
     ingredientes_substituiveis: List[CustomizationIngredientResponse]
     opcoes: dict[str, List[CustomizationOptionResponse]]

@@ -48,13 +48,13 @@ def validate_name(value: Optional[str]) -> Optional[str]:
     if name is None:
         return None
     if len(name) < 2:
-        raise ValueError("O nome deve ter pelo menos 2 caracteres.")
+        raise ValueError("O name deve ter pelo menos 2 caracteres.")
     if len(name) > 100:
-        raise ValueError("O nome deve ter no máximo 100 caracteres.")
+        raise ValueError("O name deve ter no máximo 100 caracteres.")
     if name.isdigit():
-        raise ValueError("O nome não pode conter apenas números.")
+        raise ValueError("O name não pode conter apenas números.")
     if not NAME_RE.fullmatch(name) or not any(char.isalpha() for char in name):
-        raise ValueError("Introduza um nome completo valido.")
+        raise ValueError("Introduza um name completo valido.")
     return name
 
 
@@ -69,25 +69,25 @@ def normalize_phone(value: Optional[str]) -> Optional[str]:
         national = phone
         normalized = phone
     if not national.isdigit():
-        raise ValueError("O número de telefone deve conter apenas dígitos.")
+        raise ValueError("O número de phone deve conter apenas dígitos.")
     if len(national) != 9 or not national.startswith("9"):
-        raise ValueError("Número de telefone português inválido.")
+        raise ValueError("Número de phone português inválido.")
     return normalized
 
 
 def validate_nif(value: Optional[str]) -> Optional[str]:
-    nif = value.strip() if value else ""
-    if not nif:
+    tax_id = value.strip() if value else ""
+    if not tax_id:
         return None
-    if not nif.isdigit() or len(nif) != 9:
+    if not tax_id.isdigit() or len(tax_id) != 9:
         raise ValueError("O NIF deve conter exatamente 9 dígitos.")
-    checksum = sum(int(nif[index]) * (9 - index) for index in range(8))
+    checksum = sum(int(tax_id[index]) * (9 - index) for index in range(8))
     check_digit = 11 - (checksum % 11)
     if check_digit >= 10:
         check_digit = 0
-    if check_digit != int(nif[-1]):
+    if check_digit != int(tax_id[-1]):
         raise ValueError("NIF português inválido.")
-    return nif
+    return tax_id
 
 
 def validate_postal_code(value: Optional[str]) -> Optional[str]:

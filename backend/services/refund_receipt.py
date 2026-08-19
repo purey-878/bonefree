@@ -31,41 +31,41 @@ from models import Encomenda, Reembolso
 
 logger = logging.getLogger(__name__)
 
-REFUND_METHOD_TEXT = "O reembolso será devolvido através do método de pagamento original."
+REFUND_METHOD_TEXT = "O refund será devolvido através do método de payment original."
 
 
 def refund_receipt_number(refund: Reembolso) -> str:
-    year = refund.data_reembolso.year if refund.data_reembolso else 0
-    return f"RR {year}/{refund.id_reembolso:06d}"
+    year = refund.refunded_at.year if refund.refunded_at else 0
+    return f"RR {year}/{refund.refund_id:06d}"
 
 
-def original_invoice_number(encomenda: Encomenda) -> str:
-    year = encomenda.data_encomenda.year if encomenda.data_encomenda else 0
-    return f"FR {year}/{encomenda.id_encomenda:06d}"
+def original_invoice_number(order: Encomenda) -> str:
+    year = order.ordered_at.year if order.ordered_at else 0
+    return f"FR {year}/{order.order_id:06d}"
 
 
 def build_refund_receipt_payload(refund: Reembolso) -> dict[str, Any]:
-    order = refund.encomenda
-    customer = order.cliente if order else None
+    order = refund.order
+    customer = order.customer if order else None
     admin = refund.admin
     customer_name = (
-        f"{customer.nome or ''} {customer.apelido or ''}".strip()
+        f"{customer.name or ''} {customer.last_name or ''}".strip()
         if customer else "Cliente"
     ) or "Cliente"
 
     return {
         "company_name": os.getenv("RECEIPT_COMPANY_NAME", "BONEFREE"),
         "company_email": os.getenv("RECEIPT_COMPANY_EMAIL", "carambolarubra@gmail.com"),
-        "refund_receipt_number": refund.recibo_numero or refund_receipt_number(refund),
-        "original_order_number": f"ENC-{order.id_encomenda:06d}",
+        "refund_receipt_number": refund.receipt_number or refund_receipt_number(refund),
+        "original_order_number": f"ENC-{order.order_id:06d}",
         "original_invoice_number": original_invoice_number(order),
         "customer_name": customer_name,
         "customer_email": customer.email if customer else "",
-        "refund_amount": Decimal(str(refund.valor)).quantize(Decimal("0.01")),
-        "refund_reason": refund.motivo,
-        "refund_notes": refund.notas,
-        "refund_date": refund.data_reembolso,
-        "processed_by": admin.nome if admin else "Staff",
+        "refund_amount": Decimal(str(refund.value)).quantize(Decimal("0.01")),
+        "refund_reason": refund.reason,
+        "refund_notes": refund.notes,
+        "refund_date": refund.refunded_at,
+        "processed_by": admin.name if admin else "Staff",
         "processed_by_role": admin.role if admin else "staff_admin",
         "refund_method": REFUND_METHOD_TEXT,
     }
@@ -85,16 +85,16 @@ def render_refund_receipt_pdf(receipt: Mapping[str, Any]) -> bytes:
     )
     styles = _styles()
     rows = [
-        ("Número do recibo de reembolso", receipt["refund_receipt_number"]),
+        ("Número do recibo de refund", receipt["refund_receipt_number"]),
         ("Número do pedido original", receipt["original_order_number"]),
-        ("Número da fatura original", receipt["original_invoice_number"]),
-        ("Nome do cliente", receipt["customer_name"]),
-        ("Email do cliente", receipt["customer_email"]),
-        ("Valor do reembolso", _format_money(receipt["refund_amount"])),
-        ("Motivo do reembolso", receipt["refund_reason"]),
-        ("Data do reembolso", _format_datetime(receipt["refund_date"])),
+        ("Número da invoice original", receipt["original_invoice_number"]),
+        ("Nome do customer", receipt["customer_name"]),
+        ("Email do customer", receipt["customer_email"]),
+        ("Valor do refund", _format_money(receipt["refund_amount"])),
+        ("Motivo do refund", receipt["refund_reason"]),
+        ("Data do refund", _format_datetime(receipt["refund_date"])),
         ("Processado por", receipt["processed_by"]),
-        ("Metodo de reembolso", receipt["refund_method"]),
+        ("Metodo de refund", receipt["refund_method"]),
     ]
     story = [
         _header(receipt, styles),
@@ -111,7 +111,7 @@ def render_refund_receipt_pdf(receipt: Mapping[str, Any]) -> bytes:
 
 def refund_receipt_filename(receipt: Mapping[str, Any]) -> str:
     safe = str(receipt["refund_receipt_number"]).replace("/", "-").replace(" ", "-")
-    return f"recibo-reembolso-{safe}.pdf"
+    return f"recibo-refund-{safe}.pdf"
 
 
 def send_refund_email(receipt: Mapping[str, Any]) -> bool:
@@ -121,17 +121,17 @@ def send_refund_email(receipt: Mapping[str, Any]) -> bool:
 
     subject = "Reembolso aprovado - BONEFREE"
     text_body = (
-        "O seu reembolso foi aprovado e processado.\n\n"
-        f"Valor do reembolso: {_format_money(receipt['refund_amount'])}\n\n"
+        "O seu refund foi aprovado e processado.\n\n"
+        f"Valor do refund: {_format_money(receipt['refund_amount'])}\n\n"
         f"{REFUND_METHOD_TEXT}\n\n"
-        "Enviamos o recibo de reembolso em anexo.\n\n"
+        "Enviamos o recibo de refund em anexo.\n\n"
         "Obrigado,\nBONEFREE"
     )
     html_body = (
-        "<p>O seu reembolso foi aprovado e processado.</p>"
-        f"<p><strong>Valor do reembolso:</strong> {_format_money(receipt['refund_amount'])}</p>"
+        "<p>O seu refund foi aprovado e processado.</p>"
+        f"<p><strong>Valor do refund:</strong> {_format_money(receipt['refund_amount'])}</p>"
         f"<p>{escape(REFUND_METHOD_TEXT)}</p>"
-        "<p>Enviamos o recibo de reembolso em anexo.</p>"
+        "<p>Enviamos o recibo de refund em anexo.</p>"
         "<p>Obrigado,<br>BONEFREE</p>"
     )
     pdf_body = render_refund_receipt_pdf(receipt)

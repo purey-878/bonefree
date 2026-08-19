@@ -77,7 +77,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Utilizador não encontrado.")
     if user.status == 0:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="A conta de cliente está inativa.")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="A conta de customer está inativa.")
     return user
 
 

@@ -39,7 +39,7 @@ def validate_email_config() -> list[str]:
 
 
 def send_welcome_email(email: str, name: str | None = None, *, raise_errors: bool = False) -> bool:
-    display_name = (name or "cliente").strip() or "cliente"
+    display_name = (name or "customer").strip() or "customer"
     subject = "Bem-vindo ao Bonefree"
     text = (
         f"Ola {display_name},\n\n"
@@ -59,7 +59,7 @@ def send_welcome_email(email: str, name: str | None = None, *, raise_errors: boo
 
 
 def send_password_reset_email(email: str, code: str, name: str | None = None) -> bool:
-    display_name = (name or "cliente").strip() or "cliente"
+    display_name = (name or "customer").strip() or "customer"
     subject = "O seu código de redefinição da palavra-passe Bonefree"
     text = (
         f"Ola {display_name},\n\n"

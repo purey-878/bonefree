@@ -167,17 +167,17 @@ def product_customization_options(product: Any) -> dict[str, list[str]]:
 
 
 def _ingredient_like_terms(product: Any) -> list[str]:
-    text = str(getattr(product, "descricao_produto", "") or "")
+    text = str(getattr(product, "product_description", "") or "")
     results = _terms_from_text(text)
     if results:
         return results
 
-    text = str(getattr(product, "nome", "") or "")
+    text = str(getattr(product, "name", "") or "")
     results = _terms_from_text(text)
     if results:
         return results
 
-    category = getattr(getattr(product, "categoria", None), "nome_categoria", "") or getattr(product, "id_categoria", "")
+    category = getattr(getattr(product, "category", None), "category_name", "") or getattr(product, "category_id", "")
     category_key = _normalize_text(str(category))
     if "burger" in category_key:
         return ["Pickles", "Cebola", "Tomate", "Alface", "Molho"]
@@ -233,12 +233,12 @@ def _clean_extra_selections(items: list[dict[str, Any]]) -> list[dict[str, int]]
     cleaned = []
     seen = set()
     for raw_item in items:
-        option_id = int(raw_item.get("id_opcao", 0))
-        quantity = int(raw_item.get("quantidade", 0))
+        option_id = int(raw_item.get("option_id", 0))
+        quantity = int(raw_item.get("quantity", 0))
         if option_id <= 0 or quantity <= 0 or option_id in seen:
             continue
         seen.add(option_id)
-        cleaned.append({"id_opcao": option_id, "quantidade": quantity})
+        cleaned.append({"option_id": option_id, "quantity": quantity})
     return cleaned
 
 

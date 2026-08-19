@@ -28,10 +28,10 @@ class UserRegister(BaseModel):
     """Request model for user registration."""
     email: str = Field(..., min_length=3, max_length=150)
     password: str = Field(..., min_length=8, max_length=128)
-    nome: str = Field(..., min_length=1, max_length=80)
-    apelido: str = Field(..., min_length=1, max_length=80)
-    telefone: Optional[str] = None
-    nif: Optional[str] = None
+    name: str = Field(..., min_length=1, max_length=80)
+    last_name: str = Field(..., min_length=1, max_length=80)
+    phone: Optional[str] = None
+    tax_id: Optional[str] = None
 
     @field_validator("email")
     @classmethod
@@ -43,54 +43,54 @@ class UserRegister(BaseModel):
     def check_password(cls, value: str) -> str:
         return validate_password(value)
 
-    @field_validator("nome", "apelido")
+    @field_validator("name", "last_name")
     @classmethod
     def check_name(cls, value: Optional[str]) -> Optional[str]:
         return validate_name(value)
 
-    @field_validator("telefone")
+    @field_validator("phone")
     @classmethod
     def check_phone(cls, value: Optional[str]) -> Optional[str]:
         return normalize_phone(value)
 
-    @field_validator("nif")
+    @field_validator("tax_id")
     @classmethod
     def check_nif(cls, value: Optional[str]) -> Optional[str]:
         return validate_nif(value)
 
 
 class ClienteEnderecoFaturaBase(BaseModel):
-    morada: Optional[str] = Field(None, max_length=255)
-    codigo_postal: Optional[str] = Field(None, max_length=20)
-    cidade: Optional[str] = Field(None, max_length=100)
+    address: Optional[str] = Field(None, max_length=255)
+    postal_code: Optional[str] = Field(None, max_length=20)
+    city: Optional[str] = Field(None, max_length=100)
 
-    @field_validator("morada", "cidade")
+    @field_validator("address", "city")
     @classmethod
     def normalize_optional_address_text(cls, value: Optional[str]) -> Optional[str]:
         return clean_text(value)
 
-    @field_validator("codigo_postal")
+    @field_validator("postal_code")
     @classmethod
     def check_postal_code(cls, value: Optional[str]) -> Optional[str]:
         return validate_postal_code(value)
 
 
 class ClienteEnderecoFaturaResponse(ClienteEnderecoFaturaBase):
-    id_endereco: int
-    cliente_id: int
+    address_id: int
+    customer_id: int
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class UserResponse(BaseModel):
     """Response model for authenticated user."""
-    id_cliente: int
+    customer_id: int
     email: str
-    nome: Optional[str] = None
-    apelido: Optional[str] = None
-    telefone: Optional[str] = None
-    nif: Optional[str] = None
-    endereco_fatura: Optional[ClienteEnderecoFaturaResponse] = None
+    name: Optional[str] = None
+    last_name: Optional[str] = None
+    phone: Optional[str] = None
+    tax_id: Optional[str] = None
+    billing_address: Optional[ClienteEnderecoFaturaResponse] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -103,29 +103,29 @@ class TokenResponse(BaseModel):
 
 
 class UserProfileUpdate(BaseModel):
-    nome: Optional[str] = None
-    apelido: Optional[str] = None
+    name: Optional[str] = None
+    last_name: Optional[str] = None
     email: Optional[str] = None
-    telefone: Optional[str] = None
-    nif: Optional[str] = None
-    endereco_fatura: Optional[ClienteEnderecoFaturaBase] = None
+    phone: Optional[str] = None
+    tax_id: Optional[str] = None
+    billing_address: Optional[ClienteEnderecoFaturaBase] = None
 
-    @field_validator("nome", "apelido", "telefone", "nif")
+    @field_validator("name", "last_name", "phone", "tax_id")
     @classmethod
     def normalize_optional_text(cls, value: Optional[str]) -> Optional[str]:
         return clean_text(value)
 
-    @field_validator("nome", "apelido")
+    @field_validator("name", "last_name")
     @classmethod
     def check_name(cls, value: Optional[str]) -> Optional[str]:
         return validate_name(value)
 
-    @field_validator("telefone")
+    @field_validator("phone")
     @classmethod
     def check_phone(cls, value: Optional[str]) -> Optional[str]:
         return normalize_phone(value)
 
-    @field_validator("nif")
+    @field_validator("tax_id")
     @classmethod
     def check_nif(cls, value: Optional[str]) -> Optional[str]:
         return validate_nif(value)

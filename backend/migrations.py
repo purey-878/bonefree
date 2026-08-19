@@ -14,6 +14,7 @@ ALEMBIC_INI_PATH = Path(__file__).parent / "alembic.ini"
 
 def _alembic_config(connection: Connection) -> Config:
     config = Config(ALEMBIC_INI_PATH)
+    config.set_main_option("script_location", str(Path(__file__).parent / "alembic"))
     config.attributes["connection"] = connection
     config.attributes["skip_logging_config"] = True
     return config

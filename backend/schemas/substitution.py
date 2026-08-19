@@ -7,11 +7,11 @@ from typing import List, Optional
 class StockSuggestion(BaseModel):
     """Ranked product suggestion returned when an item is unavailable."""
 
-    id_produto: int
+    product_id: int
     id_produto_display: str
-    nome: str
-    categoria: str
-    preco: Optional[float]
+    name: str
+    category: str
+    price: Optional[float]
     stock: int
     score: float
     reason: str
@@ -20,9 +20,9 @@ class StockSuggestion(BaseModel):
 class AvailabilitySuggestionResponse(BaseModel):
     """Availability state plus replacement and alternative dish suggestions."""
 
-    id_produto: int
+    product_id: int
     id_produto_display: str
-    nome: str
+    name: str
     requested_quantity: int
     stock_threshold: int
     available: bool

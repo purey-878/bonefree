@@ -17,15 +17,15 @@ from services.order_customization import (  # noqa: E402
 
 @dataclass
 class FakeCategory:
-    nome_categoria: str
+    category_name: str
 
 
 @dataclass
 class FakeProduct:
-    nome: str
-    descricao_produto: str
-    categoria: FakeCategory
-    id_categoria: str = "CAT1"
+    name: str
+    product_description: str
+    category: FakeCategory
+    category_id: str = "CAT1"
 
 
 class OrderCustomizationTests(unittest.TestCase):
@@ -60,9 +60,9 @@ class OrderCustomizationTests(unittest.TestCase):
 
     def test_product_customization_options_use_product_text(self):
         product = FakeProduct(
-            nome="Loaded Nachos",
-            descricao_produto="Corn tortilla with salsa guacamole jalapenos",
-            categoria=FakeCategory("Starters"),
+            name="Loaded Nachos",
+            product_description="Corn tortilla with salsa guacamole jalapenos",
+            category=FakeCategory("Starters"),
         )
 
         options = product_customization_options(product)

@@ -17,7 +17,7 @@ def product_discount_percent(product: Any) -> Decimal:
 
 
 def discounted_product_price(product: Any) -> Decimal:
-    original = Decimal(str(getattr(product, "preco", 0) or 0))
+    original = Decimal(str(getattr(product, "price", 0) or 0))
     discount = product_discount_percent(product)
     if discount <= 0:
         return original

@@ -92,7 +92,7 @@ def render_receipt_pdf(receipt: Mapping[str, Any]) -> bytes:
 def receipt_pdf_filename(receipt: Mapping[str, Any]) -> str:
     document_number = str(receipt.get("document_number") or receipt["order_id"])
     safe_number = document_number.replace("/", "-").replace("\\", "-").replace(" ", "-")
-    return f"fatura-recibo-{safe_number}.pdf"
+    return f"invoice-recibo-{safe_number}.pdf"
 
 
 def _header(receipt: Mapping[str, Any], styles: dict[str, ParagraphStyle]) -> Table:
@@ -278,8 +278,8 @@ def _summary_and_payment_section(receipt: Mapping[str, Any], totals: Mapping[str
 def _legal_notes(receipt: Mapping[str, Any], styles: dict[str, ParagraphStyle]) -> Table:
     iva_rate = _iva_rate(receipt)
     notes = [
-        "Documento emitido após pagamento confirmado.",
-        "Os preços apresentados incluem IVA. A parcela de IVA foi calculada a partir do valor final pago.",
+        "Documento emitido após payment confirmado.",
+        "Os preços apresentados incluem IVA. A parcela de IVA foi calculada a partir do value final pago.",
     ]
     if iva_rate > 0:
         notes.append(f"IVA aplicado à taxa de {_rate_label(iva_rate)}.")

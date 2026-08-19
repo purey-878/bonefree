@@ -14,7 +14,7 @@ class CheckoutCustomer(BaseModel):
     last_name: str = Field(..., min_length=1, max_length=80)
     email: str = Field(..., min_length=3, max_length=150)
     phone: Optional[str] = Field(None, max_length=30)
-    nif: Optional[str] = Field(None, max_length=20)
+    tax_id: Optional[str] = Field(None, max_length=20)
     table_number: Optional[int] = Field(None, ge=1, le=999)
 
     @field_validator("first_name", "last_name")
@@ -22,7 +22,7 @@ class CheckoutCustomer(BaseModel):
     def check_name(cls, value: str) -> str:
         name = validate_name(value)
         if not name:
-            raise ValueError("Introduza um nome completo valido.")
+            raise ValueError("Introduza um name completo valido.")
         return name
 
     @field_validator("email")
@@ -36,16 +36,16 @@ class CheckoutCustomer(BaseModel):
         phone = normalize_phone(value)
         return phone
 
-    @field_validator("nif")
+    @field_validator("tax_id")
     @classmethod
     def check_nif(cls, value: Optional[str]) -> Optional[str]:
         return validate_nif(value)
 
 
 class CheckoutItem(BaseModel):
-    id_produto: ProductId
-    quantidade: int = Field(..., ge=1)
-    customizacao: Optional[ItemCustomization] = None
+    product_id: ProductId
+    quantity: int = Field(..., ge=1)
+    customization: Optional[ItemCustomization] = None
 
 
 class CheckoutRequest(BaseModel):
@@ -57,36 +57,36 @@ class CheckoutRequest(BaseModel):
 
 
 class CouponValidationRequest(BaseModel):
-    codigo: str = Field(..., min_length=1, max_length=50)
+    code: str = Field(..., min_length=1, max_length=50)
     subtotal: Decimal = Field(..., ge=0)
 
 
 class CouponValidationResponse(BaseModel):
-    codigo: str
+    code: str
     desconto: Decimal
-    valor: Decimal
-    tipo: str
-    valor_minimo_pedido: Decimal
+    value: Decimal
+    type: str
+    minimum_order_value: Decimal
 
 
 class CouponResponse(BaseModel):
-    id_cupom: int
-    codigo: str
-    tipo: str
-    valor: Decimal
-    valor_minimo_pedido: Decimal
-    expira_em: Optional[datetime] = None
+    coupon_id: int
+    code: str
+    type: str
+    value: Decimal
+    minimum_order_value: Decimal
+    expires_at: Optional[datetime] = None
 
 
 class OrderItemResponse(BaseModel):
-    id_produto: int
+    product_id: int
     id_produto_display: str
     nome_produto: str
-    preco_unitario: Decimal
-    quantidade: int
+    unit_price: Decimal
+    quantity: int
     subtotal: Decimal
-    customizacao: Optional[ItemCustomization] = None
-    imagem: Optional[str] = None
+    customization: Optional[ItemCustomization] = None
+    image: Optional[str] = None
     calorias: Optional[Decimal] = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -96,7 +96,7 @@ class OrderResponse(BaseModel):
     id_pedido: int
     numero_pedido: str
     status: str
-    estado_pagamento: str
+    payment_status: str
     can_cancel: bool = False
     cancellation_source: Optional[str] = None
     cancelled_at: Optional[datetime] = None
@@ -105,7 +105,7 @@ class OrderResponse(BaseModel):
     refund_reason: Optional[str] = None
     refund_date: Optional[datetime] = None
     metodo_entrega: str
-    metodo_pagamento: str
+    payment_method: str
     subtotal: Decimal
     desconto: Decimal = Decimal("0")
     taxa_entrega: Decimal
@@ -113,7 +113,7 @@ class OrderResponse(BaseModel):
     total: Decimal
     cupom_codigo: Optional[str] = None
     cupom_gerado: Optional[str] = None
-    data_criacao: datetime
-    itens: List[OrderItemResponse]
+    created_at: datetime
+    items: List[OrderItemResponse]
 
     model_config = ConfigDict(from_attributes=True)

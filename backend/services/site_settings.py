@@ -215,11 +215,11 @@ def resolve_site_theme(settings: SiteThemeSettings) -> SiteThemeResponse:
 
 
 def get_site_theme_settings(db: Session) -> SiteThemeSettings:
-    row = db.query(SiteSetting).filter(SiteSetting.chave == SITE_THEME_KEY).first()
-    if not row or not row.valor:
+    row = db.query(SiteSetting).filter(SiteSetting.key == SITE_THEME_KEY).first()
+    if not row or not row.value:
         return DEFAULT_SITE_THEME
     try:
-        payload: dict[str, Any] = json.loads(row.valor)
+        payload: dict[str, Any] = json.loads(row.value)
         return SiteThemeSettings(**payload)
     except Exception:
         return DEFAULT_SITE_THEME
@@ -230,23 +230,23 @@ def get_site_theme(db: Session) -> SiteThemeResponse:
 
 
 def save_site_theme(db: Session, settings: SiteThemeSettings) -> SiteThemeResponse:
-    row = db.query(SiteSetting).filter(SiteSetting.chave == SITE_THEME_KEY).first()
+    row = db.query(SiteSetting).filter(SiteSetting.key == SITE_THEME_KEY).first()
     encoded = settings.model_dump_json()
     if row:
-        row.valor = encoded
+        row.value = encoded
     else:
-        row = SiteSetting(chave=SITE_THEME_KEY, valor=encoded)
+        row = SiteSetting(key=SITE_THEME_KEY, value=encoded)
         db.add(row)
     db.commit()
     return resolve_site_theme(settings)
 
 
 def get_chef_special_settings(db: Session) -> ChefSpecialSettings:
-    row = db.query(SiteSetting).filter(SiteSetting.chave == CHEF_SPECIAL_KEY).first()
-    if not row or not row.valor:
+    row = db.query(SiteSetting).filter(SiteSetting.key == CHEF_SPECIAL_KEY).first()
+    if not row or not row.value:
         return DEFAULT_CHEF_SPECIAL
     try:
-        payload = json.loads(row.valor)
+        payload = json.loads(row.value)
         if isinstance(payload, str):
             payload = {"product_id": payload}
         return ChefSpecialSettings(**payload)
@@ -255,104 +255,104 @@ def get_chef_special_settings(db: Session) -> ChefSpecialSettings:
 
 
 def save_chef_special_settings(db: Session, settings: ChefSpecialSettings) -> ChefSpecialSettings:
-    row = db.query(SiteSetting).filter(SiteSetting.chave == CHEF_SPECIAL_KEY).first()
+    row = db.query(SiteSetting).filter(SiteSetting.key == CHEF_SPECIAL_KEY).first()
     encoded = settings.model_dump_json()
     if row:
-        row.valor = encoded
+        row.value = encoded
     else:
-        row = SiteSetting(chave=CHEF_SPECIAL_KEY, valor=encoded)
+        row = SiteSetting(key=CHEF_SPECIAL_KEY, value=encoded)
         db.add(row)
     db.commit()
     return settings
 
 
 def get_loyalty_coupon_settings(db: Session) -> LoyaltyCouponSettings:
-    row = db.query(SiteSetting).filter(SiteSetting.chave == LOYALTY_COUPON_KEY).first()
-    if not row or not row.valor:
+    row = db.query(SiteSetting).filter(SiteSetting.key == LOYALTY_COUPON_KEY).first()
+    if not row or not row.value:
         return DEFAULT_LOYALTY_COUPON
     try:
-        payload = json.loads(row.valor)
+        payload = json.loads(row.value)
         return LoyaltyCouponSettings(**payload)
     except Exception:
         return DEFAULT_LOYALTY_COUPON
 
 
 def save_loyalty_coupon_settings(db: Session, settings: LoyaltyCouponSettings) -> LoyaltyCouponSettings:
-    row = db.query(SiteSetting).filter(SiteSetting.chave == LOYALTY_COUPON_KEY).first()
+    row = db.query(SiteSetting).filter(SiteSetting.key == LOYALTY_COUPON_KEY).first()
     encoded = settings.model_dump_json()
     if row:
-        row.valor = encoded
+        row.value = encoded
     else:
-        row = SiteSetting(chave=LOYALTY_COUPON_KEY, valor=encoded)
+        row = SiteSetting(key=LOYALTY_COUPON_KEY, value=encoded)
         db.add(row)
     db.commit()
     return settings
 
 
 def get_company_details_settings(db: Session) -> CompanyDetailsSettings:
-    row = db.query(SiteSetting).filter(SiteSetting.chave == COMPANY_DETAILS_KEY).first()
-    if not row or not row.valor:
+    row = db.query(SiteSetting).filter(SiteSetting.key == COMPANY_DETAILS_KEY).first()
+    if not row or not row.value:
         return DEFAULT_COMPANY_DETAILS
     try:
-        payload = json.loads(row.valor)
+        payload = json.loads(row.value)
         return CompanyDetailsSettings(**payload)
     except Exception:
         return DEFAULT_COMPANY_DETAILS
 
 
 def save_company_details_settings(db: Session, settings: CompanyDetailsSettings) -> CompanyDetailsSettings:
-    row = db.query(SiteSetting).filter(SiteSetting.chave == COMPANY_DETAILS_KEY).first()
+    row = db.query(SiteSetting).filter(SiteSetting.key == COMPANY_DETAILS_KEY).first()
     encoded = settings.model_dump_json()
     if row:
-        row.valor = encoded
+        row.value = encoded
     else:
-        row = SiteSetting(chave=COMPANY_DETAILS_KEY, valor=encoded)
+        row = SiteSetting(key=COMPANY_DETAILS_KEY, value=encoded)
         db.add(row)
     db.commit()
     return settings
 
 
 def get_social_media_settings(db: Session) -> SocialMediaSettings:
-    row = db.query(SiteSetting).filter(SiteSetting.chave == SOCIAL_MEDIA_KEY).first()
-    if not row or not row.valor:
+    row = db.query(SiteSetting).filter(SiteSetting.key == SOCIAL_MEDIA_KEY).first()
+    if not row or not row.value:
         return DEFAULT_SOCIAL_MEDIA
     try:
-        payload = json.loads(row.valor)
+        payload = json.loads(row.value)
         return SocialMediaSettings(**payload)
     except Exception:
         return DEFAULT_SOCIAL_MEDIA
 
 
 def save_social_media_settings(db: Session, settings: SocialMediaSettings) -> SocialMediaSettings:
-    row = db.query(SiteSetting).filter(SiteSetting.chave == SOCIAL_MEDIA_KEY).first()
+    row = db.query(SiteSetting).filter(SiteSetting.key == SOCIAL_MEDIA_KEY).first()
     encoded = settings.model_dump_json()
     if row:
-        row.valor = encoded
+        row.value = encoded
     else:
-        row = SiteSetting(chave=SOCIAL_MEDIA_KEY, valor=encoded)
+        row = SiteSetting(key=SOCIAL_MEDIA_KEY, value=encoded)
         db.add(row)
     db.commit()
     return settings
 
 
 def get_events_settings(db: Session) -> EventsSettings:
-    row = db.query(SiteSetting).filter(SiteSetting.chave == EVENTS_KEY).first()
-    if not row or not row.valor:
+    row = db.query(SiteSetting).filter(SiteSetting.key == EVENTS_KEY).first()
+    if not row or not row.value:
         return DEFAULT_EVENTS
     try:
-        payload = json.loads(row.valor)
+        payload = json.loads(row.value)
         return EventsSettings(**payload)
     except Exception:
         return DEFAULT_EVENTS
 
 
 def save_events_settings(db: Session, settings: EventsSettings) -> EventsSettings:
-    row = db.query(SiteSetting).filter(SiteSetting.chave == EVENTS_KEY).first()
+    row = db.query(SiteSetting).filter(SiteSetting.key == EVENTS_KEY).first()
     encoded = settings.model_dump_json()
     if row:
-        row.valor = encoded
+        row.value = encoded
     else:
-        row = SiteSetting(chave=EVENTS_KEY, valor=encoded)
+        row = SiteSetting(key=EVENTS_KEY, value=encoded)
         db.add(row)
     db.commit()
     return settings

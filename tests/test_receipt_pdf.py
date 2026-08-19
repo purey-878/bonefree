@@ -66,7 +66,7 @@ class ReceiptPDFTests(unittest.TestCase):
 
         self.assertTrue(pdf.startswith(b"%PDF"))
         self.assertGreater(len(pdf), 1000)
-        self.assertEqual(receipt_pdf_filename(sample_receipt()), "fatura-recibo-FR-2026-000123.pdf")
+        self.assertEqual(receipt_pdf_filename(sample_receipt()), "invoice-recibo-FR-2026-000123.pdf")
 
     def test_receipt_email_renders_discount_without_empty_service_fee(self):
         html = render_receipt_email(sample_receipt())

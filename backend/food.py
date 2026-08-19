@@ -2,10 +2,10 @@ from sqlalchemy import text
 from database import engine
 
 columns = [
-    "ALTER TABLE produto ADD COLUMN gluten_free INTEGER NOT NULL DEFAULT 0",
-    "ALTER TABLE produto ADD COLUMN contains_alcohol INTEGER NOT NULL DEFAULT 0",
-    "ALTER TABLE produto ADD COLUMN deleted_at DATETIME",
-    "ALTER TABLE produto ADD COLUMN total_calorias NUMERIC(10,2)",
+    "ALTER TABLE product ADD COLUMN gluten_free INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE product ADD COLUMN contains_alcohol INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE product ADD COLUMN deleted_at DATETIME",
+    "ALTER TABLE product ADD COLUMN total_calories NUMERIC(10,2)",
 ]
 
 with engine.connect() as conn:

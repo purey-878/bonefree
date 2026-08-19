@@ -13,11 +13,11 @@ def inactive_base_product_ids(db: Session, product_ids: list[str]) -> set[str]:
         return set()
 
     rows = (
-        db.query(ProdutoIngrediente.id_produto)
-        .join(Ingrediente, Ingrediente.id_ingrediente == ProdutoIngrediente.id_ingrediente)
+        db.query(ProdutoIngrediente.product_id)
+        .join(Ingrediente, Ingrediente.ingredient_id == ProdutoIngrediente.ingredient_id)
         .filter(
-            ProdutoIngrediente.id_produto.in_(product_ids),
-            Ingrediente.tipo == "BASE",
+            ProdutoIngrediente.product_id.in_(product_ids),
+            Ingrediente.type == "BASE",
             Ingrediente.status == 0,
         )
         .distinct()
@@ -27,5 +27,5 @@ def inactive_base_product_ids(db: Session, product_ids: list[str]) -> set[str]:
 
 
 def unavailable_due_to_inactive_base(db: Session, product: Produto) -> bool:
-    return product.id_produto in inactive_base_product_ids(db, [product.id_produto])
+    return product.product_id in inactive_base_product_ids(db, [product.product_id])
 

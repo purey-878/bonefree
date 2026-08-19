@@ -29,23 +29,23 @@ router = APIRouter(tags=["Reviews"])
 
 def _review_response(review: ProdutoReview, current_user: Cliente | None = None) -> ProdutoReviewResponse:
     cliente_nome = None
-    if review.cliente:
-        cliente_nome = f"{review.cliente.nome or ''} {review.cliente.apelido or ''}".strip() or review.cliente.email
+    if review.customer:
+        cliente_nome = f"{review.customer.name or ''} {review.customer.last_name or ''}".strip() or review.customer.email
 
     return ProdutoReviewResponse(
-        id_review=review.id_review,
-        id_produto=review.id_produto,
-        id_produto_display=format_product_id(review.id_produto),
-        id_cliente=review.id_cliente,
-        id_encomenda_produto=review.id_encomenda_produto,
+        review_id=review.review_id,
+        product_id=review.product_id,
+        id_produto_display=format_product_id(review.product_id),
+        customer_id=review.customer_id,
+        order_product_id=review.order_product_id,
         cliente_nome=cliente_nome,
         rating=review.rating,
-        titulo=review.titulo,
-        comentario=review.comentario,
+        title=review.title,
+        comment=review.comment,
         status=review.status,
-        data_criacao=review.data_criacao,
-        data_atualizacao=review.data_atualizacao,
-        is_owner=bool(current_user and review.id_cliente == current_user.id_cliente),
+        created_at=review.created_at,
+        updated_at=review.updated_at,
+        is_owner=bool(current_user and review.customer_id == current_user.customer_id),
         reply=review.reply,
         replies=review.replies or [],
         reactions=review.reactions or [],
@@ -53,7 +53,7 @@ def _review_response(review: ProdutoReview, current_user: Cliente | None = None)
 
 
 def _get_review_or_404(db: Session, review_id: int) -> ProdutoReview:
-    review = db.query(ProdutoReview).filter(ProdutoReview.id_review == review_id).first()
+    review = db.query(ProdutoReview).filter(ProdutoReview.review_id == review_id).first()
     if not review:
         raise HTTPException(status_code=404, detail="Avaliação não encontrada.")
     return review
@@ -61,8 +61,8 @@ def _get_review_or_404(db: Session, review_id: int) -> ProdutoReview:
 
 def _get_reply_or_404(db: Session, review_id: int, reply_id: int) -> ReviewReply:
     reply = db.query(ReviewReply).filter(
-        ReviewReply.id_review == review_id,
-        ReviewReply.id_reply == reply_id,
+        ReviewReply.review_id == review_id,
+        ReviewReply.reply_id == reply_id,
     ).first()
     if not reply:
         raise HTTPException(status_code=404, detail="Resposta da avaliação não encontrada.")
@@ -70,47 +70,47 @@ def _get_reply_or_404(db: Session, review_id: int, reply_id: int) -> ReviewReply
 
 
 def _get_active_product(db: Session, produto_id: int) -> Produto:
-    produto = db.query(Produto).filter(
-        Produto.id_produto == produto_id,
+    product = db.query(Produto).filter(
+        Produto.product_id == produto_id,
         ((Produto.status == 1) | (Produto.status.is_(None))),
         Produto.deleted_at.is_(None),
     ).first()
-    if not produto:
+    if not product:
         raise HTTPException(status_code=404, detail="Produto não encontrado.")
-    return produto
+    return product
 
 
 def _get_review_for_owner(db: Session, review_id: int, current_user: Cliente) -> ProdutoReview:
-    review = db.query(ProdutoReview).filter(ProdutoReview.id_review == review_id).first()
+    review = db.query(ProdutoReview).filter(ProdutoReview.review_id == review_id).first()
     if not review:
         raise HTTPException(status_code=404, detail="Avaliação não encontrada.")
-    if review.id_cliente != current_user.id_cliente:
+    if review.customer_id != current_user.customer_id:
         raise HTTPException(status_code=403, detail="Só pode alterar as suas próprias avaliações.")
     return review
 
 
-def _purchased_order_item(db: Session, current_user: Cliente, produto_id: int, id_encomenda_produto: int) -> EncomendaProduto:
+def _purchased_order_item(db: Session, current_user: Cliente, produto_id: int, order_product_id: int) -> EncomendaProduto:
     item = (
         db.query(EncomendaProduto)
-        .options(joinedload(EncomendaProduto.encomenda), joinedload(EncomendaProduto.produto))
+        .options(joinedload(EncomendaProduto.order), joinedload(EncomendaProduto.product))
         .join(Encomenda)
         .filter(
-            EncomendaProduto.id_encomenda_produto == id_encomenda_produto,
-            EncomendaProduto.id_produto == produto_id,
-            Encomenda.id_cliente == current_user.id_cliente,
-            Encomenda.estado != "cancelada",
+            EncomendaProduto.order_product_id == order_product_id,
+            EncomendaProduto.product_id == produto_id,
+            Encomenda.customer_id == current_user.customer_id,
+            Encomenda.state != "cancelada",
         )
         .first()
     )
     if not item:
-        raise HTTPException(status_code=403, detail="So pode avaliar produtos que comprou.")
+        raise HTTPException(status_code=403, detail="So pode avaliar products que comprou.")
     return item
 
 
 def _existing_product_review(db: Session, current_user: Cliente, produto_id: int) -> ProdutoReview | None:
     return db.query(ProdutoReview).filter(
-        ProdutoReview.id_cliente == current_user.id_cliente,
-        ProdutoReview.id_produto == produto_id,
+        ProdutoReview.customer_id == current_user.customer_id,
+        ProdutoReview.product_id == produto_id,
     ).first()
 
 
@@ -124,9 +124,9 @@ def list_product_reviews(
     _get_active_product(db, parsed_produto_id)
     reviews = (
         db.query(ProdutoReview)
-        .options(joinedload(ProdutoReview.cliente))
-        .filter(ProdutoReview.id_produto == parsed_produto_id, ProdutoReview.status == "aprovado")
-        .order_by(ProdutoReview.data_criacao.desc())
+        .options(joinedload(ProdutoReview.customer))
+        .filter(ProdutoReview.product_id == parsed_produto_id, ProdutoReview.status == "aprovado")
+        .order_by(ProdutoReview.created_at.desc())
         .all()
     )
     return [_review_response(review, current_user) for review in reviews]
@@ -137,12 +137,12 @@ def get_product_review_stats(produto_id: str, db: Session = Depends(get_db)):
     parsed_produto_id = parse_product_id(produto_id)
     _get_active_product(db, parsed_produto_id)
     rating_medio, total_reviews = (
-        db.query(func.avg(ProdutoReview.rating), func.count(ProdutoReview.id_review))
-        .filter(ProdutoReview.id_produto == parsed_produto_id, ProdutoReview.status == "aprovado")
+        db.query(func.avg(ProdutoReview.rating), func.count(ProdutoReview.review_id))
+        .filter(ProdutoReview.product_id == parsed_produto_id, ProdutoReview.status == "aprovado")
         .one()
     )
     return ProdutoReviewStatsResponse(
-        id_produto=parsed_produto_id,
+        product_id=parsed_produto_id,
         id_produto_display=format_product_id(parsed_produto_id),
         rating_medio=round(float(rating_medio), 2) if rating_medio is not None else None,
         total_reviews=int(total_reviews or 0),
@@ -168,36 +168,36 @@ def get_product_review_eligibility(
     order_items = (
         db.query(EncomendaProduto)
         .options(
-            joinedload(EncomendaProduto.encomenda),
-            joinedload(EncomendaProduto.produto),
-            joinedload(EncomendaProduto.review).joinedload(ProdutoReview.cliente),
+            joinedload(EncomendaProduto.order),
+            joinedload(EncomendaProduto.product),
+            joinedload(EncomendaProduto.review).joinedload(ProdutoReview.customer),
         )
         .join(Encomenda)
         .filter(
-            EncomendaProduto.id_produto == parsed_produto_id,
-            Encomenda.id_cliente == current_user.id_cliente,
-            Encomenda.estado != "cancelada",
+            EncomendaProduto.product_id == parsed_produto_id,
+            Encomenda.customer_id == current_user.customer_id,
+            Encomenda.state != "cancelada",
         )
-        .order_by(Encomenda.data_encomenda.desc(), EncomendaProduto.id_encomenda_produto.desc())
+        .order_by(Encomenda.ordered_at.desc(), EncomendaProduto.order_product_id.desc())
         .all()
     )
 
     items = [
         ProdutoReviewEligibilityItem(
-            id_encomenda_produto=item.id_encomenda_produto,
-            id_encomenda=item.id_encomenda,
-            id_produto=item.id_produto,
-            id_produto_display=format_product_id(item.id_produto),
-            nome_produto=item.nome_produto_snapshot or (item.produto.nome if item.produto else format_product_id(item.id_produto)),
-            data_encomenda=item.encomenda.data_encomenda,
+            order_product_id=item.order_product_id,
+            order_id=item.order_id,
+            product_id=item.product_id,
+            id_produto_display=format_product_id(item.product_id),
+            nome_produto=item.product_name_snapshot or (item.product.name if item.product else format_product_id(item.product_id)),
+            ordered_at=item.order.ordered_at,
             existing_review=_review_response(existing_product_review or item.review, current_user) if (existing_product_review or item.review) else None,
         )
         for item in order_items
     ]
     eligible = bool(items and existing_product_review is None)
-    message = "Escolha um item comprado para avaliar." if eligible else "Já avaliou este produto. Edite a sua avaliação existente."
+    message = "Escolha um item comprado para avaliar." if eligible else "Já avaliou este product. Edite a sua avaliação existente."
     if not items:
-        message = "Compre este produto antes de deixar uma avaliação."
+        message = "Compre este product antes de deixar uma avaliação."
 
     return ProdutoReviewEligibilityResponse(
         eligible=eligible,
@@ -217,28 +217,28 @@ def create_product_review(
 ):
     parsed_produto_id = parse_product_id(produto_id)
     _get_active_product(db, parsed_produto_id)
-    _purchased_order_item(db, current_user, parsed_produto_id, body.id_encomenda_produto)
+    _purchased_order_item(db, current_user, parsed_produto_id, body.order_product_id)
 
     existing_product_review = _existing_product_review(db, current_user, parsed_produto_id)
     if existing_product_review:
         raise HTTPException(
             status_code=409,
-            detail="Já avaliou este produto. Edite a sua avaliação existente.",
+            detail="Já avaliou este product. Edite a sua avaliação existente.",
         )
 
     existing = db.query(ProdutoReview).filter(
-        ProdutoReview.id_encomenda_produto == body.id_encomenda_produto
+        ProdutoReview.order_product_id == body.order_product_id
     ).first()
     if existing:
         raise HTTPException(status_code=409, detail="Este item comprado já foi avaliado.")
 
     review = ProdutoReview(
-        id_produto=parsed_produto_id,
-        id_cliente=current_user.id_cliente,
-        id_encomenda_produto=body.id_encomenda_produto,
+        product_id=parsed_produto_id,
+        customer_id=current_user.customer_id,
+        order_product_id=body.order_product_id,
         rating=body.rating,
-        titulo=body.titulo,
-        comentario=body.comentario,
+        title=body.title,
+        comment=body.comment,
         status="aprovado",
     )
     db.add(review)
@@ -246,7 +246,7 @@ def create_product_review(
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Já avaliou este produto. Edite a sua avaliação existente.")
+        raise HTTPException(status_code=409, detail="Já avaliou este product. Edite a sua avaliação existente.")
 
     db.refresh(review)
     return _review_response(review, current_user)
@@ -265,11 +265,11 @@ def update_product_review(
     review = _get_review_for_owner(db, review_id, current_user)
     if body.rating is not None:
         review.rating = body.rating
-    if "titulo" in body.model_fields_set:
-        review.titulo = body.titulo
-    if "comentario" in body.model_fields_set:
-        review.comentario = body.comentario
-    review.data_atualizacao = datetime.utcnow()
+    if "title" in body.model_fields_set:
+        review.title = body.title
+    if "comment" in body.model_fields_set:
+        review.comment = body.comment
+    review.updated_at = datetime.utcnow()
 
     db.commit()
     db.refresh(review)
@@ -296,7 +296,7 @@ def create_review_reply(
     current_admin: Admin = Depends(require_super_admin),
 ):
     _get_review_or_404(db, review_id)
-    reply = ReviewReply(id_review=review_id, id_admin=current_admin.id_admin, texto=body.texto.strip())
+    reply = ReviewReply(review_id=review_id, admin_id=current_admin.admin_id, text=body.text.strip())
     db.add(reply)
     db.commit()
     db.refresh(reply)
@@ -312,8 +312,8 @@ def update_review_reply(
     current_admin: Admin = Depends(require_super_admin),
 ):
     reply = _get_reply_or_404(db, review_id, reply_id)
-    reply.texto = body.texto.strip()
-    reply.id_admin = current_admin.id_admin
+    reply.text = body.text.strip()
+    reply.admin_id = current_admin.admin_id
     reply.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(reply)
@@ -343,13 +343,13 @@ def upsert_review_reaction(
 ):
     _get_review_or_404(db, review_id)
     reaction = db.query(ReviewReaction).filter(
-        ReviewReaction.id_review == review_id,
-        ReviewReaction.id_admin == current_admin.id_admin,
+        ReviewReaction.review_id == review_id,
+        ReviewReaction.admin_id == current_admin.admin_id,
     ).first()
     if reaction:
-        reaction.tipo = body.tipo
+        reaction.type = body.type
     else:
-        reaction = ReviewReaction(id_review=review_id, id_admin=current_admin.id_admin, tipo=body.tipo)
+        reaction = ReviewReaction(review_id=review_id, admin_id=current_admin.admin_id, type=body.type)
         db.add(reaction)
     db.commit()
     db.refresh(reaction)
@@ -363,8 +363,8 @@ def delete_review_reaction(
     current_admin: Admin = Depends(require_super_admin),
 ):
     reaction = db.query(ReviewReaction).filter(
-        ReviewReaction.id_review == review_id,
-        ReviewReaction.id_admin == current_admin.id_admin,
+        ReviewReaction.review_id == review_id,
+        ReviewReaction.admin_id == current_admin.admin_id,
     ).first()
     if reaction:
         db.delete(reaction)

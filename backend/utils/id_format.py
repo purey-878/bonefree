@@ -15,11 +15,11 @@ def format_category_id(value: int | str | None) -> str:
 
 
 def parse_product_id(value: Any) -> int:
-    return _parse_prefixed_id(value, "PRD", "produto")
+    return _parse_prefixed_id(value, "PRD", "product")
 
 
 def parse_category_id(value: Any) -> int:
-    return _parse_prefixed_id(value, "CAT", "categoria")
+    return _parse_prefixed_id(value, "CAT", "category")
 
 
 def _format_prefixed_id(value: int | str | None, prefix: str) -> str:
