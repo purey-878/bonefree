@@ -7,16 +7,16 @@ from fastapi.staticfiles import StaticFiles
 
 from core.config import settings
 from migrations import run_or_stamp_migrations
-from routes.admin import router as admin_router
-from routes.cart import alias_router as cart_alias_router
-from routes.cart import router as cart_router
-from routes.checkout import router as checkout_router
-from routes.products import router as products_router
-from routes.profile import router as profile_router
-from routes.reviews import router as reviews_router
-from routes.site_settings import admin_router as site_settings_admin_router
-from routes.site_settings import public_router as site_settings_public_router
+from routers.admin import router as admin_router
 from routers.auth import router as auth_router
+from routers.cart import alias_router as cart_alias_router
+from routers.cart import router as cart_router
+from routers.checkout import router as checkout_router
+from routers.products import router as products_router
+from routers.profile import router as profile_router
+from routers.reviews import router as reviews_router
+from routers.site_settings import admin_router as site_settings_admin_router
+from routers.site_settings import public_router as site_settings_public_router
 from services.auth_email import validate_email_config
 
 logger = logging.getLogger(__name__)
