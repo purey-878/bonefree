@@ -3,6 +3,8 @@
 from decimal import Decimal
 from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional
+
+from enums import IngredientType, ProductCustomizationOptionType
 from .id_types import ProductId
 
 
@@ -28,7 +30,7 @@ class CustomizedCartItemRequest(BaseModel):
 class CustomizationIngredientResponse(BaseModel):
     ingredient_id: int
     name: str
-    type: str
+    type: IngredientType
     removable: bool
     substitutable: bool
     included_by_default: bool
@@ -38,7 +40,7 @@ class CustomizationOptionResponse(BaseModel):
     option_id: int
     ingredient_id: Optional[int] = None
     name: str
-    type: str
+    type: ProductCustomizationOptionType
     extra_price: Decimal
     max_quantity: int
 
@@ -52,7 +54,7 @@ class ProductCustomizationResponse(BaseModel):
     ingredients: List[CustomizationIngredientResponse]
     removable_ingredients: List[CustomizationIngredientResponse]
     substitutable_ingredients: List[CustomizationIngredientResponse]
-    options: dict[str, List[CustomizationOptionResponse]]
+    options: dict[ProductCustomizationOptionType, List[CustomizationOptionResponse]]
 
 
 class ItemCustomization(BaseModel):

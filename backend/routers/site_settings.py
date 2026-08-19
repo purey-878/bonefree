@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from dependencies import require_role
 from services.auth_service import SUPER_ADMIN_ROLE
 from database import get_db
+from enums import EntityStatus
 from models import Admin, Product
 from schemas.site_settings import (
     ChefSpecialSettings,
@@ -101,7 +102,7 @@ def update_admin_chef_special(
             db.query(Product)
             .filter(
                 Product.product_id == settings.product_id,
-                or_(Product.status == 1, Product.status.is_(None)),
+                or_(Product.status == EntityStatus.ACTIVE, Product.status.is_(None)),
                 Product.deleted_at.is_(None),
             )
             .first()

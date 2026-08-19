@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, and_, or_
 from sqlalchemy.orm import Session, joinedload
 from database import get_db
+from enums import EntityStatus, IngredientType, ProductCustomizationOptionType
 from models import Ingredient, Product, ProductIngredient, ProductCustomizationOption
 from schemas import ProductResponse
 from schemas.product import ProductIngredientNutrition
@@ -35,7 +36,7 @@ router = APIRouter()
 
 def active_product_filter():
     return and_(
-        or_(Product.status == 1, Product.status.is_(None)),
+        or_(Product.status == EntityStatus.ACTIVE, Product.status.is_(None)),
         Product.deleted_at.is_(None),
     )
 
@@ -69,7 +70,7 @@ def _ingredient_nutrition_response(row: ProductIngredient) -> ProductIngredientN
         ingredient_id=row.ingredient_id,
         name=ingredient.name,
         type=ingredient.type,
-        status=int(ingredient.status or 0),
+        status=ingredient.status or EntityStatus.INACTIVE,
         quantity=row.quantity,
         calories_per_gram=calories_per_gram,
         calorias=round(calories, 2),
@@ -179,8 +180,8 @@ def get_customization_options(
             .filter(
                 ProductIngredient.product_id == parsed_product_id,
                 ProductIngredient.removable == 1,
-                Ingredient.status == 1,
-                Ingredient.type == "INGREDIENTES_NORMAIS",
+                Ingredient.status == EntityStatus.ACTIVE,
+                Ingredient.type == IngredientType.NORMAL,
             )
             .order_by(Ingredient.name)
             .all()
@@ -198,8 +199,8 @@ def get_customization_options(
 
     extra_filters = (
         ProductCustomizationOption.product_id == parsed_product_id,
-        ProductCustomizationOption.type == "EXTRA",
-        ProductCustomizationOption.status == 1,
+        ProductCustomizationOption.type == ProductCustomizationOptionType.EXTRA,
+        ProductCustomizationOption.status == EntityStatus.ACTIVE,
     )
     has_product_extra_options = db.query(ProductCustomizationOption.option_id).filter(*extra_filters).first() is not None
     extra_rows = (
@@ -208,7 +209,7 @@ def get_customization_options(
             *extra_filters,
             or_(
                 ProductCustomizationOption.ingredient_id.is_(None),
-                ProductCustomizationOption.ingredient.has(Ingredient.status == 1),
+                ProductCustomizationOption.ingredient.has(Ingredient.status == EntityStatus.ACTIVE),
             ),
         )
         .order_by(ProductCustomizationOption.name)
@@ -248,7 +249,7 @@ def get_product_customization(
         ingredient_rows = (
             db.query(ProductIngredient)
             .join(ProductIngredient.ingredient)
-            .filter(ProductIngredient.product_id == parsed_product_id, Ingredient.type != "BEBIDA")
+            .filter(ProductIngredient.product_id == parsed_product_id, Ingredient.type != IngredientType.DRINK)
             .order_by(ProductIngredient.ingredient_id)
             .all()
         )
@@ -257,29 +258,28 @@ def get_product_customization(
             ingredient_id=row.ingredient_id,
             name=row.ingredient.name,
             type=row.ingredient.type,
-            removable=bool(row.removable) and row.ingredient.type == "INGREDIENTES_NORMAIS",
+            removable=bool(row.removable) and row.ingredient.type == IngredientType.NORMAL,
             substitutable=bool(row.substitutable),
             included_by_default=bool(row.included_by_default),
         )
         for row in ingredient_rows
-        if row.ingredient and row.ingredient.status == 1
+        if row.ingredient and row.ingredient.status == EntityStatus.ACTIVE
     ]
 
     grouped_options = {
-        "EXTRA": [],
-        "ADICIONAR": [],
-        "SUBSTITUIR_MOLHO": [],
-        "SUBSTITUIR_ACOMPANHAMENTO": [],
+        ProductCustomizationOptionType.EXTRA: [],
+        ProductCustomizationOptionType.ADD: [],
+        ProductCustomizationOptionType.SUBSTITUTE_SAUCE: [],
     }
     options = (
         db.query(ProductCustomizationOption)
         .filter(
             ProductCustomizationOption.product_id == parsed_product_id,
-            ProductCustomizationOption.status == 1,
+            ProductCustomizationOption.status == EntityStatus.ACTIVE,
             ProductCustomizationOption.type.in_(tuple(grouped_options.keys())),
             or_(
                 ProductCustomizationOption.ingredient_id.is_(None),
-                ProductCustomizationOption.ingredient.has(Ingredient.status == 1),
+                ProductCustomizationOption.ingredient.has(Ingredient.status == EntityStatus.ACTIVE),
             ),
         )
         .order_by(ProductCustomizationOption.type, ProductCustomizationOption.name)

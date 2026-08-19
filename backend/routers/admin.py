@@ -17,7 +17,7 @@ from typing import Dict, List, Optional, Union
 
 from database import get_db
 from dependencies import get_current_admin, require_role
-from enums import ADMIN_ROLES, IngredientType, OrderState, PaymentMethod, PaymentState, PaymentStatus, UserRole, normalize_admin_role
+from enums import ADMIN_ROLES, EntityStatus, IngredientType, OrderState, PaymentMethod, PaymentState, PaymentStatus, RefundMethod, RefundStatus, ReviewStatus, UserRole, UserStatus, normalize_admin_role
 from models import (
     Admin, Product, Cart, CartProduct as CartItem, Customer, ProductImage,
     Category, Order, OrderProduct, Payment, ProductReview,
@@ -325,7 +325,7 @@ def _analytics_label(key: str, granularity: str) -> str:
 
 
 def active_product_filter():
-    return or_(Product.status == 1, Product.status.is_(None))
+    return or_(Product.status == EntityStatus.ACTIVE, Product.status.is_(None))
 
 
 def _ingredient_response(row: ProductIngredient) -> ProductIngredientResponse:
@@ -376,8 +376,8 @@ def _find_or_create_ingredient(db: Session, payload: ProductIngredientPayload) -
         ingredient = db.query(Ingredient).filter(Ingredient.ingredient_id == payload.ingredient_id).first()
         if not ingredient:
             raise HTTPException(status_code=404, detail=f"Ingredient {payload.ingredient_id} não encontrado.")
-        if ingredient.status == 0:
-            ingredient.status = 1
+        if ingredient.status == EntityStatus.INACTIVE:
+            ingredient.status = EntityStatus.ACTIVE
         if payload.calories_per_gram is not None:
             ingredient.calories_per_gram = payload.calories_per_gram
         return ingredient
@@ -388,8 +388,8 @@ def _find_or_create_ingredient(db: Session, payload: ProductIngredientPayload) -
 
     ingredient = db.query(Ingredient).filter(func.lower(Ingredient.name) == name.lower()).first()
     if ingredient:
-        if ingredient.status == 0:
-            ingredient.status = 1
+        if ingredient.status == EntityStatus.INACTIVE:
+            ingredient.status = EntityStatus.ACTIVE
         if payload.calories_per_gram is not None:
             ingredient.calories_per_gram = payload.calories_per_gram
         return ingredient
@@ -397,7 +397,7 @@ def _find_or_create_ingredient(db: Session, payload: ProductIngredientPayload) -
     ingredient = Ingredient(
         name=name,
         type=payload.type,
-        status=1,
+        status=EntityStatus.ACTIVE,
         calories_per_gram=payload.calories_per_gram,
     )
     db.add(ingredient)
@@ -638,7 +638,7 @@ def list_categories(
 ):
     query = db.query(Category)
     if not include_inactive:
-        query = query.filter(Category.status == 1)
+        query = query.filter(Category.status == EntityStatus.ACTIVE)
     return query.order_by(Category.category_name.asc()).all()
 
 
@@ -652,7 +652,7 @@ def create_category(
         category_name=category.category_name,
         category_description=category.category_description,
         admin_id=current_admin.admin_id,
-        status=1,
+        status=EntityStatus.ACTIVE,
     )
     db.add(new_category)
     db.commit()
@@ -704,7 +704,7 @@ def delete_category(
     if active_products > 0:
         raise HTTPException(status_code=400, detail="Não é possível desativar uma category com products ativos.")
 
-    category.status = 0
+    category.status = EntityStatus.INACTIVE
     db.commit()
     db.refresh(category)
     return category
@@ -725,7 +725,7 @@ def list_ingredients(
 ):
     query = db.query(Ingredient)
     if not include_inactive:
-        query = query.filter(Ingredient.status == 1)
+        query = query.filter(Ingredient.status == EntityStatus.ACTIVE)
     if customization_only:
         drink_category_ids = select(Category.category_id).where(
             Category.category_name.ilike("%bebida%")
@@ -755,8 +755,8 @@ def create_ingredient(
     name = ingredient.name.strip()
     existing = db.query(Ingredient).filter(func.lower(Ingredient.name) == name.lower()).first()
     if existing:
-        if existing.status == 0:
-            existing.status = 1
+        if existing.status == EntityStatus.INACTIVE:
+            existing.status = EntityStatus.ACTIVE
             existing.type = ingredient.type
             if "calories_per_gram" in getattr(ingredient, "model_fields_set", set()):
                 existing.calories_per_gram = ingredient.calories_per_gram
@@ -820,7 +820,7 @@ def delete_ingredient(
     if not ingredient:
         raise HTTPException(status_code=404, detail="Ingredient não encontrado.")
 
-    ingredient.status = 0
+    ingredient.status = EntityStatus.INACTIVE
     db.commit()
     db.refresh(ingredient)
     return ingredient
@@ -832,7 +832,7 @@ def create_product(
     current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
-    category = db.query(Category).filter(Category.category_id == product.category_id, Category.status == 1).first()
+    category = db.query(Category).filter(Category.category_id == product.category_id, Category.status == EntityStatus.ACTIVE).first()
     if not category:
         raise HTTPException(status_code=404, detail="Category não encontrada.")
 
@@ -844,7 +844,7 @@ def create_product(
         category_id=product.category_id,
         admin_id=current_admin.admin_id,
         sold=0,
-        status=1,
+        status=EntityStatus.ACTIVE,
         customizable=1 if product.customizable else 0,
         menu_tags=product.menu_tags,
         featured=1 if product.featured else 0,
@@ -920,7 +920,7 @@ def get_product(
     parsed_product_id = parse_product_id(product_id)
     product = db.query(Product).options(joinedload(Product.images)).filter(
         Product.product_id == parsed_product_id,
-        Product.status == 1
+        Product.status == EntityStatus.ACTIVE
     ).first()
 
     if not product:
@@ -976,7 +976,7 @@ def get_product_analytics(
 
     average_rating = (
         db.query(func.avg(ProductReview.rating))
-        .filter(ProductReview.product_id == parsed_product_id, ProductReview.status == "aprovado")
+        .filter(ProductReview.product_id == parsed_product_id, ProductReview.status == ReviewStatus.APPROVED)
         .scalar()
     )
     total_reviews = (
@@ -1010,7 +1010,7 @@ def update_product(
     parsed_product_id = parse_product_id(product_id)
     product = db.query(Product).filter(
         Product.product_id == parsed_product_id,
-        Product.status == 1
+        Product.status == EntityStatus.ACTIVE
     ).first()
 
     if not product:
@@ -1025,7 +1025,7 @@ def update_product(
     if product_update.stock is not None:
         product.stock = product_update.stock
     if product_update.category_id is not None:
-        category = db.query(Category).filter(Category.category_id == product_update.category_id, Category.status == 1).first()
+        category = db.query(Category).filter(Category.category_id == product_update.category_id, Category.status == EntityStatus.ACTIVE).first()
         if not category:
             raise HTTPException(status_code=404, detail="Category não encontrada.")
         product.category_id = product_update.category_id
@@ -1066,10 +1066,10 @@ def toggle_product_status(
         raise HTTPException(status_code=404, detail="Product não encontrado.")
 
     if product.deleted_at is not None:
-        product.status = 1
+        product.status = EntityStatus.ACTIVE
         product.deleted_at = None
     else:
-        product.status = 0 if product.status == 1 else 1
+        product.status = EntityStatus.INACTIVE if product.status == EntityStatus.ACTIVE else EntityStatus.ACTIVE
     db.commit()
     db.refresh(product)
 
@@ -1087,7 +1087,7 @@ def delete_product(
     if not product:
         raise HTTPException(status_code=404, detail="Product não encontrado.")
 
-    product.status = 0
+    product.status = EntityStatus.INACTIVE
     product.deleted_at = datetime.utcnow()
     db.commit()
     db.refresh(product)
@@ -1360,8 +1360,8 @@ def refund_order(
         value=Decimal(str(body.amount)).quantize(Decimal("0.01")),
         reason=body.reason,
         notes=body.notes.strip(),
-        status="aprovado",
-        method="Original payment method",
+        status=RefundStatus.APPROVED,
+        method=RefundMethod.ORIGINAL_PAYMENT_METHOD,
         receipt_number=f"RR-TMP-{uuid.uuid4().hex[:12].upper()}",
         refunded_at=datetime.utcnow(),
     )
@@ -1589,7 +1589,7 @@ def delete_customer(
     )
     if not customer:
         raise HTTPException(status_code=404, detail="Customer não encontrado.")
-    customer.status = 0
+    customer.status = UserStatus.SUSPENDED
     db.commit()
     db.refresh(customer)
     return _customer_admin_response(customer)
@@ -1674,7 +1674,7 @@ def delete_staff_admin(
     admin = db.query(Admin).filter(Admin.admin_id == admin_id, Admin.role.in_(ADMIN_ROLES)).first()
     if not admin:
         raise HTTPException(status_code=404, detail="Administrador não encontrado.")
-    admin.status = 0
+    admin.status = UserStatus.SUSPENDED
     db.commit()
     db.refresh(admin)
     return admin
@@ -1690,9 +1690,9 @@ def get_dashboard_analytics(
     db: Session = Depends(get_db)
 ):
     # Count totals
-    total_products = db.query(func.count(Product.product_id)).filter(Product.status == 1).scalar() or 0
-    total_categories = db.query(func.count(Category.category_id)).filter(Category.status == 1).scalar() or 0
-    total_customers = db.query(func.count(Customer.customer_id)).filter(Customer.status == 1, Customer.role == UserRole.CLIENT).scalar() or 0
+    total_products = db.query(func.count(Product.product_id)).filter(Product.status == EntityStatus.ACTIVE).scalar() or 0
+    total_categories = db.query(func.count(Category.category_id)).filter(Category.status == EntityStatus.ACTIVE).scalar() or 0
+    total_customers = db.query(func.count(Customer.customer_id)).filter(Customer.status == UserStatus.ACTIVE, Customer.role == UserRole.CLIENT).scalar() or 0
     total_carts = db.query(func.count(Cart.cart_id)).scalar() or 0
     
     # Get low-stock products
@@ -1706,7 +1706,7 @@ def get_dashboard_analytics(
             category=p.category.category_name if p.category else "",
         )
         for p in db.query(Product)
-            .filter(Product.status == 1)
+            .filter(Product.status == EntityStatus.ACTIVE)
             .order_by(Product.stock.asc())
             .limit(5)
             .all()
@@ -1723,7 +1723,7 @@ def get_dashboard_analytics(
             category=p.category.category_name if p.category else "",
         )
         for p in db.query(Product)
-            .filter(Product.status == 1)
+            .filter(Product.status == EntityStatus.ACTIVE)
             .order_by(desc(Product.sold))
             .limit(5)
             .all()
@@ -1747,7 +1747,7 @@ def get_low_stock_products(
 ):
     products = (
         db.query(Product)
-        .filter(Product.status == 1)
+        .filter(Product.status == EntityStatus.ACTIVE)
         .order_by(Product.stock.asc())
         .limit(limit)
         .all()
@@ -1774,7 +1774,7 @@ def get_popular_products(
 ):
     products = (
         db.query(Product)
-        .filter(Product.status == 1)
+        .filter(Product.status == EntityStatus.ACTIVE)
         .order_by(desc(Product.sold))
         .limit(limit)
         .all()

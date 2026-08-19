@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from enum import StrEnum
 from decimal import Decimal
 from typing import List, Optional
 
@@ -9,25 +10,31 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship, synonym
 
 from database import Base
 from enums import (
+    CancellationOrigin,
     CartCustomizationAction,
     CouponType,
+    EntityStatus,
     IngredientType,
     OrderState,
     PaymentMethod,
     PaymentState,
     PaymentStatus,
     ProductCustomizationOptionType,
+    RefundMethod,
+    RefundReason,
     RefundStatus,
     ReviewReactionType,
     ReviewStatus,
+    SiteSettingKey,
     UserRole,
+    UserStatus,
     enum_values,
 )
 from utils.datetime_utils import naive_utc_now
 from utils.id_format import format_category_id, format_product_id
 
 
-def str_enum_column(enum_cls: type[UserRole], **kwargs):
+def str_enum_column(enum_cls: type[StrEnum], **kwargs):
     return mapped_column(SAEnum(enum_cls, values_callable=enum_values), **kwargs)
 
 
@@ -57,7 +64,12 @@ class User(AppBaseModel):
     password_reset_attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=True)
     password_reset_verified_until: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     password_reset_token_hash: Mapped[str] = mapped_column(String(255), nullable=True)
-    status: Mapped[int] = mapped_column(Integer, default=1, nullable=True)
+    status: Mapped[UserStatus] = mapped_column(
+        SAEnum(UserStatus, values_callable=enum_values),
+        default=UserStatus.ACTIVE,
+        nullable=False,
+        index=True,
+    )
     role: Mapped[UserRole] = mapped_column(
         SAEnum(UserRole, values_callable=enum_values),
         default=UserRole.CLIENT,
@@ -84,7 +96,12 @@ class Category(AppBaseModel):
     category_name: Mapped[str] = mapped_column(String(100), nullable=False)
     category_description: Mapped[str] = mapped_column(String(255), nullable=True)
     admin_id: Mapped[int] = mapped_column(Integer, ForeignKey('user.id'), nullable=False, index=True)
-    status: Mapped[int] = mapped_column(Integer, nullable=True)
+    status: Mapped[EntityStatus] = mapped_column(
+        SAEnum(EntityStatus, values_callable=enum_values),
+        default=EntityStatus.ACTIVE,
+        nullable=False,
+        index=True,
+    )
 
     admin: Mapped["User"] = relationship("User")
 
@@ -96,7 +113,12 @@ class Category(AppBaseModel):
 class SiteSetting(AppBaseModel):
     __tablename__ = 'site_setting'
 
-    key: Mapped[str] = mapped_column(String(100), nullable=False, unique=True, index=True)
+    key: Mapped[SiteSettingKey] = mapped_column(
+        SAEnum(SiteSettingKey, values_callable=enum_values),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
     value: Mapped[str] = mapped_column(Text, nullable=True)
 
 
@@ -126,7 +148,12 @@ class Product(AppBaseModel):
     admin_id: Mapped[int] = mapped_column(Integer, ForeignKey('user.id'), nullable=False, index=True)
     sold: Mapped[int] = mapped_column(Integer, nullable=True)
     image: Mapped[str] = mapped_column(String(255), nullable=True)
-    status: Mapped[int] = mapped_column(Integer, nullable=True)
+    status: Mapped[EntityStatus] = mapped_column(
+        SAEnum(EntityStatus, values_callable=enum_values),
+        default=EntityStatus.ACTIVE,
+        nullable=False,
+        index=True,
+    )
     customizable: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="1")
     menu_tags: Mapped[str] = mapped_column(String(255), nullable=True)
     featured: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
@@ -279,7 +306,12 @@ class Ingredient(AppBaseModel):
         default=IngredientType.NORMAL,
         nullable=False,
     )
-    status: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    status: Mapped[EntityStatus] = mapped_column(
+        SAEnum(EntityStatus, values_callable=enum_values),
+        default=EntityStatus.ACTIVE,
+        nullable=False,
+        index=True,
+    )
     calories_per_gram: Mapped[Decimal] = mapped_column(Numeric(8, 4), nullable=True)
 
 
@@ -314,7 +346,12 @@ class ProductCustomizationOption(AppBaseModel):
     )
     extra_price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=0)
     max_quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
-    status: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    status: Mapped[EntityStatus] = mapped_column(
+        SAEnum(EntityStatus, values_callable=enum_values),
+        default=EntityStatus.ACTIVE,
+        nullable=False,
+        index=True,
+    )
 
     product: Mapped[Product] = relationship("Product")
     ingredient: Mapped[Ingredient] = relationship("Ingredient", lazy='joined')
@@ -372,15 +409,18 @@ class Order(AppBaseModel):
     total: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=0)
     notes: Mapped[str] = mapped_column(String(500), nullable=True)
     canceled_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
-    cancellation_origin: Mapped[str] = mapped_column(String(30), nullable=True)
+    cancellation_origin = mapped_column(
+        SAEnum(CancellationOrigin, values_callable=enum_values),
+        nullable=True,
+    )
 
     customer: Mapped["User"] = relationship("User", foreign_keys=[customer_id], lazy='joined')
     admin: Mapped["User"] = relationship("User", foreign_keys=[admin_id])
-    items: Mapped[List[OrderProduct]] = relationship("OrderProduct", back_populates="order", cascade="all, delete-orphan", lazy='joined')
-    payment: Mapped[Payment] = relationship("Payment", back_populates="order", uselist=False, cascade="all, delete-orphan", lazy='joined')
+    items: Mapped[List["OrderProduct"]] = relationship("OrderProduct", back_populates="order", cascade="all, delete-orphan", lazy='joined')
+    payment: Mapped["Payment"] = relationship("Payment", back_populates="order", uselist=False, cascade="all, delete-orphan", lazy='joined')
     # Parent-side 0..N: an order may exist without any refunds.
-    refunds: Mapped[List[Refund]] = relationship("Refund", back_populates="order", cascade="all, delete-orphan", lazy='joined')
-    invoice: Mapped[Invoice] = relationship("Invoice", back_populates="order", uselist=False, cascade="all, delete-orphan")
+    refunds: Mapped[List["Refund"]] = relationship("Refund", back_populates="order", cascade="all, delete-orphan", lazy='joined')
+    invoice: Mapped["Invoice"] = relationship("Invoice", back_populates="order", uselist=False, cascade="all, delete-orphan")
 
 
 class Invoice(AppBaseModel):
@@ -524,14 +564,21 @@ class Refund(AppBaseModel):
     payment_id: Mapped[int] = mapped_column(Integer, ForeignKey('payment.id'), nullable=True)
     admin_id: Mapped[int] = mapped_column(Integer, ForeignKey('user.id'), nullable=False, index=True)
     value: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
-    reason: Mapped[str] = mapped_column(String(80), nullable=False)
+    reason: Mapped[RefundReason] = mapped_column(
+        SAEnum(RefundReason, values_callable=enum_values),
+        nullable=False,
+    )
     notes: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[RefundStatus] = mapped_column(
         SAEnum(RefundStatus, values_callable=enum_values),
         default=RefundStatus.APPROVED,
         nullable=False,
     )
-    method: Mapped[str] = mapped_column(String(120), nullable=False, default='Original payment method')
+    method: Mapped[RefundMethod] = mapped_column(
+        SAEnum(RefundMethod, values_callable=enum_values),
+        nullable=False,
+        default=RefundMethod.ORIGINAL_PAYMENT_METHOD,
+    )
     receipt_number: Mapped[str] = mapped_column(String(40), nullable=False, unique=True, index=True)
     refunded_at: Mapped[datetime] = mapped_column(DateTime, default=naive_utc_now, nullable=False, index=True)
 

@@ -8,12 +8,13 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from enums import PaymentStatus, normalize_enum
 from models import Order, Invoice
 
 
 def ensure_invoice_for_order(db: Session, order: Order) -> Invoice | None:
     """Create the immutable invoice snapshot for a paid order if it is missing."""
-    if order.payment_status != "pago":
+    if normalize_enum(PaymentStatus, order.payment_status) != PaymentStatus.PAID:
         return None
 
     existing = db.query(Invoice).filter(Invoice.order_id == order.order_id).first()

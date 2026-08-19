@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session, joinedload
 from dependencies import get_current_user_optional
 from services.auth_service import hash_password
 from database import get_db
+from enums import CancellationOrigin, CheckoutPaymentMethod, CouponType, EntityStatus, OrderState, PaymentMethod, PaymentState, PaymentStatus, UserRole, UserStatus, normalize_enum
 from models import (
     Cart,
     CartProduct,
@@ -47,7 +48,7 @@ logger = logging.getLogger(__name__)
 
 SERVICE_FEE = Decimal("0")
 IVA_PERCENTUAL = Decimal("13.00")
-ONLINE_PAYMENT_METHODS = {"cartao", "mbway", "digital"}
+ONLINE_PAYMENT_METHODS = {PaymentMethod.CARD, PaymentMethod.MBWAY}
 
 
 def _product_image_path(product: Product | None) -> str | None:
@@ -69,15 +70,16 @@ def _product_image_path(product: Product | None) -> str | None:
     return f"/menu-images/{image_path}"
 
 
-def _payment_method(payment_method: str) -> str:
-    if payment_method == "cash":
-        return "balcao"
-    if payment_method in {"mbway", "qr_pay"}:
-        return "mbway"
-    return "cartao"
+def _payment_method(payment_method: str | CheckoutPaymentMethod) -> PaymentMethod:
+    payment_method = CheckoutPaymentMethod(payment_method)
+    if payment_method == CheckoutPaymentMethod.CASH:
+        return PaymentMethod.COUNTER
+    if payment_method in {CheckoutPaymentMethod.MBWAY, CheckoutPaymentMethod.QR_PAY}:
+        return PaymentMethod.MBWAY
+    return PaymentMethod.CARD
 
 
-def _is_online_payment(method: str | None) -> bool:
+def _is_online_payment(method: PaymentMethod | None) -> bool:
     return method in ONLINE_PAYMENT_METHODS
 
 
@@ -106,10 +108,10 @@ def _response_payment_method(order: Order) -> str:
         return "mbway"
     if checkout_payment in {"card", "cash", "mbway"}:
         return checkout_payment
-    if order.payment_method == "balcao":
-        return "cash"
-    if order.payment_method == "mbway":
-        return "mbway"
+    if order.payment_method == PaymentMethod.COUNTER:
+        return CheckoutPaymentMethod.CASH
+    if order.payment_method == PaymentMethod.MBWAY:
+        return CheckoutPaymentMethod.MBWAY
     return "card"
 
 
@@ -200,7 +202,8 @@ def _get_or_create_checkout_customer(db: Session, body: CheckoutRequest, current
         phone=body.customer.phone,
         tax_id=checkout_nif,
         password=hash_password(uuid4().hex),
-        status=1,
+        status=UserStatus.ACTIVE,
+        role=UserRole.CLIENT,
         created_at=datetime.utcnow(),
     )
     db.add(customer)
@@ -279,7 +282,7 @@ def _calculate_coupon_discount(coupon: Coupon, subtotal: Decimal) -> Decimal:
             detail=f"O cupão requer um pedido mínimo de {_format_money_pt(Decimal(str(coupon.minimum_order_value)))}.",
         )
 
-    if coupon.type == "PERCENTAGEM":
+    if normalize_enum(CouponType, coupon.type) == CouponType.PERCENTAGE:
         discount = subtotal * (Decimal(str(coupon.value)) / Decimal("100"))
     else:
         discount = Decimal(str(coupon.value))
@@ -315,7 +318,7 @@ def _coupon_code_prefix(discount_type: str, discount_value: Decimal) -> str:
         if normalized_value == normalized_value.to_integral_value()
         else str(normalized_value).replace(".", "")
     )
-    return f"BONEFREE{compact_value}P" if discount_type == "PERCENTAGEM" else f"BONEFREE{compact_value}"
+    return f"BONEFREE{compact_value}P" if normalize_enum(CouponType, discount_type) == CouponType.PERCENTAGE else f"BONEFREE{compact_value}"
 
 
 def _new_coupon_code(db: Session, current_user: Customer, discount_type: str, discount_value: Decimal) -> str:
@@ -424,7 +427,7 @@ def _order_response(order: Order) -> dict:
 
 
 def _can_customer_cancel(order: Order) -> bool:
-    return order.state == "pendente" and order.payment_status == "nao_pago"
+    return order.state == OrderState.PENDING and order.payment_status == PaymentStatus.UNPAID
 
 
 @router.get("/coupons", response_model=list[CouponResponse])
@@ -502,7 +505,7 @@ def create_order(
 
     for item in items:
         product = product_map.get(item.product_id)
-        if not product or product.status == 0 or product.deleted_at is not None:
+        if not product or product.status == EntityStatus.INACTIVE or product.deleted_at is not None:
             raise HTTPException(status_code=404, detail=f"O product '{format_product_id(item.product_id)}' já não está disponível.")
 
         if unavailable_due_to_inactive_base(db, product):
@@ -556,9 +559,9 @@ def create_order(
     order = Order(
         customer_id=customer.customer_id,
         admin_id=None,
-        state="confirmada" if online_payment else "pendente",
+        state=OrderState.CONFIRMED if online_payment else OrderState.PENDING,
         payment_method=db_method,
-        payment_status="pago" if online_payment else "nao_pago",
+        payment_status=PaymentStatus.PAID if online_payment else PaymentStatus.UNPAID,
         subtotal=subtotal,
         vat_percentage=IVA_PERCENTUAL,
         vat_amount=vat_amount,
@@ -585,9 +588,9 @@ def create_order(
     db.add(Payment(
         order_id=order.order_id,
         method=db_method,
-        state="aprovado" if online_payment else "pendente",
+        state=PaymentState.APPROVED if online_payment else PaymentState.PENDING,
         value=total,
-        transaction_reference=f"{'MBW' if db_method == 'mbway' else 'TXN' if online_payment else 'BAL'}-{datetime.utcnow().strftime('%Y%m%d')}-{order.order_id:03d}",
+        transaction_reference=f"{'MBW' if db_method == PaymentMethod.MBWAY else 'TXN' if online_payment else 'BAL'}-{datetime.utcnow().strftime('%Y%m%d')}-{order.order_id:03d}",
         paid_at=datetime.utcnow() if online_payment else None,
     ))
 
@@ -638,12 +641,12 @@ def cancel_order(
     if not _can_customer_cancel(order):
         raise HTTPException(status_code=400, detail="Os pedidos só podem ser cancelados antes da confirmação do payment.")
 
-    order.state = "cancelada"
+    order.state = OrderState.CANCELLED
     order.canceled_at = datetime.utcnow()
-    order.cancellation_origin = "Customer"
+    order.cancellation_origin = CancellationOrigin.CLIENT
     order.updated_at = datetime.utcnow()
     if order.payment:
-        order.payment.state = "rejeitado"
+        order.payment.state = PaymentState.REJECTED
     db.commit()
     db.refresh(order)
     return _order_response(order)

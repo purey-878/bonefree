@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session as DBSession
 
 from core.config import settings
 from database import get_db
-from enums import UserRole, is_admin_role, normalize_admin_role, normalize_user_role
+from enums import UserRole, UserStatus, is_admin_role, normalize_admin_role, normalize_user_role
 from models import Admin, Customer, Session
 from services.auth_service import hash_session_token
 from utils.datetime_utils import to_naive_utc
@@ -55,7 +55,7 @@ def get_current_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sessão inválida ou expirada.")
 
     current_user = session.customer
-    if current_user.status == 0:
+    if current_user.status != UserStatus.ACTIVE:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="A conta de customer está inativa.")
 
     return current_user
@@ -78,7 +78,7 @@ def get_current_user_optional(
         or session.customer is None
         or session.revoked is True
         or session.expires_at <= now
-        or session.customer.status == 0
+        or session.customer.status != UserStatus.ACTIVE
     ):
         return None
 
@@ -114,7 +114,7 @@ def get_current_admin(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sessão inválida ou expirada.")
 
     current_admin = session.admin
-    if current_admin.status == 0:
+    if current_admin.status != UserStatus.ACTIVE:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="A conta de administrador está inativa.")
 
     current_admin.role = normalize_user_role(current_admin.role)

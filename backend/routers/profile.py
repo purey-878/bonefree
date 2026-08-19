@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from dependencies import get_current_user
 from database import get_db
+from enums import OrderState, PaymentMethod, PaymentStatus
 from models import Customer, CustomerBillingAddress, Order, OrderProduct
 from schemas import UserProfileUpdate, UserResponse
 from schemas.checkout import OrderResponse
@@ -80,21 +81,21 @@ def _fulfillment_from_notes(notes: str | None) -> str:
     return "pickup"
 
 
-def _payment_method_response(method: str | None) -> str:
-    if method == "balcao":
+def _payment_method_response(method: PaymentMethod | None) -> str:
+    if method == PaymentMethod.COUNTER:
         return "cash"
-    if method == "mbway":
+    if method == PaymentMethod.MBWAY:
         return "mbway"
     return "card"
 
 
-def _payment_filter_values(payment: str) -> list[str]:
+def _payment_filter_values(payment: str) -> list[PaymentMethod | str]:
     if payment == "cash":
-        return ["balcao"]
+        return [PaymentMethod.COUNTER]
     if payment == "mbway":
-        return ["mbway"]
+        return [PaymentMethod.MBWAY]
     if payment == "card":
-        return ["cartao", "digital"]
+        return [PaymentMethod.CARD]
     return [payment]
 
 
@@ -116,7 +117,7 @@ def _order_response(order: Order) -> dict:
         "order_number": f"ENC-{order.order_id:06d}",
         "status": order.state,
         "payment_status": order.payment_status,
-        "can_cancel": order.state == "pendente" and order.payment_status == "nao_pago",
+        "can_cancel": order.state == OrderState.PENDING and order.payment_status == PaymentStatus.UNPAID,
         "cancellation_source": order.cancellation_origin,
         "cancelled_at": order.canceled_at,
         "refund_status": "Approved" if refund else "None",

@@ -5,6 +5,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request,
 from sqlalchemy.orm import Session
 
 from dependencies import get_current_user, get_db
+from enums import UserRole, UserStatus
 from models import Customer
 from schemas.user import (
     ForgotPasswordRequest,
@@ -72,7 +73,8 @@ def register(user: UserRegister, background_tasks: BackgroundTasks, request: Req
         last_name=user.last_name or user.email.split("@")[0],
         phone=user.phone,
         tax_id=user.tax_id,
-        status=1,
+        status=UserStatus.ACTIVE,
+        role=UserRole.CLIENT,
         created_at=datetime.utcnow(),
     )
 
@@ -101,7 +103,7 @@ def forgot_password(body: ForgotPasswordRequest, db: Session = Depends(get_db)):
     """Start a password reset and email a six-digit code."""
     generic_message = "Se existir uma conta com este email, foi enviado um código de redefinição."
     db_user = db.query(Customer).filter(Customer.email == body.email).first()
-    if not db_user or db_user.status == 0:
+    if not db_user or db_user.status == UserStatus.SUSPENDED:
         return {"message": generic_message}
 
     code = start_password_reset(db_user)

@@ -3,14 +3,15 @@
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 
+from enums import EntityStatus, IngredientType
 from services.product_pricing import discounted_product_price, product_discount_percent, product_tags
 
 
 class ProductIngredientNutrition(BaseModel):
     ingredient_id: int
     name: str
-    type: str
-    status: int = 1
+    type: IngredientType
+    status: EntityStatus = EntityStatus.ACTIVE
     quantity: str | None = None
     calories_per_gram: float | None = None
     calorias: float = 0

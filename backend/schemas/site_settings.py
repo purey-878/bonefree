@@ -1,24 +1,24 @@
 from decimal import Decimal
-from typing import Dict, List, Literal, Optional
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
+from enums import (
+    CouponDiscountType,
+    SocialPlatform,
+    ThemeBackgroundType,
+    ThemeButtonStyle,
+    ThemeColorKey,
+    ThemeDecorationAnimation,
+    ThemeDecorationElement,
+    ThemeDecorationLayer,
+    ThemeDecorationSize,
+    ThemeDecorationType,
+    ThemeId,
+)
 from .id_types import ProductId
 
 
-ThemeId = Literal["normal", "presentation", "christmas", "halloween"]
-ThemeColorKey = Literal[
-    "primary",
-    "accent",
-    "secondary",
-    "background",
-    "surface",
-    "text",
-    "textMuted",
-    "border",
-    "priceHighlight",
-]
-
-THEME_IDS = {"normal", "presentation", "christmas", "halloween"}
+THEME_IDS = {theme_id.value for theme_id in ThemeId}
 COLOR_KEYS = {
     "primary",
     "accent",
@@ -53,14 +53,14 @@ class ThemeColors(BaseModel):
 
 
 class ThemeBackground(BaseModel):
-    type: Literal["solid", "gradient", "pattern"]
+    type: ThemeBackgroundType
     value: str
     overlay: Optional[str] = None
 
 
 class ThemeUi(BaseModel):
     borderRadius: str
-    buttonStyle: Literal["rounded", "pill", "sharp"]
+    buttonStyle: ThemeButtonStyle
     cardShadow: str
 
 
@@ -70,26 +70,14 @@ class ThemeFonts(BaseModel):
 
 
 class ThemeDecoration(BaseModel):
-    type: Literal["floating", "fixed", "background-pattern"]
-    element: Literal[
-        "snowflake",
-        "santa-hat",
-        "ghost",
-        "spider",
-        "spider-web",
-        "star",
-        "leaf",
-        "pumpkin",
-        "candy-cane",
-        "bauble",
-        "custom-svg",
-    ]
+    type: ThemeDecorationType
+    element: ThemeDecorationElement
     customSvg: Optional[str] = None
     count: Optional[int] = None
-    animation: Literal["fall", "float", "sway", "spin", "fade-in-out", "none"]
+    animation: ThemeDecorationAnimation
     opacity: float = Field(ge=0, le=1)
-    zIndex: Literal["behind-content", "above-content"]
-    size: Literal["sm", "md", "lg", "mixed"]
+    zIndex: ThemeDecorationLayer
+    size: ThemeDecorationSize
     color: Optional[str] = None
 
 
@@ -104,7 +92,7 @@ class ThemeConfig(BaseModel):
 
 
 class SiteThemeSettings(BaseModel):
-    theme_id: ThemeId = "normal"
+    theme_id: ThemeId = ThemeId.NORMAL
     colors: Dict[str, str] = Field(default_factory=dict)
     decoration_enabled: bool = True
     decoration_intensity: int = Field(2, ge=1, le=3)
@@ -131,11 +119,11 @@ class SiteThemeSettings(BaseModel):
 
     @field_validator("theme_id")
     @classmethod
-    def validate_theme_id(cls, value: str) -> str:
-        normalized = value.strip().lower()
+    def validate_theme_id(cls, value: str | ThemeId) -> ThemeId:
+        normalized = value.value if isinstance(value, ThemeId) else value.strip().lower()
         if normalized not in THEME_IDS:
             raise ValueError("Tema inválido.")
-        return normalized
+        return ThemeId(normalized)
 
     @field_validator("colors")
     @classmethod
@@ -167,7 +155,7 @@ class LoyaltyCouponSettings(BaseModel):
     enabled: bool = True
     qualifying_order_count: int = Field(3, ge=1, le=20)
     qualifying_order_minimum: Decimal = Field(Decimal("50.00"), ge=0)
-    discount_type: Literal["VALOR_FIXO", "PERCENTAGEM"] = "VALOR_FIXO"
+    discount_type: CouponDiscountType = CouponDiscountType.FIXED_VALUE
     discount_value: Decimal = Field(Decimal("20.00"), gt=0)
     coupon_minimum_order: Decimal = Field(Decimal("0.00"), ge=0)
 
@@ -175,7 +163,7 @@ class LoyaltyCouponSettings(BaseModel):
     @classmethod
     def validate_discount_value(cls, value: Decimal, info):
         discount_type = info.data.get("discount_type")
-        if discount_type == "PERCENTAGEM" and value > Decimal("100"):
+        if discount_type == CouponDiscountType.PERCENTAGE and value > Decimal("100"):
             raise ValueError("O discount percentual não pode exceder 100.")
         return value
 
@@ -194,9 +182,6 @@ class CompanyDetailsSettings(BaseModel):
     @classmethod
     def normalize_text(cls, value: str) -> str:
         return value.strip()
-
-
-SocialPlatform = Literal["facebook", "instagram", "whatsapp", "youtube"]
 
 
 class SocialLinkSettings(BaseModel):

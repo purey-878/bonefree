@@ -6,6 +6,7 @@ from decimal import Decimal
 from typing import List, Optional
 
 from database import get_db
+from enums import CartCustomizationAction, EntityStatus, IngredientType, ProductCustomizationOptionType
 from models import (
     Cart,
     CartProduct,
@@ -102,13 +103,13 @@ def _build_item_out(item: CartProduct) -> CartItemOut:
 def _build_cart_out(cart: Cart) -> CartOut:
     """Convert a Cart ORM object into the full response schema."""
     items = [_build_item_out(i) for i in cart.items]
-    total = sum(i.subtotal for i in items)
+    total = sum((i.subtotal for i in items), Decimal("0"))
     return CartOut(cart_id=cart.cart_id, items=items, total=total)
 
 
 def _get_product_or_404(db: Session, product_id: int) -> Product:
     product = db.query(Product).filter(
-        and_(Product.product_id == product_id, Product.status == 1, Product.deleted_at.is_(None))
+        and_(Product.product_id == product_id, Product.status == EntityStatus.ACTIVE, Product.deleted_at.is_(None))
     ).first()
     if not product:
         raise HTTPException(status_code=404, detail=f"Product '{format_product_id(product_id)}' não encontrado.")
@@ -167,10 +168,12 @@ def _format_option_name(option: ProductCustomizationOption) -> str:
     return option.name.replace("Extra ", "", 1).replace("Substituir por ", "", 1).strip()
 
 
-def _custom_action_for_option(option_type: str) -> str:
-    if option_type in ("EXTRA", "ADICIONAR"):
-        return "ADICIONAR_EXTRA"
-    return option_type
+def _custom_action_for_option(option_type: ProductCustomizationOptionType) -> CartCustomizationAction:
+    if option_type in (ProductCustomizationOptionType.EXTRA, ProductCustomizationOptionType.ADD):
+        return CartCustomizationAction.ADD_EXTRA
+    if option_type == ProductCustomizationOptionType.SUBSTITUTE_SAUCE:
+        return CartCustomizationAction.SUBSTITUTE_SAUCE
+    return CartCustomizationAction.SUBSTITUTE_SIDE
 
 
 def _price_legacy_customization(
@@ -199,7 +202,7 @@ def _price_legacy_customization(
             .filter(
                 ProductIngredient.product_id == product.product_id,
                 ProductIngredient.removable == 1,
-                ProductIngredient.ingredient.has(type="INGREDIENTES_NORMAIS", status=1),
+                ProductIngredient.ingredient.has(type=IngredientType.NORMAL, status=EntityStatus.ACTIVE),
             )
             .all()
         )
@@ -250,14 +253,14 @@ def _validate_and_build_customization(
         if not ingredient_row:
             raise HTTPException(status_code=400, detail=f"Ingredient {ingredient_id} não pertence ao product.")
         ingredient_name = ingredient_row.ingredient.name if ingredient_row.ingredient else str(ingredient_id)
-        if not ingredient_row.ingredient or ingredient_row.ingredient.type != "INGREDIENTES_NORMAIS" or not bool(ingredient_row.removable):
+        if not ingredient_row.ingredient or ingredient_row.ingredient.type != IngredientType.NORMAL or not bool(ingredient_row.removable):
             raise HTTPException(status_code=400, detail=f"Ingredient '{ingredient_name}' não pode ser removido.")
 
         remove_names.append(ingredient_name)
         customization_rows.append({
             "ingredient_id": ingredient_id,
             "option_id": None,
-            "action": "REMOVER_INGREDIENTE",
+            "action": CartCustomizationAction.REMOVE_INGREDIENT,
             "quantity": 1,
             "extra_price": Decimal("0"),
         })
@@ -269,9 +272,14 @@ def _validate_and_build_customization(
         for option in db.query(ProductCustomizationOption).filter(
             ProductCustomizationOption.product_id == product.product_id,
             ProductCustomizationOption.ingredient_id == substitution.new_ingredient_id,
-            ProductCustomizationOption.status == 1,
-            ProductCustomizationOption.type.in_(("SUBSTITUIR_MOLHO", "SUBSTITUIR_ACOMPANHAMENTO")),
-            ProductCustomizationOption.ingredient.has(status=1),
+            ProductCustomizationOption.status == EntityStatus.ACTIVE,
+            ProductCustomizationOption.type.in_(
+                (
+                    ProductCustomizationOptionType.SUBSTITUTE_SAUCE,
+                    ProductCustomizationOptionType.SUBSTITUTE_SIDE,
+                )
+            ),
+            ProductCustomizationOption.ingredient.has(status=EntityStatus.ACTIVE),
         ).all()
     )
     options = {}
@@ -281,10 +289,10 @@ def _validate_and_build_customization(
             for option in db.query(ProductCustomizationOption).filter(
                 ProductCustomizationOption.option_id.in_(option_ids),
                 ProductCustomizationOption.product_id == product.product_id,
-                ProductCustomizationOption.status == 1,
+                ProductCustomizationOption.status == EntityStatus.ACTIVE,
                 or_(
                     ProductCustomizationOption.ingredient_id.is_(None),
-                    ProductCustomizationOption.ingredient.has(status=1),
+                    ProductCustomizationOption.ingredient.has(status=EntityStatus.ACTIVE),
                 ),
             ).all()
         }
@@ -293,7 +301,7 @@ def _validate_and_build_customization(
     final_unit_price = discounted_product_price(product)
     for extra in body.extras:
         option = options.get(extra.option_id)
-        if not option or option.type not in ("EXTRA", "ADICIONAR"):
+        if not option or option.type not in (ProductCustomizationOptionType.EXTRA, ProductCustomizationOptionType.ADD):
             raise HTTPException(status_code=400, detail=f"Opção extra {extra.option_id} não pertence ao product.")
         if extra.quantity > option.max_quantity:
             raise HTTPException(status_code=400, detail=f"Quantidade máxima para '{option.name}' é {option.max_quantity}.")
@@ -304,7 +312,7 @@ def _validate_and_build_customization(
         customization_rows.append({
             "ingredient_id": option.ingredient_id,
             "option_id": option.option_id,
-            "action": "ADICIONAR_EXTRA",
+            "action": CartCustomizationAction.ADD_EXTRA,
             "quantity": extra.quantity,
             "extra_price": CUSTOMIZATION_ADD_SURCHARGE,
         })
@@ -325,7 +333,11 @@ def _validate_and_build_customization(
             (
                 option for option in options.values()
                 if option.ingredient_id == substitution.new_ingredient_id
-                and option.type in ("SUBSTITUIR_MOLHO", "SUBSTITUIR_ACOMPANHAMENTO")
+                and option.type
+                in (
+                    ProductCustomizationOptionType.SUBSTITUTE_SAUCE,
+                    ProductCustomizationOptionType.SUBSTITUTE_SIDE,
+                )
             ),
             None,
         )
@@ -678,7 +690,7 @@ def merge_cart(
     for guest_item in body.items:
         product = db.query(Product).filter(
             Product.product_id == guest_item.product_id,
-            Product.status == 1,
+            Product.status == EntityStatus.ACTIVE,
             Product.deleted_at.is_(None),
         ).first()
         if not product or product.stock <= 0 or unavailable_due_to_inactive_base(db, product):

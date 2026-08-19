@@ -4,7 +4,23 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 from typing import Optional, List
 from datetime import date, datetime
 
-from enums import ADMIN_ROLES, IngredientType, OrderState, UserRole, enum_values, normalize_admin_role
+from enums import (
+    ADMIN_ROLES,
+    CancellationOrigin,
+    EntityStatus,
+    FulfillmentMethod,
+    IngredientType,
+    OrderState,
+    PaymentMethod,
+    PaymentStatus,
+    RefundMethod,
+    RefundReason,
+    RefundStatus,
+    UserRole,
+    UserStatus,
+    enum_values,
+    normalize_admin_role,
+)
 from .id_types import CategoryId, ProductId
 
 ORDER_STATES = set(enum_values(OrderState))
@@ -28,7 +44,7 @@ class AdminResponse(BaseModel):
     name: str
     email: str
     role: UserRole
-    status: int
+    status: UserStatus
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -45,7 +61,7 @@ class StaffAdminCreate(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=6, max_length=128)
     role: UserRole = UserRole.MANAGER
-    status: int = 1
+    status: UserStatus = UserStatus.ACTIVE
 
     @field_validator("role")
     @classmethod
@@ -61,7 +77,7 @@ class StaffAdminUpdate(BaseModel):
     email: Optional[EmailStr] = None
     password: Optional[str] = Field(None, min_length=6, max_length=128)
     role: Optional[UserRole] = None
-    status: Optional[int] = None
+    status: Optional[UserStatus] = None
 
     @field_validator("role")
     @classmethod
@@ -84,7 +100,7 @@ class CustomerAdminResponse(BaseModel):
     address: Optional[str] = None
     postal_code: Optional[str] = None
     city: Optional[str] = None
-    status: Optional[int] = None
+    status: Optional[UserStatus] = None
     created_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -100,7 +116,7 @@ class CustomerAdminCreate(BaseModel):
     address: Optional[str] = Field(None, max_length=255)
     postal_code: Optional[str] = Field(None, max_length=20)
     city: Optional[str] = Field(None, max_length=100)
-    status: int = 1
+    status: UserStatus = UserStatus.ACTIVE
 
 
 class CustomerAdminUpdate(BaseModel):
@@ -113,7 +129,7 @@ class CustomerAdminUpdate(BaseModel):
     address: Optional[str] = Field(None, max_length=255)
     postal_code: Optional[str] = Field(None, max_length=20)
     city: Optional[str] = Field(None, max_length=100)
-    status: Optional[int] = None
+    status: Optional[UserStatus] = None
 
 
 # Product Management Schemas
@@ -142,7 +158,7 @@ class ProductIngredientPayload(BaseModel):
 class IngredientCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=120)
     type: IngredientType = IngredientType.NORMAL
-    status: int = 1
+    status: EntityStatus = EntityStatus.ACTIVE
     calories_per_gram: Optional[float] = Field(None, ge=0)
 
     @field_validator("type")
@@ -159,7 +175,7 @@ class IngredientCreate(BaseModel):
 class IngredientUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=120)
     type: Optional[IngredientType] = None
-    status: Optional[int] = None
+    status: Optional[EntityStatus] = None
     calories_per_gram: Optional[float] = Field(None, ge=0)
 
     @field_validator("type")
@@ -177,7 +193,7 @@ class IngredientResponse(BaseModel):
     ingredient_id: int
     name: str
     type: IngredientType
-    status: int
+    status: EntityStatus
     calories_per_gram: Optional[float] = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -238,7 +254,7 @@ class ProductUpdate(BaseModel):
     price: Optional[float] = None
     stock: Optional[int] = None
     category_id: Optional[CategoryId] = None
-    status: Optional[int] = None
+    status: Optional[EntityStatus] = None
     customizable: Optional[bool] = None
     menu_tags: Optional[str] = None
     featured: Optional[bool] = None
@@ -283,7 +299,7 @@ class ProductAdminResponse(BaseModel):
     category_id: int
     category_display_id: str
     sold: Optional[int]
-    status: Optional[int]
+    status: Optional[EntityStatus]
     customizable: bool = True
     menu_tags: Optional[str] = None
     featured: bool = False
@@ -322,18 +338,18 @@ class OrderResponse(BaseModel):
     customer_phone: Optional[str] = None
     created_at: datetime
     state: OrderState
-    payment_method: str
-    payment_status: str
+    payment_method: PaymentMethod
+    payment_status: PaymentStatus
     total: float
     notes: Optional[str] = None
-    fulfillment_method: str = "pickup"
+    fulfillment_method: FulfillmentMethod = FulfillmentMethod.PICKUP
     table_number: Optional[int] = None
     canceled_at: Optional[datetime] = None
-    cancellation_origin: Optional[str] = None
-    refund_status: str = "None"
+    cancellation_origin: Optional[CancellationOrigin] = None
+    refund_status: Optional[RefundStatus] = None
     refund_id: Optional[int] = None
     refund_amount: Optional[float] = None
-    refund_reason: Optional[str] = None
+    refund_reason: Optional[RefundReason] = None
     refund_notes: Optional[str] = None
     refund_processed_by: Optional[str] = None
     refund_processed_by_role: Optional[str] = None
@@ -345,7 +361,7 @@ class OrderResponse(BaseModel):
 
 
 class OrderStatusUpdate(BaseModel):
-    state: str
+    state: OrderState
 
     @field_validator("state")
     @classmethod
@@ -366,9 +382,9 @@ class KitchenOrderResponse(BaseModel):
     """Reduced order response for kitchen preparation screens."""
     cart_id: int
     created_at: datetime
-    state: str
+    state: OrderState
     notes: Optional[str] = None
-    fulfillment_method: str = "pickup"
+    fulfillment_method: FulfillmentMethod = FulfillmentMethod.PICKUP
     table_number: Optional[int] = None
     updated_at: Optional[datetime] = None
     total_items: int
@@ -380,28 +396,10 @@ class RefundOrderResponse(BaseModel):
     order: OrderResponse
 
 
-REFUND_REASONS = {
-    "Customer changed mind",
-    "Wrong order served",
-    "Missing item",
-    "Food quality issue",
-    "Payment issue",
-    "Duplicate payment",
-    "Other",
-}
-
-
 class RefundRequest(BaseModel):
     amount: float = Field(..., gt=0)
-    reason: str
+    reason: RefundReason
     notes: str = Field(..., min_length=1, max_length=1000)
-
-    @field_validator("reason")
-    @classmethod
-    def validate_reason(cls, value: str) -> str:
-        if value not in REFUND_REASONS:
-            raise ValueError("Motivo do refund inválido.")
-        return value
 
 
 class RefundResponse(BaseModel):
@@ -413,13 +411,13 @@ class RefundResponse(BaseModel):
     customer_name: str
     customer_email: str
     amount: float
-    reason: str
+    reason: RefundReason
     notes: str
     processed_by: str
     processed_by_role: str
     date: datetime
-    status: str
-    refund_method: str
+    status: RefundStatus
+    refund_method: RefundMethod
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -520,7 +518,7 @@ class CategoryResponse(BaseModel):
     category_display_id: str
     category_name: str
     category_description: Optional[str] = None
-    status: Optional[int] = None
+    status: Optional[EntityStatus] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -535,4 +533,4 @@ class CategoryUpdate(BaseModel):
     """Schema for updating a category."""
     category_name: Optional[str] = None
     category_description: Optional[str] = None
-    status: Optional[int] = None
+    status: Optional[EntityStatus] = None

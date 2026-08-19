@@ -2,6 +2,7 @@
 
 from sqlalchemy.orm import Session
 
+from enums import EntityStatus, IngredientType
 from models import Ingredient, Product, ProductIngredient
 
 INACTIVE_BASE_REASON = "Not available right now"
@@ -17,8 +18,8 @@ def inactive_base_product_ids(db: Session, product_ids: list[str]) -> set[str]:
         .join(Ingredient, Ingredient.ingredient_id == ProductIngredient.ingredient_id)
         .filter(
             ProductIngredient.product_id.in_(product_ids),
-            Ingredient.type == "BASE",
-            Ingredient.status == 0,
+            Ingredient.type == IngredientType.BASE,
+            Ingredient.status == EntityStatus.INACTIVE,
         )
         .distinct()
         .all()

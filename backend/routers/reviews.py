@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session, joinedload
 from dependencies import get_current_user, get_current_user_optional, require_role
 from services.auth_service import SUPER_ADMIN_ROLE
 from database import get_db
+from enums import EntityStatus, OrderState, ReviewStatus
 from models import Admin, Customer, Order, OrderProduct, Product, ProductReview, ReviewReaction, ReviewReply
 from schemas.review import (
     ProductReviewCreate,
@@ -73,7 +74,7 @@ def _get_reply_or_404(db: Session, review_id: int, reply_id: int) -> ReviewReply
 def _get_active_product(db: Session, product_id: int) -> Product:
     product = db.query(Product).filter(
         Product.product_id == product_id,
-        ((Product.status == 1) | (Product.status.is_(None))),
+        ((Product.status == EntityStatus.ACTIVE) | (Product.status.is_(None))),
         Product.deleted_at.is_(None),
     ).first()
     if not product:
@@ -99,7 +100,7 @@ def _purchased_order_item(db: Session, current_user: Customer, product_id: int, 
             OrderProduct.order_product_id == order_product_id,
             OrderProduct.product_id == product_id,
             Order.customer_id == current_user.customer_id,
-            Order.state != "cancelada",
+            Order.state != OrderState.CANCELLED,
         )
         .first()
     )
@@ -126,7 +127,7 @@ def list_product_reviews(
     reviews = (
         db.query(ProductReview)
         .options(joinedload(ProductReview.customer))
-        .filter(ProductReview.product_id == parsed_product_id, ProductReview.status == "aprovado")
+        .filter(ProductReview.product_id == parsed_product_id, ProductReview.status == ReviewStatus.APPROVED)
         .order_by(ProductReview.created_at.desc())
         .all()
     )
@@ -139,7 +140,7 @@ def get_product_review_stats(product_id: str, db: Session = Depends(get_db)):
     _get_active_product(db, parsed_product_id)
     average_rating, total_reviews = (
         db.query(func.avg(ProductReview.rating), func.count(ProductReview.review_id))
-        .filter(ProductReview.product_id == parsed_product_id, ProductReview.status == "aprovado")
+        .filter(ProductReview.product_id == parsed_product_id, ProductReview.status == ReviewStatus.APPROVED)
         .one()
     )
     return ProductReviewStatsResponse(
@@ -177,7 +178,7 @@ def get_product_review_eligibility(
         .filter(
             OrderProduct.product_id == parsed_product_id,
             Order.customer_id == current_user.customer_id,
-            Order.state != "cancelada",
+            Order.state != OrderState.CANCELLED,
         )
         .order_by(Order.ordered_at.desc(), OrderProduct.order_product_id.desc())
         .all()
@@ -240,7 +241,7 @@ def create_product_review(
         rating=body.rating,
         title=body.title,
         comment=body.comment,
-        status="aprovado",
+        status=ReviewStatus.APPROVED,
     )
     db.add(review)
     try:

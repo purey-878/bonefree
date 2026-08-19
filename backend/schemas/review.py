@@ -1,13 +1,9 @@
 """Product review schemas."""
 
 from datetime import datetime
-from typing import Literal
-
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-
-ReviewStatus = Literal["pendente", "aprovado", "rejeitado"]
-ReactionType = Literal["like", "heart", "helpful", "flag"]
+from enums import ReviewReactionType, ReviewStatus
 
 
 class ReviewReplyCreate(BaseModel):
@@ -26,14 +22,14 @@ class ReviewReplyResponse(BaseModel):
 
 
 class ReviewReactionCreate(BaseModel):
-    type: ReactionType
+    type: ReviewReactionType
 
 
 class ReviewReactionResponse(BaseModel):
     reaction_id: int
     review_id: int
     admin_id: int
-    type: ReactionType
+    type: ReviewReactionType
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

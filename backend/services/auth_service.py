@@ -11,7 +11,7 @@ from sqlalchemy import update
 from sqlalchemy.orm import Session as DBSession
 
 from core.config import settings
-from enums import UserRole, is_admin_role, normalize_user_role
+from enums import UserRole, UserStatus, is_admin_role, normalize_user_role
 from models import Admin, Customer, Session
 from utils.datetime_utils import to_naive_utc
 
@@ -123,7 +123,7 @@ def authenticate_customer(
     if customer is None or not verify_password(password, customer.password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Email ou palavra-passe inválido.")
 
-    if customer.status == 0:
+    if customer.status != UserStatus.ACTIVE:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="A conta de customer está inativa.")
 
     token = create_customer_session(
@@ -145,7 +145,7 @@ def authenticate_admin(
     if admin is None or not verify_password(password, admin.password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Email ou palavra-passe inválido.")
 
-    if admin.status == 0:
+    if admin.status != UserStatus.ACTIVE:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="A conta de administrador está inativa.")
 
     admin.role = normalize_user_role(admin.role)

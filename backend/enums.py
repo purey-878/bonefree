@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from enum import StrEnum
+from typing import TypeVar, cast
 
 
 class UserRole(StrEnum):
@@ -10,12 +11,6 @@ class UserRole(StrEnum):
     CHEF = "chef"
     CLIENT = "client"
 
-    # Legacy values kept readable while old rows are migrated/normalized.
-    LEGACY_SUPER_ADMIN = "super_admin"
-    LEGACY_STAFF_ADMIN = "staff_admin"
-    LEGACY_ADMIN = "admin"
-    LEGACY_CUSTOMER = "customer"
-
 
 class UserStatus(StrEnum):
     ACTIVE = "active"
@@ -23,60 +18,66 @@ class UserStatus(StrEnum):
     PENDING = "pending"
 
 
+class EntityStatus(StrEnum):
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+
+
 class CouponType(StrEnum):
-    FIXED_VALUE = "VALOR_FIXO"
-    PERCENTAGE = "PERCENTAGEM"
+    FIXED_VALUE = "fixed_value"
+    PERCENTAGE = "percentage"
 
 
 class IngredientType(StrEnum):
-    NORMAL = "INGREDIENTES_NORMAIS"
-    SAUCE = "MOLHO"
-    EXTRA = "EXTRA"
-    DRINK = "BEBIDA"
-    BASE = "BASE"
-    SIDE = "ACOMPANHAMENTO"
+    NORMAL = "normal"
+    SAUCE = "sauce"
+    EXTRA = "extra"
+    DRINK = "drink"
+    BASE = "base"
+    SIDE = "side"
 
 
 class ProductCustomizationOptionType(StrEnum):
-    ADD = "ADICIONAR"
-    REMOVE = "REMOVER"
-    EXTRA = "EXTRA"
-    SUBSTITUTE_SAUCE = "SUBSTITUIR_MOLHO"
+    ADD = "add"
+    REMOVE = "remove"
+    EXTRA = "extra"
+    SUBSTITUTE_SAUCE = "substitute_sauce"
+    SUBSTITUTE_SIDE = "substitute_side"
 
 
 class CartCustomizationAction(StrEnum):
-    REMOVE_INGREDIENT = "REMOVER_INGREDIENTE"
-    ADD_EXTRA = "ADICIONAR_EXTRA"
-    SUBSTITUTE_SAUCE = "SUBSTITUIR_MOLHO"
-    SUBSTITUTE_SIDE = "SUBSTITUIR_ACOMPANHAMENTO"
+    REMOVE_INGREDIENT = "remove_ingredient"
+    ADD_EXTRA = "add_extra"
+    SUBSTITUTE_SAUCE = "substitute_sauce"
+    SUBSTITUTE_SIDE = "substitute_side"
 
 
 class OrderState(StrEnum):
-    PENDING = "pendente"
-    CONFIRMED = "confirmada"
-    IN_PREPARATION = "em_preparacao"
-    READY = "pronta"
-    DELIVERED = "entregue"
-    CANCELLED = "cancelada"
-    REFUNDED = "reembolsada"
+    PENDING = "pending"
+    CONFIRMED = "confirmed"
+    IN_PREPARATION = "in_preparation"
+    READY = "ready"
+    DELIVERED = "delivered"
+    CANCELLED = "cancelled"
+    REFUNDED = "refunded"
 
 
 class PaymentMethod(StrEnum):
-    CARD = "cartao"
+    CARD = "card"
     MBWAY = "mbway"
-    COUNTER = "balcao"
+    COUNTER = "counter"
 
 
 class PaymentStatus(StrEnum):
-    UNPAID = "nao_pago"
-    PAID = "pago"
-    REFUNDED = "reembolsado"
+    UNPAID = "unpaid"
+    PAID = "paid"
+    REFUNDED = "refunded"
 
 
 class ReviewStatus(StrEnum):
-    PENDING = "pendente"
-    APPROVED = "aprovado"
-    REJECTED = "rejeitado"
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
 
 
 class ReviewReactionType(StrEnum):
@@ -85,14 +86,140 @@ class ReviewReactionType(StrEnum):
 
 
 class PaymentState(StrEnum):
-    PENDING = "pendente"
-    APPROVED = "aprovado"
-    REJECTED = "rejeitado"
-    REFUNDED = "reembolsado"
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    REFUNDED = "refunded"
 
 
 class RefundStatus(StrEnum):
-    APPROVED = "aprovado"
+    APPROVED = "approved"
+
+
+class CancellationOrigin(StrEnum):
+    CLIENT = "client"
+    ADMIN = "admin"
+    SYSTEM = "system"
+
+
+class RefundReason(StrEnum):
+    CLIENT_CHANGED_MIND = "client_changed_mind"
+    WRONG_ORDER_SERVED = "wrong_order_served"
+    MISSING_ITEM = "missing_item"
+    FOOD_QUALITY_ISSUE = "food_quality_issue"
+    PAYMENT_ISSUE = "payment_issue"
+    DUPLICATE_PAYMENT = "duplicate_payment"
+    OTHER = "other"
+
+
+class RefundMethod(StrEnum):
+    ORIGINAL_PAYMENT_METHOD = "original_payment_method"
+
+
+class FulfillmentMethod(StrEnum):
+    DINE_IN = "dine_in"
+    PICKUP = "pickup"
+    TAKEAWAY = "takeaway"
+
+
+class CheckoutPaymentMethod(StrEnum):
+    CARD = "card"
+    CASH = "cash"
+    MBWAY = "mbway"
+    QR_PAY = "qr_pay"
+
+
+class SiteSettingKey(StrEnum):
+    SITE_THEME = "site_theme"
+    CHEF_SPECIAL = "chef_special"
+    LOYALTY_COUPON = "loyalty_coupon"
+    COMPANY_DETAILS = "company_details"
+    SOCIAL_MEDIA = "social_media"
+    EVENTS = "events"
+
+
+class ThemeId(StrEnum):
+    NORMAL = "normal"
+    PRESENTATION = "presentation"
+    CHRISTMAS = "christmas"
+    HALLOWEEN = "halloween"
+
+
+class ThemeBackgroundType(StrEnum):
+    SOLID = "solid"
+    GRADIENT = "gradient"
+    PATTERN = "pattern"
+
+
+class ThemeButtonStyle(StrEnum):
+    ROUNDED = "rounded"
+    PILL = "pill"
+    SHARP = "sharp"
+
+
+class ThemeDecorationType(StrEnum):
+    FLOATING = "floating"
+    FIXED = "fixed"
+    BACKGROUND_PATTERN = "background-pattern"
+
+
+class ThemeDecorationElement(StrEnum):
+    SNOWFLAKE = "snowflake"
+    SANTA_HAT = "santa-hat"
+    GHOST = "ghost"
+    SPIDER = "spider"
+    SPIDER_WEB = "spider-web"
+    STAR = "star"
+    LEAF = "leaf"
+    PUMPKIN = "pumpkin"
+    CANDY_CANE = "candy-cane"
+    BAUBLE = "bauble"
+    CUSTOM_SVG = "custom-svg"
+
+
+class ThemeDecorationAnimation(StrEnum):
+    FALL = "fall"
+    FLOAT = "float"
+    SWAY = "sway"
+    SPIN = "spin"
+    FADE_IN_OUT = "fade-in-out"
+    NONE = "none"
+
+
+class ThemeDecorationLayer(StrEnum):
+    BEHIND_CONTENT = "behind-content"
+    ABOVE_CONTENT = "above-content"
+
+
+class ThemeDecorationSize(StrEnum):
+    SM = "sm"
+    MD = "md"
+    LG = "lg"
+    MIXED = "mixed"
+
+
+class SocialPlatform(StrEnum):
+    FACEBOOK = "facebook"
+    INSTAGRAM = "instagram"
+    WHATSAPP = "whatsapp"
+    YOUTUBE = "youtube"
+
+
+class ThemeColorKey(StrEnum):
+    PRIMARY = "primary"
+    ACCENT = "accent"
+    SECONDARY = "secondary"
+    BACKGROUND = "background"
+    SURFACE = "surface"
+    TEXT = "text"
+    TEXT_MUTED = "textMuted"
+    BORDER = "border"
+    PRICE_HIGHLIGHT = "priceHighlight"
+
+
+class CouponDiscountType(StrEnum):
+    FIXED_VALUE = "fixed_value"
+    PERCENTAGE = "percentage"
 
 
 ADMIN_ROLES = {
@@ -103,30 +230,107 @@ ADMIN_ROLES = {
 }
 
 
-LEGACY_ROLE_MAP: dict[str, UserRole] = {
-    "super_admin": UserRole.OWNER,
-    "staff_admin": UserRole.MANAGER,
-    "admin": UserRole.MANAGER,
-    "chef": UserRole.CHEF,
-    "client": UserRole.CLIENT,
-    "customer": UserRole.CLIENT,
+LEGACY_VALUE_MAP: dict[type[StrEnum], dict[str, StrEnum]] = {
+    UserRole: {
+        "super_admin": UserRole.OWNER,
+        "staff_admin": UserRole.MANAGER,
+        "admin": UserRole.MANAGER,
+        "chef": UserRole.CHEF,
+        "client": UserRole.CLIENT,
+        "customer": UserRole.CLIENT,
+    },
+    CouponType: {
+        "VALOR_FIXO": CouponType.FIXED_VALUE,
+        "PERCENTAGEM": CouponType.PERCENTAGE,
+    },
+    IngredientType: {
+        "INGREDIENTES_NORMAIS": IngredientType.NORMAL,
+        "MOLHO": IngredientType.SAUCE,
+        "EXTRA": IngredientType.EXTRA,
+        "BEBIDA": IngredientType.DRINK,
+        "BASE": IngredientType.BASE,
+        "ACOMPANHAMENTO": IngredientType.SIDE,
+    },
+    ProductCustomizationOptionType: {
+        "ADICIONAR": ProductCustomizationOptionType.ADD,
+        "REMOVER": ProductCustomizationOptionType.REMOVE,
+        "EXTRA": ProductCustomizationOptionType.EXTRA,
+        "SUBSTITUIR_MOLHO": ProductCustomizationOptionType.SUBSTITUTE_SAUCE,
+        "SUBSTITUIR_ACOMPANHAMENTO": ProductCustomizationOptionType.SUBSTITUTE_SIDE,
+    },
+    CartCustomizationAction: {
+        "REMOVER_INGREDIENTE": CartCustomizationAction.REMOVE_INGREDIENT,
+        "ADICIONAR_EXTRA": CartCustomizationAction.ADD_EXTRA,
+        "SUBSTITUIR_MOLHO": CartCustomizationAction.SUBSTITUTE_SAUCE,
+        "SUBSTITUIR_ACOMPANHAMENTO": CartCustomizationAction.SUBSTITUTE_SIDE,
+    },
+    OrderState: {
+        "pendente": OrderState.PENDING,
+        "confirmada": OrderState.CONFIRMED,
+        "em_preparacao": OrderState.IN_PREPARATION,
+        "pronta": OrderState.READY,
+        "entregue": OrderState.DELIVERED,
+        "cancelada": OrderState.CANCELLED,
+        "reembolsada": OrderState.REFUNDED,
+    },
+    PaymentMethod: {
+        "cartao": PaymentMethod.CARD,
+        "balcao": PaymentMethod.COUNTER,
+    },
+    PaymentStatus: {
+        "nao_pago": PaymentStatus.UNPAID,
+        "pago": PaymentStatus.PAID,
+        "reembolsado": PaymentStatus.REFUNDED,
+    },
+    ReviewStatus: {
+        "pendente": ReviewStatus.PENDING,
+        "aprovado": ReviewStatus.APPROVED,
+        "rejeitado": ReviewStatus.REJECTED,
+    },
+    PaymentState: {
+        "pendente": PaymentState.PENDING,
+        "aprovado": PaymentState.APPROVED,
+        "rejeitado": PaymentState.REJECTED,
+        "reembolsado": PaymentState.REFUNDED,
+    },
+    RefundStatus: {
+        "aprovado": RefundStatus.APPROVED,
+    },
+    CouponDiscountType: {
+        "VALOR_FIXO": CouponDiscountType.FIXED_VALUE,
+        "PERCENTAGEM": CouponDiscountType.PERCENTAGE,
+    },
 }
+
+
+EnumT = TypeVar("EnumT", bound=StrEnum)
 
 
 def enum_values(enum_cls: type[StrEnum]) -> list[str]:
     return [member.value for member in enum_cls]
 
 
-def normalize_user_role(role: str | UserRole | None) -> UserRole:
-    if isinstance(role, UserRole):
-        return role
-    if role is None:
-        return UserRole.CLIENT
-    normalized = role.strip()
+def normalize_enum(enum_cls: type[EnumT], value: str | StrEnum | None, default: EnumT | None = None) -> EnumT:
+    if isinstance(value, enum_cls):
+        return value
+    if value is None:
+        if default is not None:
+            return default
+        raise ValueError(f"{enum_cls.__name__} cannot be None")
+    normalized = str(value).strip()
     try:
-        return UserRole(normalized)
+        return enum_cls(normalized)
     except ValueError:
-        return LEGACY_ROLE_MAP.get(normalized, UserRole.CLIENT)
+        legacy_value = LEGACY_VALUE_MAP.get(enum_cls, {}).get(normalized)
+        if legacy_value is not None:
+            return cast(EnumT, legacy_value)
+        if default is not None:
+            return default
+        raise
+
+
+def normalize_user_role(role: str | UserRole | None) -> UserRole:
+    return normalize_enum(UserRole, role, UserRole.CLIENT)
 
 
 def normalize_admin_role(role: str | UserRole | None) -> UserRole:
