@@ -17,6 +17,7 @@ from typing import Dict, List, Optional, Union
 
 from database import get_db
 from dependencies import get_current_admin, require_role
+from enums import ADMIN_ROLES, IngredientType, OrderState, PaymentMethod, PaymentState, PaymentStatus, UserRole, normalize_admin_role
 from models import (
     Admin, Product, Cart, CartProduct as CartItem, Customer, ProductImage,
     Category, Order, OrderProduct, Payment, ProductReview,
@@ -28,7 +29,6 @@ from services.auth_service import (
     SUPER_ADMIN_ROLE,
     authenticate_admin,
     hash_password,
-    normalize_admin_role,
 )
 from schemas.admin import (
     AdminLogin, AdminTokenResponse,
@@ -81,9 +81,16 @@ def _delete_uploaded_image_file(image_path: str) -> None:
         except Exception:
             logger.exception("Failed to remove product image file %s", filepath)
 
-KITCHEN_VISIBLE_STATES = ("confirmada", "em_preparacao", "pronta")
-CHEF_ALLOWED_STATES = {"confirmada", "em_preparacao", "pronta"}
-STAFF_ALLOWED_STATES = {"pendente", "confirmada", "em_preparacao", "pronta", "entregue", "cancelada"}
+KITCHEN_VISIBLE_STATES = (OrderState.CONFIRMED, OrderState.IN_PREPARATION, OrderState.READY)
+CHEF_ALLOWED_STATES = {OrderState.CONFIRMED, OrderState.IN_PREPARATION, OrderState.READY}
+STAFF_ALLOWED_STATES = {
+    OrderState.PENDING,
+    OrderState.CONFIRMED,
+    OrderState.IN_PREPARATION,
+    OrderState.READY,
+    OrderState.DELIVERED,
+    OrderState.CANCELLED,
+}
 
 
 SalesStats = Dict[str, Union[float, int]]
@@ -326,9 +333,9 @@ def _ingredient_response(row: ProductIngredient) -> ProductIngredientResponse:
     return ProductIngredientResponse(
         ingredient_id=row.ingredient_id,
         name=ingredient.name if ingredient else "",
-        type=ingredient.type if ingredient else "INGREDIENTES_NORMAIS",
+        type=ingredient.type if ingredient else IngredientType.NORMAL,
         included_by_default=bool(row.included_by_default),
-        removable=bool(row.removable) and bool(ingredient and ingredient.type == "INGREDIENTES_NORMAIS"),
+        removable=bool(row.removable) and bool(ingredient and ingredient.type == IngredientType.NORMAL),
         substitutable=bool(row.substitutable),
         quantity=row.quantity,
         calories_per_gram=float(ingredient.calories_per_gram) if ingredient and ingredient.calories_per_gram is not None else None,
@@ -410,7 +417,7 @@ def _sync_product_ingredients(db: Session, product_id: int, ingredients: List[Pr
             product_id=product_id,
             ingredient_id=ingredient.ingredient_id,
             included_by_default=1 if payload.included_by_default else 0,
-            removable=1 if payload.removable and ingredient.type == "INGREDIENTES_NORMAIS" else 0,
+            removable=1 if payload.removable and ingredient.type == IngredientType.NORMAL else 0,
             substitutable=1 if payload.substitutable else 0,
             quantity=payload.quantity,
         ))
@@ -482,7 +489,7 @@ def _order_response(order: Order) -> OrderResponse:
         refund_reason=latest_refund.reason if latest_refund else None,
         refund_notes=latest_refund.notes if latest_refund else None,
         refund_processed_by=latest_refund.admin.name if latest_refund and latest_refund.admin else None,
-        refund_processed_by_role=latest_refund.admin.role if latest_refund and latest_refund.admin else None,
+        refund_processed_by_role=normalize_admin_role(latest_refund.admin.role) if latest_refund and latest_refund.admin else None,
         refund_date=latest_refund.refunded_at if latest_refund else None,
         updated_at=order.updated_at,
         total_items=sum(item.quantity for item in order.items),
@@ -527,7 +534,7 @@ def _refund_response(refund: Refund) -> RefundResponse:
         reason=refund.reason,
         notes=refund.notes,
         processed_by=admin.name if admin else "Staff",
-        processed_by_role=admin.role if admin else "staff_admin",
+        processed_by_role=normalize_admin_role(admin.role) if admin else UserRole.MANAGER,
         date=refund.refunded_at,
         status=refund.status,
         refund_method=REFUND_METHOD_TEXT,
@@ -560,12 +567,13 @@ def _get_order_or_404(db: Session, order_id: int) -> Order:
     return order
 
 
-def _ensure_order_status_allowed(current_admin: Admin, next_status: str) -> None:
-    if current_admin.role == CHEF_ROLE and next_status not in CHEF_ALLOWED_STATES:
+def _ensure_order_status_allowed(current_admin: Admin, next_status: str | OrderState) -> None:
+    next_state = OrderState(next_status)
+    if current_admin.role == CHEF_ROLE and next_state not in CHEF_ALLOWED_STATES:
         raise HTTPException(status_code=403, detail="O chef so pode atualizar o state de preparacao da cozinha.")
-    if current_admin.role == SUPER_ADMIN_ROLE and next_status == "reembolsada":
+    if current_admin.role == SUPER_ADMIN_ROLE and next_state == OrderState.REFUNDED:
         return
-    if current_admin.role in {STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE} and next_status not in STAFF_ALLOWED_STATES:
+    if current_admin.role in {STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE} and next_state not in STAFF_ALLOWED_STATES:
         raise HTTPException(status_code=400, detail="Estado do pedido inválido.")
 
 
@@ -573,27 +581,27 @@ def _is_kitchen_visible(order: Order) -> bool:
     if order.state in KITCHEN_VISIBLE_STATES:
         return True
     return (
-        order.payment_method == "balcao"
-        and order.payment_status == "pago"
-        and order.state not in {"entregue", "cancelada"}
+        order.payment_method == PaymentMethod.COUNTER
+        and order.payment_status == PaymentStatus.PAID
+        and order.state not in {OrderState.DELIVERED, OrderState.CANCELLED}
     )
 
 
 # ─────────────────────────────────────────────────────────────
 def _confirm_counter_payment(db: Session, order: Order, current_admin: Admin) -> bool:
-    was_paid = order.payment_status == "pago"
-    order.payment_status = "pago"
+    was_paid = order.payment_status == PaymentStatus.PAID
+    order.payment_status = PaymentStatus.PAID
 
     now = datetime.utcnow()
     if order.payment:
-        order.payment.state = "aprovado"
+        order.payment.state = PaymentState.APPROVED
         order.payment.paid_at = now
         order.payment.confirmed_by_admin_id = current_admin.admin_id
     else:
         db.add(Payment(
             order_id=order.order_id,
-            method="balcao",
-            state="aprovado",
+            method=PaymentMethod.COUNTER,
+            state=PaymentState.APPROVED,
             value=order.total,
             transaction_reference=f"BAL-{now.strftime('%Y%m%d')}-{order.order_id:03d}",
             paid_at=now,
@@ -607,13 +615,13 @@ def _confirm_counter_payment(db: Session, order: Order, current_admin: Admin) ->
 def _staff_order_filter():
     today = datetime.utcnow().date()
     return or_(
-        Order.state.in_(("pendente", "confirmada", "em_preparacao", "pronta")),
+        Order.state.in_((OrderState.PENDING, OrderState.CONFIRMED, OrderState.IN_PREPARATION, OrderState.READY)),
         (
-            (Order.state == "entregue")
+            (Order.state == OrderState.DELIVERED)
             & (func.date(Order.updated_at) == today)
         ),
         (
-            (Order.state == "cancelada")
+            (Order.state == OrderState.CANCELLED)
             & (func.date(Order.updated_at) == today)
         ),
     )
@@ -729,7 +737,7 @@ def list_ingredients(
         )
         linked_ingredient_ids = select(ProductIngredient.ingredient_id)
         query = query.filter(
-            Ingredient.type != "BEBIDA",
+            Ingredient.type != IngredientType.DRINK,
             or_(
                 Ingredient.ingredient_id.in_(non_drink_ingredient_ids),
                 ~Ingredient.ingredient_id.in_(linked_ingredient_ids),
@@ -1220,9 +1228,9 @@ def list_kitchen_orders(
             or_(
                 Order.state.in_(KITCHEN_VISIBLE_STATES),
                 (
-                    (Order.payment_method == "balcao")
-                    & (Order.payment_status == "pago")
-                    & (Order.state.notin_(("entregue", "cancelada")))
+                    (Order.payment_method == PaymentMethod.COUNTER)
+                    & (Order.payment_status == PaymentStatus.PAID)
+                    & (Order.state.notin_((OrderState.DELIVERED, OrderState.CANCELLED)))
                 ),
             )
         )
@@ -1270,9 +1278,9 @@ def update_order_status(
     _ensure_order_status_allowed(current_admin, body.state)
     should_confirm_counter_payment = (
         current_admin.role in {STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE}
-        and order.payment_method == "balcao"
-        and order.payment_status == "nao_pago"
-        and body.state not in {"pendente", "reembolsada"}
+        and order.payment_method == PaymentMethod.COUNTER
+        and order.payment_status == PaymentStatus.UNPAID
+        and body.state not in {OrderState.PENDING, OrderState.REFUNDED}
     )
     was_paid = False
     if should_confirm_counter_payment:
@@ -1300,14 +1308,14 @@ def pay_counter_order(
     db: Session = Depends(get_db),
 ):
     order = _get_order_or_404(db, order_id)
-    if order.payment_method != "balcao":
+    if order.payment_method != PaymentMethod.COUNTER:
         raise HTTPException(status_code=400, detail="Aqui só pedidos com payment ao balcão podem ser marcados como pagos.")
-    if order.payment_status == "reembolsado":
+    if order.payment_status == PaymentStatus.REFUNDED:
         raise HTTPException(status_code=400, detail="Pedidos reembolsados não podem ser marcados como pagos.")
 
     was_paid = _confirm_counter_payment(db, order, current_admin)
-    if order.state not in KITCHEN_VISIBLE_STATES and order.state not in {"entregue", "cancelada"}:
-        order.state = "confirmada"
+    if order.state not in KITCHEN_VISIBLE_STATES and order.state not in {OrderState.DELIVERED, OrderState.CANCELLED}:
+        order.state = OrderState.CONFIRMED
     order.admin_id = current_admin.admin_id
     order.updated_at = datetime.utcnow()
     db.commit()
@@ -1331,19 +1339,19 @@ def refund_order(
     db: Session = Depends(get_db),
 ):
     order = _get_order_or_404(db, order_id)
-    if order.payment_status == "reembolsado":
+    if order.payment_status == PaymentStatus.REFUNDED:
         raise HTTPException(status_code=400, detail="O pedido já foi reembolsado.")
-    if order.payment_status != "pago":
+    if order.payment_status != PaymentStatus.PAID:
         raise HTTPException(status_code=400, detail="Apenas pedidos pagos podem ser reembolsados.")
     if Decimal(str(body.amount)) > Decimal(str(order.total)):
         raise HTTPException(status_code=400, detail="O value do refund não pode exceder o total do pedido.")
 
-    order.payment_status = "reembolsado"
-    order.state = "reembolsada"
+    order.payment_status = PaymentStatus.REFUNDED
+    order.state = OrderState.REFUNDED
     order.admin_id = current_admin.admin_id
     order.updated_at = datetime.utcnow()
     if order.payment:
-        order.payment.state = "reembolsado"
+        order.payment.state = PaymentState.REFUNDED
 
     refund = Refund(
         order_id=order.order_id,
@@ -1493,7 +1501,7 @@ def list_customers(
     current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
-    query = db.query(Customer).options(joinedload(Customer.billing_address))
+    query = db.query(Customer).options(joinedload(Customer.billing_address)).filter(Customer.role == UserRole.CLIENT)
     if search:
         pattern = f"%{search}%"
         query = query.filter(or_(Customer.name.ilike(pattern), Customer.last_name.ilike(pattern), Customer.email.ilike(pattern)))
@@ -1519,6 +1527,7 @@ def create_customer(
         phone=body.phone,
         tax_id=body.tax_id,
         status=body.status,
+        role=UserRole.CLIENT,
         created_at=datetime.utcnow(),
     )
     db.add(customer)
@@ -1539,7 +1548,7 @@ def update_customer(
     customer = (
         db.query(Customer)
         .options(joinedload(Customer.billing_address))
-        .filter(Customer.customer_id == customer_id)
+        .filter(Customer.customer_id == customer_id, Customer.role == UserRole.CLIENT)
         .first()
     )
     if not customer:
@@ -1575,7 +1584,7 @@ def delete_customer(
     customer = (
         db.query(Customer)
         .options(joinedload(Customer.billing_address))
-        .filter(Customer.customer_id == customer_id)
+        .filter(Customer.customer_id == customer_id, Customer.role == UserRole.CLIENT)
         .first()
     )
     if not customer:
@@ -1593,10 +1602,9 @@ def list_staff_admins(
     current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
-    admins = db.query(Admin).order_by(Admin.admin_id.asc()).all()
+    admins = db.query(Admin).filter(Admin.role.in_(ADMIN_ROLES)).order_by(Admin.admin_id.asc()).all()
     for admin in admins:
-        if admin.role == "admin":
-            admin.role = "staff_admin"
+        admin.role = normalize_admin_role(admin.role)
     return admins
 
 
@@ -1631,7 +1639,7 @@ def update_staff_admin(
     current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
-    admin = db.query(Admin).filter(Admin.admin_id == admin_id).first()
+    admin = db.query(Admin).filter(Admin.admin_id == admin_id, Admin.role.in_(ADMIN_ROLES)).first()
     if not admin:
         raise HTTPException(status_code=404, detail="Administrador não encontrado.")
 
@@ -1663,7 +1671,7 @@ def delete_staff_admin(
 ):
     if admin_id == current_admin.admin_id:
         raise HTTPException(status_code=400, detail="Não pode desativar a sua própria conta de administrador.")
-    admin = db.query(Admin).filter(Admin.admin_id == admin_id).first()
+    admin = db.query(Admin).filter(Admin.admin_id == admin_id, Admin.role.in_(ADMIN_ROLES)).first()
     if not admin:
         raise HTTPException(status_code=404, detail="Administrador não encontrado.")
     admin.status = 0
@@ -1684,7 +1692,7 @@ def get_dashboard_analytics(
     # Count totals
     total_products = db.query(func.count(Product.product_id)).filter(Product.status == 1).scalar() or 0
     total_categories = db.query(func.count(Category.category_id)).filter(Category.status == 1).scalar() or 0
-    total_customers = db.query(func.count(Customer.customer_id)).filter(Customer.status == 1).scalar() or 0
+    total_customers = db.query(func.count(Customer.customer_id)).filter(Customer.status == 1, Customer.role == UserRole.CLIENT).scalar() or 0
     total_carts = db.query(func.count(Cart.cart_id)).scalar() or 0
     
     # Get low-stock products
@@ -1837,7 +1845,7 @@ def get_analytics_series(
             buckets[key]["order_numbers"] += 1
 
     else:
-        customers = db.query(Customer).all()
+        customers = db.query(Customer).filter(Customer.role == UserRole.CLIENT).all()
         for customer in customers:
             created_at = _parse_customer_created_at(customer.created_at)
             if not created_at or created_at < start or created_at > end:

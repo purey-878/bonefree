@@ -9,8 +9,9 @@ from sqlalchemy.orm import Session as DBSession
 
 from core.config import settings
 from database import get_db
-from models import Admin, AdminSession, Customer, Session
-from services.auth_service import hash_session_token, normalize_admin_role
+from enums import UserRole, is_admin_role, normalize_admin_role, normalize_user_role
+from models import Admin, Customer, Session
+from services.auth_service import hash_session_token
 from utils.datetime_utils import to_naive_utc
 
 
@@ -93,7 +94,7 @@ def get_current_admin(
     if token is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Autenticação necessária.")
 
-    session = db.scalars(select(AdminSession).where(AdminSession.token_hash == hash_session_token(token))).first()
+    session = db.scalars(select(Session).where(Session.token_hash == hash_session_token(token))).first()
     now = _current_naive_utc()
 
     if (
@@ -116,7 +117,9 @@ def get_current_admin(
     if current_admin.status == 0:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="A conta de administrador está inativa.")
 
-    current_admin.role = normalize_admin_role(current_admin.role)
+    current_admin.role = normalize_user_role(current_admin.role)
+    if not is_admin_role(current_admin.role):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="A conta não tem permissões de administrador.")
 
     if session.last_seen_at is None or (now - session.last_seen_at).total_seconds() > 60:
         session.last_seen_at = now
@@ -125,11 +128,11 @@ def get_current_admin(
     return current_admin
 
 
-def require_role(*allowed_roles: str) -> Callable:
+def require_role(*allowed_roles: str | UserRole) -> Callable:
     normalized_allowed_roles = tuple(normalize_admin_role(role) for role in allowed_roles)
 
     def role_checker(current_admin: Admin = Depends(get_current_admin)) -> Admin:
-        current_admin.role = normalize_admin_role(current_admin.role)
+        current_admin.role = normalize_user_role(current_admin.role)
         if current_admin.role not in normalized_allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

@@ -28,6 +28,13 @@ def _table_exists(table_name: str) -> bool:
     return table_name in _inspector().get_table_names()
 
 
+def _column_exists(table_name: str, column_name: str) -> bool:
+    if not _table_exists(table_name):
+        return False
+
+    return any(column["name"] == column_name for column in _inspector().get_columns(table_name))
+
+
 def _index_exists(table_name: str, index_name: str) -> bool:
     if not _table_exists(table_name):
         return False
@@ -47,6 +54,12 @@ def _create_index_if_missing(
     *,
     unique: bool = False,
 ) -> None:
+    if not _table_exists(table_name):
+        return
+
+    if any(not _column_exists(table_name, column) for column in columns):
+        return
+
     if not _index_exists(table_name, index_name):
         op.create_index(index_name, table_name, columns, unique=unique)
 
@@ -74,6 +87,11 @@ def _create_admin_session_table() -> None:
 
 def _create_session_table() -> None:
     if _table_exists("session"):
+        if not _column_exists("session", "customer_id"):
+            if _column_exists("session", "id_cliente"):
+                op.alter_column("session", "id_cliente", new_column_name="customer_id")
+            else:
+                op.add_column("session", sa.Column("customer_id", sa.Integer(), nullable=True))
         return
 
     op.create_table(

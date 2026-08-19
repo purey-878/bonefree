@@ -27,6 +27,7 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
+from enums import UserRole
 from models import Order, Refund
 
 logger = logging.getLogger(__name__)
@@ -66,7 +67,7 @@ def build_refund_receipt_payload(refund: Refund) -> dict[str, Any]:
         "refund_notes": refund.notes,
         "refund_date": refund.refunded_at,
         "processed_by": admin.name if admin else "Staff",
-        "processed_by_role": admin.role if admin else "staff_admin",
+        "processed_by_role": admin.role if admin else UserRole.MANAGER,
         "refund_method": REFUND_METHOD_TEXT,
     }
 

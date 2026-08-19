@@ -11,16 +11,15 @@ from sqlalchemy import update
 from sqlalchemy.orm import Session as DBSession
 
 from core.config import settings
-from models import Admin, AdminSession, Customer, Session
+from enums import UserRole, is_admin_role, normalize_user_role
+from models import Admin, Customer, Session
 from utils.datetime_utils import to_naive_utc
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-STAFF_ADMIN_ROLE = "staff_admin"
-SUPER_ADMIN_ROLE = "super_admin"
-CHEF_ROLE = "chef"
-LEGACY_ADMIN_ROLE = "admin"
-ADMIN_ROLES = {SUPER_ADMIN_ROLE, STAFF_ADMIN_ROLE, CHEF_ROLE}
+STAFF_ADMIN_ROLE = UserRole.MANAGER
+SUPER_ADMIN_ROLE = UserRole.OWNER
+CHEF_ROLE = UserRole.CHEF
 
 
 def hash_password(password: str) -> str:
@@ -67,14 +66,6 @@ def get_client_ip(request: Request) -> str | None:
     return None
 
 
-def normalize_admin_role(role: str | None) -> str:
-    if role == LEGACY_ADMIN_ROLE:
-        return STAFF_ADMIN_ROLE
-    if role in ADMIN_ROLES:
-        return role
-    return STAFF_ADMIN_ROLE
-
-
 def create_customer_session(
     db: DBSession,
     customer_id: int,
@@ -102,7 +93,7 @@ def create_admin_session(
 ) -> str:
     token = secrets.token_urlsafe(32)
     expires_at = datetime.now(UTC) + timedelta(minutes=settings.admin_session_expiration_minutes)
-    session = AdminSession(
+    session = Session(
         admin_id=admin_id,
         token_hash=hash_session_token(token),
         ip_address=ip_address,
@@ -119,7 +110,7 @@ def revoke_all_customer_sessions(db: DBSession, customer_id: int) -> None:
 
 
 def revoke_all_admin_sessions(db: DBSession, admin_id: int) -> None:
-    db.execute(update(AdminSession).where(AdminSession.admin_id == admin_id).values(revoked=True))
+    db.execute(update(Session).where(Session.admin_id == admin_id).values(revoked=True))
     db.commit()
 
 
@@ -157,7 +148,10 @@ def authenticate_admin(
     if admin.status == 0:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="A conta de administrador está inativa.")
 
-    admin.role = normalize_admin_role(admin.role)
+    admin.role = normalize_user_role(admin.role)
+    if not is_admin_role(admin.role):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Email ou palavra-passe inválido.")
+
     token = create_admin_session(
         db,
         admin.id,

@@ -3,12 +3,17 @@
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 from typing import Optional, List
 from datetime import date, datetime
+
+from enums import ADMIN_ROLES, IngredientType, OrderState, UserRole, enum_values, normalize_admin_role
 from .id_types import CategoryId, ProductId
 
-ADMIN_ROLES = {"super_admin", "staff_admin", "chef"}
-ORDER_STATES = {"pendente", "confirmada", "em_preparacao", "pronta", "entregue", "cancelada", "reembolsada"}
-KITCHEN_ORDER_STATES = {"confirmada", "em_preparacao", "pronta"}
-INGREDIENT_TYPES = {"INGREDIENTES_NORMAIS", "MOLHO", "EXTRA", "BEBIDA", "BASE", "ACOMPANHAMENTO"}
+ORDER_STATES = set(enum_values(OrderState))
+KITCHEN_ORDER_STATES = {
+    OrderState.CONFIRMED.value,
+    OrderState.IN_PREPARATION.value,
+    OrderState.READY.value,
+}
+INGREDIENT_TYPES = set(enum_values(IngredientType))
 
 
 class AdminLogin(BaseModel):
@@ -22,7 +27,7 @@ class AdminResponse(BaseModel):
     admin_id: int
     name: str
     email: str
-    role: str
+    role: UserRole
     status: int
 
     model_config = ConfigDict(from_attributes=True)
@@ -39,30 +44,34 @@ class StaffAdminCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     email: EmailStr
     password: str = Field(..., min_length=6, max_length=128)
-    role: str = "staff_admin"
+    role: UserRole = UserRole.MANAGER
     status: int = 1
 
     @field_validator("role")
     @classmethod
-    def validate_role(cls, value: str) -> str:
-        if value not in ADMIN_ROLES:
-            raise ValueError("A função deve ser super_admin, staff_admin ou chef.")
-        return value
+    def validate_role(cls, value: str | UserRole) -> UserRole:
+        normalized = normalize_admin_role(value)
+        if normalized not in ADMIN_ROLES:
+            raise ValueError("A função deve ser owner, manager, waiter ou chef.")
+        return normalized
 
 
 class StaffAdminUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
     email: Optional[EmailStr] = None
     password: Optional[str] = Field(None, min_length=6, max_length=128)
-    role: Optional[str] = None
+    role: Optional[UserRole] = None
     status: Optional[int] = None
 
     @field_validator("role")
     @classmethod
-    def validate_role(cls, value: Optional[str]) -> Optional[str]:
-        if value is not None and value not in ADMIN_ROLES:
-            raise ValueError("A função deve ser super_admin, staff_admin ou chef.")
-        return value
+    def validate_role(cls, value: Optional[str | UserRole]) -> Optional[UserRole]:
+        if value is None:
+            return value
+        normalized = normalize_admin_role(value)
+        if normalized not in ADMIN_ROLES:
+            raise ValueError("A função deve ser owner, manager, waiter ou chef.")
+        return normalized
 
 
 class CustomerAdminResponse(BaseModel):
@@ -112,7 +121,7 @@ class ProductIngredientPayload(BaseModel):
     """Ingredient assignment for a product."""
     ingredient_id: Optional[int] = None
     name: Optional[str] = Field(None, min_length=1, max_length=120)
-    type: str = "INGREDIENTES_NORMAIS"
+    type: IngredientType = IngredientType.NORMAL
     included_by_default: bool = True
     removable: bool = True
     substitutable: bool = False
@@ -121,49 +130,53 @@ class ProductIngredientPayload(BaseModel):
 
     @field_validator("type")
     @classmethod
-    def validate_tipo(cls, value: str) -> str:
+    def validate_tipo(cls, value: str | IngredientType) -> IngredientType:
+        if isinstance(value, IngredientType):
+            return value
         normalized = value.strip().upper()
         if normalized not in INGREDIENT_TYPES:
             raise ValueError("Tipo de ingredient inválido.")
-        return normalized
+        return IngredientType(normalized)
 
 
 class IngredientCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=120)
-    type: str = "INGREDIENTES_NORMAIS"
+    type: IngredientType = IngredientType.NORMAL
     status: int = 1
     calories_per_gram: Optional[float] = Field(None, ge=0)
 
     @field_validator("type")
     @classmethod
-    def validate_tipo(cls, value: str) -> str:
+    def validate_tipo(cls, value: str | IngredientType) -> IngredientType:
+        if isinstance(value, IngredientType):
+            return value
         normalized = value.strip().upper()
         if normalized not in INGREDIENT_TYPES:
             raise ValueError("Tipo de ingredient inválido.")
-        return normalized
+        return IngredientType(normalized)
 
 
 class IngredientUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=120)
-    type: Optional[str] = None
+    type: Optional[IngredientType] = None
     status: Optional[int] = None
     calories_per_gram: Optional[float] = Field(None, ge=0)
 
     @field_validator("type")
     @classmethod
-    def validate_tipo(cls, value: Optional[str]) -> Optional[str]:
-        if value is None:
+    def validate_tipo(cls, value: Optional[str | IngredientType]) -> Optional[IngredientType]:
+        if value is None or isinstance(value, IngredientType):
             return value
         normalized = value.strip().upper()
         if normalized not in INGREDIENT_TYPES:
             raise ValueError("Tipo de ingredient inválido.")
-        return normalized
+        return IngredientType(normalized)
 
 
 class IngredientResponse(BaseModel):
     ingredient_id: int
     name: str
-    type: str
+    type: IngredientType
     status: int
     calories_per_gram: Optional[float] = None
 
@@ -173,7 +186,7 @@ class IngredientResponse(BaseModel):
 class ProductIngredientResponse(BaseModel):
     ingredient_id: int
     name: str
-    type: str
+    type: IngredientType
     included_by_default: bool = True
     removable: bool = True
     substitutable: bool = False
@@ -308,7 +321,7 @@ class OrderResponse(BaseModel):
     customer_name: Optional[str]
     customer_phone: Optional[str] = None
     created_at: datetime
-    state: str
+    state: OrderState
     payment_method: str
     payment_status: str
     total: float
@@ -336,10 +349,12 @@ class OrderStatusUpdate(BaseModel):
 
     @field_validator("state")
     @classmethod
-    def validate_estado(cls, value: str) -> str:
+    def validate_estado(cls, value: str | OrderState) -> OrderState:
+        if isinstance(value, OrderState):
+            return value
         if value not in ORDER_STATES:
             raise ValueError("Estado do pedido inválido.")
-        return value
+        return OrderState(value)
 
 
 class CounterPaymentResponse(BaseModel):
