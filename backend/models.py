@@ -1,57 +1,64 @@
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional
 
-from sqlalchemy import Boolean, Date, DateTime, Enum, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
+from sqlalchemy.orm import Mapped, mapped_column, relationship, synonym
 
 from database import Base
 from utils.datetime_utils import naive_utc_now
 from utils.id_format import format_category_id, format_product_id
 
 
-class Admin(Base):
+class AppBaseModel(Base):
+    __abstract__ = True
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=naive_utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=naive_utc_now, onupdate=naive_utc_now, nullable=False)
+
+
+class Admin(AppBaseModel):
     __tablename__ = 'admin'
 
-    admin_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
+    admin_id = synonym("id")
+
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     email: Mapped[str] = mapped_column(String(150), nullable=False, unique=True, index=True)
     password: Mapped[str] = mapped_column(String(255), nullable=False)
-    created_at: Mapped[date] = mapped_column(Date, nullable=True)
     status: Mapped[int] = mapped_column(Integer, default=1, nullable=True)
     role: Mapped[str] = mapped_column(String(30), default='staff_admin', nullable=False)
 
 
-class Category(Base):
+class Category(AppBaseModel):
     __tablename__ = 'category'
 
-    category_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
+    category_id = synonym("id")
+
     category_name: Mapped[str] = mapped_column(String(100), nullable=False)
     category_description: Mapped[str] = mapped_column(String(255), nullable=True)
-    admin_id: Mapped[int] = mapped_column(Integer, ForeignKey('admin.admin_id'), nullable=False, index=True)
+    admin_id: Mapped[int] = mapped_column(Integer, ForeignKey('admin.id'), nullable=False, index=True)
     status: Mapped[int] = mapped_column(Integer, nullable=True)
 
     admin: Mapped[Admin] = relationship('Admin')
 
     @property
     def category_display_id(self) -> str:
-        return format_category_id(self.category_id)
+        return format_category_id(self.id)
 
 
-class SiteSetting(Base):
+class SiteSetting(AppBaseModel):
     __tablename__ = 'site_setting'
 
-    key: Mapped[str] = mapped_column(String(100), primary_key=True, index=True)
+    key: Mapped[str] = mapped_column(String(100), nullable=False, unique=True, index=True)
     value: Mapped[str] = mapped_column(Text, nullable=True)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=naive_utc_now, onupdate=naive_utc_now, nullable=True)
 
 
-class CompanyConfig(Base):
+class CompanyConfig(AppBaseModel):
     __tablename__ = 'company_config'
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
     company_name: Mapped[str] = mapped_column(String(150), nullable=False)
     company_tax_id: Mapped[str] = mapped_column(String(20), nullable=False)
     address: Mapped[str] = mapped_column(String(255), nullable=True)
@@ -60,19 +67,19 @@ class CompanyConfig(Base):
     country: Mapped[str] = mapped_column(String(100), nullable=False, default="Portugal", server_default="Portugal")
     email: Mapped[str] = mapped_column(String(150), nullable=True)
     phone: Mapped[str] = mapped_column(String(30), nullable=True)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=naive_utc_now, onupdate=naive_utc_now, nullable=False)
 
 
-class Product(Base):
+class Product(AppBaseModel):
     __tablename__ = 'product'
 
-    product_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
+    product_id = synonym("id")
+
     name: Mapped[str] = mapped_column(String(150), nullable=False)
     product_description: Mapped[str] = mapped_column(String(255), nullable=True)
     price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     stock: Mapped[int] = mapped_column(Integer, nullable=False)
-    category_id: Mapped[int] = mapped_column(Integer, ForeignKey('category.category_id'), nullable=False)
-    admin_id: Mapped[int] = mapped_column(Integer, ForeignKey('admin.admin_id'), nullable=False, index=True)
+    category_id: Mapped[int] = mapped_column(Integer, ForeignKey('category.id'), nullable=False)
+    admin_id: Mapped[int] = mapped_column(Integer, ForeignKey('admin.id'), nullable=False, index=True)
     sold: Mapped[int] = mapped_column(Integer, nullable=True)
     image: Mapped[str] = mapped_column(String(255), nullable=True)
     status: Mapped[int] = mapped_column(Integer, nullable=True)
@@ -95,27 +102,29 @@ class Product(Base):
 
     @property
     def product_display_id(self) -> str:
-        return format_product_id(self.product_id)
+        return format_product_id(self.id)
 
     @property
     def category_display_id(self) -> str:
         return format_category_id(self.category_id)
 
 
-class ProductImage(Base):
+class ProductImage(AppBaseModel):
     __tablename__ = 'product_image'
 
-    image_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
-    product_id: Mapped[int] = mapped_column(Integer, ForeignKey('product.product_id'), nullable=False)
+    image_id = synonym("id")
+
+    product_id: Mapped[int] = mapped_column(Integer, ForeignKey('product.id'), nullable=False)
     image_path: Mapped[str] = mapped_column(String(255), nullable=False)
 
     product: Mapped[Product] = relationship("Product", back_populates="images")
 
 
-class Customer(Base):
+class Customer(AppBaseModel):
     __tablename__ = 'customer'
 
-    customer_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
+    customer_id = synonym("id")
+
     name: Mapped[str] = mapped_column(String(100), nullable=True)
     last_name: Mapped[str] = mapped_column(String(100), nullable=True)
     tax_id: Mapped[str] = mapped_column(String(20), nullable=True, unique=True)
@@ -128,7 +137,6 @@ class Customer(Base):
     password_reset_verified_until: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     password_reset_token_hash: Mapped[str] = mapped_column(String(255), nullable=True)
     status: Mapped[int] = mapped_column(Integer, default=1, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=naive_utc_now, nullable=True)
 
     billing_address: Mapped[CustomerBillingAddress] = relationship("CustomerBillingAddress", back_populates="customer", uselist=False, cascade="all, delete-orphan")
     cart: Mapped[Cart] = relationship("Cart", back_populates="customer", uselist=False)
@@ -137,11 +145,12 @@ class Customer(Base):
     coupons: Mapped[List[Coupon]] = relationship("Coupon", back_populates="customer")
 
 
-class CustomerBillingAddress(Base):
+class CustomerBillingAddress(AppBaseModel):
     __tablename__ = 'customer_billing_address'
 
-    address_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
-    customer_id: Mapped[int] = mapped_column(Integer, ForeignKey('customer.customer_id', ondelete='CASCADE'), nullable=False, unique=True, index=True)
+    address_id = synonym("id")
+
+    customer_id: Mapped[int] = mapped_column(Integer, ForeignKey('customer.id', ondelete='CASCADE'), nullable=False, unique=True, index=True)
     address: Mapped[str] = mapped_column(String(255), nullable=True)
     postal_code: Mapped[str] = mapped_column(String(20), nullable=True)
     city: Mapped[str] = mapped_column(String(100), nullable=True)
@@ -150,51 +159,48 @@ class CustomerBillingAddress(Base):
     customer: Mapped[Customer] = relationship("Customer", back_populates="billing_address")
 
 
-class CustomerLoyalty(Base):
+class CustomerLoyalty(AppBaseModel):
     __tablename__ = 'customer_loyalty'
 
-    customer_id: Mapped[int] = mapped_column(Integer, ForeignKey('customer.customer_id'), primary_key=True, nullable=False)
+    customer_id: Mapped[int] = mapped_column(Integer, ForeignKey('customer.id'), nullable=False, unique=True, index=True)
     orders_above_50: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     total_coupons_earned: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=naive_utc_now, onupdate=naive_utc_now, nullable=False)
 
     customer: Mapped[Customer] = relationship("Customer")
 
 
-class Coupon(Base):
+class Coupon(AppBaseModel):
     __tablename__ = 'coupon'
 
-    coupon_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
-    customer_id: Mapped[int] = mapped_column(Integer, ForeignKey('customer.customer_id'), nullable=False)
+    customer_id: Mapped[int] = mapped_column(Integer, ForeignKey('customer.id'), nullable=False)
     code: Mapped[str] = mapped_column(String(50), nullable=False, unique=True, index=True)
     type: Mapped[str] = mapped_column(Enum('VALOR_FIXO', 'PERCENTAGEM'), default='VALOR_FIXO', nullable=False)
     value: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=20)
     minimum_order_value: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=0)
     used: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
-    used_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=naive_utc_now, nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
 
     customer: Mapped[Customer] = relationship("Customer", back_populates="coupons")
 
 
-class Cart(Base):
+class Cart(AppBaseModel):
     __tablename__ = 'cart'
 
-    cart_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
-    customer_id: Mapped[int] = mapped_column(Integer, ForeignKey('customer.customer_id', ondelete='CASCADE'), nullable=False)
-    created_at: Mapped[date] = mapped_column(Date, default=lambda: naive_utc_now().date())
+    cart_id = synonym("id")
+
+    customer_id: Mapped[int] = mapped_column(Integer, ForeignKey('customer.id', ondelete='CASCADE'), nullable=False)
 
     customer: Mapped[Customer] = relationship("Customer", back_populates="cart")
     items: Mapped[List[CartProduct]] = relationship("CartProduct", back_populates="cart", cascade="all, delete-orphan")
 
 
-class CartProduct(Base):
+class CartProduct(AppBaseModel):
     __tablename__ = 'cart_product'
 
-    cart_product_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
-    cart_id: Mapped[int] = mapped_column(Integer, ForeignKey('cart.cart_id', ondelete='CASCADE'), nullable=False)
-    product_id: Mapped[int] = mapped_column(Integer, ForeignKey('product.product_id'), nullable=False)
+    cart_product_id = synonym("id")
+
+    cart_id: Mapped[int] = mapped_column(Integer, ForeignKey('cart.id', ondelete='CASCADE'), nullable=False)
+    product_id: Mapped[int] = mapped_column(Integer, ForeignKey('product.id'), nullable=False)
     quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     customization: Mapped[str] = mapped_column(String(1000), nullable=True)
 
@@ -203,21 +209,25 @@ class CartProduct(Base):
     customizations: Mapped[List[CartProductCustomization]] = relationship("CartProductCustomization", back_populates="item", cascade="all, delete-orphan")
 
 
-class Ingredient(Base):
+class Ingredient(AppBaseModel):
     __tablename__ = 'ingredient'
 
-    ingredient_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
+    ingredient_id = synonym("id")
+
     name: Mapped[str] = mapped_column(String(120), nullable=False, unique=True)
     type: Mapped[str] = mapped_column(Enum('INGREDIENTES_NORMAIS', 'MOLHO', 'EXTRA', 'BEBIDA', 'BASE', 'ACOMPANHAMENTO'), default='INGREDIENTES_NORMAIS', nullable=False)
     status: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     calories_per_gram: Mapped[Decimal] = mapped_column(Numeric(8, 4), nullable=True)
 
 
-class ProductIngredient(Base):
+class ProductIngredient(AppBaseModel):
     __tablename__ = 'product_ingredient'
+    __table_args__ = (
+        UniqueConstraint('product_id', 'ingredient_id', name='uq_product_ingredient_product_ingredient'),
+    )
 
-    product_id: Mapped[int] = mapped_column(Integer, ForeignKey('product.product_id'), primary_key=True, nullable=False)
-    ingredient_id: Mapped[int] = mapped_column(Integer, ForeignKey('ingredient.ingredient_id'), primary_key=True, nullable=False)
+    product_id: Mapped[int] = mapped_column(Integer, ForeignKey('product.id'), nullable=False, index=True)
+    ingredient_id: Mapped[int] = mapped_column(Integer, ForeignKey('ingredient.id'), nullable=False, index=True)
     included_by_default: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="1")
     removable: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="1")
     substitutable: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
@@ -227,12 +237,13 @@ class ProductIngredient(Base):
     ingredient: Mapped[Ingredient] = relationship("Ingredient", lazy='joined')
 
 
-class ProductCustomizationOption(Base):
+class ProductCustomizationOption(AppBaseModel):
     __tablename__ = 'product_customization_option'
 
-    option_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
-    product_id: Mapped[int] = mapped_column(Integer, ForeignKey('product.product_id'), nullable=False)
-    ingredient_id: Mapped[int] = mapped_column(Integer, ForeignKey('ingredient.ingredient_id'), nullable=True)
+    option_id = synonym("id")
+
+    product_id: Mapped[int] = mapped_column(Integer, ForeignKey('product.id'), nullable=False)
+    ingredient_id: Mapped[int] = mapped_column(Integer, ForeignKey('ingredient.id'), nullable=True)
     name: Mapped[str] = mapped_column(String(150), nullable=False)
     type: Mapped[str] = mapped_column(Enum('ADICIONAR', 'REMOVER', 'EXTRA', 'SUBSTITUIR_MOLHO'), nullable=False)
     extra_price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=0)
@@ -245,13 +256,14 @@ class ProductCustomizationOption(Base):
     cart_customizations: Mapped[List[CartProductCustomization]] = relationship("CartProductCustomization", back_populates="option")
 
 
-class CartProductCustomization(Base):
+class CartProductCustomization(AppBaseModel):
     __tablename__ = 'cart_product_customization'
 
-    customization_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
-    cart_product_id: Mapped[int] = mapped_column(Integer, ForeignKey('cart_product.cart_product_id', ondelete='CASCADE'), nullable=False)
-    ingredient_id: Mapped[int] = mapped_column(Integer, ForeignKey('ingredient.ingredient_id', ondelete='SET NULL'), nullable=True)
-    option_id: Mapped[int] = mapped_column(Integer, ForeignKey('product_customization_option.option_id', ondelete='SET NULL'), nullable=True)
+    customization_id = synonym("id")
+
+    cart_product_id: Mapped[int] = mapped_column(Integer, ForeignKey('cart_product.id', ondelete='CASCADE'), nullable=False)
+    ingredient_id: Mapped[int] = mapped_column(Integer, ForeignKey('ingredient.id', ondelete='SET NULL'), nullable=True)
+    option_id: Mapped[int] = mapped_column(Integer, ForeignKey('product_customization_option.id', ondelete='SET NULL'), nullable=True)
     action: Mapped[str] = mapped_column(Enum('REMOVER_INGREDIENTE', 'ADICIONAR_EXTRA', 'SUBSTITUIR_MOLHO', 'SUBSTITUIR_ACOMPANHAMENTO'), nullable=False)
     quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     extra_price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=0)
@@ -262,12 +274,13 @@ class CartProductCustomization(Base):
     option: Mapped[ProductCustomizationOption] = relationship("ProductCustomizationOption", back_populates="cart_customizations")
 
 
-class Order(Base):
+class Order(AppBaseModel):
     __tablename__ = 'customer_order'
 
-    order_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
-    customer_id: Mapped[int] = mapped_column(Integer, ForeignKey('customer.customer_id'), nullable=False)
-    admin_id: Mapped[int] = mapped_column(Integer, ForeignKey('admin.admin_id'), nullable=True)
+    order_id = synonym("id")
+
+    customer_id: Mapped[int] = mapped_column(Integer, ForeignKey('customer.id'), nullable=False)
+    admin_id: Mapped[int] = mapped_column(Integer, ForeignKey('admin.id'), nullable=True)
     ordered_at: Mapped[datetime] = mapped_column(DateTime, default=naive_utc_now, nullable=False)
     state: Mapped[str] = mapped_column(Enum('pendente', 'confirmada', 'em_preparacao', 'pronta', 'entregue', 'cancelada', 'reembolsada'), default='pendente', nullable=False)
     payment_method: Mapped[str] = mapped_column(Enum('cartao', 'mbway', 'balcao'), nullable=False)
@@ -280,7 +293,6 @@ class Order(Base):
     notes: Mapped[str] = mapped_column(String(500), nullable=True)
     canceled_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     cancellation_origin: Mapped[str] = mapped_column(String(30), nullable=True)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=naive_utc_now, onupdate=naive_utc_now, nullable=False)
 
     customer: Mapped[Customer] = relationship("Customer", lazy='joined')
     items: Mapped[List[OrderProduct]] = relationship("OrderProduct", back_populates="order", cascade="all, delete-orphan", lazy='joined')
@@ -290,11 +302,12 @@ class Order(Base):
     invoice: Mapped[Invoice] = relationship("Invoice", back_populates="order", uselist=False, cascade="all, delete-orphan")
 
 
-class Invoice(Base):
+class Invoice(AppBaseModel):
     __tablename__ = 'invoice'
 
-    invoice_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
-    order_id: Mapped[int] = mapped_column(Integer, ForeignKey('customer_order.order_id', ondelete='CASCADE'), nullable=False, unique=True, index=True)
+    invoice_id = synonym("id")
+
+    order_id: Mapped[int] = mapped_column(Integer, ForeignKey('customer_order.id', ondelete='CASCADE'), nullable=False, unique=True, index=True)
     invoice_number: Mapped[str] = mapped_column(String(40), nullable=False, unique=True, index=True)
     customer_tax_id: Mapped[str] = mapped_column(String(20), nullable=True)
     customer_name: Mapped[str] = mapped_column(String(200), nullable=True)
@@ -308,12 +321,13 @@ class Invoice(Base):
     order: Mapped[Order] = relationship("Order", back_populates="invoice")
 
 
-class OrderProduct(Base):
+class OrderProduct(AppBaseModel):
     __tablename__ = 'order_product'
 
-    order_product_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
-    order_id: Mapped[int] = mapped_column(Integer, ForeignKey('customer_order.order_id'), nullable=False)
-    product_id: Mapped[int] = mapped_column(Integer, ForeignKey('product.product_id'), nullable=False)
+    order_product_id = synonym("id")
+
+    order_id: Mapped[int] = mapped_column(Integer, ForeignKey('customer_order.id'), nullable=False)
+    product_id: Mapped[int] = mapped_column(Integer, ForeignKey('product.id'), nullable=False)
     quantity: Mapped[int] = mapped_column(Integer, nullable=False)
     unit_price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     product_name_snapshot: Mapped[str] = mapped_column(String(150), nullable=False)
@@ -326,23 +340,22 @@ class OrderProduct(Base):
     review: Mapped[ProductReview] = relationship("ProductReview", back_populates="order_product", uselist=False)
 
 
-class ProductReview(Base):
+class ProductReview(AppBaseModel):
     __tablename__ = 'product_review'
     __table_args__ = (
         UniqueConstraint('order_product_id', name='uq_review_encomenda_produto'),
         UniqueConstraint('customer_id', 'product_id', name='uq_review_cliente_produto'),
     )
 
-    review_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
-    product_id: Mapped[int] = mapped_column(Integer, ForeignKey('product.product_id'), nullable=False, index=True)
-    customer_id: Mapped[int] = mapped_column(Integer, ForeignKey('customer.customer_id'), nullable=False, index=True)
-    order_product_id: Mapped[int] = mapped_column(Integer, ForeignKey('order_product.order_product_id'), nullable=True, unique=True)
+    review_id = synonym("id")
+
+    product_id: Mapped[int] = mapped_column(Integer, ForeignKey('product.id'), nullable=False, index=True)
+    customer_id: Mapped[int] = mapped_column(Integer, ForeignKey('customer.id'), nullable=False, index=True)
+    order_product_id: Mapped[int] = mapped_column(Integer, ForeignKey('order_product.id'), nullable=True, unique=True)
     rating: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     title: Mapped[str] = mapped_column(String(120), nullable=True)
     comment: Mapped[str] = mapped_column(String(1000), nullable=True)
     status: Mapped[str] = mapped_column(Enum('pendente', 'aprovado', 'rejeitado'), default='aprovado', nullable=False, index=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=naive_utc_now, nullable=False, index=True)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=naive_utc_now, onupdate=naive_utc_now, nullable=False)
 
     product: Mapped[Product] = relationship("Product", back_populates="reviews")
     customer: Mapped[Customer] = relationship("Customer", back_populates="reviews")
@@ -358,47 +371,47 @@ class ProductReview(Base):
         return self.replies[-1] if self.replies else None
 
 
-class ReviewReply(Base):
+class ReviewReply(AppBaseModel):
     __tablename__ = 'review_replies'
 
-    reply_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
-    review_id: Mapped[int] = mapped_column(Integer, ForeignKey('product_review.review_id', ondelete='CASCADE'), nullable=False, index=True)
-    admin_id: Mapped[int] = mapped_column(Integer, ForeignKey('admin.admin_id'), nullable=False, index=True)
+    reply_id = synonym("id")
+
+    review_id: Mapped[int] = mapped_column(Integer, ForeignKey('product_review.id', ondelete='CASCADE'), nullable=False, index=True)
+    admin_id: Mapped[int] = mapped_column(Integer, ForeignKey('admin.id'), nullable=False, index=True)
     text: Mapped[str] = mapped_column(Text, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=naive_utc_now, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=naive_utc_now, onupdate=naive_utc_now, nullable=False)
 
     review: Mapped[ProductReview] = relationship("ProductReview", back_populates="replies")
     admin: Mapped[Admin] = relationship("Admin")
 
 
-class ReviewReaction(Base):
+class ReviewReaction(AppBaseModel):
     __tablename__ = 'review_reactions'
     __table_args__ = (
         UniqueConstraint('review_id', 'admin_id', name='uq_review_reaction_admin'),
     )
 
-    reaction_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
-    review_id: Mapped[int] = mapped_column(Integer, ForeignKey('product_review.review_id', ondelete='CASCADE'), nullable=False, index=True)
-    admin_id: Mapped[int] = mapped_column(Integer, ForeignKey('admin.admin_id'), nullable=False, index=True)
+    reaction_id = synonym("id")
+
+    review_id: Mapped[int] = mapped_column(Integer, ForeignKey('product_review.id', ondelete='CASCADE'), nullable=False, index=True)
+    admin_id: Mapped[int] = mapped_column(Integer, ForeignKey('admin.id'), nullable=False, index=True)
     type: Mapped[str] = mapped_column(Enum('like', 'heart'), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=naive_utc_now, nullable=False)
 
     review: Mapped[ProductReview] = relationship("ProductReview", back_populates="reactions")
     admin: Mapped[Admin] = relationship("Admin")
 
 
-class Payment(Base):
+class Payment(AppBaseModel):
     __tablename__ = 'payment'
 
-    payment_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
-    order_id: Mapped[int] = mapped_column(Integer, ForeignKey('customer_order.order_id'), nullable=False, unique=True)
+    payment_id = synonym("id")
+
+    order_id: Mapped[int] = mapped_column(Integer, ForeignKey('customer_order.id'), nullable=False, unique=True)
     method: Mapped[str] = mapped_column(Enum('cartao', 'mbway', 'balcao'), nullable=False)
     state: Mapped[str] = mapped_column(Enum('pendente', 'aprovado', 'rejeitado', 'reembolsado'), default='pendente', nullable=False)
     value: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     transaction_reference: Mapped[str] = mapped_column(String(100), nullable=True)
     paid_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
-    confirmed_by_admin_id: Mapped[int] = mapped_column(Integer, ForeignKey('admin.admin_id'), nullable=True)
+    confirmed_by_admin_id: Mapped[int] = mapped_column(Integer, ForeignKey('admin.id'), nullable=True)
 
     order: Mapped[Order] = relationship("Order", back_populates="payment")
     confirmed_by: Mapped[Admin] = relationship("Admin")
@@ -406,13 +419,14 @@ class Payment(Base):
     refunds: Mapped[List[Refund]] = relationship("Refund", back_populates="payment")
 
 
-class Refund(Base):
+class Refund(AppBaseModel):
     __tablename__ = 'refund'
 
-    refund_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
-    order_id: Mapped[int] = mapped_column(Integer, ForeignKey('customer_order.order_id'), nullable=False, index=True)
-    payment_id: Mapped[int] = mapped_column(Integer, ForeignKey('payment.payment_id'), nullable=True)
-    admin_id: Mapped[int] = mapped_column(Integer, ForeignKey('admin.admin_id'), nullable=False, index=True)
+    refund_id = synonym("id")
+
+    order_id: Mapped[int] = mapped_column(Integer, ForeignKey('customer_order.id'), nullable=False, index=True)
+    payment_id: Mapped[int] = mapped_column(Integer, ForeignKey('payment.id'), nullable=True)
+    admin_id: Mapped[int] = mapped_column(Integer, ForeignKey('admin.id'), nullable=False, index=True)
     value: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     reason: Mapped[str] = mapped_column(String(80), nullable=False)
     notes: Mapped[str] = mapped_column(Text, nullable=False)
