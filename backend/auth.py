@@ -6,7 +6,7 @@ from fastapi import Depends, HTTPException, status, Header
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from database import SessionLocal
-from models import Cliente, Admin
+from models import Customer, Admin
 from typing import Optional
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -67,13 +67,13 @@ def get_db():
     finally:
         db.close()
 
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> Cliente:
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> Customer:
     payload = verify_access_token_payload(token)
     token_type = payload.get("type")
     if token_type and token_type != "customer":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token de utilizador inválido.")
     email = payload["sub"]
-    user = db.query(Cliente).filter(Cliente.email == email).first()
+    user = db.query(Customer).filter(Customer.email == email).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Utilizador não encontrado.")
     if user.status == 0:
@@ -81,11 +81,11 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     return user
 
 
-def get_current_user_optional(authorization: Optional[str] = Header(None), db: Session = Depends(get_db)) -> Optional[Cliente]:
+def get_current_user_optional(authorization: Optional[str] = Header(None), db: Session = Depends(get_db)) -> Optional[Customer]:
     """Optional authentication - returns user if valid Bearer token, None otherwise.
     
     Expects: Authorization: Bearer <token>
-    Returns: Cliente if valid, None if no token or invalid
+    Returns: Customer if valid, None if no token or invalid
     """
     if not authorization:
         return None
@@ -107,7 +107,7 @@ def get_current_user_optional(authorization: Optional[str] = Header(None), db: S
         if not email:
             return None
             
-        user = db.query(Cliente).filter(Cliente.email == email).first()
+        user = db.query(Customer).filter(Customer.email == email).first()
         if user and user.status == 0:
             return None
         return user

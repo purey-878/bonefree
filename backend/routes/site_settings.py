@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from auth import require_super_admin
 from database import get_db
-from models import Admin, Produto
+from models import Admin, Product
 from schemas.site_settings import (
     ChefSpecialSettings,
     CompanyDetailsSettings,
@@ -97,16 +97,16 @@ def update_admin_chef_special(
 ):
     if settings.product_id:
         product = (
-            db.query(Produto)
+            db.query(Product)
             .filter(
-                Produto.product_id == settings.product_id,
-                or_(Produto.status == 1, Produto.status.is_(None)),
-                Produto.deleted_at.is_(None),
+                Product.product_id == settings.product_id,
+                or_(Product.status == 1, Product.status.is_(None)),
+                Product.deleted_at.is_(None),
             )
             .first()
         )
         if not product:
-            raise HTTPException(status_code=404, detail="Produto especial do chef não encontrado.")
+            raise HTTPException(status_code=404, detail="Product especial do chef não encontrado.")
     return save_chef_special_settings(db, settings)
 
 

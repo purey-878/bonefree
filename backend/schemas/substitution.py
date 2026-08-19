@@ -8,7 +8,7 @@ class StockSuggestion(BaseModel):
     """Ranked product suggestion returned when an item is unavailable."""
 
     product_id: int
-    id_produto_display: str
+    product_display_id: str
     name: str
     category: str
     price: Optional[float]
@@ -21,7 +21,7 @@ class AvailabilitySuggestionResponse(BaseModel):
     """Availability state plus replacement and alternative dish suggestions."""
 
     product_id: int
-    id_produto_display: str
+    product_display_id: str
     name: str
     requested_quantity: int
     stock_threshold: int

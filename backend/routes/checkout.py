@@ -13,16 +13,16 @@ from sqlalchemy.orm import Session, joinedload
 from auth import get_current_user_optional, hash_password
 from database import get_db
 from models import (
-    Carrinho,
-    CarrinhoProduto,
-    CarrinhoProdutoCustomizacao,
-    Cliente,
-    ClienteLoyalty,
-    Cupom,
-    Encomenda,
-    EncomendaProduto,
-    Pagamento,
-    Produto,
+    Cart,
+    CartProduct,
+    CartProductCustomization,
+    Customer,
+    CustomerLoyalty,
+    Coupon,
+    Order,
+    OrderProduct,
+    Payment,
+    Product,
 )
 from schemas.checkout import CouponResponse, CouponValidationRequest, CouponValidationResponse, CheckoutItem, CheckoutRequest, OrderResponse
 from services.invoices import ensure_invoice_for_order
@@ -49,13 +49,13 @@ IVA_PERCENTUAL = Decimal("13.00")
 ONLINE_PAYMENT_METHODS = {"cartao", "mbway", "digital"}
 
 
-def _product_image_path(product: Produto | None) -> str | None:
+def _product_image_path(product: Product | None) -> str | None:
     if not product:
         return None
 
     image_path = None
-    if product.imagens:
-        image_path = product.imagens[0].image_path
+    if product.images:
+        image_path = product.images[0].image_path
     elif product.image:
         image_path = product.image
 
@@ -99,7 +99,7 @@ def _format_money_pt(value: Decimal) -> str:
     return f"{sign}{'.'.join(groups)},{cents} €"
 
 
-def _response_payment_method(order: Encomenda) -> str:
+def _response_payment_method(order: Order) -> str:
     checkout_payment = _note_value(order.notes, "checkout_payment")
     if checkout_payment == "qr_pay":
         return "mbway"
@@ -112,8 +112,8 @@ def _response_payment_method(order: Encomenda) -> str:
     return "card"
 
 
-def _cart_items_for_user(db: Session, current_user: Cliente) -> list[CheckoutItem]:
-    cart = db.query(Carrinho).filter(Carrinho.customer_id == current_user.customer_id).first()
+def _cart_items_for_user(db: Session, current_user: Customer) -> list[CheckoutItem]:
+    cart = db.query(Cart).filter(Cart.customer_id == current_user.customer_id).first()
     if not cart:
         return []
 
@@ -127,42 +127,42 @@ def _cart_items_for_user(db: Session, current_user: Cliente) -> list[CheckoutIte
     ]
 
 
-def _clear_user_cart(db: Session, current_user: Optional[Cliente]) -> None:
+def _clear_user_cart(db: Session, current_user: Optional[Customer]) -> None:
     if not current_user:
         return
 
-    cart = db.query(Carrinho).filter(Carrinho.customer_id == current_user.customer_id).first()
+    cart = db.query(Cart).filter(Cart.customer_id == current_user.customer_id).first()
     if not cart:
         return
 
     cart_item_ids = [
         cart_product_id
-        for (cart_product_id,) in db.query(CarrinhoProduto.cart_product_id)
-        .filter(CarrinhoProduto.cart_id == cart.cart_id)
+        for (cart_product_id,) in db.query(CartProduct.cart_product_id)
+        .filter(CartProduct.cart_id == cart.cart_id)
         .all()
     ]
     if not cart_item_ids:
         return
 
-    db.query(CarrinhoProdutoCustomizacao).filter(
-        CarrinhoProdutoCustomizacao.cart_product_id.in_(cart_item_ids)
+    db.query(CartProductCustomization).filter(
+        CartProductCustomization.cart_product_id.in_(cart_item_ids)
     ).delete(synchronize_session=False)
-    db.query(CarrinhoProduto).filter(
-        CarrinhoProduto.cart_product_id.in_(cart_item_ids)
+    db.query(CartProduct).filter(
+        CartProduct.cart_product_id.in_(cart_item_ids)
     ).delete(synchronize_session=False)
 
 
-def _get_or_create_checkout_customer(db: Session, body: CheckoutRequest, current_user: Optional[Cliente]) -> Cliente:
+def _get_or_create_checkout_customer(db: Session, body: CheckoutRequest, current_user: Optional[Customer]) -> Customer:
     nif_provided = "tax_id" in body.customer.model_fields_set
     checkout_nif = (body.customer.tax_id or "").strip() or None
 
     if current_user:
-        customer = db.query(Cliente).filter(Cliente.customer_id == current_user.customer_id).first() or current_user
+        customer = db.query(Customer).filter(Customer.customer_id == current_user.customer_id).first() or current_user
         should_save_checkout_nif = nif_provided and checkout_nif and not customer.tax_id
         if should_save_checkout_nif:
-            existing = db.query(Cliente).filter(
-                Cliente.tax_id == checkout_nif,
-                Cliente.customer_id != customer.customer_id,
+            existing = db.query(Customer).filter(
+                Customer.tax_id == checkout_nif,
+                Customer.customer_id != customer.customer_id,
             ).first()
             if existing:
                 raise HTTPException(status_code=400, detail="Este NIF já está em uso.")
@@ -174,13 +174,13 @@ def _get_or_create_checkout_customer(db: Session, body: CheckoutRequest, current
             customer.phone = body.customer.phone
         return customer
 
-    customer = db.query(Cliente).filter(Cliente.email == body.customer.email).first()
+    customer = db.query(Customer).filter(Customer.email == body.customer.email).first()
     if customer:
         should_save_checkout_nif = nif_provided and checkout_nif and not customer.tax_id
         if should_save_checkout_nif:
-            existing = db.query(Cliente).filter(
-                Cliente.tax_id == checkout_nif,
-                Cliente.customer_id != customer.customer_id,
+            existing = db.query(Customer).filter(
+                Customer.tax_id == checkout_nif,
+                Customer.customer_id != customer.customer_id,
             ).first()
             if existing:
                 raise HTTPException(status_code=400, detail="Este NIF já está em uso.")
@@ -192,7 +192,7 @@ def _get_or_create_checkout_customer(db: Session, body: CheckoutRequest, current
             customer.phone = body.customer.phone
         return customer
 
-    customer = Cliente(
+    customer = Customer(
         name=body.customer.first_name,
         last_name=body.customer.last_name,
         email=body.customer.email,
@@ -262,16 +262,16 @@ def _normalize_coupon_code(value: str | None) -> str | None:
     return code or None
 
 
-def _available_coupon_query(db: Session, current_user: Cliente):
+def _available_coupon_query(db: Session, current_user: Customer):
     now = datetime.utcnow()
-    return db.query(Cupom).filter(
-        Cupom.customer_id == current_user.customer_id,
-        Cupom.used.is_(False),
-        ((Cupom.expires_at.is_(None)) | (Cupom.expires_at > now)),
+    return db.query(Coupon).filter(
+        Coupon.customer_id == current_user.customer_id,
+        Coupon.used.is_(False),
+        ((Coupon.expires_at.is_(None)) | (Coupon.expires_at > now)),
     )
 
 
-def _calculate_coupon_discount(coupon: Cupom, subtotal: Decimal) -> Decimal:
+def _calculate_coupon_discount(coupon: Coupon, subtotal: Decimal) -> Decimal:
     if subtotal < Decimal(str(coupon.minimum_order_value)):
         raise HTTPException(
             status_code=400,
@@ -286,22 +286,22 @@ def _calculate_coupon_discount(coupon: Cupom, subtotal: Decimal) -> Decimal:
     return min(subtotal, discount).quantize(Decimal("0.01"))
 
 
-def _get_valid_coupon(db: Session, current_user: Cliente, code: str | None, subtotal: Decimal) -> tuple[Cupom | None, Decimal]:
+def _get_valid_coupon(db: Session, current_user: Customer, code: str | None, subtotal: Decimal) -> tuple[Coupon | None, Decimal]:
     normalized_code = _normalize_coupon_code(code)
     if not normalized_code:
         return None, Decimal("0")
 
-    coupon = _available_coupon_query(db, current_user).filter(Cupom.code == normalized_code).first()
+    coupon = _available_coupon_query(db, current_user).filter(Coupon.code == normalized_code).first()
     if not coupon:
         raise HTTPException(status_code=400, detail="O cupão é inválido, expirou ou já foi used.")
 
     return coupon, _calculate_coupon_discount(coupon, subtotal)
 
 
-def _get_or_create_loyalty(db: Session, current_user: Cliente) -> ClienteLoyalty:
-    loyalty = db.query(ClienteLoyalty).filter(ClienteLoyalty.customer_id == current_user.customer_id).first()
+def _get_or_create_loyalty(db: Session, current_user: Customer) -> CustomerLoyalty:
+    loyalty = db.query(CustomerLoyalty).filter(CustomerLoyalty.customer_id == current_user.customer_id).first()
     if not loyalty:
-        loyalty = ClienteLoyalty(customer_id=current_user.customer_id, orders_above_50=0, total_coupons_earned=0)
+        loyalty = CustomerLoyalty(customer_id=current_user.customer_id, orders_above_50=0, total_coupons_earned=0)
         db.add(loyalty)
         db.flush()
     return loyalty
@@ -317,17 +317,17 @@ def _coupon_code_prefix(discount_type: str, discount_value: Decimal) -> str:
     return f"BONEFREE{compact_value}P" if discount_type == "PERCENTAGEM" else f"BONEFREE{compact_value}"
 
 
-def _new_coupon_code(db: Session, current_user: Cliente, discount_type: str, discount_value: Decimal) -> str:
+def _new_coupon_code(db: Session, current_user: Customer, discount_type: str, discount_value: Decimal) -> str:
     prefix = _coupon_code_prefix(discount_type, discount_value)
     for _ in range(10):
         code = f"{prefix}-{current_user.customer_id}-{uuid4().hex[:6].upper()}"
-        exists = db.query(Cupom).filter(Cupom.code == code).first()
+        exists = db.query(Coupon).filter(Coupon.code == code).first()
         if not exists:
             return code
     return f"{prefix}-{uuid4().hex[:12].upper()}"
 
 
-def _award_loyalty_coupon_if_eligible(db: Session, current_user: Cliente, qualifying_subtotal: Decimal) -> str | None:
+def _award_loyalty_coupon_if_eligible(db: Session, current_user: Customer, qualifying_subtotal: Decimal) -> str | None:
     settings = get_loyalty_coupon_settings(db)
     qualifying_minimum = Decimal(str(settings.qualifying_order_minimum))
     qualifying_count = int(settings.qualifying_order_count)
@@ -335,7 +335,7 @@ def _award_loyalty_coupon_if_eligible(db: Session, current_user: Cliente, qualif
     if qualifying_subtotal < qualifying_minimum:
         return None
 
-    loyalty = db.query(ClienteLoyalty).filter(ClienteLoyalty.customer_id == current_user.customer_id).first()
+    loyalty = db.query(CustomerLoyalty).filter(CustomerLoyalty.customer_id == current_user.customer_id).first()
     if not settings.enabled and (not loyalty or loyalty.orders_above_50 <= 0):
         return None
 
@@ -356,7 +356,7 @@ def _award_loyalty_coupon_if_eligible(db: Session, current_user: Cliente, qualif
     discount_value = Decimal(str(settings.discount_value))
     coupon_minimum_order = Decimal(str(settings.coupon_minimum_order))
     code = _new_coupon_code(db, current_user, settings.discount_type, discount_value)
-    db.add(Cupom(
+    db.add(Coupon(
         customer_id=current_user.customer_id,
         code=code,
         type=settings.discount_type,
@@ -367,7 +367,7 @@ def _award_loyalty_coupon_if_eligible(db: Session, current_user: Cliente, qualif
     return code
 
 
-def _order_response(order: Encomenda) -> dict:
+def _order_response(order: Order) -> dict:
     subtotal = Decimal(str(getattr(order, "subtotal", 0) or 0))
     if subtotal <= 0:
         subtotal = sum(Decimal(str(item.unit_price)) * item.quantity for item in order.items)
@@ -384,8 +384,8 @@ def _order_response(order: Encomenda) -> dict:
     refund = latest_refund[0] if latest_refund else None
 
     return {
-        "id_pedido": order.order_id,
-        "numero_pedido": f"ENC-{order.order_id:06d}",
+        "order_id": order.order_id,
+        "order_number": f"ENC-{order.order_id:06d}",
         "status": order.state,
         "payment_status": order.payment_status,
         "can_cancel": _can_customer_cancel(order),
@@ -395,21 +395,21 @@ def _order_response(order: Encomenda) -> dict:
         "refund_amount": refund.value if refund else None,
         "refund_reason": refund.reason if refund else None,
         "refund_date": refund.refunded_at if refund else None,
-        "metodo_entrega": _fulfillment_from_notes(order.notes),
+        "delivery_method": _fulfillment_from_notes(order.notes),
         "payment_method": response_payment,
         "subtotal": subtotal,
-        "desconto": discount,
-        "taxa_entrega": Decimal("0"),
-        "taxa_servico": fees if fees > 0 else Decimal("0"),
+        "discount": discount,
+        "delivery_fee": Decimal("0"),
+        "service_fee": fees if fees > 0 else Decimal("0"),
         "total": order.total,
-        "cupom_codigo": _coupon_code_from_notes(order.notes),
-        "cupom_gerado": _generated_coupon_from_notes(order.notes),
+        "coupon_code": _coupon_code_from_notes(order.notes),
+        "generated_coupon": _generated_coupon_from_notes(order.notes),
         "created_at": order.ordered_at,
         "items": [
             {
                 "product_id": item.product_id,
-                "id_produto_display": format_product_id(item.product_id),
-                "nome_produto": item.product_name_snapshot or (item.product.name if item.product else format_product_id(item.product_id)),
+                "product_display_id": format_product_id(item.product_id),
+                "product_name": item.product_name_snapshot or (item.product.name if item.product else format_product_id(item.product_id)),
                 "unit_price": item.unit_price,
                 "quantity": item.quantity,
                 "customization": customization_from_json(item.customization),
@@ -422,19 +422,19 @@ def _order_response(order: Encomenda) -> dict:
     }
 
 
-def _can_customer_cancel(order: Encomenda) -> bool:
+def _can_customer_cancel(order: Order) -> bool:
     return order.state == "pendente" and order.payment_status == "nao_pago"
 
 
 @router.get("/coupons", response_model=list[CouponResponse])
 def list_available_coupons(
     db: Session = Depends(get_db),
-    current_user: Optional[Cliente] = Depends(get_current_user_optional),
+    current_user: Optional[Customer] = Depends(get_current_user_optional),
 ):
     if not current_user:
         raise HTTPException(status_code=401, detail="Inicie sessão para ver os cupões.")
 
-    coupons = _available_coupon_query(db, current_user).order_by(Cupom.created_at.desc()).all()
+    coupons = _available_coupon_query(db, current_user).order_by(Coupon.created_at.desc()).all()
     return [
         CouponResponse(
             coupon_id=coupon.coupon_id,
@@ -452,7 +452,7 @@ def list_available_coupons(
 def validate_coupon(
     body: CouponValidationRequest,
     db: Session = Depends(get_db),
-    current_user: Optional[Cliente] = Depends(get_current_user_optional),
+    current_user: Optional[Customer] = Depends(get_current_user_optional),
 ):
     if not current_user:
         raise HTTPException(status_code=401, detail="Inicie sessão para usar cupões.")
@@ -463,7 +463,7 @@ def validate_coupon(
 
     return CouponValidationResponse(
         code=coupon.code,
-        desconto=discount,
+        discount=discount,
         value=coupon.value,
         type=coupon.type,
         minimum_order_value=coupon.minimum_order_value,
@@ -475,7 +475,7 @@ def create_order(
     body: CheckoutRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_user: Optional[Cliente] = Depends(get_current_user_optional),
+    current_user: Optional[Customer] = Depends(get_current_user_optional),
 ):
     if not current_user:
         raise HTTPException(status_code=401, detail="Inicie sessão para finalizar a compra.")
@@ -489,9 +489,9 @@ def create_order(
 
     product_ids = [item.product_id for item in items]
     products = (
-        db.query(Produto)
-        .options(joinedload(Produto.imagens))
-        .filter(Produto.product_id.in_(product_ids))
+        db.query(Product)
+        .options(joinedload(Product.images))
+        .filter(Product.product_id.in_(product_ids))
         .all()
     )
     product_map = {product.product_id: product for product in products}
@@ -517,8 +517,8 @@ def create_order(
             )
 
         unit_price = (
-            Decimal(str(item.customization.preco_unitario_final))
-            if item.customization and item.customization.preco_unitario_final is not None
+            Decimal(str(item.customization.final_unit_price))
+            if item.customization and item.customization.final_unit_price is not None
             else discounted_product_price(product)
         )
         line_total = unit_price * item.quantity
@@ -529,7 +529,7 @@ def create_order(
         order_items.append({
             "product_id": product.product_id,
             "product_name_snapshot": product.name,
-            "discount_percentage_snapshot": Decimal(str(product.desconto_percentual or 0)),
+            "discount_percentage_snapshot": Decimal(str(product.discount_percentual or 0)),
             "unit_price": unit_price,
             "quantity": item.quantity,
             "customization": customization_to_json(item.customization),
@@ -552,7 +552,7 @@ def create_order(
         note_parts.append(f"coupon_generated={generated_coupon_code}")
     order_notes = _checkout_notes(body, note_parts)
 
-    order = Encomenda(
+    order = Order(
         customer_id=customer.customer_id,
         admin_id=None,
         state="confirmada" if online_payment else "pendente",
@@ -565,7 +565,7 @@ def create_order(
         total=total,
         notes=order_notes,
         items=[
-            EncomendaProduto(
+            OrderProduct(
                 product_id=item["product_id"],
                 quantity=item["quantity"],
                 unit_price=item["unit_price"],
@@ -581,7 +581,7 @@ def create_order(
     db.add(order)
     db.flush()
 
-    db.add(Pagamento(
+    db.add(Payment(
         order_id=order.order_id,
         method=db_method,
         state="aprovado" if online_payment else "pendente",
@@ -597,9 +597,9 @@ def create_order(
     db.commit()
 
     saved = (
-        db.query(Encomenda)
-        .options(joinedload(Encomenda.items).joinedload(EncomendaProduto.product))
-        .filter(Encomenda.order_id == order.order_id)
+        db.query(Order)
+        .options(joinedload(Order.items).joinedload(OrderProduct.product))
+        .filter(Order.order_id == order.order_id)
         .first()
     )
     response = _order_response(saved)
@@ -618,17 +618,17 @@ def create_order(
 def cancel_order(
     order_id: int,
     db: Session = Depends(get_db),
-    current_user: Optional[Cliente] = Depends(get_current_user_optional),
+    current_user: Optional[Customer] = Depends(get_current_user_optional),
 ):
     if not current_user:
         raise HTTPException(status_code=401, detail="Inicie sessão para cancelar um pedido.")
 
     order = (
-        db.query(Encomenda)
-        .options(joinedload(Encomenda.items).joinedload(EncomendaProduto.product))
+        db.query(Order)
+        .options(joinedload(Order.items).joinedload(OrderProduct.product))
         .filter(
-            Encomenda.order_id == order_id,
-            Encomenda.customer_id == current_user.customer_id,
+            Order.order_id == order_id,
+            Order.customer_id == current_user.customer_id,
         )
         .first()
     )
@@ -652,7 +652,7 @@ def cancel_order(
 def download_order_receipt_pdf(
     order_id: int,
     db: Session = Depends(get_db),
-    current_user: Optional[Cliente] = Depends(get_current_user_optional),
+    current_user: Optional[Customer] = Depends(get_current_user_optional),
 ):
     if not current_user:
         raise HTTPException(status_code=401, detail="Inicie sessão para descarregar recibos.")
@@ -661,14 +661,14 @@ def download_order_receipt_pdf(
         raise HTTPException(status_code=503, detail="O serviço de PDF do recibo está indisponível.")
 
     order = (
-        db.query(Encomenda)
+        db.query(Order)
         .options(
-            joinedload(Encomenda.customer),
-            joinedload(Encomenda.items).joinedload(EncomendaProduto.product),
+            joinedload(Order.customer),
+            joinedload(Order.items).joinedload(OrderProduct.product),
         )
         .filter(
-            Encomenda.order_id == order_id,
-            Encomenda.customer_id == current_user.customer_id,
+            Order.order_id == order_id,
+            Order.customer_id == current_user.customer_id,
         )
         .first()
     )
@@ -692,16 +692,16 @@ def download_order_receipt_pdf(
 @router.get("/orders/history", response_model=list[OrderResponse])
 def list_order_history(
     db: Session = Depends(get_db),
-    current_user: Optional[Cliente] = Depends(get_current_user_optional),
+    current_user: Optional[Customer] = Depends(get_current_user_optional),
 ):
     if not current_user:
         raise HTTPException(status_code=401, detail="Inicie sessão para ver o histórico de pedidos.")
 
-    encomendas = (
-        db.query(Encomenda)
-        .options(joinedload(Encomenda.items).joinedload(EncomendaProduto.product))
-        .filter(Encomenda.customer_id == current_user.customer_id)
-        .order_by(Encomenda.ordered_at.desc())
+    orders = (
+        db.query(Order)
+        .options(joinedload(Order.items).joinedload(OrderProduct.product))
+        .filter(Order.customer_id == current_user.customer_id)
+        .order_by(Order.ordered_at.desc())
         .all()
     )
-    return [_order_response(order) for order in encomendas]
+    return [_order_response(order) for order in orders]

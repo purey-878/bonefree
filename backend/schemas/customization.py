@@ -12,16 +12,16 @@ class CustomizationExtraSelection(BaseModel):
 
 
 class CustomizationSubstitutionSelection(BaseModel):
-    id_ingrediente_original: int
-    id_ingrediente_novo: int
+    original_ingredient_id: int
+    new_ingredient_id: int
 
 
 class CustomizedCartItemRequest(BaseModel):
     product_id: ProductId
     quantity: int = Field(1, ge=1)
-    ingredientes_removidos: List[int] = Field(default_factory=list)
+    removed_ingredients: List[int] = Field(default_factory=list)
     extras: List[CustomizationExtraSelection] = Field(default_factory=list)
-    substituicoes: List[CustomizationSubstitutionSelection] = Field(default_factory=list)
+    substitutions: List[CustomizationSubstitutionSelection] = Field(default_factory=list)
     observacoes: Optional[str] = Field(None, max_length=255)
 
 
@@ -45,14 +45,14 @@ class CustomizationOptionResponse(BaseModel):
 
 class ProductCustomizationResponse(BaseModel):
     product_id: int
-    id_produto_display: str
+    product_display_id: str
     name: str
     customizable: bool
-    preco_base: Decimal
+    base_price: Decimal
     ingredients: List[CustomizationIngredientResponse]
-    ingredientes_removiveis: List[CustomizationIngredientResponse]
-    ingredientes_substituiveis: List[CustomizationIngredientResponse]
-    opcoes: dict[str, List[CustomizationOptionResponse]]
+    removable_ingredients: List[CustomizationIngredientResponse]
+    substitutable_ingredients: List[CustomizationIngredientResponse]
+    options: dict[str, List[CustomizationOptionResponse]]
 
 
 class ItemCustomization(BaseModel):
@@ -62,10 +62,10 @@ class ItemCustomization(BaseModel):
     add: List[str] = Field(default_factory=list, max_length=12)
     preferences: List[str] = Field(default_factory=list, max_length=12)
     note: Optional[str] = Field(default=None, max_length=280)
-    ingredientes_removidos: List[int] = Field(default_factory=list, max_length=24)
+    removed_ingredients: List[int] = Field(default_factory=list, max_length=24)
     extras: List[CustomizationExtraSelection] = Field(default_factory=list, max_length=24)
-    substituicoes: List[CustomizationSubstitutionSelection] = Field(default_factory=list, max_length=24)
-    preco_unitario_final: Optional[Decimal] = None
+    substitutions: List[CustomizationSubstitutionSelection] = Field(default_factory=list, max_length=24)
+    final_unit_price: Optional[Decimal] = None
 
     @field_validator("remove", "add", "preferences", mode="before")
     @classmethod

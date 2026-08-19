@@ -1,4 +1,4 @@
-"""Professional Portuguese Fatura/Recibo PDF generation."""
+"""Professional Portuguese Invoice/Recibo PDF generation."""
 
 from __future__ import annotations
 
@@ -33,8 +33,8 @@ WARNING = colors.HexColor("#B45309")
 
 
 def render_receipt_pdf(receipt: Mapping[str, Any]) -> bytes:
-    """Render a printable Portuguese Fatura/Recibo PDF from the shared receipt payload."""
-    document_number = _text(receipt.get("document_number") or receipt.get("order_id") or "Fatura/Recibo")
+    """Render a printable Portuguese Invoice/Recibo PDF from the shared receipt payload."""
+    document_number = _text(receipt.get("document_number") or receipt.get("order_id") or "Invoice/Recibo")
     buffer = BytesIO()
     doc = SimpleDocTemplate(
         buffer,
@@ -43,7 +43,7 @@ def render_receipt_pdf(receipt: Mapping[str, Any]) -> bytes:
         leftMargin=LEFT_MARGIN,
         topMargin=12 * mm,
         bottomMargin=13 * mm,
-        title=f"Fatura/Recibo {document_number}",
+        title=f"Invoice/Recibo {document_number}",
         author=_text(receipt.get("company_name")),
     )
 
@@ -147,7 +147,7 @@ def _company_and_document_section(receipt: Mapping[str, Any], styles: dict[str, 
             ("N.º documento", receipt.get("document_number") or receipt.get("order_id")),
             ("Pedido", receipt.get("order_reference") or receipt.get("order_id")),
             ("Emissão", receipt.get("issue_datetime") or receipt.get("order_date")),
-            ("Pagamento", receipt.get("payment_date")),
+            ("Payment", receipt.get("payment_date")),
             ("Método", receipt.get("payment_method")),
             ("Moeda", "EUR (€)"),
         ]
@@ -168,17 +168,17 @@ def _customer_section(receipt: Mapping[str, Any], styles: dict[str, ParagraphSty
         ("Telefone", receipt.get("customer_phone") or _customer_phone_from_billing(receipt)),
         ("NIF", receipt.get("customer_nif")),
     ]
-    return _single_section("Dados do Cliente", _visible_rows(rows), styles)
+    return _single_section("Dados do Customer", _visible_rows(rows), styles)
 
 
 def _invoice_address_section(invoice_address: str, styles: dict[str, ParagraphStyle]) -> Table:
-    return _single_section("Morada de Faturação", [("Morada", invoice_address)], styles)
+    return _single_section("Morada de Invoiceção", [("Morada", invoice_address)], styles)
 
 
 def _items_table(rows: list[dict[str, Any]], styles: dict[str, ParagraphStyle]) -> Table:
     data: list[list[Any]] = [
         [
-            Paragraph("Produto", styles["TableHead"]),
+            Paragraph("Product", styles["TableHead"]),
             Paragraph("Quantidade", styles["TableHeadRight"]),
             Paragraph("Preço Unitário", styles["TableHeadRight"]),
             Paragraph("Desconto", styles["TableHeadRight"]),
@@ -246,8 +246,8 @@ def _promotions_section(receipt: Mapping[str, Any], styles: dict[str, ParagraphS
 
 def _summary_and_payment_section(receipt: Mapping[str, Any], totals: Mapping[str, Decimal], styles: dict[str, ParagraphStyle]) -> Table:
     summary_rows = [
-        ("Subtotal sem descontos", _money(totals["subtotal_gross"])),
-        ("Total de descontos", f"-{_money(totals['discount_gross'])}" if totals["discount_gross"] > 0 else _money(Decimal("0"))),
+        ("Subtotal sem discounts", _money(totals["subtotal_gross"])),
+        ("Total de discounts", f"-{_money(totals['discount_gross'])}" if totals["discount_gross"] > 0 else _money(Decimal("0"))),
         ("Valor tributável", _money(totals["taxable_amount"])),
         (f"IVA ({_rate_label(_iva_rate(receipt))})", _money(totals["iva_total"])),
         ("Total pago", _money(totals["total_paid"])),
@@ -263,7 +263,7 @@ def _summary_and_payment_section(receipt: Mapping[str, Any], totals: Mapping[str
 
     summary = _key_value_table(summary_rows, label_width=45 * mm, value_width=40 * mm, highlight_last=True)
     payment = _key_value_table(payment_rows, label_width=31 * mm, value_width=51 * mm)
-    section = _two_column_section("Resumo Financeiro", [], "Pagamento", [], styles, left_content=summary, right_content=payment)
+    section = _two_column_section("Resumo Financeiro", [], "Payment", [], styles, left_content=summary, right_content=payment)
     section.setStyle(
         TableStyle(
             [
@@ -351,7 +351,7 @@ def _invoice_rows(receipt: Mapping[str, Any]) -> tuple[list[dict[str, Any]], dic
 
         rows.append(
             {
-                "description": _text(item.get("name")) or "Produto",
+                "description": _text(item.get("name")) or "Product",
                 "customizations": [str(value) for value in item.get("customizations") or [] if str(value).strip()],
                 "quantity": _quantity_label(quantity),
                 "unit_gross": _money(unit_gross),

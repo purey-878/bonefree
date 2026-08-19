@@ -8,20 +8,20 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from models import Encomenda, Fatura
+from models import Order, Invoice
 
 
-def ensure_invoice_for_order(db: Session, order: Encomenda) -> Fatura | None:
+def ensure_invoice_for_order(db: Session, order: Order) -> Invoice | None:
     """Create the immutable invoice snapshot for a paid order if it is missing."""
     if order.payment_status != "pago":
         return None
 
-    existing = db.query(Fatura).filter(Fatura.order_id == order.order_id).first()
+    existing = db.query(Invoice).filter(Invoice.order_id == order.order_id).first()
     if existing:
         return existing
 
     customer = order.customer
-    invoice = Fatura(
+    invoice = Invoice(
         order_id=order.order_id,
         invoice_number=_invoice_number(order),
         customer_tax_id=_clean(getattr(customer, "tax_id", None)),
@@ -38,7 +38,7 @@ def ensure_invoice_for_order(db: Session, order: Encomenda) -> Fatura | None:
     return invoice
 
 
-def _invoice_number(order: Encomenda) -> str:
+def _invoice_number(order: Order) -> str:
     year = order.ordered_at.year if order.ordered_at else datetime.utcnow().year
     return f"FR {year}/{order.order_id:06d}"
 

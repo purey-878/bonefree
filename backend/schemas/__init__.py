@@ -1,13 +1,13 @@
 """Schemas package for API request/response validation."""
 
-from .carrinho import (
-    CarrinhoItemOut,
-    CarrinhoOut,
-    AdicionarItemSchema,
-    AtualizarItemSchema,
+from .cart import (
+    CartItemOut,
+    CartOut,
+    AddItemSchema,
+    UpdateItemSchema,
     GuestCartItem,
-    MergeCarrinhoSchema,
-    MergeResultado,
+    MergeCartSchema,
+    MergeResult,
 )
 from .customization import (
     CustomizedCartItemRequest,
@@ -19,19 +19,19 @@ from .customization import (
     ProductCustomizationOptions,
     ProductCustomizationResponse,
 )
-from .produto import ProdutoResponse
+from .product import ProductResponse
 from .review import (
-    ProdutoReviewCreate,
-    ProdutoReviewEligibilityItem,
-    ProdutoReviewEligibilityResponse,
-    ProdutoReviewResponse,
-    ProdutoReviewStatsResponse,
-    ProdutoReviewUpdate,
+    ProductReviewCreate,
+    ProductReviewEligibilityItem,
+    ProductReviewEligibilityResponse,
+    ProductReviewResponse,
+    ProductReviewStatsResponse,
+    ProductReviewUpdate,
 )
 from .substitution import AvailabilitySuggestionResponse, StockSuggestion
-from .usuario import (
-    ClienteEnderecoFaturaBase,
-    ClienteEnderecoFaturaResponse,
+from .user import (
+    CustomerBillingAddressBase,
+    CustomerBillingAddressResponse,
     ForgotPasswordRequest,
     MessageResponse,
     ResetPasswordRequest,
@@ -46,13 +46,13 @@ from .usuario import (
 
 __all__ = [
     # Cart schemas
-    "CarrinhoItemOut",
-    "CarrinhoOut",
-    "AdicionarItemSchema",
-    "AtualizarItemSchema",
+    "CartItemOut",
+    "CartOut",
+    "AddItemSchema",
+    "UpdateItemSchema",
     "GuestCartItem",
-    "MergeCarrinhoSchema",
-    "MergeResultado",
+    "MergeCartSchema",
+    "MergeResult",
     # Customization schemas
     "ItemCustomization",
     "ProductCustomizationOptions",
@@ -63,21 +63,21 @@ __all__ = [
     "CustomizationSubstitutionSelection",
     "ProductCustomizationResponse",
     # Product schemas
-    "ProdutoResponse",
+    "ProductResponse",
     # Review schemas
-    "ProdutoReviewCreate",
-    "ProdutoReviewEligibilityItem",
-    "ProdutoReviewEligibilityResponse",
-    "ProdutoReviewResponse",
-    "ProdutoReviewStatsResponse",
-    "ProdutoReviewUpdate",
+    "ProductReviewCreate",
+    "ProductReviewEligibilityItem",
+    "ProductReviewEligibilityResponse",
+    "ProductReviewResponse",
+    "ProductReviewStatsResponse",
+    "ProductReviewUpdate",
     # Stock-out substitution schemas
     "AvailabilitySuggestionResponse",
     "StockSuggestion",
     # User schemas
     "UserAuth",
-    "ClienteEnderecoFaturaBase",
-    "ClienteEnderecoFaturaResponse",
+    "CustomerBillingAddressBase",
+    "CustomerBillingAddressResponse",
     "UserRegister",
     "UserResponse",
     "TokenResponse",

@@ -27,31 +27,31 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
-from models import Encomenda, Reembolso
+from models import Order, Refund
 
 logger = logging.getLogger(__name__)
 
 REFUND_METHOD_TEXT = "O refund será devolvido através do método de payment original."
 
 
-def refund_receipt_number(refund: Reembolso) -> str:
+def refund_receipt_number(refund: Refund) -> str:
     year = refund.refunded_at.year if refund.refunded_at else 0
     return f"RR {year}/{refund.refund_id:06d}"
 
 
-def original_invoice_number(order: Encomenda) -> str:
+def original_invoice_number(order: Order) -> str:
     year = order.ordered_at.year if order.ordered_at else 0
     return f"FR {year}/{order.order_id:06d}"
 
 
-def build_refund_receipt_payload(refund: Reembolso) -> dict[str, Any]:
+def build_refund_receipt_payload(refund: Refund) -> dict[str, Any]:
     order = refund.order
     customer = order.customer if order else None
     admin = refund.admin
     customer_name = (
         f"{customer.name or ''} {customer.last_name or ''}".strip()
-        if customer else "Cliente"
-    ) or "Cliente"
+        if customer else "Customer"
+    ) or "Customer"
 
     return {
         "company_name": os.getenv("RECEIPT_COMPANY_NAME", "BONEFREE"),
@@ -80,7 +80,7 @@ def render_refund_receipt_pdf(receipt: Mapping[str, Any]) -> bytes:
         leftMargin=16 * mm,
         topMargin=15 * mm,
         bottomMargin=15 * mm,
-        title=f"Recibo de Reembolso {receipt['refund_receipt_number']}",
+        title=f"Recibo de Refund {receipt['refund_receipt_number']}",
         author=str(receipt.get("company_name", "BONEFREE")),
     )
     styles = _styles()
@@ -119,7 +119,7 @@ def send_refund_email(receipt: Mapping[str, Any]) -> bool:
         logger.info("Refund email skipped because EMAIL_RECEIPTS_ENABLED is disabled.")
         return False
 
-    subject = "Reembolso aprovado - BONEFREE"
+    subject = "Refund aprovado - BONEFREE"
     text_body = (
         "O seu refund foi aprovado e processado.\n\n"
         f"Valor do refund: {_format_money(receipt['refund_amount'])}\n\n"
@@ -161,7 +161,7 @@ def _header(receipt: Mapping[str, Any], styles: dict[str, ParagraphStyle]) -> Ta
             ),
         ],
         [
-            Paragraph("Reembolso aprovado e processado.", styles["Muted"]),
+            Paragraph("Refund aprovado e processado.", styles["Muted"]),
             Paragraph(f"<b>{_format_money(receipt['refund_amount'])}</b>", styles["Amount"]),
         ],
     ]

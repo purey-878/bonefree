@@ -65,7 +65,7 @@ class StaffAdminUpdate(BaseModel):
         return value
 
 
-class ClienteAdminResponse(BaseModel):
+class CustomerAdminResponse(BaseModel):
     customer_id: int
     name: Optional[str] = None
     last_name: Optional[str] = None
@@ -81,7 +81,7 @@ class ClienteAdminResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class ClienteAdminCreate(BaseModel):
+class CustomerAdminCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     last_name: Optional[str] = Field(None, max_length=100)
     email: EmailStr
@@ -94,7 +94,7 @@ class ClienteAdminCreate(BaseModel):
     status: int = 1
 
 
-class ClienteAdminUpdate(BaseModel):
+class CustomerAdminUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
     last_name: Optional[str] = Field(None, max_length=100)
     email: Optional[EmailStr] = None
@@ -181,7 +181,7 @@ class ProductIngredientResponse(BaseModel):
     calories_per_gram: Optional[float] = None
 
 
-class ProdutoBase(BaseModel):
+class ProductBase(BaseModel):
     """Base product schema for create/update."""
     name: str
     product_description: Optional[str] = None
@@ -191,7 +191,7 @@ class ProdutoBase(BaseModel):
     customizable: bool = True
     menu_tags: Optional[str] = None
     featured: bool = False
-    desconto_percentual: float = Field(0, ge=0, le=100)
+    discount_percentual: float = Field(0, ge=0, le=100)
     gluten_free: bool = False
     contains_alcohol: bool = False
     total_calories: Optional[float] = Field(None, ge=0)
@@ -213,12 +213,12 @@ class ProdutoBase(BaseModel):
         return ", ".join(tags) or None
 
 
-class ProdutoCreate(ProdutoBase):
+class ProductCreate(ProductBase):
     """Schema for creating a product."""
     pass
 
 
-class ProdutoUpdate(BaseModel):
+class ProductUpdate(BaseModel):
     """Schema for updating a product."""
     name: Optional[str] = None
     product_description: Optional[str] = None
@@ -229,7 +229,7 @@ class ProdutoUpdate(BaseModel):
     customizable: Optional[bool] = None
     menu_tags: Optional[str] = None
     featured: Optional[bool] = None
-    desconto_percentual: Optional[float] = Field(None, ge=0, le=100)
+    discount_percentual: Optional[float] = Field(None, ge=0, le=100)
     gluten_free: Optional[bool] = None
     contains_alcohol: Optional[bool] = None
     total_calories: Optional[float] = Field(None, ge=0)
@@ -251,35 +251,35 @@ class ProdutoUpdate(BaseModel):
         return ", ".join(tags) or None
 
 
-class ImagemProdutoResponse(BaseModel):
+class ProductImageResponse(BaseModel):
     """Response model for product image."""
-    id_imagem: int
+    image_id: int
     image_path: str
 
     model_config = ConfigDict(from_attributes=True)
 
 
-class ProdutoAdminResponse(BaseModel):
+class ProductAdminResponse(BaseModel):
     """Response model for product in admin context."""
     product_id: int
-    id_produto_display: str
+    product_display_id: str
     name: str
     product_description: Optional[str]
     price: float
     stock: int
     category_id: int
-    id_categoria_display: str
+    category_display_id: str
     sold: Optional[int]
     status: Optional[int]
     customizable: bool = True
     menu_tags: Optional[str] = None
     featured: bool = False
-    desconto_percentual: float = 0
+    discount_percentual: float = 0
     gluten_free: bool = False
     contains_alcohol: bool = False
     total_calories: Optional[float] = None
     deleted_at: Optional[datetime]
-    imagens: Optional[List[ImagemProdutoResponse]] = []
+    images: Optional[List[ProductImageResponse]] = []
     ingredients: List[ProductIngredientResponse] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
@@ -289,13 +289,13 @@ class ProdutoAdminResponse(BaseModel):
 class CartItemResponse(BaseModel):
     """Response model for cart item."""
     product_id: int
-    id_produto_display: str
+    product_display_id: str
     name: str
     quantity: int
     price: float
     total: float
     customization: Optional[str] = None
-    customizacao_resumo: List[str] = Field(default_factory=list)
+    customization_summary: List[str] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -304,9 +304,9 @@ class OrderResponse(BaseModel):
     """Response model for order."""
     cart_id: int
     customer_id: int
-    cliente_email: str
-    cliente_nome: Optional[str]
-    cliente_telefone: Optional[str] = None
+    customer_email: str
+    customer_name: Optional[str]
+    customer_phone: Optional[str] = None
     created_at: datetime
     state: str
     payment_method: str
@@ -410,20 +410,20 @@ class RefundResponse(BaseModel):
 
 
 # Analytics Schemas
-class ProdutoEstoqueMinimo(BaseModel):
+class LowStockProduct(BaseModel):
     """Response for low stock product."""
     product_id: int
-    id_produto_display: str
+    product_display_id: str
     name: str
     stock: int
     price: float
     category: str
 
 
-class ProdutoPopular(BaseModel):
+class PopularProduct(BaseModel):
     """Response for popular product."""
     product_id: int
-    id_produto_display: str
+    product_display_id: str
     name: str
     sold: int
     price: float
@@ -432,18 +432,18 @@ class ProdutoPopular(BaseModel):
 
 class VendaPeriodicaResponse(BaseModel):
     """Response for sales in a period."""
-    periodo: str
-    total_vendas: float
-    quantidade_vendida: int
-    numero_pedidos: int
+    period: str
+    total_sales: float
+    quantity_sold: int
+    order_numbers: int
 
 
 class SalesPerformanceResponse(BaseModel):
     """Response for sales performance analytics."""
-    total_vendas: float
-    quantidade_vendida: int
-    numero_pedidos: int
-    periodo: str
+    total_sales: float
+    quantity_sold: int
+    order_numbers: int
+    period: str
     vendas_por_dia: List[VendaPeriodicaResponse]
 
 
@@ -458,24 +458,24 @@ class DashboardSalesGraphs(BaseModel):
 class ProductAnalyticsResponse(BaseModel):
     """Analytics for a single product."""
     product_id: int
-    id_produto_display: str
-    total_vendas: float
-    quantidade_vendida: int
-    numero_pedidos: int
-    preco_atual: float
-    stock_atual: int
-    rating_medio: Optional[float] = None
+    product_display_id: str
+    total_sales: float
+    quantity_sold: int
+    order_numbers: int
+    current_price: float
+    current_stock: int
+    average_rating: Optional[float] = None
     total_reviews: int
     vendas_por_dia: List[VendaPeriodicaResponse]
 
 
 class AnalyticsSeriesPoint(BaseModel):
     """Point for a generic analytics chart."""
-    periodo: str
+    period: str
     label: str
     value: float
-    quantidade_vendida: int = 0
-    numero_pedidos: int = 0
+    quantity_sold: int = 0
+    order_numbers: int = 0
 
 
 class AnalyticsSeriesResponse(BaseModel):
@@ -490,19 +490,19 @@ class AnalyticsSeriesResponse(BaseModel):
 
 class DashboardAnalytics(BaseModel):
     """Dashboard analytics response."""
-    total_produtos: int
-    total_categorias: int
-    total_clientes: int
-    total_carrinhos: int
-    produtos_baixo_estoque: List[ProdutoEstoqueMinimo]
-    produtos_populares: List[ProdutoPopular]
-    graficos_vendas: DashboardSalesGraphs
+    total_products: int
+    total_categories: int
+    total_customers: int
+    total_carts: int
+    low_stock_products: List[LowStockProduct]
+    popular_products: List[PopularProduct]
+    sales_charts: DashboardSalesGraphs
 
 
 class CategoryResponse(BaseModel):
     """Response model for category."""
     category_id: int
-    id_categoria_display: str
+    category_display_id: str
     category_name: str
     category_description: Optional[str] = None
     status: Optional[int] = None

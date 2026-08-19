@@ -23,7 +23,7 @@ try:
 except ModuleNotFoundError:
     certifi = None
 
-from models import Encomenda
+from models import Order
 from schemas.checkout import CheckoutRequest
 from services.order_customization import customization_lines
 
@@ -61,17 +61,17 @@ RECEIPT_REQUIRED_FIELDS = (
 
 PAYMENT_LABELS = {
     "card": "Cartão",
-    "cash": "Pagamento ao balcão",
+    "cash": "Payment ao balcão",
     "mbway": "MB Way",
     "qr_pay": "MB Way",
     "cartao": "Cartão",
     "digital": "Cartão",
-    "balcao": "Pagamento ao balcão",
+    "balcao": "Payment ao balcão",
 }
 
 
 def build_order_receipt_payload(
-    order: Encomenda,
+    order: Order,
     checkout: CheckoutRequest,
     delivery_fee: Decimal,
     service_fee: Decimal,
@@ -130,7 +130,7 @@ def build_order_receipt_payload(
     }
 
 
-def build_saved_order_receipt_payload(order: Encomenda) -> dict[str, Any]:
+def build_saved_order_receipt_payload(order: Order) -> dict[str, Any]:
     """Build a receipt payload from an already-saved order.
 
     This is used when counter payments are confirmed after checkout, where the
@@ -139,8 +139,8 @@ def build_saved_order_receipt_payload(order: Encomenda) -> dict[str, Any]:
     customer = order.customer
     customer_name = (
         f"{customer.name or ''} {customer.last_name or ''}".strip()
-        if customer else "Cliente"
-    ) or "Cliente"
+        if customer else "Customer"
+    ) or "Customer"
     customer_email = customer.email if customer else ""
     subtotal = _order_subtotal(order)
     coupon_discount = _order_discount(order)
@@ -445,7 +445,7 @@ def _render_plain_text(receipt: Mapping[str, Any]) -> str:
         f"Recibo {receipt['company_name']}",
         f"Pedido: {receipt['order_id']}",
         f"Data: {receipt['order_date']}",
-        f"Pagamento: {receipt['payment_method']}",
+        f"Payment: {receipt['payment_method']}",
         "",
         "Itens:",
     ]
@@ -472,7 +472,7 @@ def _render_plain_text(receipt: Mapping[str, Any]) -> str:
         [
             f"Total: {receipt['total_amount']}",
             "",
-            "Faturação:",
+            "Invoiceção:",
             str(receipt["billing_address"]),
             "",
             "Entrega:",
@@ -564,7 +564,7 @@ def _invoice_address(customer: Any) -> str:
     )
 
 
-def _saved_shipping_address(order: Encomenda) -> str:
+def _saved_shipping_address(order: Order) -> str:
     address = os.getenv(
         "RECEIPT_PICKUP_ADDRESS",
         "Comer no restaurante BONEFREE\nR. Eng. Henrique Mendia 28A\n2825-450 Costa da Caparica\nPortugal",
@@ -580,7 +580,7 @@ def _address_lines(checkout: CheckoutRequest) -> list[str]:
     return []
 
 
-def _receipt_items(order: Encomenda, discount: Decimal, subtotal: Decimal) -> list[dict[str, Any]]:
+def _receipt_items(order: Order, discount: Decimal, subtotal: Decimal) -> list[dict[str, Any]]:
     allocations = _allocate_discount(order.items, discount, subtotal)
     receipt_items = []
 
@@ -626,7 +626,7 @@ def _allocate_discount(items: list[Any], discount: Decimal, subtotal: Decimal) -
     return allocations
 
 
-def _order_subtotal(order: Encomenda) -> Decimal:
+def _order_subtotal(order: Order) -> Decimal:
     stored = Decimal(str(getattr(order, "subtotal", 0) or 0)).quantize(Decimal("0.01"))
     if stored > 0:
         return stored
@@ -636,7 +636,7 @@ def _order_subtotal(order: Encomenda) -> Decimal:
     ).quantize(Decimal("0.01"))
 
 
-def _order_discount(order: Encomenda) -> Decimal:
+def _order_discount(order: Order) -> Decimal:
     stored = Decimal(str(getattr(order, "total_discount", 0) or 0)).quantize(Decimal("0.01"))
     if stored > 0:
         return stored
@@ -649,7 +649,7 @@ def _order_discount(order: Encomenda) -> Decimal:
         return Decimal("0")
 
 
-def _order_coupon_code(order: Encomenda) -> str:
+def _order_coupon_code(order: Order) -> str:
     return _note_value(order.notes, "coupon") or ""
 
 
@@ -664,13 +664,13 @@ def _note_value(notes: str | None, key: str) -> str | None:
     return None
 
 
-def _saved_payment_label(order: Encomenda) -> str:
+def _saved_payment_label(order: Order) -> str:
     checkout_payment = _note_value(order.notes, "checkout_payment")
     payment_method = checkout_payment or order.payment_method
     return PAYMENT_LABELS.get(payment_method, payment_method.title())
 
 
-def _payment_status_label(order: Encomenda) -> str:
+def _payment_status_label(order: Order) -> str:
     status = getattr(getattr(order, "payment", None), "state", None) or getattr(order, "payment_status", None)
     labels = {
         "aprovado": "Pago",
@@ -683,7 +683,7 @@ def _payment_status_label(order: Encomenda) -> str:
     return labels.get(str(status or "").strip(), str(status or "").strip().title())
 
 
-def _payment_reference(order: Encomenda) -> str:
+def _payment_reference(order: Order) -> str:
     payment = getattr(order, "payment", None)
     reference = getattr(payment, "transaction_reference", None) if payment else None
     return str(reference).strip() if reference else ""
@@ -697,12 +697,12 @@ def _customer_field(customer: Any, field: str) -> str:
     return str(value).strip() if value not in (None, "") else ""
 
 
-def _document_number(order: Encomenda) -> str:
+def _document_number(order: Order) -> str:
     year = order.ordered_at.year if order.ordered_at else datetime.utcnow().year
     return f"FR {year}/{order.order_id:06d}"
 
 
-def _payment_datetime(order: Encomenda) -> Any:
+def _payment_datetime(order: Order) -> Any:
     payment = getattr(order, "payment", None)
     if payment and payment.paid_at:
         return payment.paid_at

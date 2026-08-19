@@ -24,7 +24,7 @@ class Admin(Base):
     role: Mapped[str] = mapped_column(String(30), default='staff_admin', nullable=False)
 
 
-class Categoria(Base):
+class Category(Base):
     __tablename__ = 'category'
 
     category_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
@@ -36,7 +36,7 @@ class Categoria(Base):
     admin: Mapped[Admin] = relationship('Admin')
 
     @property
-    def id_categoria_display(self) -> str:
+    def category_display_id(self) -> str:
         return format_category_id(self.category_id)
 
 
@@ -48,7 +48,7 @@ class SiteSetting(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=naive_utc_now, onupdate=naive_utc_now, nullable=True)
 
 
-class EmpresaConfig(Base):
+class CompanyConfig(Base):
     __tablename__ = 'company_config'
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
@@ -63,7 +63,7 @@ class EmpresaConfig(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=naive_utc_now, onupdate=naive_utc_now, nullable=False)
 
 
-class Produto(Base):
+class Product(Base):
     __tablename__ = 'product'
 
     product_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
@@ -79,40 +79,40 @@ class Produto(Base):
     customizable: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="1")
     menu_tags: Mapped[str] = mapped_column(String(255), nullable=True)
     featured: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
-    desconto_percentual: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False, default=0)
+    discount_percentual: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False, default=0)
     gluten_free: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
     contains_alcohol: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
     deleted_at: Mapped[datetime] = mapped_column(DateTime, nullable=True, index=True)  #  soft delete
 
     admin: Mapped[Admin] = relationship('Admin')
-    category: Mapped[Categoria] = relationship('Categoria', lazy='joined')
+    category: Mapped[Category] = relationship('Category', lazy='joined')
     # Parent-side 0..N: a product may exist without any uploaded images.
-    imagens: Mapped[List[ImagemProduto]] = relationship('ImagemProduto', back_populates='product', lazy='joined')
+    images: Mapped[List[ProductImage]] = relationship('ProductImage', back_populates='product', lazy='joined')
     # Parent-side 0..N: a product may exist without any customer reviews.
-    reviews: Mapped[List[ProdutoReview]] = relationship("ProdutoReview", back_populates="product")
+    reviews: Mapped[List[ProductReview]] = relationship("ProductReview", back_populates="product")
 
     total_calories: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=True)
 
     @property
-    def id_produto_display(self) -> str:
+    def product_display_id(self) -> str:
         return format_product_id(self.product_id)
 
     @property
-    def id_categoria_display(self) -> str:
+    def category_display_id(self) -> str:
         return format_category_id(self.category_id)
 
 
-class ImagemProduto(Base):
+class ProductImage(Base):
     __tablename__ = 'product_image'
 
-    id_imagem: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
+    image_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
     product_id: Mapped[int] = mapped_column(Integer, ForeignKey('product.product_id'), nullable=False)
     image_path: Mapped[str] = mapped_column(String(255), nullable=False)
 
-    product: Mapped[Produto] = relationship("Produto", back_populates="imagens")
+    product: Mapped[Product] = relationship("Product", back_populates="images")
 
 
-class Cliente(Base):
+class Customer(Base):
     __tablename__ = 'customer'
 
     customer_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
@@ -130,14 +130,14 @@ class Cliente(Base):
     status: Mapped[int] = mapped_column(Integer, default=1, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=naive_utc_now, nullable=True)
 
-    billing_address: Mapped[ClienteEnderecoFatura] = relationship("ClienteEnderecoFatura", back_populates="customer", uselist=False, cascade="all, delete-orphan")
-    cart: Mapped[Carrinho] = relationship("Carrinho", back_populates="customer", uselist=False)
-    reviews: Mapped[List[ProdutoReview]] = relationship("ProdutoReview", back_populates="customer")
+    billing_address: Mapped[CustomerBillingAddress] = relationship("CustomerBillingAddress", back_populates="customer", uselist=False, cascade="all, delete-orphan")
+    cart: Mapped[Cart] = relationship("Cart", back_populates="customer", uselist=False)
+    reviews: Mapped[List[ProductReview]] = relationship("ProductReview", back_populates="customer")
     # Parent-side 0..N: a client may exist without any coupons.
-    coupons: Mapped[List[Cupom]] = relationship("Cupom", back_populates="customer")
+    coupons: Mapped[List[Coupon]] = relationship("Coupon", back_populates="customer")
 
 
-class ClienteEnderecoFatura(Base):
+class CustomerBillingAddress(Base):
     __tablename__ = 'customer_billing_address'
 
     address_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
@@ -147,10 +147,10 @@ class ClienteEnderecoFatura(Base):
     city: Mapped[str] = mapped_column(String(100), nullable=True)
     country: Mapped[str] = mapped_column(String(100), nullable=False, default="Portugal", server_default="Portugal")
 
-    customer: Mapped[Cliente] = relationship("Cliente", back_populates="billing_address")
+    customer: Mapped[Customer] = relationship("Customer", back_populates="billing_address")
 
 
-class ClienteLoyalty(Base):
+class CustomerLoyalty(Base):
     __tablename__ = 'customer_loyalty'
 
     customer_id: Mapped[int] = mapped_column(Integer, ForeignKey('customer.customer_id'), primary_key=True, nullable=False)
@@ -158,10 +158,10 @@ class ClienteLoyalty(Base):
     total_coupons_earned: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=naive_utc_now, onupdate=naive_utc_now, nullable=False)
 
-    customer: Mapped[Cliente] = relationship("Cliente")
+    customer: Mapped[Customer] = relationship("Customer")
 
 
-class Cupom(Base):
+class Coupon(Base):
     __tablename__ = 'coupon'
 
     coupon_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
@@ -175,21 +175,21 @@ class Cupom(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=naive_utc_now, nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
 
-    customer: Mapped[Cliente] = relationship("Cliente", back_populates="coupons")
+    customer: Mapped[Customer] = relationship("Customer", back_populates="coupons")
 
 
-class Carrinho(Base):
+class Cart(Base):
     __tablename__ = 'cart'
 
     cart_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
     customer_id: Mapped[int] = mapped_column(Integer, ForeignKey('customer.customer_id', ondelete='CASCADE'), nullable=False)
     created_at: Mapped[date] = mapped_column(Date, default=lambda: naive_utc_now().date())
 
-    customer: Mapped[Cliente] = relationship("Cliente", back_populates="cart")
-    items: Mapped[List[CarrinhoProduto]] = relationship("CarrinhoProduto", back_populates="cart", cascade="all, delete-orphan")
+    customer: Mapped[Customer] = relationship("Customer", back_populates="cart")
+    items: Mapped[List[CartProduct]] = relationship("CartProduct", back_populates="cart", cascade="all, delete-orphan")
 
 
-class CarrinhoProduto(Base):
+class CartProduct(Base):
     __tablename__ = 'cart_product'
 
     cart_product_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
@@ -198,12 +198,12 @@ class CarrinhoProduto(Base):
     quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     customization: Mapped[str] = mapped_column(String(1000), nullable=True)
 
-    cart: Mapped[Carrinho] = relationship("Carrinho", back_populates="items")
-    product: Mapped[Produto] = relationship("Produto", lazy='joined')
-    customizations: Mapped[List[CarrinhoProdutoCustomizacao]] = relationship("CarrinhoProdutoCustomizacao", back_populates="item", cascade="all, delete-orphan")
+    cart: Mapped[Cart] = relationship("Cart", back_populates="items")
+    product: Mapped[Product] = relationship("Product", lazy='joined')
+    customizations: Mapped[List[CartProductCustomization]] = relationship("CartProductCustomization", back_populates="item", cascade="all, delete-orphan")
 
 
-class Ingrediente(Base):
+class Ingredient(Base):
     __tablename__ = 'ingredient'
 
     ingredient_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
@@ -213,7 +213,7 @@ class Ingrediente(Base):
     calories_per_gram: Mapped[Decimal] = mapped_column(Numeric(8, 4), nullable=True)
 
 
-class ProdutoIngrediente(Base):
+class ProductIngredient(Base):
     __tablename__ = 'product_ingredient'
 
     product_id: Mapped[int] = mapped_column(Integer, ForeignKey('product.product_id'), primary_key=True, nullable=False)
@@ -223,11 +223,11 @@ class ProdutoIngrediente(Base):
     substitutable: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
     quantity: Mapped[str] = mapped_column(String(50), nullable=True)
 
-    product: Mapped[Produto] = relationship("Produto")
-    ingredient: Mapped[Ingrediente] = relationship("Ingrediente", lazy='joined')
+    product: Mapped[Product] = relationship("Product")
+    ingredient: Mapped[Ingredient] = relationship("Ingredient", lazy='joined')
 
 
-class ProdutoOpcaoCustomizacao(Base):
+class ProductCustomizationOption(Base):
     __tablename__ = 'product_customization_option'
 
     option_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
@@ -239,13 +239,13 @@ class ProdutoOpcaoCustomizacao(Base):
     max_quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     status: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
 
-    product: Mapped[Produto] = relationship("Produto")
-    ingredient: Mapped[Ingrediente] = relationship("Ingrediente", lazy='joined')
+    product: Mapped[Product] = relationship("Product")
+    ingredient: Mapped[Ingredient] = relationship("Ingredient", lazy='joined')
     # Parent-side 0..N: an option may exist without being selected in a cart.
-    cart_customizations: Mapped[List[CarrinhoProdutoCustomizacao]] = relationship("CarrinhoProdutoCustomizacao", back_populates="opcao")
+    cart_customizations: Mapped[List[CartProductCustomization]] = relationship("CartProductCustomization", back_populates="option")
 
 
-class CarrinhoProdutoCustomizacao(Base):
+class CartProductCustomization(Base):
     __tablename__ = 'cart_product_customization'
 
     customization_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
@@ -257,12 +257,12 @@ class CarrinhoProdutoCustomizacao(Base):
     extra_price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=0)
     notes: Mapped[str] = mapped_column(String(255), nullable=True)
 
-    item: Mapped[CarrinhoProduto] = relationship("CarrinhoProduto", back_populates="customizations")
-    ingredient: Mapped[Ingrediente] = relationship("Ingrediente")
-    opcao: Mapped[ProdutoOpcaoCustomizacao] = relationship("ProdutoOpcaoCustomizacao", back_populates="cart_customizations")
+    item: Mapped[CartProduct] = relationship("CartProduct", back_populates="customizations")
+    ingredient: Mapped[Ingredient] = relationship("Ingredient")
+    option: Mapped[ProductCustomizationOption] = relationship("ProductCustomizationOption", back_populates="cart_customizations")
 
 
-class Encomenda(Base):
+class Order(Base):
     __tablename__ = 'customer_order'
 
     order_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
@@ -282,15 +282,15 @@ class Encomenda(Base):
     cancellation_origin: Mapped[str] = mapped_column(String(30), nullable=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=naive_utc_now, onupdate=naive_utc_now, nullable=False)
 
-    customer: Mapped[Cliente] = relationship("Cliente", lazy='joined')
-    items: Mapped[List[EncomendaProduto]] = relationship("EncomendaProduto", back_populates="order", cascade="all, delete-orphan", lazy='joined')
-    payment: Mapped[Pagamento] = relationship("Pagamento", back_populates="order", uselist=False, cascade="all, delete-orphan", lazy='joined')
+    customer: Mapped[Customer] = relationship("Customer", lazy='joined')
+    items: Mapped[List[OrderProduct]] = relationship("OrderProduct", back_populates="order", cascade="all, delete-orphan", lazy='joined')
+    payment: Mapped[Payment] = relationship("Payment", back_populates="order", uselist=False, cascade="all, delete-orphan", lazy='joined')
     # Parent-side 0..N: an order may exist without any refunds.
-    refunds: Mapped[List[Reembolso]] = relationship("Reembolso", back_populates="order", cascade="all, delete-orphan", lazy='joined')
-    invoice: Mapped[Fatura] = relationship("Fatura", back_populates="order", uselist=False, cascade="all, delete-orphan")
+    refunds: Mapped[List[Refund]] = relationship("Refund", back_populates="order", cascade="all, delete-orphan", lazy='joined')
+    invoice: Mapped[Invoice] = relationship("Invoice", back_populates="order", uselist=False, cascade="all, delete-orphan")
 
 
-class Fatura(Base):
+class Invoice(Base):
     __tablename__ = 'invoice'
 
     invoice_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
@@ -305,10 +305,10 @@ class Fatura(Base):
     total: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=0)
     issued_at: Mapped[datetime] = mapped_column(DateTime, default=naive_utc_now, nullable=False, index=True)
 
-    order: Mapped[Encomenda] = relationship("Encomenda", back_populates="invoice")
+    order: Mapped[Order] = relationship("Order", back_populates="invoice")
 
 
-class EncomendaProduto(Base):
+class OrderProduct(Base):
     __tablename__ = 'order_product'
 
     order_product_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
@@ -321,12 +321,12 @@ class EncomendaProduto(Base):
     vat_percentage_snapshot: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False, default=13)
     customization: Mapped[str] = mapped_column(String(1000), nullable=True)
 
-    order: Mapped[Encomenda] = relationship("Encomenda", back_populates="items")
-    product: Mapped[Produto] = relationship("Produto", lazy='joined')
-    review: Mapped[ProdutoReview] = relationship("ProdutoReview", back_populates="order_product", uselist=False)
+    order: Mapped[Order] = relationship("Order", back_populates="items")
+    product: Mapped[Product] = relationship("Product", lazy='joined')
+    review: Mapped[ProductReview] = relationship("ProductReview", back_populates="order_product", uselist=False)
 
 
-class ProdutoReview(Base):
+class ProductReview(Base):
     __tablename__ = 'product_review'
     __table_args__ = (
         UniqueConstraint('order_product_id', name='uq_review_encomenda_produto'),
@@ -344,9 +344,9 @@ class ProdutoReview(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=naive_utc_now, nullable=False, index=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=naive_utc_now, onupdate=naive_utc_now, nullable=False)
 
-    product: Mapped[Produto] = relationship("Produto", back_populates="reviews")
-    customer: Mapped[Cliente] = relationship("Cliente", back_populates="reviews")
-    order_product: Mapped[EncomendaProduto] = relationship("EncomendaProduto", back_populates="review")
+    product: Mapped[Product] = relationship("Product", back_populates="reviews")
+    customer: Mapped[Customer] = relationship("Customer", back_populates="reviews")
+    order_product: Mapped[OrderProduct] = relationship("OrderProduct", back_populates="review")
     # Parent-side 0..N: a review may exist without any admin replies.
     replies: Mapped[List[ReviewReply]] = relationship("ReviewReply", back_populates="review", cascade="all, delete-orphan", order_by="ReviewReply.created_at")
     # Parent-side 0..N: a review may exist without any reactions.
@@ -368,7 +368,7 @@ class ReviewReply(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=naive_utc_now, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=naive_utc_now, onupdate=naive_utc_now, nullable=False)
 
-    review: Mapped[ProdutoReview] = relationship("ProdutoReview", back_populates="replies")
+    review: Mapped[ProductReview] = relationship("ProductReview", back_populates="replies")
     admin: Mapped[Admin] = relationship("Admin")
 
 
@@ -384,11 +384,11 @@ class ReviewReaction(Base):
     type: Mapped[str] = mapped_column(Enum('like', 'heart'), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=naive_utc_now, nullable=False)
 
-    review: Mapped[ProdutoReview] = relationship("ProdutoReview", back_populates="reactions")
+    review: Mapped[ProductReview] = relationship("ProductReview", back_populates="reactions")
     admin: Mapped[Admin] = relationship("Admin")
 
 
-class Pagamento(Base):
+class Payment(Base):
     __tablename__ = 'payment'
 
     payment_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
@@ -400,13 +400,13 @@ class Pagamento(Base):
     paid_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     confirmed_by_admin_id: Mapped[int] = mapped_column(Integer, ForeignKey('admin.admin_id'), nullable=True)
 
-    order: Mapped[Encomenda] = relationship("Encomenda", back_populates="payment")
+    order: Mapped[Order] = relationship("Order", back_populates="payment")
     confirmed_by: Mapped[Admin] = relationship("Admin")
     # Parent-side 0..N: a payment may exist without any refunds.
-    refunds: Mapped[List[Reembolso]] = relationship("Reembolso", back_populates="payment")
+    refunds: Mapped[List[Refund]] = relationship("Refund", back_populates="payment")
 
 
-class Reembolso(Base):
+class Refund(Base):
     __tablename__ = 'refund'
 
     refund_id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
@@ -421,6 +421,6 @@ class Reembolso(Base):
     receipt_number: Mapped[str] = mapped_column(String(40), nullable=False, unique=True, index=True)
     refunded_at: Mapped[datetime] = mapped_column(DateTime, default=naive_utc_now, nullable=False, index=True)
 
-    order: Mapped[Encomenda] = relationship("Encomenda", back_populates="refunds")
-    payment: Mapped[Pagamento] = relationship("Pagamento", back_populates="refunds")
+    order: Mapped[Order] = relationship("Order", back_populates="refunds")
+    payment: Mapped[Payment] = relationship("Payment", back_populates="refunds")
     admin: Mapped[Admin] = relationship("Admin")

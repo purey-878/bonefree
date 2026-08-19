@@ -5,7 +5,7 @@ from typing import Any
 
 
 def product_discount_percent(product: Any) -> Decimal:
-    value = getattr(product, "desconto_percentual", None)
+    value = getattr(product, "discount_percentual", None)
     if value is None:
         return Decimal("0")
     discount = Decimal(str(value))

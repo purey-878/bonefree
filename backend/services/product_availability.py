@@ -2,7 +2,7 @@
 
 from sqlalchemy.orm import Session
 
-from models import Ingrediente, Produto, ProdutoIngrediente
+from models import Ingredient, Product, ProductIngredient
 
 INACTIVE_BASE_REASON = "Not available right now"
 
@@ -13,12 +13,12 @@ def inactive_base_product_ids(db: Session, product_ids: list[str]) -> set[str]:
         return set()
 
     rows = (
-        db.query(ProdutoIngrediente.product_id)
-        .join(Ingrediente, Ingrediente.ingredient_id == ProdutoIngrediente.ingredient_id)
+        db.query(ProductIngredient.product_id)
+        .join(Ingredient, Ingredient.ingredient_id == ProductIngredient.ingredient_id)
         .filter(
-            ProdutoIngrediente.product_id.in_(product_ids),
-            Ingrediente.type == "BASE",
-            Ingrediente.status == 0,
+            ProductIngredient.product_id.in_(product_ids),
+            Ingredient.type == "BASE",
+            Ingredient.status == 0,
         )
         .distinct()
         .all()
@@ -26,6 +26,6 @@ def inactive_base_product_ids(db: Session, product_ids: list[str]) -> set[str]:
     return {row[0] for row in rows}
 
 
-def unavailable_due_to_inactive_base(db: Session, product: Produto) -> bool:
+def unavailable_due_to_inactive_base(db: Session, product: Product) -> bool:
     return product.product_id in inactive_base_product_ids(db, [product.product_id])
 

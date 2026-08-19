@@ -9,14 +9,14 @@ from sqlalchemy.orm import Session, joinedload
 
 from auth import get_current_user, get_current_user_optional, require_super_admin
 from database import get_db
-from models import Admin, Cliente, Encomenda, EncomendaProduto, Produto, ProdutoReview, ReviewReaction, ReviewReply
+from models import Admin, Customer, Order, OrderProduct, Product, ProductReview, ReviewReaction, ReviewReply
 from schemas.review import (
-    ProdutoReviewCreate,
-    ProdutoReviewEligibilityItem,
-    ProdutoReviewEligibilityResponse,
-    ProdutoReviewResponse,
-    ProdutoReviewStatsResponse,
-    ProdutoReviewUpdate,
+    ProductReviewCreate,
+    ProductReviewEligibilityItem,
+    ProductReviewEligibilityResponse,
+    ProductReviewResponse,
+    ProductReviewStatsResponse,
+    ProductReviewUpdate,
     ReviewReactionCreate,
     ReviewReactionResponse,
     ReviewReplyCreate,
@@ -27,18 +27,18 @@ from utils.id_format import format_product_id, parse_product_id
 router = APIRouter(tags=["Reviews"])
 
 
-def _review_response(review: ProdutoReview, current_user: Cliente | None = None) -> ProdutoReviewResponse:
-    cliente_nome = None
+def _review_response(review: ProductReview, current_user: Customer | None = None) -> ProductReviewResponse:
+    customer_name = None
     if review.customer:
-        cliente_nome = f"{review.customer.name or ''} {review.customer.last_name or ''}".strip() or review.customer.email
+        customer_name = f"{review.customer.name or ''} {review.customer.last_name or ''}".strip() or review.customer.email
 
-    return ProdutoReviewResponse(
+    return ProductReviewResponse(
         review_id=review.review_id,
         product_id=review.product_id,
-        id_produto_display=format_product_id(review.product_id),
+        product_display_id=format_product_id(review.product_id),
         customer_id=review.customer_id,
         order_product_id=review.order_product_id,
-        cliente_nome=cliente_nome,
+        customer_name=customer_name,
         rating=review.rating,
         title=review.title,
         comment=review.comment,
@@ -52,8 +52,8 @@ def _review_response(review: ProdutoReview, current_user: Cliente | None = None)
     )
 
 
-def _get_review_or_404(db: Session, review_id: int) -> ProdutoReview:
-    review = db.query(ProdutoReview).filter(ProdutoReview.review_id == review_id).first()
+def _get_review_or_404(db: Session, review_id: int) -> ProductReview:
+    review = db.query(ProductReview).filter(ProductReview.review_id == review_id).first()
     if not review:
         raise HTTPException(status_code=404, detail="Avaliação não encontrada.")
     return review
@@ -69,19 +69,19 @@ def _get_reply_or_404(db: Session, review_id: int, reply_id: int) -> ReviewReply
     return reply
 
 
-def _get_active_product(db: Session, produto_id: int) -> Produto:
-    product = db.query(Produto).filter(
-        Produto.product_id == produto_id,
-        ((Produto.status == 1) | (Produto.status.is_(None))),
-        Produto.deleted_at.is_(None),
+def _get_active_product(db: Session, product_id: int) -> Product:
+    product = db.query(Product).filter(
+        Product.product_id == product_id,
+        ((Product.status == 1) | (Product.status.is_(None))),
+        Product.deleted_at.is_(None),
     ).first()
     if not product:
-        raise HTTPException(status_code=404, detail="Produto não encontrado.")
+        raise HTTPException(status_code=404, detail="Product não encontrado.")
     return product
 
 
-def _get_review_for_owner(db: Session, review_id: int, current_user: Cliente) -> ProdutoReview:
-    review = db.query(ProdutoReview).filter(ProdutoReview.review_id == review_id).first()
+def _get_review_for_owner(db: Session, review_id: int, current_user: Customer) -> ProductReview:
+    review = db.query(ProductReview).filter(ProductReview.review_id == review_id).first()
     if not review:
         raise HTTPException(status_code=404, detail="Avaliação não encontrada.")
     if review.customer_id != current_user.customer_id:
@@ -89,16 +89,16 @@ def _get_review_for_owner(db: Session, review_id: int, current_user: Cliente) ->
     return review
 
 
-def _purchased_order_item(db: Session, current_user: Cliente, produto_id: int, order_product_id: int) -> EncomendaProduto:
+def _purchased_order_item(db: Session, current_user: Customer, product_id: int, order_product_id: int) -> OrderProduct:
     item = (
-        db.query(EncomendaProduto)
-        .options(joinedload(EncomendaProduto.order), joinedload(EncomendaProduto.product))
-        .join(Encomenda)
+        db.query(OrderProduct)
+        .options(joinedload(OrderProduct.order), joinedload(OrderProduct.product))
+        .join(Order)
         .filter(
-            EncomendaProduto.order_product_id == order_product_id,
-            EncomendaProduto.product_id == produto_id,
-            Encomenda.customer_id == current_user.customer_id,
-            Encomenda.state != "cancelada",
+            OrderProduct.order_product_id == order_product_id,
+            OrderProduct.product_id == product_id,
+            Order.customer_id == current_user.customer_id,
+            Order.state != "cancelada",
         )
         .first()
     )
@@ -107,88 +107,88 @@ def _purchased_order_item(db: Session, current_user: Cliente, produto_id: int, o
     return item
 
 
-def _existing_product_review(db: Session, current_user: Cliente, produto_id: int) -> ProdutoReview | None:
-    return db.query(ProdutoReview).filter(
-        ProdutoReview.customer_id == current_user.customer_id,
-        ProdutoReview.product_id == produto_id,
+def _existing_product_review(db: Session, current_user: Customer, product_id: int) -> ProductReview | None:
+    return db.query(ProductReview).filter(
+        ProductReview.customer_id == current_user.customer_id,
+        ProductReview.product_id == product_id,
     ).first()
 
 
-@router.get("/products/{produto_id}/reviews", response_model=list[ProdutoReviewResponse])
+@router.get("/products/{product_id}/reviews", response_model=list[ProductReviewResponse])
 def list_product_reviews(
-    produto_id: str,
+    product_id: str,
     db: Session = Depends(get_db),
-    current_user: Cliente | None = Depends(get_current_user_optional),
+    current_user: Customer | None = Depends(get_current_user_optional),
 ):
-    parsed_produto_id = parse_product_id(produto_id)
-    _get_active_product(db, parsed_produto_id)
+    parsed_product_id = parse_product_id(product_id)
+    _get_active_product(db, parsed_product_id)
     reviews = (
-        db.query(ProdutoReview)
-        .options(joinedload(ProdutoReview.customer))
-        .filter(ProdutoReview.product_id == parsed_produto_id, ProdutoReview.status == "aprovado")
-        .order_by(ProdutoReview.created_at.desc())
+        db.query(ProductReview)
+        .options(joinedload(ProductReview.customer))
+        .filter(ProductReview.product_id == parsed_product_id, ProductReview.status == "aprovado")
+        .order_by(ProductReview.created_at.desc())
         .all()
     )
     return [_review_response(review, current_user) for review in reviews]
 
 
-@router.get("/products/{produto_id}/reviews/stats", response_model=ProdutoReviewStatsResponse)
-def get_product_review_stats(produto_id: str, db: Session = Depends(get_db)):
-    parsed_produto_id = parse_product_id(produto_id)
-    _get_active_product(db, parsed_produto_id)
-    rating_medio, total_reviews = (
-        db.query(func.avg(ProdutoReview.rating), func.count(ProdutoReview.review_id))
-        .filter(ProdutoReview.product_id == parsed_produto_id, ProdutoReview.status == "aprovado")
+@router.get("/products/{product_id}/reviews/stats", response_model=ProductReviewStatsResponse)
+def get_product_review_stats(product_id: str, db: Session = Depends(get_db)):
+    parsed_product_id = parse_product_id(product_id)
+    _get_active_product(db, parsed_product_id)
+    average_rating, total_reviews = (
+        db.query(func.avg(ProductReview.rating), func.count(ProductReview.review_id))
+        .filter(ProductReview.product_id == parsed_product_id, ProductReview.status == "aprovado")
         .one()
     )
-    return ProdutoReviewStatsResponse(
-        product_id=parsed_produto_id,
-        id_produto_display=format_product_id(parsed_produto_id),
-        rating_medio=round(float(rating_medio), 2) if rating_medio is not None else None,
+    return ProductReviewStatsResponse(
+        product_id=parsed_product_id,
+        product_display_id=format_product_id(parsed_product_id),
+        average_rating=round(float(average_rating), 2) if average_rating is not None else None,
         total_reviews=int(total_reviews or 0),
     )
 
 
-@router.get("/products/{produto_id}/reviews/eligibility", response_model=ProdutoReviewEligibilityResponse)
+@router.get("/products/{product_id}/reviews/eligibility", response_model=ProductReviewEligibilityResponse)
 def get_product_review_eligibility(
-    produto_id: str,
+    product_id: str,
     db: Session = Depends(get_db),
-    current_user: Cliente | None = Depends(get_current_user_optional),
+    current_user: Customer | None = Depends(get_current_user_optional),
 ):
-    parsed_produto_id = parse_product_id(produto_id)
-    _get_active_product(db, parsed_produto_id)
+    parsed_product_id = parse_product_id(product_id)
+    _get_active_product(db, parsed_product_id)
     if not current_user:
-        return ProdutoReviewEligibilityResponse(
+        return ProductReviewEligibilityResponse(
             eligible=False,
             authenticated=False,
             message="Log in to review products you have purchased.",
         )
 
-    existing_product_review = _existing_product_review(db, current_user, parsed_produto_id)
+    existing_product_review = _existing_product_review(db, current_user, parsed_product_id)
     order_items = (
-        db.query(EncomendaProduto)
+        db.query(OrderProduct)
         .options(
-            joinedload(EncomendaProduto.order),
-            joinedload(EncomendaProduto.product),
-            joinedload(EncomendaProduto.review).joinedload(ProdutoReview.customer),
+            joinedload(OrderProduct.order),
+            joinedload(OrderProduct.product),
+            joinedload(OrderProduct.review).joinedload(ProductReview.customer),
         )
-        .join(Encomenda)
+        .join(Order)
         .filter(
-            EncomendaProduto.product_id == parsed_produto_id,
-            Encomenda.customer_id == current_user.customer_id,
-            Encomenda.state != "cancelada",
+            OrderProduct.product_id == parsed_product_id,
+            Order.customer_id == current_user.customer_id,
+            Order.state != "cancelada",
         )
-        .order_by(Encomenda.ordered_at.desc(), EncomendaProduto.order_product_id.desc())
+        .order_by(Order.ordered_at.desc(), OrderProduct.order_product_id.desc())
         .all()
     )
 
     items = [
-        ProdutoReviewEligibilityItem(
+        ProductReviewEligibilityItem(
             order_product_id=item.order_product_id,
             order_id=item.order_id,
             product_id=item.product_id,
-            id_produto_display=format_product_id(item.product_id),
-            nome_produto=item.product_name_snapshot or (item.product.name if item.product else format_product_id(item.product_id)),
+            product_display_id=format_product_id(item.product_id),
+            product_name=item.product_name_snapshot or (item.product.name if item.product else format_product_id(item.product_id)),
             ordered_at=item.order.ordered_at,
             existing_review=_review_response(existing_product_review or item.review, current_user) if (existing_product_review or item.review) else None,
         )
@@ -199,7 +199,7 @@ def get_product_review_eligibility(
     if not items:
         message = "Compre este product antes de deixar uma avaliação."
 
-    return ProdutoReviewEligibilityResponse(
+    return ProductReviewEligibilityResponse(
         eligible=eligible,
         authenticated=True,
         items=items,
@@ -208,32 +208,32 @@ def get_product_review_eligibility(
     )
 
 
-@router.post("/products/{produto_id}/reviews", response_model=ProdutoReviewResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/products/{product_id}/reviews", response_model=ProductReviewResponse, status_code=status.HTTP_201_CREATED)
 def create_product_review(
-    produto_id: str,
-    body: ProdutoReviewCreate,
+    product_id: str,
+    body: ProductReviewCreate,
     db: Session = Depends(get_db),
-    current_user: Cliente = Depends(get_current_user),
+    current_user: Customer = Depends(get_current_user),
 ):
-    parsed_produto_id = parse_product_id(produto_id)
-    _get_active_product(db, parsed_produto_id)
-    _purchased_order_item(db, current_user, parsed_produto_id, body.order_product_id)
+    parsed_product_id = parse_product_id(product_id)
+    _get_active_product(db, parsed_product_id)
+    _purchased_order_item(db, current_user, parsed_product_id, body.order_product_id)
 
-    existing_product_review = _existing_product_review(db, current_user, parsed_produto_id)
+    existing_product_review = _existing_product_review(db, current_user, parsed_product_id)
     if existing_product_review:
         raise HTTPException(
             status_code=409,
             detail="Já avaliou este product. Edite a sua avaliação existente.",
         )
 
-    existing = db.query(ProdutoReview).filter(
-        ProdutoReview.order_product_id == body.order_product_id
+    existing = db.query(ProductReview).filter(
+        ProductReview.order_product_id == body.order_product_id
     ).first()
     if existing:
         raise HTTPException(status_code=409, detail="Este item comprado já foi avaliado.")
 
-    review = ProdutoReview(
-        product_id=parsed_produto_id,
+    review = ProductReview(
+        product_id=parsed_product_id,
         customer_id=current_user.customer_id,
         order_product_id=body.order_product_id,
         rating=body.rating,
@@ -252,12 +252,12 @@ def create_product_review(
     return _review_response(review, current_user)
 
 
-@router.put("/reviews/{review_id}", response_model=ProdutoReviewResponse)
+@router.put("/reviews/{review_id}", response_model=ProductReviewResponse)
 def update_product_review(
     review_id: int,
-    body: ProdutoReviewUpdate,
+    body: ProductReviewUpdate,
     db: Session = Depends(get_db),
-    current_user: Cliente = Depends(get_current_user),
+    current_user: Customer = Depends(get_current_user),
 ):
     if not body.model_fields_set:
         raise HTTPException(status_code=400, detail="Envie pelo menos um campo da avaliação para atualizar.")
@@ -280,7 +280,7 @@ def update_product_review(
 def delete_product_review(
     review_id: int,
     db: Session = Depends(get_db),
-    current_user: Cliente = Depends(get_current_user),
+    current_user: Customer = Depends(get_current_user),
 ):
     review = _get_review_for_owner(db, review_id, current_user)
     db.delete(review)

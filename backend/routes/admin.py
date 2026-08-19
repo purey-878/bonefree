@@ -17,9 +17,9 @@ from typing import Dict, List, Optional, Union
 
 from database import get_db
 from models import (
-    Admin, Produto, Carrinho, CarrinhoProduto as CartItem, Cliente, ImagemProduto,
-    Categoria, Encomenda, EncomendaProduto, Pagamento, ProdutoReview,
-    Ingrediente, ProdutoIngrediente, Reembolso, ClienteEnderecoFatura,
+    Admin, Product, Cart, CartProduct as CartItem, Customer, ProductImage,
+    Category, Order, OrderProduct, Payment, ProductReview,
+    Ingredient, ProductIngredient, Refund, CustomerBillingAddress,
 )
 from auth import (
     CHEF_ROLE,
@@ -36,16 +36,16 @@ from auth import (
 )
 from schemas.admin import (
     AdminLogin, AdminTokenResponse,
-    ProdutoCreate, ProdutoUpdate, ProdutoAdminResponse,
+    ProductCreate, ProductUpdate, ProductAdminResponse,
     IngredientCreate, IngredientResponse, IngredientUpdate, ProductIngredientPayload,
     ProductIngredientResponse,
-    OrderResponse, CartItemResponse, ProdutoEstoqueMinimo,
-    ProdutoPopular, VendaPeriodicaResponse, DashboardAnalytics,
+    OrderResponse, CartItemResponse, LowStockProduct,
+    PopularProduct, VendaPeriodicaResponse, DashboardAnalytics,
     DashboardSalesGraphs,
     ProductAnalyticsResponse,
     AnalyticsSeriesPoint, AnalyticsSeriesResponse,
     CategoryCreate, CategoryResponse, CategoryUpdate, SalesPerformanceResponse,
-    ClienteAdminCreate, ClienteAdminResponse, ClienteAdminUpdate,
+    CustomerAdminCreate, CustomerAdminResponse, CustomerAdminUpdate,
     CounterPaymentResponse, KitchenOrderResponse, OrderStatusUpdate,
     RefundOrderResponse, RefundRequest, RefundResponse,
     StaffAdminCreate, StaffAdminUpdate, AdminResponse,
@@ -118,9 +118,9 @@ def read_current_admin(current_admin: Admin = Depends(get_current_admin)):
 
 def _empty_sales_stats() -> SalesStats:
     return {
-        "total_vendas": 0.0,
-        "quantidade_vendida": 0,
-        "numero_pedidos": 0,
+        "total_sales": 0.0,
+        "quantity_sold": 0,
+        "order_numbers": 0,
     }
 
 
@@ -143,12 +143,12 @@ def _shift_month(date_value: datetime, months: int) -> datetime:
     return date_value.replace(year=year, month=month)
 
 
-def _sales_point(periodo: str, stats: SalesStats) -> VendaPeriodicaResponse:
+def _sales_point(period: str, stats: SalesStats) -> VendaPeriodicaResponse:
     return VendaPeriodicaResponse(
-        periodo=periodo,
-        total_vendas=float(stats["total_vendas"]),
-        quantidade_vendida=int(stats["quantidade_vendida"]),
-        numero_pedidos=int(stats["numero_pedidos"]),
+        period=period,
+        total_sales=float(stats["total_sales"]),
+        quantity_sold=int(stats["quantity_sold"]),
+        order_numbers=int(stats["order_numbers"]),
     )
 
 
@@ -161,9 +161,9 @@ def _add_order_to_sales_bucket(
     if bucket_key not in buckets:
         return
 
-    buckets[bucket_key]["total_vendas"] = float(buckets[bucket_key]["total_vendas"]) + order_total
-    buckets[bucket_key]["quantidade_vendida"] = int(buckets[bucket_key]["quantidade_vendida"]) + item_quantity
-    buckets[bucket_key]["numero_pedidos"] = int(buckets[bucket_key]["numero_pedidos"]) + 1
+    buckets[bucket_key]["total_sales"] = float(buckets[bucket_key]["total_sales"]) + order_total
+    buckets[bucket_key]["quantity_sold"] = int(buckets[bucket_key]["quantity_sold"]) + item_quantity
+    buckets[bucket_key]["order_numbers"] = int(buckets[bucket_key]["order_numbers"]) + 1
 
 
 def _build_dashboard_sales_graphs(db: Session) -> DashboardSalesGraphs:
@@ -186,8 +186,8 @@ def _build_dashboard_sales_graphs(db: Session) -> DashboardSalesGraphs:
     yearly_buckets = {key: _empty_sales_stats() for key in yearly_keys}
 
     orders = (
-        db.query(Encomenda)
-        .filter(Encomenda.ordered_at >= yearly_start)
+        db.query(Order)
+        .filter(Order.ordered_at >= yearly_start)
         .all()
     )
 
@@ -245,7 +245,7 @@ def _parse_date_param(value: Optional[str], fallback: datetime) -> datetime:
         raise HTTPException(status_code=400, detail="As datas devem usar o formato YYYY-MM-DD.")
 
 
-def _parse_cliente_created_at(value: Optional[object]) -> Optional[datetime]:
+def _parse_customer_created_at(value: Optional[object]) -> Optional[datetime]:
     if not value:
         return None
     if isinstance(value, datetime):
@@ -328,10 +328,10 @@ def _analytics_label(key: str, granularity: str) -> str:
 
 
 def active_product_filter():
-    return or_(Produto.status == 1, Produto.status.is_(None))
+    return or_(Product.status == 1, Product.status.is_(None))
 
 
-def _ingredient_response(row: ProdutoIngrediente) -> ProductIngredientResponse:
+def _ingredient_response(row: ProductIngredient) -> ProductIngredientResponse:
     ingredient = row.ingredient
     return ProductIngredientResponse(
         ingredient_id=row.ingredient_id,
@@ -350,9 +350,9 @@ def _product_ingredient_lookup(db: Session, product_ids: List[int]) -> Dict[int,
         return {}
 
     rows = (
-        db.query(ProdutoIngrediente)
-        .options(joinedload(ProdutoIngrediente.ingredient))
-        .filter(ProdutoIngrediente.product_id.in_(product_ids))
+        db.query(ProductIngredient)
+        .options(joinedload(ProductIngredient.ingredient))
+        .filter(ProductIngredient.product_id.in_(product_ids))
         .all()
     )
     lookup: Dict[int, List[ProductIngredientResponse]] = {product_id: [] for product_id in product_ids}
@@ -363,22 +363,22 @@ def _product_ingredient_lookup(db: Session, product_ids: List[int]) -> Dict[int,
 
 def _product_admin_response(
     db: Session,
-    product: Produto,
+    product: Product,
     ingredient_lookup: Optional[Dict[int, List[ProductIngredientResponse]]] = None,
-) -> ProdutoAdminResponse:
-    data = ProdutoAdminResponse.model_validate(product).model_dump()
+) -> ProductAdminResponse:
+    data = ProductAdminResponse.model_validate(product).model_dump()
     ingredients = None if ingredient_lookup is None else ingredient_lookup.get(product.product_id)
     if ingredients is None:
         ingredients = _product_ingredient_lookup(db, [product.product_id]).get(product.product_id, [])
     data["ingredients"] = [ingredient.model_dump() for ingredient in ingredients]
-    return ProdutoAdminResponse(**data)
+    return ProductAdminResponse(**data)
 
 
-def _find_or_create_ingredient(db: Session, payload: ProductIngredientPayload) -> Ingrediente:
+def _find_or_create_ingredient(db: Session, payload: ProductIngredientPayload) -> Ingredient:
     if payload.ingredient_id is not None:
-        ingredient = db.query(Ingrediente).filter(Ingrediente.ingredient_id == payload.ingredient_id).first()
+        ingredient = db.query(Ingredient).filter(Ingredient.ingredient_id == payload.ingredient_id).first()
         if not ingredient:
-            raise HTTPException(status_code=404, detail=f"Ingrediente {payload.ingredient_id} não encontrado.")
+            raise HTTPException(status_code=404, detail=f"Ingredient {payload.ingredient_id} não encontrado.")
         if ingredient.status == 0:
             ingredient.status = 1
         if payload.calories_per_gram is not None:
@@ -389,7 +389,7 @@ def _find_or_create_ingredient(db: Session, payload: ProductIngredientPayload) -
     if not name:
         raise HTTPException(status_code=400, detail="Novos ingredients precisam de um name.")
 
-    ingredient = db.query(Ingrediente).filter(func.lower(Ingrediente.name) == name.lower()).first()
+    ingredient = db.query(Ingredient).filter(func.lower(Ingredient.name) == name.lower()).first()
     if ingredient:
         if ingredient.status == 0:
             ingredient.status = 1
@@ -397,7 +397,7 @@ def _find_or_create_ingredient(db: Session, payload: ProductIngredientPayload) -
             ingredient.calories_per_gram = payload.calories_per_gram
         return ingredient
 
-    ingredient = Ingrediente(
+    ingredient = Ingredient(
         name=name,
         type=payload.type,
         status=1,
@@ -409,14 +409,14 @@ def _find_or_create_ingredient(db: Session, payload: ProductIngredientPayload) -
 
 
 def _sync_product_ingredients(db: Session, product_id: int, ingredients: List[ProductIngredientPayload]) -> None:
-    db.query(ProdutoIngrediente).filter(ProdutoIngrediente.product_id == product_id).delete(synchronize_session=False)
+    db.query(ProductIngredient).filter(ProductIngredient.product_id == product_id).delete(synchronize_session=False)
     seen_ingredient_ids: set[int] = set()
     for payload in ingredients:
         ingredient = _find_or_create_ingredient(db, payload)
         if ingredient.ingredient_id in seen_ingredient_ids:
             continue
         seen_ingredient_ids.add(ingredient.ingredient_id)
-        db.add(ProdutoIngrediente(
+        db.add(ProductIngredient(
             product_id=product_id,
             ingredient_id=ingredient.ingredient_id,
             included_by_default=1 if payload.included_by_default else 0,
@@ -465,17 +465,17 @@ def _order_fulfillment_method(notes: str | None) -> str:
     return "pickup"
 
 
-def _order_response(order: Encomenda) -> OrderResponse:
+def _order_response(order: Order) -> OrderResponse:
     latest_refund = _latest_refund(order)
     return OrderResponse(
         cart_id=order.order_id,
         customer_id=order.customer_id,
-        cliente_email=order.customer.email if order.customer else "Unknown",
-        cliente_nome=(
+        customer_email=order.customer.email if order.customer else "Unknown",
+        customer_name=(
             f"{order.customer.name or ''} {order.customer.last_name or ''}".strip()
             if order.customer else None
         ),
-        cliente_telefone=order.customer.phone if order.customer else None,
+        customer_phone=order.customer.phone if order.customer else None,
         created_at=order.ordered_at,
         state=order.state,
         payment_method=order.payment_method,
@@ -499,32 +499,32 @@ def _order_response(order: Encomenda) -> OrderResponse:
         items=[
             CartItemResponse(
                 product_id=item.product_id,
-                id_produto_display=format_product_id(item.product_id),
+                product_display_id=format_product_id(item.product_id),
                 name=item.product_name_snapshot or (item.product.name if item.product else format_product_id(item.product_id)),
                 quantity=item.quantity,
                 price=float(item.unit_price),
                 total=float(item.unit_price) * item.quantity,
                 customization=item.customization,
-                customizacao_resumo=customization_lines(item.customization),
+                customization_summary=customization_lines(item.customization),
             )
             for item in order.items
         ],
     )
 
 
-def _latest_refund(order: Encomenda) -> Reembolso | None:
+def _latest_refund(order: Order) -> Refund | None:
     refunds = sorted(order.refunds or [], key=lambda refund: refund.refunded_at or datetime.min, reverse=True)
     return refunds[0] if refunds else None
 
 
-def _refund_response(refund: Reembolso) -> RefundResponse:
+def _refund_response(refund: Refund) -> RefundResponse:
     order = refund.order
     customer = order.customer if order else None
     admin = refund.admin
     customer_name = (
         f"{customer.name or ''} {customer.last_name or ''}".strip()
-        if customer else "Cliente"
-    ) or "Cliente"
+        if customer else "Customer"
+    ) or "Customer"
     return RefundResponse(
         refund_id=refund.refund_id,
         order_id=refund.order_id,
@@ -544,7 +544,7 @@ def _refund_response(refund: Reembolso) -> RefundResponse:
     )
 
 
-def _kitchen_order_response(order: Encomenda) -> KitchenOrderResponse:
+def _kitchen_order_response(order: Order) -> KitchenOrderResponse:
     order = _order_response(order)
     return KitchenOrderResponse(
         cart_id=order.cart_id,
@@ -558,11 +558,11 @@ def _kitchen_order_response(order: Encomenda) -> KitchenOrderResponse:
     )
 
 
-def _get_order_or_404(db: Session, order_id: int) -> Encomenda:
+def _get_order_or_404(db: Session, order_id: int) -> Order:
     order = (
-        db.query(Encomenda)
-        .options(joinedload(Encomenda.items).joinedload(EncomendaProduto.product))
-        .filter(Encomenda.order_id == order_id)
+        db.query(Order)
+        .options(joinedload(Order.items).joinedload(OrderProduct.product))
+        .filter(Order.order_id == order_id)
         .first()
     )
     if not order:
@@ -579,7 +579,7 @@ def _ensure_order_status_allowed(current_admin: Admin, next_status: str) -> None
         raise HTTPException(status_code=400, detail="Estado do pedido inválido.")
 
 
-def _is_kitchen_visible(order: Encomenda) -> bool:
+def _is_kitchen_visible(order: Order) -> bool:
     if order.state in KITCHEN_VISIBLE_STATES:
         return True
     return (
@@ -590,7 +590,7 @@ def _is_kitchen_visible(order: Encomenda) -> bool:
 
 
 # ─────────────────────────────────────────────────────────────
-def _confirm_counter_payment(db: Session, order: Encomenda, current_admin: Admin) -> bool:
+def _confirm_counter_payment(db: Session, order: Order, current_admin: Admin) -> bool:
     was_paid = order.payment_status == "pago"
     order.payment_status = "pago"
 
@@ -600,7 +600,7 @@ def _confirm_counter_payment(db: Session, order: Encomenda, current_admin: Admin
         order.payment.paid_at = now
         order.payment.confirmed_by_admin_id = current_admin.admin_id
     else:
-        db.add(Pagamento(
+        db.add(Payment(
             order_id=order.order_id,
             method="balcao",
             state="aprovado",
@@ -617,14 +617,14 @@ def _confirm_counter_payment(db: Session, order: Encomenda, current_admin: Admin
 def _staff_order_filter():
     today = datetime.utcnow().date()
     return or_(
-        Encomenda.state.in_(("pendente", "confirmada", "em_preparacao", "pronta")),
+        Order.state.in_(("pendente", "confirmada", "em_preparacao", "pronta")),
         (
-            (Encomenda.state == "entregue")
-            & (func.date(Encomenda.updated_at) == today)
+            (Order.state == "entregue")
+            & (func.date(Order.updated_at) == today)
         ),
         (
-            (Encomenda.state == "cancelada")
-            & (func.date(Encomenda.updated_at) == today)
+            (Order.state == "cancelada")
+            & (func.date(Order.updated_at) == today)
         ),
     )
 
@@ -638,10 +638,10 @@ def list_categories(
     current_admin: Admin = Depends(require_staff_admin_or_super_admin),
     db: Session = Depends(get_db)
 ):
-    query = db.query(Categoria)
+    query = db.query(Category)
     if not include_inactive:
-        query = query.filter(Categoria.status == 1)
-    return query.order_by(Categoria.category_name.asc()).all()
+        query = query.filter(Category.status == 1)
+    return query.order_by(Category.category_name.asc()).all()
 
 
 @router.post("/categories", response_model=CategoryResponse, status_code=status.HTTP_201_CREATED)
@@ -650,7 +650,7 @@ def create_category(
     current_admin: Admin = Depends(require_staff_admin_or_super_admin),
     db: Session = Depends(get_db)
 ):
-    new_category = Categoria(
+    new_category = Category(
         category_name=category.category_name,
         category_description=category.category_description,
         admin_id=current_admin.admin_id,
@@ -670,9 +670,9 @@ def update_category(
     db: Session = Depends(get_db)
 ):
     parsed_category_id = parse_category_id(category_id)
-    category = db.query(Categoria).filter(Categoria.category_id == parsed_category_id).first()
+    category = db.query(Category).filter(Category.category_id == parsed_category_id).first()
     if not category:
-        raise HTTPException(status_code=404, detail="Categoria não encontrada.")
+        raise HTTPException(status_code=404, detail="Category não encontrada.")
 
     if category_update.category_name is not None:
         category.category_name = category_update.category_name
@@ -693,13 +693,13 @@ def delete_category(
     db: Session = Depends(get_db)
 ):
     parsed_category_id = parse_category_id(category_id)
-    category = db.query(Categoria).filter(Categoria.category_id == parsed_category_id).first()
+    category = db.query(Category).filter(Category.category_id == parsed_category_id).first()
     if not category:
-        raise HTTPException(status_code=404, detail="Categoria não encontrada.")
+        raise HTTPException(status_code=404, detail="Category não encontrada.")
 
     active_products = (
-        db.query(func.count(Produto.product_id))
-        .filter(Produto.category_id == parsed_category_id, active_product_filter(), Produto.deleted_at.is_(None))
+        db.query(func.count(Product.product_id))
+        .filter(Product.category_id == parsed_category_id, active_product_filter(), Product.deleted_at.is_(None))
         .scalar()
         or 0
     )
@@ -725,27 +725,27 @@ def list_ingredients(
     current_admin: Admin = Depends(require_staff_admin_or_super_admin),
     db: Session = Depends(get_db),
 ):
-    query = db.query(Ingrediente)
+    query = db.query(Ingredient)
     if not include_inactive:
-        query = query.filter(Ingrediente.status == 1)
+        query = query.filter(Ingredient.status == 1)
     if customization_only:
-        drink_category_ids = select(Categoria.category_id).where(
-            Categoria.category_name.ilike("%bebida%")
+        drink_category_ids = select(Category.category_id).where(
+            Category.category_name.ilike("%bebida%")
         )
         non_drink_ingredient_ids = (
-            select(ProdutoIngrediente.ingredient_id)
-            .join(Produto, Produto.product_id == ProdutoIngrediente.product_id)
-            .where(~Produto.category_id.in_(drink_category_ids))
+            select(ProductIngredient.ingredient_id)
+            .join(Product, Product.product_id == ProductIngredient.product_id)
+            .where(~Product.category_id.in_(drink_category_ids))
         )
-        linked_ingredient_ids = select(ProdutoIngrediente.ingredient_id)
+        linked_ingredient_ids = select(ProductIngredient.ingredient_id)
         query = query.filter(
-            Ingrediente.type != "BEBIDA",
+            Ingredient.type != "BEBIDA",
             or_(
-                Ingrediente.ingredient_id.in_(non_drink_ingredient_ids),
-                ~Ingrediente.ingredient_id.in_(linked_ingredient_ids),
+                Ingredient.ingredient_id.in_(non_drink_ingredient_ids),
+                ~Ingredient.ingredient_id.in_(linked_ingredient_ids),
             ),
         )
-    return query.order_by(Ingrediente.type.asc(), Ingrediente.name.asc()).all()
+    return query.order_by(Ingredient.type.asc(), Ingredient.name.asc()).all()
 
 
 @router.post("/ingredients", response_model=IngredientResponse, status_code=status.HTTP_201_CREATED)
@@ -755,7 +755,7 @@ def create_ingredient(
     db: Session = Depends(get_db),
 ):
     name = ingredient.name.strip()
-    existing = db.query(Ingrediente).filter(func.lower(Ingrediente.name) == name.lower()).first()
+    existing = db.query(Ingredient).filter(func.lower(Ingredient.name) == name.lower()).first()
     if existing:
         if existing.status == 0:
             existing.status = 1
@@ -767,7 +767,7 @@ def create_ingredient(
             return existing
         raise HTTPException(status_code=400, detail="O ingredient já existe.")
 
-    new_ingredient = Ingrediente(
+    new_ingredient = Ingredient(
         name=name,
         type=ingredient.type,
         status=ingredient.status,
@@ -786,15 +786,15 @@ def update_ingredient(
     current_admin: Admin = Depends(require_staff_admin_or_super_admin),
     db: Session = Depends(get_db),
 ):
-    ingredient = db.query(Ingrediente).filter(Ingrediente.ingredient_id == ingredient_id).first()
+    ingredient = db.query(Ingredient).filter(Ingredient.ingredient_id == ingredient_id).first()
     if not ingredient:
-        raise HTTPException(status_code=404, detail="Ingrediente não encontrado.")
+        raise HTTPException(status_code=404, detail="Ingredient não encontrado.")
 
     if ingredient_update.name is not None:
         name = ingredient_update.name.strip()
         existing = (
-            db.query(Ingrediente)
-            .filter(func.lower(Ingrediente.name) == name.lower(), Ingrediente.ingredient_id != ingredient_id)
+            db.query(Ingredient)
+            .filter(func.lower(Ingredient.name) == name.lower(), Ingredient.ingredient_id != ingredient_id)
             .first()
         )
         if existing:
@@ -818,9 +818,9 @@ def delete_ingredient(
     current_admin: Admin = Depends(require_staff_admin_or_super_admin),
     db: Session = Depends(get_db),
 ):
-    ingredient = db.query(Ingrediente).filter(Ingrediente.ingredient_id == ingredient_id).first()
+    ingredient = db.query(Ingredient).filter(Ingredient.ingredient_id == ingredient_id).first()
     if not ingredient:
-        raise HTTPException(status_code=404, detail="Ingrediente não encontrado.")
+        raise HTTPException(status_code=404, detail="Ingredient não encontrado.")
 
     ingredient.status = 0
     db.commit()
@@ -828,17 +828,17 @@ def delete_ingredient(
     return ingredient
 
 
-@router.post("/products", response_model=ProdutoAdminResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/products", response_model=ProductAdminResponse, status_code=status.HTTP_201_CREATED)
 def create_product(
-    product: ProdutoCreate,
+    product: ProductCreate,
     current_admin: Admin = Depends(require_staff_admin_or_super_admin),
     db: Session = Depends(get_db)
 ):
-    category = db.query(Categoria).filter(Categoria.category_id == product.category_id, Categoria.status == 1).first()
+    category = db.query(Category).filter(Category.category_id == product.category_id, Category.status == 1).first()
     if not category:
-        raise HTTPException(status_code=404, detail="Categoria não encontrada.")
+        raise HTTPException(status_code=404, detail="Category não encontrada.")
 
-    new_produto = Produto(
+    new_product = Product(
         name=product.name,
         product_description=product.product_description,
         price=product.price,
@@ -850,24 +850,24 @@ def create_product(
         customizable=1 if product.customizable else 0,
         menu_tags=product.menu_tags,
         featured=1 if product.featured else 0,
-        desconto_percentual=product.desconto_percentual,
+        discount_percentual=product.discount_percentual,
         gluten_free=1 if product.gluten_free else 0,
         contains_alcohol=1 if product.contains_alcohol else 0,
         total_calories=product.total_calories,
     )
-    db.add(new_produto)
+    db.add(new_product)
     db.flush()
-    _sync_product_ingredients(db, new_produto.product_id, product.ingredients)
+    _sync_product_ingredients(db, new_product.product_id, product.ingredients)
     db.commit()
-    db.refresh(new_produto)
+    db.refresh(new_product)
 
-    saved_product = db.query(Produto).options(joinedload(Produto.imagens)).filter(
-        Produto.product_id == new_produto.product_id
+    saved_product = db.query(Product).options(joinedload(Product.images)).filter(
+        Product.product_id == new_product.product_id
     ).first()
     return _product_admin_response(db, saved_product)
 
 
-@router.get("/products", response_model=List[ProdutoAdminResponse])
+@router.get("/products", response_model=List[ProductAdminResponse])
 def list_products(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
@@ -882,51 +882,51 @@ def list_products(
     current_admin: Admin = Depends(require_staff_admin_or_super_admin),
     db: Session = Depends(get_db)
 ):
-    query = db.query(Produto).options(joinedload(Produto.imagens))
+    query = db.query(Product).options(joinedload(Product.images))
 
     if not include_deleted:
-        query = query.filter(active_product_filter(), Produto.deleted_at.is_(None))
+        query = query.filter(active_product_filter(), Product.deleted_at.is_(None))
 
     if name:
-        query = query.filter(Produto.name.ilike(f"%{name}%"))
+        query = query.filter(Product.name.ilike(f"%{name}%"))
 
     if category:
-        query = query.filter(Produto.category_id == parse_category_id(category))
+        query = query.filter(Product.category_id == parse_category_id(category))
 
     if min_price is not None:
-        query = query.filter(Produto.price >= min_price)
+        query = query.filter(Product.price >= min_price)
 
     if max_price is not None:
-        query = query.filter(Produto.price <= max_price)
+        query = query.filter(Product.price <= max_price)
 
     if featured is not None:
-        query = query.filter(Produto.featured == (1 if featured else 0))
+        query = query.filter(Product.featured == (1 if featured else 0))
 
     if gluten_free is not None:
-        query = query.filter(Produto.gluten_free == (1 if gluten_free else 0))
+        query = query.filter(Product.gluten_free == (1 if gluten_free else 0))
 
     if contains_alcohol is not None:
-        query = query.filter(Produto.contains_alcohol == (1 if contains_alcohol else 0))
+        query = query.filter(Product.contains_alcohol == (1 if contains_alcohol else 0))
 
     products = query.offset(skip).limit(limit).all()
     ingredient_lookup = _product_ingredient_lookup(db, [product.product_id for product in products])
     return [_product_admin_response(db, product, ingredient_lookup) for product in products]
 
 
-@router.get("/products/{product_id}", response_model=ProdutoAdminResponse)
+@router.get("/products/{product_id}", response_model=ProductAdminResponse)
 def get_product(
     product_id: str,
     current_admin: Admin = Depends(require_staff_admin_or_super_admin),
     db: Session = Depends(get_db)
 ):
     parsed_product_id = parse_product_id(product_id)
-    product = db.query(Produto).options(joinedload(Produto.imagens)).filter(
-        Produto.product_id == parsed_product_id,
-        Produto.status == 1
+    product = db.query(Product).options(joinedload(Product.images)).filter(
+        Product.product_id == parsed_product_id,
+        Product.status == 1
     ).first()
 
     if not product:
-        raise HTTPException(status_code=404, detail="Produto não encontrado.")
+        raise HTTPException(status_code=404, detail="Product não encontrado.")
 
     return _product_admin_response(db, product)
 
@@ -939,9 +939,9 @@ def get_product_analytics(
     db: Session = Depends(get_db)
 ):
     parsed_product_id = parse_product_id(product_id)
-    product = db.query(Produto).filter(Produto.product_id == parsed_product_id).first()
+    product = db.query(Product).filter(Product.product_id == parsed_product_id).first()
     if not product:
-        raise HTTPException(status_code=404, detail="Produto não encontrado.")
+        raise HTTPException(status_code=404, detail="Product não encontrado.")
 
     end_date = datetime.utcnow().date()
     start_date = end_date - timedelta(days=days - 1)
@@ -949,123 +949,123 @@ def get_product_analytics(
     daily_buckets = {key: _empty_sales_stats() for key in daily_keys}
 
     items = (
-        db.query(EncomendaProduto)
-        .join(Encomenda, EncomendaProduto.order_id == Encomenda.order_id)
+        db.query(OrderProduct)
+        .join(Order, OrderProduct.order_id == Order.order_id)
         .filter(
-            EncomendaProduto.product_id == parsed_product_id,
-            func.date(Encomenda.ordered_at) >= start_date,
-            func.date(Encomenda.ordered_at) <= end_date,
+            OrderProduct.product_id == parsed_product_id,
+            func.date(Order.ordered_at) >= start_date,
+            func.date(Order.ordered_at) <= end_date,
         )
         .all()
     )
 
-    total_vendas = 0.0
-    quantidade_vendida = 0
+    total_sales = 0.0
+    quantity_sold = 0
     order_ids = set()
 
     for item in items:
         item_total = float(item.unit_price or 0) * item.quantity
-        total_vendas += item_total
-        quantidade_vendida += item.quantity
+        total_sales += item_total
+        quantity_sold += item.quantity
         order_ids.add(item.order_id)
 
         if item.order and item.order.ordered_at:
             date_key = item.order.ordered_at.strftime("%Y-%m-%d")
             if date_key in daily_buckets:
-                daily_buckets[date_key]["total_vendas"] = float(daily_buckets[date_key]["total_vendas"]) + item_total
-                daily_buckets[date_key]["quantidade_vendida"] = int(daily_buckets[date_key]["quantidade_vendida"]) + item.quantity
-                daily_buckets[date_key]["numero_pedidos"] = int(daily_buckets[date_key]["numero_pedidos"]) + 1
+                daily_buckets[date_key]["total_sales"] = float(daily_buckets[date_key]["total_sales"]) + item_total
+                daily_buckets[date_key]["quantity_sold"] = int(daily_buckets[date_key]["quantity_sold"]) + item.quantity
+                daily_buckets[date_key]["order_numbers"] = int(daily_buckets[date_key]["order_numbers"]) + 1
 
-    rating_medio = (
-        db.query(func.avg(ProdutoReview.rating))
-        .filter(ProdutoReview.product_id == parsed_product_id, ProdutoReview.status == "aprovado")
+    average_rating = (
+        db.query(func.avg(ProductReview.rating))
+        .filter(ProductReview.product_id == parsed_product_id, ProductReview.status == "aprovado")
         .scalar()
     )
     total_reviews = (
-        db.query(func.count(ProdutoReview.review_id))
-        .filter(ProdutoReview.product_id == parsed_product_id)
+        db.query(func.count(ProductReview.review_id))
+        .filter(ProductReview.product_id == parsed_product_id)
         .scalar()
         or 0
     )
 
     return ProductAnalyticsResponse(
         product_id=parsed_product_id,
-        id_produto_display=format_product_id(parsed_product_id),
-        total_vendas=total_vendas,
-        quantidade_vendida=quantidade_vendida,
-        numero_pedidos=len(order_ids),
-        preco_atual=float(product.price),
-        stock_atual=product.stock,
-        rating_medio=float(rating_medio) if rating_medio is not None else None,
+        product_display_id=format_product_id(parsed_product_id),
+        total_sales=total_sales,
+        quantity_sold=quantity_sold,
+        order_numbers=len(order_ids),
+        current_price=float(product.price),
+        current_stock=product.stock,
+        average_rating=float(average_rating) if average_rating is not None else None,
         total_reviews=total_reviews,
         vendas_por_dia=[_sales_point(key, daily_buckets[key]) for key in daily_keys],
     )
 
 
-@router.put("/products/{product_id}", response_model=ProdutoAdminResponse)
+@router.put("/products/{product_id}", response_model=ProductAdminResponse)
 def update_product(
     product_id: str,
-    produto_update: ProdutoUpdate,
+    product_update: ProductUpdate,
     current_admin: Admin = Depends(require_staff_admin_or_super_admin),
     db: Session = Depends(get_db)
 ):
     parsed_product_id = parse_product_id(product_id)
-    product = db.query(Produto).filter(
-        Produto.product_id == parsed_product_id,
-        Produto.status == 1
+    product = db.query(Product).filter(
+        Product.product_id == parsed_product_id,
+        Product.status == 1
     ).first()
 
     if not product:
-        raise HTTPException(status_code=404, detail="Produto não encontrado.")
+        raise HTTPException(status_code=404, detail="Product não encontrado.")
 
-    if produto_update.name is not None:
-        product.name = produto_update.name
-    if produto_update.product_description is not None:
-        product.product_description = produto_update.product_description
-    if produto_update.price is not None:
-        product.price = produto_update.price
-    if produto_update.stock is not None:
-        product.stock = produto_update.stock
-    if produto_update.category_id is not None:
-        category = db.query(Categoria).filter(Categoria.category_id == produto_update.category_id, Categoria.status == 1).first()
+    if product_update.name is not None:
+        product.name = product_update.name
+    if product_update.product_description is not None:
+        product.product_description = product_update.product_description
+    if product_update.price is not None:
+        product.price = product_update.price
+    if product_update.stock is not None:
+        product.stock = product_update.stock
+    if product_update.category_id is not None:
+        category = db.query(Category).filter(Category.category_id == product_update.category_id, Category.status == 1).first()
         if not category:
-            raise HTTPException(status_code=404, detail="Categoria não encontrada.")
-        product.category_id = produto_update.category_id
-    if produto_update.status is not None:
-        product.status = produto_update.status
-    if produto_update.customizable is not None:
-        product.customizable = 1 if produto_update.customizable else 0
-    if "menu_tags" in getattr(produto_update, "model_fields_set", set()):
-        product.menu_tags = produto_update.menu_tags
-    if produto_update.featured is not None:
-        product.featured = 1 if produto_update.featured else 0
-    if produto_update.desconto_percentual is not None:
-        product.desconto_percentual = produto_update.desconto_percentual
-    if produto_update.gluten_free is not None:
-        product.gluten_free = 1 if produto_update.gluten_free else 0
-    if produto_update.contains_alcohol is not None:
-        product.contains_alcohol = 1 if produto_update.contains_alcohol else 0
-    if "total_calories" in getattr(produto_update, "model_fields_set", set()):
-        product.total_calories = produto_update.total_calories
-    if produto_update.ingredients is not None:
-        _sync_product_ingredients(db, parsed_product_id, produto_update.ingredients)
+            raise HTTPException(status_code=404, detail="Category não encontrada.")
+        product.category_id = product_update.category_id
+    if product_update.status is not None:
+        product.status = product_update.status
+    if product_update.customizable is not None:
+        product.customizable = 1 if product_update.customizable else 0
+    if "menu_tags" in getattr(product_update, "model_fields_set", set()):
+        product.menu_tags = product_update.menu_tags
+    if product_update.featured is not None:
+        product.featured = 1 if product_update.featured else 0
+    if product_update.discount_percentual is not None:
+        product.discount_percentual = product_update.discount_percentual
+    if product_update.gluten_free is not None:
+        product.gluten_free = 1 if product_update.gluten_free else 0
+    if product_update.contains_alcohol is not None:
+        product.contains_alcohol = 1 if product_update.contains_alcohol else 0
+    if "total_calories" in getattr(product_update, "model_fields_set", set()):
+        product.total_calories = product_update.total_calories
+    if product_update.ingredients is not None:
+        _sync_product_ingredients(db, parsed_product_id, product_update.ingredients)
 
     db.commit()
     db.refresh(product)
     return _product_admin_response(db, product)
 
 
-@router.post("/products/{product_id}/toggle-status", response_model=ProdutoAdminResponse)
+@router.post("/products/{product_id}/toggle-status", response_model=ProductAdminResponse)
 def toggle_product_status(
     product_id: str,
     current_admin: Admin = Depends(require_staff_admin_or_super_admin),
     db: Session = Depends(get_db)
 ):
     parsed_product_id = parse_product_id(product_id)
-    product = db.query(Produto).filter(Produto.product_id == parsed_product_id).first()
+    product = db.query(Product).filter(Product.product_id == parsed_product_id).first()
 
     if not product:
-        raise HTTPException(status_code=404, detail="Produto não encontrado.")
+        raise HTTPException(status_code=404, detail="Product não encontrado.")
 
     if product.deleted_at is not None:
         product.status = 1
@@ -1078,16 +1078,16 @@ def toggle_product_status(
     return _product_admin_response(db, product)
 
 
-@router.delete("/products/{product_id}", response_model=ProdutoAdminResponse)
+@router.delete("/products/{product_id}", response_model=ProductAdminResponse)
 def delete_product(
     product_id: str,
     current_admin: Admin = Depends(require_staff_admin_or_super_admin),
     db: Session = Depends(get_db)
 ):
     parsed_product_id = parse_product_id(product_id)
-    product = db.query(Produto).filter(Produto.product_id == parsed_product_id).first()
+    product = db.query(Product).filter(Product.product_id == parsed_product_id).first()
     if not product:
-        raise HTTPException(status_code=404, detail="Produto não encontrado.")
+        raise HTTPException(status_code=404, detail="Product não encontrado.")
 
     product.status = 0
     product.deleted_at = datetime.utcnow()
@@ -1106,9 +1106,9 @@ def upload_product_image(
 ):
     parsed_product_id = parse_product_id(product_id)
     # Verify product exists
-    product = db.query(Produto).filter(Produto.product_id == parsed_product_id).first()
+    product = db.query(Product).filter(Product.product_id == parsed_product_id).first()
     if not product:
-        raise HTTPException(status_code=404, detail="Produto não encontrado.")
+        raise HTTPException(status_code=404, detail="Product não encontrado.")
     
     # Validate file type
     allowed_types = {"image/jpeg", "image/png", "image/webp", "image/avif", "image/gif"}
@@ -1128,14 +1128,14 @@ def upload_product_image(
         
         if replace_existing:
             # Delete old images for this product
-            old_images = db.query(ImagemProduto).filter(ImagemProduto.product_id == parsed_product_id).all()
+            old_images = db.query(ProductImage).filter(ProductImage.product_id == parsed_product_id).all()
             for old_img in old_images:
                 _delete_uploaded_image_file(old_img.image_path)
                 db.delete(old_img)
             db.commit()
         
         # Create new image record
-        new_image = ImagemProduto(
+        new_image = ProductImage(
             product_id=parsed_product_id,
             image_path=public_image_path
         )
@@ -1162,9 +1162,9 @@ def delete_product_image(
     db: Session = Depends(get_db),
 ):
     parsed_product_id = parse_product_id(product_id)
-    image = db.query(ImagemProduto).filter(
-        ImagemProduto.product_id == parsed_product_id,
-        ImagemProduto.id_imagem == image_id,
+    image = db.query(ProductImage).filter(
+        ProductImage.product_id == parsed_product_id,
+        ProductImage.image_id == image_id,
     ).first()
     if not image:
         raise HTTPException(status_code=404, detail="Imagem não encontrada.")
@@ -1187,15 +1187,15 @@ def list_orders(
     current_admin: Admin = Depends(require_staff_admin_or_super_admin),
     db: Session = Depends(get_db)
 ):
-    encomendas = (
-        db.query(Encomenda)
-        .order_by(Encomenda.ordered_at.desc())
+    orders = (
+        db.query(Order)
+        .order_by(Order.ordered_at.desc())
         .offset(skip)
         .limit(limit)
         .all()
     )
 
-    return [_order_response(order) for order in encomendas]
+    return [_order_response(order) for order in orders]
 
 
 @router.get("/staff/orders", response_model=List[OrderResponse])
@@ -1205,16 +1205,16 @@ def list_staff_orders(
     current_admin: Admin = Depends(require_staff_admin_or_super_admin),
     db: Session = Depends(get_db),
 ):
-    encomendas = (
-        db.query(Encomenda)
+    orders = (
+        db.query(Order)
         .filter(_staff_order_filter())
-        .order_by(Encomenda.ordered_at.asc())
+        .order_by(Order.ordered_at.asc())
         .offset(skip)
         .limit(limit)
         .all()
     )
 
-    return [_order_response(order) for order in encomendas]
+    return [_order_response(order) for order in orders]
 
 
 @router.get("/kitchen/orders", response_model=List[KitchenOrderResponse])
@@ -1224,25 +1224,25 @@ def list_kitchen_orders(
     current_admin: Admin = Depends(require_chef_or_staff_or_super_admin),
     db: Session = Depends(get_db),
 ):
-    encomendas = (
-        db.query(Encomenda)
+    orders = (
+        db.query(Order)
         .filter(
             or_(
-                Encomenda.state.in_(KITCHEN_VISIBLE_STATES),
+                Order.state.in_(KITCHEN_VISIBLE_STATES),
                 (
-                    (Encomenda.payment_method == "balcao")
-                    & (Encomenda.payment_status == "pago")
-                    & (Encomenda.state.notin_(("entregue", "cancelada")))
+                    (Order.payment_method == "balcao")
+                    & (Order.payment_status == "pago")
+                    & (Order.state.notin_(("entregue", "cancelada")))
                 ),
             )
         )
-        .order_by(Encomenda.ordered_at.asc())
+        .order_by(Order.ordered_at.asc())
         .offset(skip)
         .limit(limit)
         .all()
     )
 
-    return [_kitchen_order_response(order) for order in encomendas]
+    return [_kitchen_order_response(order) for order in orders]
 
 
 @router.get("/kitchen/orders/{order_id}", response_model=KitchenOrderResponse)
@@ -1355,7 +1355,7 @@ def refund_order(
     if order.payment:
         order.payment.state = "reembolsado"
 
-    refund = Reembolso(
+    refund = Refund(
         order_id=order.order_id,
         payment_id=order.payment.payment_id if order.payment else None,
         admin_id=current_admin.admin_id,
@@ -1394,23 +1394,23 @@ def list_refunds(
     db: Session = Depends(get_db),
 ):
     query = (
-        db.query(Reembolso)
-        .join(Reembolso.order)
-        .join(Encomenda.customer)
-        .join(Reembolso.admin)
+        db.query(Refund)
+        .join(Refund.order)
+        .join(Order.customer)
+        .join(Refund.admin)
     )
     if date_from:
-        query = query.filter(func.date(Reembolso.refunded_at) >= _parse_date_param(date_from, datetime.utcnow()).date())
+        query = query.filter(func.date(Refund.refunded_at) >= _parse_date_param(date_from, datetime.utcnow()).date())
     if date_to:
-        query = query.filter(func.date(Reembolso.refunded_at) <= _parse_date_param(date_to, datetime.utcnow()).date())
+        query = query.filter(func.date(Refund.refunded_at) <= _parse_date_param(date_to, datetime.utcnow()).date())
     if staff_member:
-        query = query.filter(Reembolso.admin_id == staff_member)
+        query = query.filter(Refund.admin_id == staff_member)
     if reason:
-        query = query.filter(Reembolso.reason == reason)
+        query = query.filter(Refund.reason == reason)
     if refund_status:
-        query = query.filter(Reembolso.status == refund_status)
+        query = query.filter(Refund.status == refund_status)
 
-    refunds = query.order_by(Reembolso.refunded_at.desc()).all()
+    refunds = query.order_by(Refund.refunded_at.desc()).all()
     return [_refund_response(refund) for refund in refunds]
 
 
@@ -1427,7 +1427,7 @@ def export_refunds(
     refunds = list_refunds(date_from, date_to, staff_member, reason, refund_status, current_admin, db)
     output = StringIO()
     writer = csv.writer(output)
-    writer.writerow(["ID do Reembolso", "ID do Pedido", "Cliente", "Valor", "Motivo", "Processado Por", "Data", "Estado"])
+    writer.writerow(["ID do Refund", "ID do Pedido", "Customer", "Valor", "Motivo", "Processado Por", "Data", "Estado"])
     for refund in refunds:
         writer.writerow([
             refund.refund_id,
@@ -1448,7 +1448,7 @@ def export_refunds(
 
 # CLIENTES
 
-def _cliente_address_payload(body) -> dict:
+def _customer_address_payload(body) -> dict:
     return {
         "address": getattr(body, "address", None),
         "postal_code": getattr(body, "postal_code", None),
@@ -1456,19 +1456,19 @@ def _cliente_address_payload(body) -> dict:
     }
 
 
-def _cliente_address_has_data(payload: dict) -> bool:
+def _customer_address_has_data(payload: dict) -> bool:
     return any(str(payload.get(field) or "").strip() for field in ("address", "postal_code", "city"))
 
 
-def _sync_cliente_invoice_address(db: Session, customer: Cliente, payload: dict) -> None:
+def _sync_customer_invoice_address(db: Session, customer: Customer, payload: dict) -> None:
     current_address = customer.billing_address
-    if not _cliente_address_has_data(payload):
+    if not _customer_address_has_data(payload):
         if current_address:
             db.delete(current_address)
             customer.billing_address = None
         return
 
-    address = current_address or ClienteEnderecoFatura(customer_id=customer.customer_id)
+    address = current_address or CustomerBillingAddress(customer_id=customer.customer_id)
     address.address = payload.get("address") or None
     address.postal_code = payload.get("postal_code") or None
     address.city = payload.get("city") or None
@@ -1478,7 +1478,7 @@ def _sync_cliente_invoice_address(db: Session, customer: Cliente, payload: dict)
         customer.billing_address = address
 
 
-def _cliente_admin_response(customer: Cliente) -> dict:
+def _customer_admin_response(customer: Customer) -> dict:
     address = customer.billing_address
     return {
         "customer_id": customer.customer_id,
@@ -1495,33 +1495,33 @@ def _cliente_admin_response(customer: Cliente) -> dict:
     }
 
 
-@router.get("/clientes", response_model=List[ClienteAdminResponse])
-def list_clientes(
+@router.get("/customers", response_model=List[CustomerAdminResponse])
+def list_customers(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     search: str = Query(None),
     current_admin: Admin = Depends(require_super_admin),
     db: Session = Depends(get_db),
 ):
-    query = db.query(Cliente).options(joinedload(Cliente.billing_address))
+    query = db.query(Customer).options(joinedload(Customer.billing_address))
     if search:
         pattern = f"%{search}%"
-        query = query.filter(or_(Cliente.name.ilike(pattern), Cliente.last_name.ilike(pattern), Cliente.email.ilike(pattern)))
-    clientes = query.order_by(Cliente.customer_id.desc()).offset(skip).limit(limit).all()
-    return [_cliente_admin_response(customer) for customer in clientes]
+        query = query.filter(or_(Customer.name.ilike(pattern), Customer.last_name.ilike(pattern), Customer.email.ilike(pattern)))
+    customers = query.order_by(Customer.customer_id.desc()).offset(skip).limit(limit).all()
+    return [_customer_admin_response(customer) for customer in customers]
 
 
-@router.post("/clientes", response_model=ClienteAdminResponse, status_code=status.HTTP_201_CREATED)
-def create_cliente(
-    body: ClienteAdminCreate,
+@router.post("/customers", response_model=CustomerAdminResponse, status_code=status.HTTP_201_CREATED)
+def create_customer(
+    body: CustomerAdminCreate,
     current_admin: Admin = Depends(require_super_admin),
     db: Session = Depends(get_db),
 ):
     email = body.email.strip().lower()
-    if db.query(Cliente).filter(Cliente.email == email).first():
+    if db.query(Customer).filter(Customer.email == email).first():
         raise HTTPException(status_code=400, detail="O email do customer já existe.")
 
-    customer = Cliente(
+    customer = Customer(
         name=body.name,
         last_name=body.last_name,
         email=email,
@@ -1533,31 +1533,31 @@ def create_cliente(
     )
     db.add(customer)
     db.flush()
-    _sync_cliente_invoice_address(db, customer, _cliente_address_payload(body))
+    _sync_customer_invoice_address(db, customer, _customer_address_payload(body))
     db.commit()
     db.refresh(customer)
-    return _cliente_admin_response(customer)
+    return _customer_admin_response(customer)
 
 
-@router.put("/clientes/{customer_id}", response_model=ClienteAdminResponse)
-def update_cliente(
+@router.put("/customers/{customer_id}", response_model=CustomerAdminResponse)
+def update_customer(
     customer_id: int,
-    body: ClienteAdminUpdate,
+    body: CustomerAdminUpdate,
     current_admin: Admin = Depends(require_super_admin),
     db: Session = Depends(get_db),
 ):
     customer = (
-        db.query(Cliente)
-        .options(joinedload(Cliente.billing_address))
-        .filter(Cliente.customer_id == customer_id)
+        db.query(Customer)
+        .options(joinedload(Customer.billing_address))
+        .filter(Customer.customer_id == customer_id)
         .first()
     )
     if not customer:
-        raise HTTPException(status_code=404, detail="Cliente não encontrado.")
+        raise HTTPException(status_code=404, detail="Customer não encontrado.")
 
     if body.email is not None:
         email = body.email.strip().lower()
-        existing = db.query(Cliente).filter(Cliente.email == email, Cliente.customer_id != customer_id).first()
+        existing = db.query(Customer).filter(Customer.email == email, Customer.customer_id != customer_id).first()
         if existing:
             raise HTTPException(status_code=400, detail="O email do customer já existe.")
         customer.email = email
@@ -1567,33 +1567,33 @@ def update_cliente(
         if value is not None:
             setattr(customer, field, value)
     if {"address", "postal_code", "city"}.intersection(body.model_fields_set):
-        _sync_cliente_invoice_address(db, customer, _cliente_address_payload(body))
+        _sync_customer_invoice_address(db, customer, _customer_address_payload(body))
     if body.password:
         customer.password = hash_password(body.password)
 
     db.commit()
     db.refresh(customer)
-    return _cliente_admin_response(customer)
+    return _customer_admin_response(customer)
 
 
-@router.delete("/clientes/{customer_id}", response_model=ClienteAdminResponse)
-def delete_cliente(
+@router.delete("/customers/{customer_id}", response_model=CustomerAdminResponse)
+def delete_customer(
     customer_id: int,
     current_admin: Admin = Depends(require_super_admin),
     db: Session = Depends(get_db),
 ):
     customer = (
-        db.query(Cliente)
-        .options(joinedload(Cliente.billing_address))
-        .filter(Cliente.customer_id == customer_id)
+        db.query(Customer)
+        .options(joinedload(Customer.billing_address))
+        .filter(Customer.customer_id == customer_id)
         .first()
     )
     if not customer:
-        raise HTTPException(status_code=404, detail="Cliente não encontrado.")
+        raise HTTPException(status_code=404, detail="Customer não encontrado.")
     customer.status = 0
     db.commit()
     db.refresh(customer)
-    return _cliente_admin_response(customer)
+    return _customer_admin_response(customer)
 
 
 # STAFF ADMINS
@@ -1692,73 +1692,73 @@ def get_dashboard_analytics(
     db: Session = Depends(get_db)
 ):
     # Count totals
-    total_produtos = db.query(func.count(Produto.product_id)).filter(Produto.status == 1).scalar() or 0
-    total_categorias = db.query(func.count(Categoria.category_id)).filter(Categoria.status == 1).scalar() or 0
-    total_clientes = db.query(func.count(Cliente.customer_id)).filter(Cliente.status == 1).scalar() or 0
-    total_carrinhos = db.query(func.count(Carrinho.cart_id)).scalar() or 0
+    total_products = db.query(func.count(Product.product_id)).filter(Product.status == 1).scalar() or 0
+    total_categories = db.query(func.count(Category.category_id)).filter(Category.status == 1).scalar() or 0
+    total_customers = db.query(func.count(Customer.customer_id)).filter(Customer.status == 1).scalar() or 0
+    total_carts = db.query(func.count(Cart.cart_id)).scalar() or 0
     
     # Get low-stock products
-    produtos_baixo_estoque = [
-        ProdutoEstoqueMinimo(
+    low_stock_products = [
+        LowStockProduct(
             product_id=p.product_id,
-            id_produto_display=format_product_id(p.product_id),
+            product_display_id=format_product_id(p.product_id),
             name=p.name,
             stock=p.stock,
             price=float(p.price),
             category=p.category.category_name if p.category else "",
         )
-        for p in db.query(Produto)
-            .filter(Produto.status == 1)
-            .order_by(Produto.stock.asc())
+        for p in db.query(Product)
+            .filter(Product.status == 1)
+            .order_by(Product.stock.asc())
             .limit(5)
             .all()
     ]
     
     # Get popular products
-    produtos_populares = [
-        ProdutoPopular(
+    popular_products = [
+        PopularProduct(
             product_id=p.product_id,
-            id_produto_display=format_product_id(p.product_id),
+            product_display_id=format_product_id(p.product_id),
             name=p.name,
             sold=p.sold or 0,
             price=float(p.price),
             category=p.category.category_name if p.category else "",
         )
-        for p in db.query(Produto)
-            .filter(Produto.status == 1)
-            .order_by(desc(Produto.sold))
+        for p in db.query(Product)
+            .filter(Product.status == 1)
+            .order_by(desc(Product.sold))
             .limit(5)
             .all()
     ]
     
     return DashboardAnalytics(
-        total_produtos=total_produtos,
-        total_categorias=total_categorias,
-        total_clientes=total_clientes,
-        total_carrinhos=total_carrinhos,
-        produtos_baixo_estoque=produtos_baixo_estoque,
-        produtos_populares=produtos_populares,
-        graficos_vendas=_build_dashboard_sales_graphs(db),
+        total_products=total_products,
+        total_categories=total_categories,
+        total_customers=total_customers,
+        total_carts=total_carts,
+        low_stock_products=low_stock_products,
+        popular_products=popular_products,
+        sales_charts=_build_dashboard_sales_graphs(db),
     )
 
-@router.get("/analytics/low-stock", response_model=List[ProdutoEstoqueMinimo])
+@router.get("/analytics/low-stock", response_model=List[LowStockProduct])
 def get_low_stock_products(
     limit: int = Query(5, ge=1, le=100),
     current_admin: Admin = Depends(require_super_admin),
     db: Session = Depends(get_db)
 ):
     products = (
-        db.query(Produto)
-        .filter(Produto.status == 1)
-        .order_by(Produto.stock.asc())
+        db.query(Product)
+        .filter(Product.status == 1)
+        .order_by(Product.stock.asc())
         .limit(limit)
         .all()
     )
 
     return [
-        ProdutoEstoqueMinimo(
+        LowStockProduct(
             product_id=p.product_id,
-            id_produto_display=format_product_id(p.product_id),
+            product_display_id=format_product_id(p.product_id),
             name=p.name,
             stock=p.stock,
             price=float(p.price),
@@ -1768,24 +1768,24 @@ def get_low_stock_products(
     ]
 
 
-@router.get("/analytics/popular-products", response_model=List[ProdutoPopular])
+@router.get("/analytics/popular-products", response_model=List[PopularProduct])
 def get_popular_products(
     limit: int = Query(5, ge=1, le=20),
     current_admin: Admin = Depends(require_super_admin),
     db: Session = Depends(get_db)
 ):
     products = (
-        db.query(Produto)
-        .filter(Produto.status == 1)
-        .order_by(desc(Produto.sold))
+        db.query(Product)
+        .filter(Product.status == 1)
+        .order_by(desc(Product.sold))
         .limit(limit)
         .all()
     )
 
     return [
-        ProdutoPopular(
+        PopularProduct(
             product_id=p.product_id,
-            id_produto_display=format_product_id(p.product_id),
+            product_display_id=format_product_id(p.product_id),
             name=p.name,
             sold=p.sold or 0,
             price=float(p.price),
@@ -1809,16 +1809,16 @@ def get_analytics_series(
     buckets = {
         key: {
             "value": 0.0,
-            "quantidade_vendida": 0,
-            "numero_pedidos": 0,
+            "quantity_sold": 0,
+            "order_numbers": 0,
         }
         for key in keys
     }
 
     if metric in {"sales", "orders"}:
         orders = (
-            db.query(Encomenda)
-            .filter(Encomenda.ordered_at >= start, Encomenda.ordered_at <= end)
+            db.query(Order)
+            .filter(Order.ordered_at >= start, Order.ordered_at <= end)
             .all()
         )
         for order in orders:
@@ -1826,14 +1826,14 @@ def get_analytics_series(
             if key not in buckets:
                 continue
             buckets[key]["value"] += float(order.total or 0) if metric == "sales" else 1
-            buckets[key]["numero_pedidos"] += 1
-            buckets[key]["quantidade_vendida"] += sum(item.quantity for item in order.items)
+            buckets[key]["order_numbers"] += 1
+            buckets[key]["quantity_sold"] += sum(item.quantity for item in order.items)
 
     elif metric == "products":
         items = (
-            db.query(EncomendaProduto)
-            .join(Encomenda, EncomendaProduto.order_id == Encomenda.order_id)
-            .filter(Encomenda.ordered_at >= start, Encomenda.ordered_at <= end)
+            db.query(OrderProduct)
+            .join(Order, OrderProduct.order_id == Order.order_id)
+            .filter(Order.ordered_at >= start, Order.ordered_at <= end)
             .all()
         )
         for item in items:
@@ -1843,13 +1843,13 @@ def get_analytics_series(
             if key not in buckets:
                 continue
             buckets[key]["value"] += item.quantity
-            buckets[key]["quantidade_vendida"] += item.quantity
-            buckets[key]["numero_pedidos"] += 1
+            buckets[key]["quantity_sold"] += item.quantity
+            buckets[key]["order_numbers"] += 1
 
     else:
-        clientes = db.query(Cliente).all()
-        for customer in clientes:
-            created_at = _parse_cliente_created_at(customer.created_at)
+        customers = db.query(Customer).all()
+        for customer in customers:
+            created_at = _parse_customer_created_at(customer.created_at)
             if not created_at or created_at < start or created_at > end:
                 continue
             key = _analytics_key(created_at, granularity)
@@ -1859,11 +1859,11 @@ def get_analytics_series(
 
     points = [
         AnalyticsSeriesPoint(
-            periodo=key,
+            period=key,
             label=_analytics_label(key, granularity),
             value=float(buckets[key]["value"]),
-            quantidade_vendida=int(buckets[key]["quantidade_vendida"]),
-            numero_pedidos=int(buckets[key]["numero_pedidos"]),
+            quantity_sold=int(buckets[key]["quantity_sold"]),
+            order_numbers=int(buckets[key]["order_numbers"]),
         )
         for key in keys
     ]
@@ -1888,51 +1888,51 @@ def get_sales_performance(
     end_date = datetime.utcnow().date()
     start_date = end_date - timedelta(days=days)
     
-    encomendas = db.query(Encomenda).filter(
-        func.date(Encomenda.ordered_at) >= start_date,
-        func.date(Encomenda.ordered_at) <= end_date
+    orders = db.query(Order).filter(
+        func.date(Order.ordered_at) >= start_date,
+        func.date(Order.ordered_at) <= end_date
     ).all()
 
-    total_vendas = 0.0
-    quantidade_vendida = 0
-    numero_pedidos = 0
+    total_sales = 0.0
+    quantity_sold = 0
+    order_numbers = 0
     vendas_por_dia_dict = {}
 
-    for order in encomendas:
-        numero_pedidos += 1
+    for order in orders:
+        order_numbers += 1
         date_key = order.ordered_at.strftime("%Y-%m-%d")
         if date_key not in vendas_por_dia_dict:
             vendas_por_dia_dict[date_key] = {
-                "total_vendas": 0.0,
-                "quantidade_vendida": 0,
-                "numero_pedidos": 0
+                "total_sales": 0.0,
+                "quantity_sold": 0,
+                "order_numbers": 0
             }
 
-        total_vendas += float(order.total)
-        vendas_por_dia_dict[date_key]["total_vendas"] += float(order.total)
-        vendas_por_dia_dict[date_key]["numero_pedidos"] += 1
+        total_sales += float(order.total)
+        vendas_por_dia_dict[date_key]["total_sales"] += float(order.total)
+        vendas_por_dia_dict[date_key]["order_numbers"] += 1
 
         for item in order.items:
-            quantidade_vendida += item.quantity
-            vendas_por_dia_dict[date_key]["quantidade_vendida"] += item.quantity
+            quantity_sold += item.quantity
+            vendas_por_dia_dict[date_key]["quantity_sold"] += item.quantity
     
     # Build sorted list of daily sales
     vendas_por_dia = [
         VendaPeriodicaResponse(
-            periodo=date_str,
-            total_vendas=stats["total_vendas"],
-            quantidade_vendida=stats["quantidade_vendida"],
-            numero_pedidos=stats["numero_pedidos"]
+            period=date_str,
+            total_sales=stats["total_sales"],
+            quantity_sold=stats["quantity_sold"],
+            order_numbers=stats["order_numbers"]
         )
         for date_str, stats in sorted(vendas_por_dia_dict.items())
     ]
     
-    periodo = f"{start_date} a {end_date}"
+    period = f"{start_date} a {end_date}"
     
     return SalesPerformanceResponse(
-        total_vendas=total_vendas,
-        quantidade_vendida=quantidade_vendida,
-        numero_pedidos=numero_pedidos,
-        periodo=periodo,
+        total_sales=total_sales,
+        quantity_sold=quantity_sold,
+        order_numbers=order_numbers,
+        period=period,
         vendas_por_dia=vendas_por_dia
     )

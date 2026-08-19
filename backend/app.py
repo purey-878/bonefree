@@ -13,17 +13,17 @@ from pydantic import BaseModel
 from typing import List, Literal, Optional
 from migrations import run_or_stamp_migrations
 from routes.admin import router as admin_router
-from routes.carrinho import alias_router as carrinho_alias_router
-from routes.carrinho import router as carrinho_router
+from routes.cart import alias_router as cart_alias_router
+from routes.cart import router as cart_router
 from routes.checkout import router as checkout_router
-from routes.produtos import router as produtos_router
+from routes.products import router as products_router
 from routes.profile import router as profile_router
 from routes.reviews import router as reviews_router
 from routes.site_settings import admin_router as site_settings_admin_router
 from routes.site_settings import public_router as site_settings_public_router
 from auth import hash_password, verify_password, create_access_token, get_current_user
-from models import Cliente
-from schemas.usuario import (
+from models import Customer
+from schemas.user import (
     ForgotPasswordRequest,
     MessageResponse,
     ResetPasswordRequest,
@@ -134,16 +134,16 @@ def register(user: UserRegister, background_tasks: BackgroundTasks, request: Req
     """Register a new user"""
     _rate_limit_auth(request, "register")
     # Check if email already exists
-    existing = db.query(Cliente).filter(Cliente.email == user.email).first()
+    existing = db.query(Customer).filter(Customer.email == user.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Este email já está registado.")
     if user.tax_id:
-        existing_nif = db.query(Cliente).filter(Cliente.tax_id == user.tax_id).first()
+        existing_nif = db.query(Customer).filter(Customer.tax_id == user.tax_id).first()
         if existing_nif:
             raise HTTPException(status_code=400, detail="Este NIF já está em uso.")
     
     # Create new user
-    new_user = Cliente(
+    new_user = Customer(
         email=user.email,
         password=hash_password(user.password),
         name=user.name or "User",
@@ -173,7 +173,7 @@ def register(user: UserRegister, background_tasks: BackgroundTasks, request: Req
 def forgot_password(body: ForgotPasswordRequest, db: Session = Depends(get_db)):
     """Start a password reset and email a six-digit code."""
     generic_message = "Se existir uma conta com este email, foi enviado um código de redefinição."
-    db_user = db.query(Cliente).filter(Cliente.email == body.email).first()
+    db_user = db.query(Customer).filter(Customer.email == body.email).first()
     if not db_user or db_user.status == 0:
         return {"message": generic_message}
 
@@ -193,7 +193,7 @@ def forgot_password(body: ForgotPasswordRequest, db: Session = Depends(get_db)):
 @app.post("/password/verify-otp", response_model=VerifyOTPResponse, tags=['Auth'])
 def verify_password_otp(body: VerifyOTPRequest, db: Session = Depends(get_db)):
     """Verify a password reset code and return a short-lived reset token."""
-    db_user = db.query(Cliente).filter(Cliente.email == body.email).first()
+    db_user = db.query(Customer).filter(Customer.email == body.email).first()
     if not db_user:
         raise HTTPException(status_code=400, detail="Pedido de redefinição inválido.")
 
@@ -208,7 +208,7 @@ def verify_password_otp(body: VerifyOTPRequest, db: Session = Depends(get_db)):
 @app.post("/password/reset", response_model=MessageResponse, tags=['Auth'])
 def reset_password(body: ResetPasswordRequest, db: Session = Depends(get_db)):
     """Reset a password after OTP verification."""
-    db_user = db.query(Cliente).filter(Cliente.email == body.email).first()
+    db_user = db.query(Customer).filter(Customer.email == body.email).first()
     if not db_user:
         raise HTTPException(status_code=400, detail="Pedido de redefinição inválido.")
 
@@ -228,7 +228,7 @@ def login(user: UserAuth, request: Request, db: Session = Depends(get_db)):
     """Login user"""
     _rate_limit_auth(request, "login")
     # Find user by email
-    db_user = db.query(Cliente).filter(Cliente.email == user.email).first()
+    db_user = db.query(Customer).filter(Customer.email == user.email).first()
     
     if not db_user:
         raise HTTPException(status_code=401, detail="Email ou palavra-passe inválido.")
@@ -251,14 +251,14 @@ def login(user: UserAuth, request: Request, db: Session = Depends(get_db)):
 
 
 @app.get("/me", response_model=UserResponse, tags=['Auth'])
-def get_me(current_user: Cliente = Depends(get_current_user)):
+def get_me(current_user: Customer = Depends(get_current_user)):
     """Get current logged in user"""
     return UserResponse.model_validate(current_user)
 
 
-app.include_router(produtos_router, prefix='/products', tags=['Produtos'])
-app.include_router(carrinho_router)
-app.include_router(carrinho_alias_router)
+app.include_router(products_router, prefix='/products', tags=['Products'])
+app.include_router(cart_router)
+app.include_router(cart_alias_router)
 app.include_router(checkout_router)
 app.include_router(profile_router)
 app.include_router(reviews_router)

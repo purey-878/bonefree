@@ -176,7 +176,7 @@ class LoyaltyCouponSettings(BaseModel):
     def validate_discount_value(cls, value: Decimal, info):
         discount_type = info.data.get("discount_type")
         if discount_type == "PERCENTAGEM" and value > Decimal("100"):
-            raise ValueError("O desconto percentual não pode exceder 100.")
+            raise ValueError("O discount percentual não pode exceder 100.")
         return value
 
 

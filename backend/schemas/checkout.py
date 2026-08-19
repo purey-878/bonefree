@@ -63,7 +63,7 @@ class CouponValidationRequest(BaseModel):
 
 class CouponValidationResponse(BaseModel):
     code: str
-    desconto: Decimal
+    discount: Decimal
     value: Decimal
     type: str
     minimum_order_value: Decimal
@@ -80,8 +80,8 @@ class CouponResponse(BaseModel):
 
 class OrderItemResponse(BaseModel):
     product_id: int
-    id_produto_display: str
-    nome_produto: str
+    product_display_id: str
+    product_name: str
     unit_price: Decimal
     quantity: int
     subtotal: Decimal
@@ -93,8 +93,8 @@ class OrderItemResponse(BaseModel):
 
 
 class OrderResponse(BaseModel):
-    id_pedido: int
-    numero_pedido: str
+    order_id: int
+    order_number: str
     status: str
     payment_status: str
     can_cancel: bool = False
@@ -104,15 +104,15 @@ class OrderResponse(BaseModel):
     refund_amount: Optional[Decimal] = None
     refund_reason: Optional[str] = None
     refund_date: Optional[datetime] = None
-    metodo_entrega: str
+    delivery_method: str
     payment_method: str
     subtotal: Decimal
-    desconto: Decimal = Decimal("0")
-    taxa_entrega: Decimal
-    taxa_servico: Decimal
+    discount: Decimal = Decimal("0")
+    delivery_fee: Decimal
+    service_fee: Decimal
     total: Decimal
-    cupom_codigo: Optional[str] = None
-    cupom_gerado: Optional[str] = None
+    coupon_code: Optional[str] = None
+    generated_coupon: Optional[str] = None
     created_at: datetime
     items: List[OrderItemResponse]
 

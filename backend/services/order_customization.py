@@ -123,11 +123,11 @@ def normalize_customization(customization: ItemCustomization | dict[str, Any] | 
     normalized["add"] = _clean_list(normalized.get("add", []))
     normalized["preferences"] = _clean_list(normalized.get("preferences", []))
     normalized["note"] = (normalized.get("note") or "").strip() or None
-    normalized["ingredientes_removidos"] = sorted({
-        int(item) for item in normalized.get("ingredientes_removidos", []) if int(item) > 0
+    normalized["removed_ingredients"] = sorted({
+        int(item) for item in normalized.get("removed_ingredients", []) if int(item) > 0
     })
     normalized["extras"] = _clean_extra_selections(normalized.get("extras", []))
-    normalized["substituicoes"] = _clean_substitution_selections(normalized.get("substituicoes", []))
+    normalized["substitutions"] = _clean_substitution_selections(normalized.get("substitutions", []))
 
     return {key: value for key, value in normalized.items() if value}
 
@@ -246,14 +246,14 @@ def _clean_substitution_selections(items: list[dict[str, Any]]) -> list[dict[str
     cleaned = []
     seen = set()
     for raw_item in items:
-        original_id = int(raw_item.get("id_ingrediente_original", 0))
-        new_id = int(raw_item.get("id_ingrediente_novo", 0))
+        original_id = int(raw_item.get("original_ingredient_id", 0))
+        new_id = int(raw_item.get("new_ingredient_id", 0))
         if original_id <= 0 or new_id <= 0 or original_id in seen:
             continue
         seen.add(original_id)
         cleaned.append({
-            "id_ingrediente_original": original_id,
-            "id_ingrediente_novo": new_id,
+            "original_ingredient_id": original_id,
+            "new_ingredient_id": new_id,
         })
     return cleaned
 
