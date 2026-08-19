@@ -42,6 +42,15 @@ class Settings(BaseSettings):
         default=30,
         validation_alias="DATABASE_POOL_TIMEOUT_SECONDS",
     )
+    auto_apply_migrations: bool = Field(default=True, validation_alias="AUTO_APPLY_MIGRATIONS")
+    dev_reset_database_on_migration_error: bool = Field(
+        default=True,
+        validation_alias="DEV_RESET_DATABASE_ON_MIGRATION_ERROR",
+    )
+    dev_stamp_existing_database_without_alembic: bool = Field(
+        default=True,
+        validation_alias="DEV_STAMP_EXISTING_DATABASE_WITHOUT_ALEMBIC",
+    )
 
     cors_origins_raw: str = Field(
         default=(

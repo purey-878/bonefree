@@ -11,8 +11,7 @@ from database import SessionLocal
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Literal, Optional
-from database import engine
-from schema_migrations import apply_schema_migrations
+from migrations import run_or_stamp_migrations
 from routes.admin import router as admin_router
 from routes.carrinho import alias_router as carrinho_alias_router
 from routes.carrinho import router as carrinho_router
@@ -44,7 +43,7 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-apply_schema_migrations(engine)
+run_or_stamp_migrations()
 
 missing_email_config = validate_email_config()
 if missing_email_config:
