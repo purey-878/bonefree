@@ -3,7 +3,7 @@
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from enums import ReviewReactionType, ReviewStatus
+from schemas.enums import ReviewReactionType, ReviewStatus
 
 
 class ReviewReplyCreate(BaseModel):

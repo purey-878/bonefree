@@ -3,7 +3,7 @@
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 
-from enums import EntityStatus, IngredientType
+from schemas.enums import EntityStatus, IngredientType
 from services.product_pricing import discounted_product_price, product_discount_percent, product_tags
 
 

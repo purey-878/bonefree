@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from dependencies import get_current_user
 from database import get_db
-from enums import OrderState, PaymentMethod, PaymentStatus
+from schemas.enums import OrderState, PaymentMethod, PaymentStatus
 from models import Customer, CustomerBillingAddress, Order, OrderProduct
 from schemas import UserProfileUpdate, UserResponse
 from schemas.checkout import OrderResponse

@@ -27,7 +27,7 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
-from enums import UserRole
+from schemas.enums import UserRole
 from models import Order, Refund
 
 logger = logging.getLogger(__name__)

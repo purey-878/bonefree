@@ -105,6 +105,8 @@ class Settings(BaseSettings):
     def public_base_url(self) -> str:
         return (self.public_base_url_raw or self.app_base_url or "http://localhost:8000").rstrip("/")
 
+    email_provider: Literal["smtp", "terminal"] = Field(default="terminal", validation_alias="EMAIL_PROVIDER")
+    auth_emails_enabled: bool = Field(default=True, validation_alias="AUTH_EMAILS_ENABLED")
     sendgrid_api_key: str | None = Field(default=None, validation_alias="SENDGRID_API_KEY")
     smtp_host: str | None = Field(default=None, validation_alias="SMTP_HOST")
     smtp_port: int | None = Field(default=None, validation_alias="SMTP_PORT")
@@ -119,6 +121,16 @@ class Settings(BaseSettings):
     @property
     def smtp_password(self) -> str | None:
         return self.smtp_password_value or self.smtp_pass
+
+    @property
+    def effective_email_from(self) -> str | None:
+        return (
+            self.auth_email_from
+            or self.email_from
+            or self.receipt_from_email
+            or self.receipt_company_email
+            or self.smtp_user
+        )
 
     @property
     def effective_smtp_port(self) -> int:

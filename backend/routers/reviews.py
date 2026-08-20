@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session, joinedload
 from dependencies import get_current_user, get_current_user_optional, require_role
 from services.auth_service import SUPER_ADMIN_ROLE
 from database import get_db
-from enums import EntityStatus, OrderState, ReviewStatus
+from schemas.enums import EntityStatus, OrderState, ReviewStatus
 from models import Admin, Customer, Order, OrderProduct, Product, ProductReview, ReviewReaction, ReviewReply
 from schemas.review import (
     ProductReviewCreate,

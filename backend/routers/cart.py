@@ -6,7 +6,7 @@ from decimal import Decimal
 from typing import List, Optional
 
 from database import get_db
-from enums import CartCustomizationAction, EntityStatus, IngredientType, ProductCustomizationOptionType
+from schemas.enums import CartCustomizationAction, EntityStatus, IngredientType, ProductCustomizationOptionType
 from models import (
     Cart,
     CartProduct,

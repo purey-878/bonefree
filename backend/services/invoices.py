@@ -8,7 +8,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from enums import PaymentStatus, normalize_enum
+from schemas.enums import PaymentStatus, normalize_enum
 from models import Order, Invoice
 
 

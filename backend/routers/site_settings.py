@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from dependencies import require_role
 from services.auth_service import SUPER_ADMIN_ROLE
 from database import get_db
-from enums import EntityStatus
+from schemas.enums import EntityStatus
 from models import Admin, Product
 from core.errors import AppHTTPException
 from schemas.site_settings import (

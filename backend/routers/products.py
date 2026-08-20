@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select, and_, or_
 from sqlalchemy.orm import Session, joinedload
 from database import get_db
-from enums import EntityStatus, IngredientType, ProductCustomizationOptionType
+from schemas.enums import EntityStatus, IngredientType, ProductCustomizationOptionType
 from models import Ingredient, Product, ProductIngredient, ProductCustomizationOption
 from schemas import ProductResponse
 from schemas.product import ProductIngredientNutrition

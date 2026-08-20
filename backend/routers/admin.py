@@ -17,7 +17,7 @@ from typing import Dict, List, Optional, Union
 
 from database import get_db
 from dependencies import get_current_admin, require_role
-from enums import ADMIN_ROLES, EntityStatus, IngredientType, OrderState, PaymentMethod, PaymentState, PaymentStatus, RefundMethod, RefundStatus, ReviewStatus, UserRole, UserStatus, normalize_admin_role
+from schemas.enums import ADMIN_ROLES, EntityStatus, IngredientType, OrderState, PaymentMethod, PaymentState, PaymentStatus, RefundMethod, RefundStatus, ReviewStatus, UserRole, UserStatus, normalize_admin_role
 from models import (
     Admin, Product, Cart, CartProduct as CartItem, Customer, ProductImage,
     Category, Order, OrderProduct, Payment, ProductReview,

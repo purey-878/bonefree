@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session, joinedload
 from dependencies import get_current_user_optional
 from services.auth_service import hash_password
 from database import get_db
-from enums import CancellationOrigin, CheckoutPaymentMethod, CouponType, EntityStatus, OrderState, PaymentMethod, PaymentState, PaymentStatus, UserRole, UserStatus, normalize_enum
+from schemas.enums import CancellationOrigin, CheckoutPaymentMethod, CouponType, EntityStatus, OrderState, PaymentMethod, PaymentState, PaymentStatus, UserRole, UserStatus, normalize_enum
 from models import (
     Cart,
     CartProduct,

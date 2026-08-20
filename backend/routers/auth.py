@@ -5,7 +5,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Request, status
 from sqlalchemy.orm import Session
 
 from dependencies import get_current_user, get_db
-from enums import UserRole, UserStatus
+from schemas.enums import UserRole, UserStatus
 from models import Customer
 from schemas.user import (
     ForgotPasswordRequest,
@@ -18,7 +18,7 @@ from schemas.user import (
     VerifyOTPRequest,
     VerifyOTPResponse,
 )
-from services.auth_email import send_password_reset_email, send_welcome_email
+from services.email_service import send_password_reset_email, send_welcome_email
 from services.auth_service import authenticate_customer, create_customer_session, get_client_ip, hash_password
 from services.password_reset import can_reset_password, clear_password_reset, start_password_reset, verify_password_reset_code
 from core.errors import AppHTTPException

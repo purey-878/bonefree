@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 from typing import Optional, List
 from datetime import date, datetime
 
-from enums import (
+from schemas.enums import (
     ADMIN_ROLES,
     CancellationOrigin,
     EntityStatus,

@@ -28,15 +28,19 @@ from routers.profile import router as profile_router
 from routers.reviews import router as reviews_router
 from routers.site_settings import admin_router as site_settings_admin_router
 from routers.site_settings import public_router as site_settings_public_router
-from services.auth_email import validate_email_config
+from seeds import seed_test_users
+from core.email_provider import validate_email_config
 
 logger = logging.getLogger(__name__)
 
 run_or_stamp_migrations()
 
+if settings.environment == "development":
+    seed_test_users()
+
 missing_email_config = validate_email_config()
 if missing_email_config:
-    logger.warning("Auth email SMTP configuration is missing or empty: %s", ", ".join(missing_email_config))
+    logger.warning("Email provider configuration is missing or empty: %s", ", ".join(missing_email_config))
 
 
 app = FastAPI(

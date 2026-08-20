@@ -9,7 +9,7 @@ from sqlalchemy import Boolean, DateTime, Enum as SAEnum, ForeignKey, Integer, N
 from sqlalchemy.orm import Mapped, mapped_column, relationship, synonym
 
 from database import Base
-from enums import (
+from schemas.enums import (
     CancellationOrigin,
     CartCustomizationAction,
     CouponType,

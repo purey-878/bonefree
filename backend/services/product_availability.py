@@ -2,7 +2,7 @@
 
 from sqlalchemy.orm import Session
 
-from enums import EntityStatus, IngredientType
+from schemas.enums import EntityStatus, IngredientType
 from models import Ingredient, Product, ProductIngredient
 
 INACTIVE_BASE_REASON = "Not available right now"

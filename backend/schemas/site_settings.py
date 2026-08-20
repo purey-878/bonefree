@@ -2,7 +2,7 @@ from decimal import Decimal
 from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
-from enums import (
+from schemas.enums import (
     CouponDiscountType,
     SocialPlatform,
     ThemeBackgroundType,

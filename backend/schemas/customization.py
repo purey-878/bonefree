@@ -4,7 +4,7 @@ from decimal import Decimal
 from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional
 
-from enums import IngredientType, ProductCustomizationOptionType
+from schemas.enums import IngredientType, ProductCustomizationOptionType
 from .id_types import ProductId
 
 

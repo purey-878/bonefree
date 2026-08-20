@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session as DBSession
 
 from core.config import settings
 from core.errors import AppHTTPException
-from enums import UserRole, UserStatus, is_admin_role, normalize_user_role
+from schemas.enums import UserRole, UserStatus, is_admin_role, normalize_user_role
 from models import Admin, Customer, Session
 from utils.datetime_utils import to_naive_utc
 
