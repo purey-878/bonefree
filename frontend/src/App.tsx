@@ -30,6 +30,15 @@ type CartRouteState = {
   backgroundLocation?: Location
 }
 
+function normalizeAdminRole(role: string | null): AdminRole | null {
+  if (!role) return null
+  if (role === "owner" || role === "super_admin") return "owner"
+  if (role === "chef") return "chef"
+  if (role === "waiter") return "waiter"
+  if (role === "manager" || role === "staff_admin" || role === "admin") return "manager"
+  return null
+}
+
 function ProtectedAdminRoute({
   children,
   roles,
@@ -38,12 +47,13 @@ function ProtectedAdminRoute({
   roles?: AdminRole[]
 }) {
   const token = localStorage.getItem("admin_token")
-  const adminRole = localStorage.getItem("admin_role") as AdminRole | null
+  const adminRole = normalizeAdminRole(localStorage.getItem("admin_role"))
 
   if (!token) return <Navigate to="/admin/login" replace />
+  if (adminRole) localStorage.setItem("admin_role", adminRole)
   if (roles && (!adminRole || !roles.includes(adminRole))) {
+    if (adminRole === "owner") return <Navigate to="/admin/dashboard" replace />
     if (adminRole === "chef") return <Navigate to="/admin/kitchen" replace />
-    if (adminRole === "super_admin") return <Navigate to="/admin/dashboard" replace />
     return <Navigate to="/admin/staff" replace />
   }
   return <>{children}</>
@@ -79,10 +89,10 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin/dashboard" element={<ProtectedAdminRoute roles={["super_admin"]}><AdminDashboard experience="super" /></ProtectedAdminRoute>} />
-        <Route path="/admin/super" element={<ProtectedAdminRoute roles={["super_admin"]}><AdminDashboard experience="super" /></ProtectedAdminRoute>} />
-        <Route path="/admin/staff" element={<ProtectedAdminRoute roles={["staff_admin", "super_admin"]}><AdminDashboard experience="staff" /></ProtectedAdminRoute>} />
-        <Route path="/admin/kitchen" element={<ProtectedAdminRoute roles={["chef", "staff_admin", "super_admin"]}><AdminDashboard experience="kitchen" /></ProtectedAdminRoute>} />
+        <Route path="/admin/dashboard" element={<ProtectedAdminRoute roles={["owner"]}><AdminDashboard experience="super" /></ProtectedAdminRoute>} />
+        <Route path="/admin/super" element={<ProtectedAdminRoute roles={["owner"]}><AdminDashboard experience="super" /></ProtectedAdminRoute>} />
+        <Route path="/admin/staff" element={<ProtectedAdminRoute roles={["owner", "manager", "waiter"]}><AdminDashboard experience="staff" /></ProtectedAdminRoute>} />
+        <Route path="/admin/kitchen" element={<ProtectedAdminRoute roles={["owner", "manager", "chef"]}><AdminDashboard experience="kitchen" /></ProtectedAdminRoute>} />
         <Route path="/menu" element={<Menu />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/checkout" element={<Checkout />} />

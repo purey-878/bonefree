@@ -275,7 +275,7 @@ export interface ProductFilters {
   contains_alcohol?: boolean;
 }
 
-export type AdminRole = "super_admin" | "staff_admin" | "chef";
+export type AdminRole = "owner" | "manager" | "waiter" | "chef";
 
 export interface CurrentAdmin {
   id_admin: number;

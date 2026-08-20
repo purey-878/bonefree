@@ -8,8 +8,15 @@ import Footer from "../components/Footer"
 import { API_BASE } from "../services/api"
 import type { AdminRole } from "../types/admin"
 
+function normalizeAdminRole(role: unknown): AdminRole {
+  if (role === "owner" || role === "super_admin") return "owner"
+  if (role === "chef") return "chef"
+  if (role === "waiter") return "waiter"
+  return "manager"
+}
+
 function adminHomeForRole(role: AdminRole): string {
-  if (role === "super_admin") return "/admin/dashboard"
+  if (role === "owner") return "/admin/dashboard"
   if (role === "chef") return "/admin/kitchen"
   return "/admin/staff"
 }
@@ -41,11 +48,14 @@ export default function AdminLogin() {
       }
 
       const data = await response.json()
-      localStorage.setItem("admin_token", data.access_token)
-      localStorage.setItem("admin_name", data.admin.nome)
-      localStorage.setItem("admin_role", data.admin.role)
+      const adminRole = normalizeAdminRole(data.admin?.role)
+      const adminName = data.admin?.nome ?? data.admin?.name ?? ""
 
-      navigate(adminHomeForRole(data.admin.role))
+      localStorage.setItem("admin_token", data.access_token)
+      localStorage.setItem("admin_name", adminName)
+      localStorage.setItem("admin_role", adminRole)
+
+      navigate(adminHomeForRole(adminRole), { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha ao iniciar sessão")
     } finally {

@@ -237,8 +237,9 @@ function isHexColor(value: string) {
   return /^#[0-9a-fA-F]{6}$/.test(value)
 }
 
-const SUPER_ADMIN_TABS: TabType[] = ["dashboard", "products", "ingredients", "categories", "orders", "refunds", "reviews", "clientes", "staff", "settings", "analytics"]
-const STAFF_ADMIN_TABS: TabType[] = ["orders", "refunds", "products", "ingredients", "categories"]
+const OWNER_TABS: TabType[] = ["dashboard", "products", "ingredients", "categories", "orders", "refunds", "reviews", "clientes", "staff", "settings", "analytics"]
+const MANAGER_TABS: TabType[] = ["orders", "refunds", "products", "ingredients", "categories"]
+const WAITER_TABS: TabType[] = ["orders", "refunds"]
 const CHEF_TABS: TabType[] = ["orders"]
 const NAV_GROUPS: { label: string; tabs: TabType[] }[] = [
   { label: "Principal", tabs: ["dashboard", "orders", "refunds"] },
@@ -360,9 +361,10 @@ const DIRECTORY_STATUS_OPTIONS = [
 
 const STAFF_ROLE_OPTIONS = [
   { value: "all", label: "Todos os cargos" },
-  { value: "staff_admin", label: "Admin da equipa" },
+  { value: "owner", label: "Owner" },
+  { value: "manager", label: "Manager" },
+  { value: "waiter", label: "Waiter" },
   { value: "chef", label: "Chef" },
-  { value: "super_admin", label: "Super admin" },
 ]
 
 const REFUND_REASONS: RefundReason[] = [
@@ -1659,7 +1661,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
     nome: "",
     email: "",
     password: "",
-    role: "staff_admin",
+    role: "manager",
     status: 1,
   })
 
@@ -1691,11 +1693,11 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
   const [salesGraphPeriod, setSalesGraphPeriod] = useState<SalesChartPeriod>("day")
   const navigate = useNavigate()
   const toast = useToast()
-  const role = (currentAdmin?.role || localStorage.getItem("admin_role") || "staff_admin") as AdminRole
-  const isSuperAdmin = role === "super_admin"
+  const role = (currentAdmin?.role || localStorage.getItem("admin_role") || "manager") as AdminRole
+  const isOwner = role === "owner"
   const isKitchenExperience = experience === "kitchen"
-  const canManageProducts = role === "staff_admin" || role === "super_admin"
-  const allowedTabs = isSuperAdmin && experience === "super" ? SUPER_ADMIN_TABS : isKitchenExperience ? CHEF_TABS : STAFF_ADMIN_TABS
+  const canManageProducts = role === "owner" || role === "manager"
+  const allowedTabs = isOwner && experience === "super" ? OWNER_TABS : isKitchenExperience ? CHEF_TABS : role === "waiter" ? WAITER_TABS : MANAGER_TABS
   const visibleNavItems = NAV_ITEMS.filter((item) => allowedTabs.includes(item.tab))
   const visibleNavGroups = NAV_GROUPS
     .map((group) => ({
@@ -1706,7 +1708,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
     }))
     .filter((group) => group.items.length > 0)
   const currentNavLabel = NAV_ITEMS.find((item) => item.tab === activeTab)?.label ?? "Admin"
-  const shellTitle = experience === "kitchen" ? "Kitchen" : isSuperAdmin && experience === "super" ? "Admin Console" : "Staff Console"
+  const shellTitle = experience === "kitchen" ? "Kitchen" : isOwner && experience === "super" ? "Admin Console" : "Staff Console"
   const adminInitials = (currentAdmin?.nome || "Admin")
     .split(" ")
     .filter(Boolean)
@@ -1869,7 +1871,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
   }, [])
 
   const handleLoadSiteTheme = useCallback(async () => {
-    if (!isSuperAdmin) return
+    if (!isOwner) return
     try {
       setSiteThemeLoading(true)
       const [theme, special, couponSettings, nextCompanyDetails, nextSocialMedia, nextEventsSettings] = await Promise.all([
@@ -1891,7 +1893,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
     } finally {
       setSiteThemeLoading(false)
     }
-  }, [isSuperAdmin])
+  }, [isOwner])
 
   const handleLoadReviews = useCallback(async () => {
     try {
@@ -1929,12 +1931,12 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
         localStorage.setItem("admin_role", admin.role)
         localStorage.setItem("admin_name", admin.nome)
 
-        if (experience === "super" && admin.role !== "super_admin") {
+        if (experience === "super" && admin.role !== "owner") {
           navigate(admin.role === "chef" ? "/admin/kitchen" : "/admin/staff", { replace: true })
           return
         }
 
-        if (admin.role === "super_admin" && experience === "super") {
+        if (admin.role === "owner" && experience === "super") {
           void loadDashboard()
           void loadProductsForFilters(EMPTY_PRODUCT_FILTERS)
           void handleLoadCategories()
@@ -1944,11 +1946,12 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
           void handleLoadOrders()
         }
       })
-      .catch(() => {
-        localStorage.removeItem("admin_token")
-        localStorage.removeItem("admin_role")
-        navigate("/admin/login", { replace: true })
-      })
+        .catch(() => {
+          localStorage.removeItem("admin_token")
+          localStorage.removeItem("admin_role")
+          localStorage.removeItem("admin_name")
+          navigate("/admin/login", { replace: true })
+        })
   }, [experience, handleLoadCategories, handleLoadIngredients, handleLoadOrders, loadDashboard, loadProductsForFilters, navigate])
 
   useEffect(() => {
@@ -3062,7 +3065,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
 
   const openNewStaffForm = () => {
     setEditingStaff(null)
-    setStaffForm({ nome: "", email: "", password: "", role: "staff_admin", status: 1 })
+    setStaffForm({ nome: "", email: "", password: "", role: "manager", status: 1 })
     setShowStaffForm(true)
   }
 
@@ -3274,14 +3277,14 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
       description: "Vai sair da consola de administração e terá de iniciar sessão novamente para continuar.",
       confirmText: "Terminar sessão",
       cancelText: "Cancelar",
-    }, async () => {
-      setIsAdminSidebarOpen(false)
-      localStorage.removeItem("admin_token")
-      localStorage.removeItem("admin_role")
-      localStorage.removeItem("admin_name")
-      navigate("/admin/login")
-      return true
-    })
+      }, async () => {
+        setIsAdminSidebarOpen(false)
+        localStorage.removeItem("admin_token")
+        localStorage.removeItem("admin_role")
+        localStorage.removeItem("admin_name")
+        navigate("/admin/login", { replace: true })
+        return true
+      })
   }
 
   const filteredReviews = reviews.filter((review) => {
@@ -5302,7 +5305,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
         )}
 
         {/* ── ORDERS ── */}
-        {activeTab === "settings" && isSuperAdmin && (
+        {activeTab === "settings" && isOwner && (
           <SiteSettingsPanel
             value={siteTheme}
             chefSpecial={chefSpecial}
@@ -5647,7 +5650,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                     <div className="ad-form-group"><label>Palavra-passe</label><input type="password" value={staffForm.password || ""} onChange={e => setStaffForm({ ...staffForm, password: e.target.value })} required={!editingStaff} /></div>
                   </div>
                   <div className="ad-form-row">
-                    <div className="ad-form-group"><label>Cargo</label><CustomSelect className="ad-select" value={staffForm.role} onChange={(nextValue) => setStaffForm({ ...staffForm, role: nextValue as AdminRole })} options={[{ value: "staff_admin", label: "Admin da equipa" }, { value: "chef", label: "Chef" }, { value: "super_admin", label: "Super admin" }]} /></div>
+                    <div className="ad-form-group"><label>Cargo</label><CustomSelect className="ad-select" value={staffForm.role} onChange={(nextValue) => setStaffForm({ ...staffForm, role: nextValue as AdminRole })} options={[{ value: "owner", label: "Owner" }, { value: "manager", label: "Manager" }, { value: "waiter", label: "Waiter" }, { value: "chef", label: "Chef" }]} /></div>
                     <div className="ad-form-group"><label>Estado</label><CustomSelect className="ad-select" value={staffForm.status} onChange={(nextValue) => setStaffForm({ ...staffForm, status: Number(nextValue) })} options={[{ value: 1, label: "Ativo" }, { value: 0, label: "Inativo" }]} /></div>
                   </div>
                   <div className="ad-form-actions">

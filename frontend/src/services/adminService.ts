@@ -28,6 +28,53 @@ import type {
   ReviewReply,
 } from "../types/admin";
 
+type AdminApiResponse = CurrentAdmin & {
+  admin_id?: number;
+  id_admin?: number;
+  name?: string;
+  nome?: string;
+};
+
+function normalizeAdmin(data: AdminApiResponse): CurrentAdmin {
+  return {
+    ...data,
+    id_admin: data.id_admin ?? data.admin_id ?? 0,
+    nome: data.nome ?? data.name ?? "",
+    email: data.email,
+    role: data.role,
+    status: data.status,
+  };
+}
+
+function normalizeDashboardData(data: Partial<DashboardData>): DashboardData {
+  const graphs = data.graficos_vendas ?? {
+    por_hora: [],
+    por_dia: [],
+    por_mes: [],
+    por_ano: [],
+  };
+
+  return {
+    total_produtos: data.total_produtos ?? 0,
+    total_categorias: data.total_categorias ?? 0,
+    total_clientes: data.total_clientes ?? 0,
+    total_carrinhos: data.total_carrinhos ?? 0,
+    produtos_baixo_estoque: Array.isArray(data.produtos_baixo_estoque) ? data.produtos_baixo_estoque : [],
+    produtos_populares: Array.isArray(data.produtos_populares) ? data.produtos_populares : [],
+    graficos_vendas: {
+      por_hora: Array.isArray(graphs.por_hora) ? graphs.por_hora : [],
+      por_dia: Array.isArray(graphs.por_dia) ? graphs.por_dia : [],
+      por_mes: Array.isArray(graphs.por_mes) ? graphs.por_mes : [],
+      por_ano: Array.isArray(graphs.por_ano) ? graphs.por_ano : [],
+    },
+  };
+}
+
+function adminPayloadToApi(payload: AdminUserPayload): Record<string, unknown> {
+  const { nome, ...rest } = payload;
+  return { ...rest, name: nome };
+}
+
 async function parseError(response: Response, fallback: string): Promise<Error> {
   try {
     const error = (await response.json()) as { detail?: string };
@@ -42,7 +89,7 @@ export const getDashboardAnalytics = async (): Promise<DashboardData> => {
     headers: adminHeaders(),
   });
   if (!response.ok) throw await parseError(response, "Failed to fetch dashboard analytics");
-  return response.json();
+  return normalizeDashboardData(await response.json());
 };
 
 export const getCurrentAdmin = async (): Promise<CurrentAdmin> => {
@@ -50,7 +97,7 @@ export const getCurrentAdmin = async (): Promise<CurrentAdmin> => {
     headers: adminHeaders(),
   });
   if (!response.ok) throw await parseError(response, "Failed to fetch current admin");
-  return response.json();
+  return normalizeAdmin(await response.json());
 };
 
 export const createProduct = async (productData: AdminProductPayload): Promise<AdminProduct> => {
@@ -316,27 +363,28 @@ export const listStaffAdmins = async (): Promise<CurrentAdmin[]> => {
     headers: adminHeaders(),
   });
   if (!response.ok) throw await parseError(response, "Failed to fetch staff admins");
-  return response.json();
+  const data = await response.json();
+  return Array.isArray(data) ? data.map(normalizeAdmin) : [];
 };
 
 export const createStaffAdmin = async (payload: AdminUserPayload & { password: string }): Promise<CurrentAdmin> => {
   const response = await fetch(`${API_BASE}/admin/staff`, {
     method: "POST",
     headers: adminHeaders(),
-    body: JSON.stringify(payload),
+    body: JSON.stringify(adminPayloadToApi(payload)),
   });
   if (!response.ok) throw await parseError(response, "Failed to create staff admin");
-  return response.json();
+  return normalizeAdmin(await response.json());
 };
 
 export const updateStaffAdmin = async (adminId: number, payload: AdminUserPayload): Promise<CurrentAdmin> => {
   const response = await fetch(`${API_BASE}/admin/staff/${adminId}`, {
     method: "PUT",
     headers: adminHeaders(),
-    body: JSON.stringify(payload),
+    body: JSON.stringify(adminPayloadToApi(payload)),
   });
   if (!response.ok) throw await parseError(response, "Failed to update staff admin");
-  return response.json();
+  return normalizeAdmin(await response.json());
 };
 
 export const deleteStaffAdmin = async (adminId: number): Promise<CurrentAdmin> => {
@@ -345,7 +393,7 @@ export const deleteStaffAdmin = async (adminId: number): Promise<CurrentAdmin> =
     headers: adminHeaders(),
   });
   if (!response.ok) throw await parseError(response, "Failed to deactivate staff admin");
-  return response.json();
+  return normalizeAdmin(await response.json());
 };
 
 export const listCategories = async (includeInactive = false): Promise<Category[]> => {

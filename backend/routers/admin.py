@@ -99,7 +99,7 @@ SalesStats = Dict[str, Union[float, int]]
 
 @router.post("/login", response_model=AdminTokenResponse)
 def admin_login(credentials: AdminLogin, request: Request, db: Session = Depends(get_db)):
-    admin = db.query(Admin).filter(Admin.email == credentials.email).first()
+    admin = db.scalar(select(Admin).where(Admin.email == credentials.email))
     admin, access_token = authenticate_admin(db, admin, credentials.password, request)
     return {
         "access_token": access_token,
@@ -183,11 +183,9 @@ def _build_dashboard_sales_graphs(db: Session) -> DashboardSalesGraphs:
     monthly_buckets = {key: _empty_sales_stats() for key in monthly_keys}
     yearly_buckets = {key: _empty_sales_stats() for key in yearly_keys}
 
-    orders = (
-        db.query(Order)
-        .filter(Order.ordered_at >= yearly_start)
-        .all()
-    )
+    orders = db.scalars(
+        select(Order).where(Order.ordered_at >= yearly_start)
+    ).all()
 
     for order in orders:
         order_date = order.ordered_at
@@ -347,12 +345,11 @@ def _product_ingredient_lookup(db: Session, product_ids: List[int]) -> Dict[int,
     if not product_ids:
         return {}
 
-    rows = (
-        db.query(ProductIngredient)
+    rows = db.scalars(
+        select(ProductIngredient)
         .options(joinedload(ProductIngredient.ingredient))
-        .filter(ProductIngredient.product_id.in_(product_ids))
-        .all()
-    )
+        .where(ProductIngredient.product_id.in_(product_ids))
+    ).all()
     lookup: Dict[int, List[ProductIngredientResponse]] = {product_id: [] for product_id in product_ids}
     for row in rows:
         lookup.setdefault(row.product_id, []).append(_ingredient_response(row))
@@ -374,7 +371,7 @@ def _product_admin_response(
 
 def _find_or_create_ingredient(db: Session, payload: ProductIngredientPayload) -> Ingredient:
     if payload.ingredient_id is not None:
-        ingredient = db.query(Ingredient).filter(Ingredient.ingredient_id == payload.ingredient_id).first()
+        ingredient = db.scalar(select(Ingredient).where(Ingredient.ingredient_id == payload.ingredient_id))
         if not ingredient:
             raise AppHTTPException(status_code=404, error="ingredient_not_found", message="Ingredient not found.", details={"reason": "request_failed"})
         if ingredient.status == EntityStatus.INACTIVE:
@@ -387,7 +384,7 @@ def _find_or_create_ingredient(db: Session, payload: ProductIngredientPayload) -
     if not name:
         raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="ingredient_name_required", message="Ingredient name is required.", details={"payload": payload.model_dump()})
 
-    ingredient = db.query(Ingredient).filter(func.lower(Ingredient.name) == name.lower()).first()
+    ingredient = db.scalar(select(Ingredient).where(func.lower(Ingredient.name) == name.lower()))
     if ingredient:
         if ingredient.status == EntityStatus.INACTIVE:
             ingredient.status = EntityStatus.ACTIVE
@@ -407,7 +404,9 @@ def _find_or_create_ingredient(db: Session, payload: ProductIngredientPayload) -
 
 
 def _sync_product_ingredients(db: Session, product_id: int, ingredients: List[ProductIngredientPayload]) -> None:
-    db.query(ProductIngredient).filter(ProductIngredient.product_id == product_id).delete(synchronize_session=False)
+    db.execute(
+        ProductIngredient.__table__.delete().where(ProductIngredient.product_id == product_id)
+    )
     seen_ingredient_ids: set[int] = set()
     for payload in ingredients:
         ingredient = _find_or_create_ingredient(db, payload)
@@ -557,12 +556,11 @@ def _kitchen_order_response(order: Order) -> KitchenOrderResponse:
 
 
 def _get_order_or_404(db: Session, order_id: int) -> Order:
-    order = (
-        db.query(Order)
+    order = db.scalars(
+        select(Order)
         .options(joinedload(Order.items).joinedload(OrderProduct.product))
-        .filter(Order.order_id == order_id)
-        .first()
-    )
+        .where(Order.order_id == order_id)
+    ).unique().first()
     if not order:
         raise AppHTTPException(status_code=404, error="order_not_found", message="Order not found.", details={"reason": "request_failed"})
     return order
@@ -637,10 +635,10 @@ def list_categories(
     current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
-    query = db.query(Category)
+    stmt = select(Category)
     if not include_inactive:
-        query = query.filter(Category.status == EntityStatus.ACTIVE)
-    return query.order_by(Category.category_name.asc()).all()
+        stmt = stmt.where(Category.status == EntityStatus.ACTIVE)
+    return db.scalars(stmt.order_by(Category.category_name.asc())).all()
 
 
 @router.post("/categories", response_model=CategoryResponse, status_code=status.HTTP_201_CREATED)
@@ -669,7 +667,7 @@ def update_category(
     db: Session = Depends(get_db)
 ):
     parsed_category_id = parse_category_id(category_id)
-    category = db.query(Category).filter(Category.category_id == parsed_category_id).first()
+    category = db.scalar(select(Category).where(Category.category_id == parsed_category_id))
     if not category:
         raise AppHTTPException(status_code=404, error="category_not_found", message="Category not found.", details={"reason": "request_failed"})
 
@@ -692,16 +690,17 @@ def delete_category(
     db: Session = Depends(get_db)
 ):
     parsed_category_id = parse_category_id(category_id)
-    category = db.query(Category).filter(Category.category_id == parsed_category_id).first()
+    category = db.scalar(select(Category).where(Category.category_id == parsed_category_id))
     if not category:
         raise AppHTTPException(status_code=404, error="category_not_found", message="Category not found.", details={"reason": "request_failed"})
 
-    active_products = (
-        db.query(func.count(Product.product_id))
-        .filter(Product.category_id == parsed_category_id, active_product_filter(), Product.deleted_at.is_(None))
-        .scalar()
-        or 0
-    )
+    active_products = db.scalar(
+        select(func.count(Product.product_id)).where(
+            Product.category_id == parsed_category_id,
+            active_product_filter(),
+            Product.deleted_at.is_(None),
+        )
+    ) or 0
     if active_products > 0:
         raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="category_has_active_products", message="Category cannot be archived while it has active products.", details={"category_id": category.category_id, "active_products": active_products})
 
@@ -724,9 +723,9 @@ def list_ingredients(
     current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
-    query = db.query(Ingredient)
+    stmt = select(Ingredient)
     if not include_inactive:
-        query = query.filter(Ingredient.status == EntityStatus.ACTIVE)
+        stmt = stmt.where(Ingredient.status == EntityStatus.ACTIVE)
     if customization_only:
         drink_category_ids = select(Category.category_id).where(
             Category.category_name.ilike("%bebida%")
@@ -737,14 +736,14 @@ def list_ingredients(
             .where(~Product.category_id.in_(drink_category_ids))
         )
         linked_ingredient_ids = select(ProductIngredient.ingredient_id)
-        query = query.filter(
+        stmt = stmt.where(
             Ingredient.type != IngredientType.DRINK,
             or_(
                 Ingredient.ingredient_id.in_(non_drink_ingredient_ids),
                 ~Ingredient.ingredient_id.in_(linked_ingredient_ids),
             ),
         )
-    return query.order_by(Ingredient.type.asc(), Ingredient.name.asc()).all()
+    return db.scalars(stmt.order_by(Ingredient.type.asc(), Ingredient.name.asc())).all()
 
 
 @router.post("/ingredients", response_model=IngredientResponse, status_code=status.HTTP_201_CREATED)
@@ -754,7 +753,7 @@ def create_ingredient(
     db: Session = Depends(get_db),
 ):
     name = ingredient.name.strip()
-    existing = db.query(Ingredient).filter(func.lower(Ingredient.name) == name.lower()).first()
+    existing = db.scalar(select(Ingredient).where(func.lower(Ingredient.name) == name.lower()))
     if existing:
         if existing.status == EntityStatus.INACTIVE:
             existing.status = EntityStatus.ACTIVE
@@ -785,16 +784,19 @@ def update_ingredient(
     current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
-    ingredient = db.query(Ingredient).filter(Ingredient.ingredient_id == ingredient_id).first()
+    ingredient = db.scalar(select(Ingredient).where(Ingredient.ingredient_id == ingredient_id))
     if not ingredient:
         raise AppHTTPException(status_code=404, error="ingredient_not_found", message="Ingredient not found.", details={"reason": "request_failed"})
 
     if ingredient_update.name is not None:
         name = ingredient_update.name.strip()
         existing = (
-            db.query(Ingredient)
-            .filter(func.lower(Ingredient.name) == name.lower(), Ingredient.ingredient_id != ingredient_id)
-            .first()
+            db.scalars(
+                select(Ingredient).where(
+                    func.lower(Ingredient.name) == name.lower(),
+                    Ingredient.ingredient_id != ingredient_id,
+                )
+            ).first()
         )
         if existing:
             raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="duplicate_ingredient_name", message="An ingredient with this name already exists.", details={"name": name})
@@ -817,7 +819,7 @@ def delete_ingredient(
     current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
-    ingredient = db.query(Ingredient).filter(Ingredient.ingredient_id == ingredient_id).first()
+    ingredient = db.scalar(select(Ingredient).where(Ingredient.ingredient_id == ingredient_id))
     if not ingredient:
         raise AppHTTPException(status_code=404, error="ingredient_not_found", message="Ingredient not found.", details={"reason": "request_failed"})
 
@@ -833,7 +835,12 @@ def create_product(
     current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
-    category = db.query(Category).filter(Category.category_id == product.category_id, Category.status == EntityStatus.ACTIVE).first()
+    category = db.scalar(
+        select(Category).where(
+            Category.category_id == product.category_id,
+            Category.status == EntityStatus.ACTIVE,
+        )
+    )
     if not category:
         raise AppHTTPException(status_code=404, error="category_not_found", message="Category not found.", details={"reason": "request_failed"})
 
@@ -860,9 +867,11 @@ def create_product(
     db.commit()
     db.refresh(new_product)
 
-    saved_product = db.query(Product).options(joinedload(Product.images)).filter(
-        Product.product_id == new_product.product_id
-    ).first()
+    saved_product = db.scalars(
+        select(Product).options(joinedload(Product.images)).where(
+            Product.product_id == new_product.product_id
+        )
+    ).unique().first()
     return _product_admin_response(db, saved_product)
 
 
@@ -881,33 +890,33 @@ def list_products(
     current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
-    query = db.query(Product).options(joinedload(Product.images))
+    stmt = select(Product).options(joinedload(Product.images))
 
     if not include_deleted:
-        query = query.filter(active_product_filter(), Product.deleted_at.is_(None))
+        stmt = stmt.where(active_product_filter(), Product.deleted_at.is_(None))
 
     if name:
-        query = query.filter(Product.name.ilike(f"%{name}%"))
+        stmt = stmt.where(Product.name.ilike(f"%{name}%"))
 
     if category:
-        query = query.filter(Product.category_id == parse_category_id(category))
+        stmt = stmt.where(Product.category_id == parse_category_id(category))
 
     if min_price is not None:
-        query = query.filter(Product.price >= min_price)
+        stmt = stmt.where(Product.price >= min_price)
 
     if max_price is not None:
-        query = query.filter(Product.price <= max_price)
+        stmt = stmt.where(Product.price <= max_price)
 
     if featured is not None:
-        query = query.filter(Product.featured == (1 if featured else 0))
+        stmt = stmt.where(Product.featured == (1 if featured else 0))
 
     if gluten_free is not None:
-        query = query.filter(Product.gluten_free == (1 if gluten_free else 0))
+        stmt = stmt.where(Product.gluten_free == (1 if gluten_free else 0))
 
     if contains_alcohol is not None:
-        query = query.filter(Product.contains_alcohol == (1 if contains_alcohol else 0))
+        stmt = stmt.where(Product.contains_alcohol == (1 if contains_alcohol else 0))
 
-    products = query.offset(skip).limit(limit).all()
+    products = db.scalars(stmt.offset(skip).limit(limit)).unique().all()
     ingredient_lookup = _product_ingredient_lookup(db, [product.product_id for product in products])
     return [_product_admin_response(db, product, ingredient_lookup) for product in products]
 
@@ -919,10 +928,12 @@ def get_product(
     db: Session = Depends(get_db)
 ):
     parsed_product_id = parse_product_id(product_id)
-    product = db.query(Product).options(joinedload(Product.images)).filter(
-        Product.product_id == parsed_product_id,
-        Product.status == EntityStatus.ACTIVE
-    ).first()
+    product = db.scalars(
+        select(Product).options(joinedload(Product.images)).where(
+            Product.product_id == parsed_product_id,
+            Product.status == EntityStatus.ACTIVE,
+        )
+    ).unique().first()
 
     if not product:
         raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
@@ -938,7 +949,7 @@ def get_product_analytics(
     db: Session = Depends(get_db)
 ):
     parsed_product_id = parse_product_id(product_id)
-    product = db.query(Product).filter(Product.product_id == parsed_product_id).first()
+    product = db.scalar(select(Product).where(Product.product_id == parsed_product_id))
     if not product:
         raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
 
@@ -947,16 +958,15 @@ def get_product_analytics(
     daily_keys = [(start_date + timedelta(days=index)).strftime("%Y-%m-%d") for index in range(days)]
     daily_buckets = {key: _empty_sales_stats() for key in daily_keys}
 
-    items = (
-        db.query(OrderProduct)
+    items = db.scalars(
+        select(OrderProduct)
         .join(Order, OrderProduct.order_id == Order.order_id)
-        .filter(
+        .where(
             OrderProduct.product_id == parsed_product_id,
             func.date(Order.ordered_at) >= start_date,
             func.date(Order.ordered_at) <= end_date,
         )
-        .all()
-    )
+    ).all()
 
     total_sales = 0.0
     quantity_sold = 0
@@ -975,17 +985,15 @@ def get_product_analytics(
                 daily_buckets[date_key]["quantity_sold"] = int(daily_buckets[date_key]["quantity_sold"]) + item.quantity
                 daily_buckets[date_key]["order_numbers"] = int(daily_buckets[date_key]["order_numbers"]) + 1
 
-    average_rating = (
-        db.query(func.avg(ProductReview.rating))
-        .filter(ProductReview.product_id == parsed_product_id, ProductReview.status == ReviewStatus.APPROVED)
-        .scalar()
+    average_rating = db.scalar(
+        select(func.avg(ProductReview.rating)).where(
+            ProductReview.product_id == parsed_product_id,
+            ProductReview.status == ReviewStatus.APPROVED,
+        )
     )
-    total_reviews = (
-        db.query(func.count(ProductReview.review_id))
-        .filter(ProductReview.product_id == parsed_product_id)
-        .scalar()
-        or 0
-    )
+    total_reviews = db.scalar(
+        select(func.count(ProductReview.review_id)).where(ProductReview.product_id == parsed_product_id)
+    ) or 0
 
     return ProductAnalyticsResponse(
         product_id=parsed_product_id,
@@ -1009,10 +1017,12 @@ def update_product(
     db: Session = Depends(get_db)
 ):
     parsed_product_id = parse_product_id(product_id)
-    product = db.query(Product).filter(
-        Product.product_id == parsed_product_id,
-        Product.status == EntityStatus.ACTIVE
-    ).first()
+    product = db.scalar(
+        select(Product).where(
+            Product.product_id == parsed_product_id,
+            Product.status == EntityStatus.ACTIVE,
+        )
+    )
 
     if not product:
         raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
@@ -1026,7 +1036,12 @@ def update_product(
     if product_update.stock is not None:
         product.stock = product_update.stock
     if product_update.category_id is not None:
-        category = db.query(Category).filter(Category.category_id == product_update.category_id, Category.status == EntityStatus.ACTIVE).first()
+        category = db.scalar(
+            select(Category).where(
+                Category.category_id == product_update.category_id,
+                Category.status == EntityStatus.ACTIVE,
+            )
+        )
         if not category:
             raise AppHTTPException(status_code=404, error="category_not_found", message="Category not found.", details={"reason": "request_failed"})
         product.category_id = product_update.category_id
@@ -1061,7 +1076,7 @@ def toggle_product_status(
     db: Session = Depends(get_db)
 ):
     parsed_product_id = parse_product_id(product_id)
-    product = db.query(Product).filter(Product.product_id == parsed_product_id).first()
+    product = db.scalar(select(Product).where(Product.product_id == parsed_product_id))
 
     if not product:
         raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
@@ -1084,7 +1099,7 @@ def delete_product(
     db: Session = Depends(get_db)
 ):
     parsed_product_id = parse_product_id(product_id)
-    product = db.query(Product).filter(Product.product_id == parsed_product_id).first()
+    product = db.scalar(select(Product).where(Product.product_id == parsed_product_id))
     if not product:
         raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
 
@@ -1105,7 +1120,7 @@ def upload_product_image(
 ):
     parsed_product_id = parse_product_id(product_id)
     # Verify product exists
-    product = db.query(Product).filter(Product.product_id == parsed_product_id).first()
+    product = db.scalar(select(Product).where(Product.product_id == parsed_product_id))
     if not product:
         raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
     
@@ -1127,7 +1142,7 @@ def upload_product_image(
         
         if replace_existing:
             # Delete old images for this product
-            old_images = db.query(ProductImage).filter(ProductImage.product_id == parsed_product_id).all()
+            old_images = db.scalars(select(ProductImage).where(ProductImage.product_id == parsed_product_id)).all()
             for old_img in old_images:
                 _delete_uploaded_image_file(old_img.image_path)
                 db.delete(old_img)
@@ -1161,10 +1176,12 @@ def delete_product_image(
     db: Session = Depends(get_db),
 ):
     parsed_product_id = parse_product_id(product_id)
-    image = db.query(ProductImage).filter(
-        ProductImage.product_id == parsed_product_id,
-        ProductImage.image_id == image_id,
-    ).first()
+    image = db.scalar(
+        select(ProductImage).where(
+            ProductImage.product_id == parsed_product_id,
+            ProductImage.image_id == image_id,
+        )
+    )
     if not image:
         raise AppHTTPException(status_code=404, error="image_not_found", message="Image not found.", details={"reason": "request_failed"})
 
@@ -1186,13 +1203,12 @@ def list_orders(
     current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
-    orders = (
-        db.query(Order)
+    orders = db.scalars(
+        select(Order)
         .order_by(Order.ordered_at.desc())
         .offset(skip)
         .limit(limit)
-        .all()
-    )
+    ).all()
 
     return [_order_response(order) for order in orders]
 
@@ -1204,14 +1220,13 @@ def list_staff_orders(
     current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
-    orders = (
-        db.query(Order)
-        .filter(_staff_order_filter())
+    orders = db.scalars(
+        select(Order)
+        .where(_staff_order_filter())
         .order_by(Order.ordered_at.asc())
         .offset(skip)
         .limit(limit)
-        .all()
-    )
+    ).all()
 
     return [_order_response(order) for order in orders]
 
@@ -1223,9 +1238,9 @@ def list_kitchen_orders(
     current_admin: Admin = Depends(require_role(CHEF_ROLE, STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
-    orders = (
-        db.query(Order)
-        .filter(
+    orders = db.scalars(
+        select(Order)
+        .where(
             or_(
                 Order.state.in_(KITCHEN_VISIBLE_STATES),
                 (
@@ -1238,8 +1253,7 @@ def list_kitchen_orders(
         .order_by(Order.ordered_at.asc())
         .offset(skip)
         .limit(limit)
-        .all()
-    )
+    ).all()
 
     return [_kitchen_order_response(order) for order in orders]
 
@@ -1392,24 +1406,22 @@ def list_refunds(
     current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
-    query = (
-        db.query(Refund)
-        .join(Refund.order)
-        .join(Order.customer)
-        .join(Refund.admin)
+    stmt = select(Refund).options(
+        joinedload(Refund.order).joinedload(Order.customer),
+        joinedload(Refund.admin),
     )
     if date_from:
-        query = query.filter(func.date(Refund.refunded_at) >= _parse_date_param(date_from, datetime.utcnow()).date())
+        stmt = stmt.where(func.date(Refund.refunded_at) >= _parse_date_param(date_from, datetime.utcnow()).date())
     if date_to:
-        query = query.filter(func.date(Refund.refunded_at) <= _parse_date_param(date_to, datetime.utcnow()).date())
+        stmt = stmt.where(func.date(Refund.refunded_at) <= _parse_date_param(date_to, datetime.utcnow()).date())
     if staff_member:
-        query = query.filter(Refund.admin_id == staff_member)
+        stmt = stmt.where(Refund.admin_id == staff_member)
     if reason:
-        query = query.filter(Refund.reason == reason)
+        stmt = stmt.where(Refund.reason == reason)
     if refund_status:
-        query = query.filter(Refund.status == refund_status)
+        stmt = stmt.where(Refund.status == refund_status)
 
-    refunds = query.order_by(Refund.refunded_at.desc()).all()
+    refunds = db.scalars(stmt.order_by(Refund.refunded_at.desc())).unique().all()
     return [_refund_response(refund) for refund in refunds]
 
 
@@ -1502,11 +1514,11 @@ def list_customers(
     current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
-    query = db.query(Customer).options(joinedload(Customer.billing_address)).filter(Customer.role == UserRole.CLIENT)
+    stmt = select(Customer).options(joinedload(Customer.billing_address)).where(Customer.role == UserRole.CLIENT)
     if search:
         pattern = f"%{search}%"
-        query = query.filter(or_(Customer.name.ilike(pattern), Customer.last_name.ilike(pattern), Customer.email.ilike(pattern)))
-    customers = query.order_by(Customer.customer_id.desc()).offset(skip).limit(limit).all()
+        stmt = stmt.where(or_(Customer.name.ilike(pattern), Customer.last_name.ilike(pattern), Customer.email.ilike(pattern)))
+    customers = db.scalars(stmt.order_by(Customer.customer_id.desc()).offset(skip).limit(limit)).unique().all()
     return [_customer_admin_response(customer) for customer in customers]
 
 
@@ -1517,7 +1529,7 @@ def create_customer(
     db: Session = Depends(get_db),
 ):
     email = body.email.strip().lower()
-    if db.query(Customer).filter(Customer.email == email).first():
+    if db.scalar(select(Customer).where(Customer.email == email)):
         raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="duplicate_customer_email", message="This email is already associated with an existing customer.", details={"email": email})
 
     customer = Customer(
@@ -1546,18 +1558,19 @@ def update_customer(
     current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
-    customer = (
-        db.query(Customer)
+    customer = db.scalars(
+        select(Customer)
         .options(joinedload(Customer.billing_address))
-        .filter(Customer.customer_id == customer_id, Customer.role == UserRole.CLIENT)
-        .first()
-    )
+        .where(Customer.customer_id == customer_id, Customer.role == UserRole.CLIENT)
+    ).unique().first()
     if not customer:
         raise AppHTTPException(status_code=404, error="customer_not_found", message="Customer not found.", details={"reason": "request_failed"})
 
     if body.email is not None:
         email = body.email.strip().lower()
-        existing = db.query(Customer).filter(Customer.email == email, Customer.customer_id != customer_id).first()
+        existing = db.scalar(
+            select(Customer).where(Customer.email == email, Customer.customer_id != customer_id)
+        )
         if existing:
             raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="duplicate_customer_email", message="This email is already associated with an existing customer.", details={"email": email})
         customer.email = email
@@ -1582,12 +1595,11 @@ def delete_customer(
     current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
-    customer = (
-        db.query(Customer)
+    customer = db.scalars(
+        select(Customer)
         .options(joinedload(Customer.billing_address))
-        .filter(Customer.customer_id == customer_id, Customer.role == UserRole.CLIENT)
-        .first()
-    )
+        .where(Customer.customer_id == customer_id, Customer.role == UserRole.CLIENT)
+    ).unique().first()
     if not customer:
         raise AppHTTPException(status_code=404, error="customer_not_found", message="Customer not found.", details={"reason": "request_failed"})
     customer.status = UserStatus.SUSPENDED
@@ -1603,7 +1615,9 @@ def list_staff_admins(
     current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
-    admins = db.query(Admin).filter(Admin.role.in_(ADMIN_ROLES)).order_by(Admin.admin_id.asc()).all()
+    admins = db.scalars(
+        select(Admin).where(Admin.role.in_(ADMIN_ROLES)).order_by(Admin.admin_id.asc())
+    ).all()
     for admin in admins:
         admin.role = normalize_admin_role(admin.role)
     return admins
@@ -1616,7 +1630,7 @@ def create_staff_admin(
     db: Session = Depends(get_db),
 ):
     email = body.email.strip().lower()
-    if db.query(Admin).filter(Admin.email == email).first():
+    if db.scalar(select(Admin).where(Admin.email == email)):
         raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="duplicate_admin_email", message="This email is already associated with an existing admin.", details={"email": email})
 
     admin = Admin(
@@ -1640,13 +1654,13 @@ def update_staff_admin(
     current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
-    admin = db.query(Admin).filter(Admin.admin_id == admin_id, Admin.role.in_(ADMIN_ROLES)).first()
+    admin = db.scalar(select(Admin).where(Admin.admin_id == admin_id, Admin.role.in_(ADMIN_ROLES)))
     if not admin:
         raise AppHTTPException(status_code=404, error="admin_not_found", message="Admin not found.", details={"reason": "request_failed"})
 
     if body.email is not None:
         email = body.email.strip().lower()
-        existing = db.query(Admin).filter(Admin.email == email, Admin.admin_id != admin_id).first()
+        existing = db.scalar(select(Admin).where(Admin.email == email, Admin.admin_id != admin_id))
         if existing:
             raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="duplicate_admin_email", message="This email is already associated with an existing admin.", details={"email": email})
         admin.email = email
@@ -1672,7 +1686,7 @@ def delete_staff_admin(
 ):
     if admin_id == current_admin.admin_id:
         raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="cannot_delete_current_admin", message="Current admin account cannot be deleted.", details={"admin_id": admin_id})
-    admin = db.query(Admin).filter(Admin.admin_id == admin_id, Admin.role.in_(ADMIN_ROLES)).first()
+    admin = db.scalar(select(Admin).where(Admin.admin_id == admin_id, Admin.role.in_(ADMIN_ROLES)))
     if not admin:
         raise AppHTTPException(status_code=404, error="admin_not_found", message="Admin not found.", details={"reason": "request_failed"})
     admin.status = UserStatus.SUSPENDED
@@ -1691,10 +1705,12 @@ def get_dashboard_analytics(
     db: Session = Depends(get_db)
 ):
     # Count totals
-    total_products = db.query(func.count(Product.product_id)).filter(Product.status == EntityStatus.ACTIVE).scalar() or 0
-    total_categories = db.query(func.count(Category.category_id)).filter(Category.status == EntityStatus.ACTIVE).scalar() or 0
-    total_customers = db.query(func.count(Customer.customer_id)).filter(Customer.status == UserStatus.ACTIVE, Customer.role == UserRole.CLIENT).scalar() or 0
-    total_carts = db.query(func.count(Cart.cart_id)).scalar() or 0
+    total_products = db.scalar(select(func.count(Product.product_id)).where(Product.status == EntityStatus.ACTIVE)) or 0
+    total_categories = db.scalar(select(func.count(Category.category_id)).where(Category.status == EntityStatus.ACTIVE)) or 0
+    total_customers = db.scalar(
+        select(func.count(Customer.customer_id)).where(Customer.status == UserStatus.ACTIVE, Customer.role == UserRole.CLIENT)
+    ) or 0
+    total_carts = db.scalar(select(func.count(Cart.cart_id))) or 0
     
     # Get low-stock products
     low_stock_products = [
@@ -1706,11 +1722,12 @@ def get_dashboard_analytics(
             price=float(p.price),
             category=p.category.category_name if p.category else "",
         )
-        for p in db.query(Product)
-            .filter(Product.status == EntityStatus.ACTIVE)
+        for p in db.scalars(
+            select(Product)
+            .where(Product.status == EntityStatus.ACTIVE)
             .order_by(Product.stock.asc())
             .limit(5)
-            .all()
+        ).all()
     ]
     
     # Get popular products
@@ -1723,11 +1740,12 @@ def get_dashboard_analytics(
             price=float(p.price),
             category=p.category.category_name if p.category else "",
         )
-        for p in db.query(Product)
-            .filter(Product.status == EntityStatus.ACTIVE)
+        for p in db.scalars(
+            select(Product)
+            .where(Product.status == EntityStatus.ACTIVE)
             .order_by(desc(Product.sold))
             .limit(5)
-            .all()
+        ).all()
     ]
     
     return DashboardAnalytics(
@@ -1746,13 +1764,12 @@ def get_low_stock_products(
     current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
-    products = (
-        db.query(Product)
-        .filter(Product.status == EntityStatus.ACTIVE)
+    products = db.scalars(
+        select(Product)
+        .where(Product.status == EntityStatus.ACTIVE)
         .order_by(Product.stock.asc())
         .limit(limit)
-        .all()
-    )
+    ).all()
 
     return [
         LowStockProduct(
@@ -1773,13 +1790,12 @@ def get_popular_products(
     current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
-    products = (
-        db.query(Product)
-        .filter(Product.status == EntityStatus.ACTIVE)
+    products = db.scalars(
+        select(Product)
+        .where(Product.status == EntityStatus.ACTIVE)
         .order_by(desc(Product.sold))
         .limit(limit)
-        .all()
-    )
+    ).all()
 
     return [
         PopularProduct(
@@ -1815,11 +1831,9 @@ def get_analytics_series(
     }
 
     if metric in {"sales", "orders"}:
-        orders = (
-            db.query(Order)
-            .filter(Order.ordered_at >= start, Order.ordered_at <= end)
-            .all()
-        )
+        orders = db.scalars(
+            select(Order).where(Order.ordered_at >= start, Order.ordered_at <= end)
+        ).all()
         for order in orders:
             key = _analytics_key(order.ordered_at, granularity)
             if key not in buckets:
@@ -1829,12 +1843,11 @@ def get_analytics_series(
             buckets[key]["quantity_sold"] += sum(item.quantity for item in order.items)
 
     elif metric == "products":
-        items = (
-            db.query(OrderProduct)
+        items = db.scalars(
+            select(OrderProduct)
             .join(Order, OrderProduct.order_id == Order.order_id)
-            .filter(Order.ordered_at >= start, Order.ordered_at <= end)
-            .all()
-        )
+            .where(Order.ordered_at >= start, Order.ordered_at <= end)
+        ).all()
         for item in items:
             if not item.order:
                 continue
@@ -1846,7 +1859,7 @@ def get_analytics_series(
             buckets[key]["order_numbers"] += 1
 
     else:
-        customers = db.query(Customer).filter(Customer.role == UserRole.CLIENT).all()
+        customers = db.scalars(select(Customer).where(Customer.role == UserRole.CLIENT)).all()
         for customer in customers:
             created_at = _parse_customer_created_at(customer.created_at)
             if not created_at or created_at < start or created_at > end:
@@ -1887,9 +1900,11 @@ def get_sales_performance(
     end_date = datetime.utcnow().date()
     start_date = end_date - timedelta(days=days)
     
-    orders = db.query(Order).filter(
-        func.date(Order.ordered_at) >= start_date,
-        func.date(Order.ordered_at) <= end_date
+    orders = db.scalars(
+        select(Order).where(
+            func.date(Order.ordered_at) >= start_date,
+            func.date(Order.ordered_at) <= end_date,
+        )
     ).all()
 
     total_sales = 0.0
