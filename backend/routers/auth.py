@@ -1,12 +1,13 @@
 import logging
 from datetime import datetime
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Request, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, Request, Response, status
+from sqlalchemy import select
+from sqlalchemy.orm import Session as DBSession
 
 from dependencies import get_current_user, get_db
 from schemas.enums import UserRole, UserStatus
-from models import Customer
+from models import Customer, Session
 from schemas.user import (
     ForgotPasswordRequest,
     MessageResponse,
@@ -19,7 +20,7 @@ from schemas.user import (
     VerifyOTPResponse,
 )
 from services.email_service import send_password_reset_email, send_welcome_email
-from services.auth_service import authenticate_customer, create_customer_session, get_client_ip, hash_password
+from services.auth_service import authenticate_customer, create_customer_session, get_client_ip, hash_password, hash_session_token
 from services.password_reset import can_reset_password, clear_password_reset, start_password_reset, verify_password_reset_code
 from core.errors import AppHTTPException
 
@@ -28,6 +29,7 @@ logger = logging.getLogger(__name__)
 
 RATE_LIMIT_WINDOW_SECONDS = 15 * 60
 RATE_LIMIT_MAX_ATTEMPTS = 10
+LOGOUT_DESC = "Revokes the current session token when provided."
 _auth_attempts: dict[str, list[float]] = {}
 
 
@@ -54,11 +56,11 @@ def _send_welcome_email_background(email: str, name: str | None = None) -> None:
 
 
 @router.post("/register", response_model=TokenResponse)
-def register(user: UserRegister, background_tasks: BackgroundTasks, request: Request, db: Session = Depends(get_db)):
+def register(user: UserRegister, background_tasks: BackgroundTasks, request: Request, db: DBSession = Depends(get_db)):
     """Register a new user"""
     _rate_limit_auth(request, "register")
 
-    existing = db.query(Customer).filter(Customer.email == user.email).first()
+    existing = db.scalar(select(Customer).where(Customer.email == user.email))
     if existing:
         raise AppHTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -68,7 +70,7 @@ def register(user: UserRegister, background_tasks: BackgroundTasks, request: Req
         )
 
     if user.tax_id:
-        existing_nif = db.query(Customer).filter(Customer.tax_id == user.tax_id).first()
+        existing_nif = db.scalar(select(Customer).where(Customer.tax_id == user.tax_id))
         if existing_nif:
             raise AppHTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -110,10 +112,10 @@ def register(user: UserRegister, background_tasks: BackgroundTasks, request: Req
 
 
 @router.post("/password/forgot", response_model=MessageResponse)
-def forgot_password(body: ForgotPasswordRequest, db: Session = Depends(get_db)):
+def forgot_password(body: ForgotPasswordRequest, db: DBSession = Depends(get_db)):
     """Start a password reset and email a six-digit code."""
     generic_message = "Se existir uma conta com este email, foi enviado um código de redefinição."
-    db_user = db.query(Customer).filter(Customer.email == body.email).first()
+    db_user = db.scalar(select(Customer).where(Customer.email == body.email))
     if not db_user or db_user.status == UserStatus.SUSPENDED:
         return {"message": generic_message}
 
@@ -128,9 +130,9 @@ def forgot_password(body: ForgotPasswordRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/password/verify-otp", response_model=VerifyOTPResponse)
-def verify_password_otp(body: VerifyOTPRequest, db: Session = Depends(get_db)):
+def verify_password_otp(body: VerifyOTPRequest, db: DBSession = Depends(get_db)):
     """Verify a password reset code and return a short-lived reset token."""
-    db_user = db.query(Customer).filter(Customer.email == body.email).first()
+    db_user = db.scalar(select(Customer).where(Customer.email == body.email))
     if not db_user:
         raise AppHTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -153,9 +155,9 @@ def verify_password_otp(body: VerifyOTPRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/password/reset", response_model=MessageResponse)
-def reset_password(body: ResetPasswordRequest, db: Session = Depends(get_db)):
+def reset_password(body: ResetPasswordRequest, db: DBSession = Depends(get_db)):
     """Reset a password after OTP verification."""
-    db_user = db.query(Customer).filter(Customer.email == body.email).first()
+    db_user = db.scalar(select(Customer).where(Customer.email == body.email))
     if not db_user:
         raise AppHTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -181,10 +183,10 @@ def reset_password(body: ResetPasswordRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(user: UserAuth, request: Request, db: Session = Depends(get_db)):
+def login(user: UserAuth, request: Request, db: DBSession = Depends(get_db)):
     """Login user"""
     _rate_limit_auth(request, "login")
-    db_user = db.query(Customer).filter(Customer.email == user.email).first()
+    db_user = db.scalar(select(Customer).where(Customer.email == user.email))
     db_user, access_token = authenticate_customer(db, db_user, user.password, request)
 
     return {
@@ -192,6 +194,26 @@ def login(user: UserAuth, request: Request, db: Session = Depends(get_db)):
         "token_type": "bearer",
         "user": UserResponse.model_validate(db_user),
     }
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT, description=LOGOUT_DESC)
+def logout(
+    x_session_token: str | None = Header(default=None),
+    db: DBSession = Depends(get_db),
+) -> Response:
+    if x_session_token is None:
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+    session = db.scalar(
+        select(Session).where(
+            Session.token_hash == hash_session_token(x_session_token)
+        )
+    )
+    if session is not None:
+        session.revoked = True
+    db.commit()
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/me", response_model=UserResponse)
