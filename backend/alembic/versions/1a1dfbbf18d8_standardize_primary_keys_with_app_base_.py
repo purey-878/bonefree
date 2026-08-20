@@ -59,6 +59,7 @@ LEGACY_COUPON_COLUMN_RENAMES: tuple[tuple[str, str], ...] = (
     ("valor", "value"),
     ("valor_minimo_pedido", "minimum_order_value"),
     ("usado", "used"),
+    ("usado_em", "used_at"),
     ("criado_em", "created_at"),
     ("expira_em", "expires_at"),
 )
@@ -141,8 +142,20 @@ def _drop_table_if_exists(table_name: str) -> None:
 
 
 def _set_sqlite_foreign_keys(enabled: bool) -> None:
-    if _bind().dialect.name == "sqlite":
-        op.execute(f"PRAGMA foreign_keys={'ON' if enabled else 'OFF'}")
+    if _bind().dialect.name != "sqlite":
+        return
+
+    connection = _bind()
+
+    # SQLite ignores PRAGMA foreign_keys changes while a transaction is active.
+    # Alembic runs revisions inside a transaction by default, but this migration
+    # must rebuild parent tables before child tables (for example category before
+    # product). Commit the current Alembic transaction boundary before toggling
+    # FK enforcement so DROP TABLE on parent tables does not fail.
+    if connection.in_transaction():
+        connection.commit()
+
+    connection.exec_driver_sql(f"PRAGMA foreign_keys={'ON' if enabled else 'OFF'}")
 
 
 def _import_model_metadata() -> sa.MetaData:
@@ -233,6 +246,16 @@ def _rebuild_table_from_metadata(table_name: str, metadata: sa.MetaData) -> None
             metadata_table.to_metadata(temp_metadata)
 
     temp_table = target_table.to_metadata(temp_metadata, name=temp_name)
+
+    # SQLite index names are global per database, not scoped per table. When a
+    # previous attempt fails between CREATE TABLE and DROP TABLE, SQLAlchemy's
+    # copied indexes for the temporary table can be left behind and the retry
+    # then fails with "index ... already exists". Create only the temporary table
+    # here; final model indexes are created by later migrations/model metadata
+    # once the table has its real name.
+    for index in list(temp_table.indexes):
+        temp_table.indexes.remove(index)
+
     temp_table.create(_bind())
 
     if _table_exists(table_name):

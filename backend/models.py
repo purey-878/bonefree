@@ -264,6 +264,7 @@ class Coupon(AppBaseModel):
     value: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=20)
     minimum_order_value: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=0)
     used: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
+    used_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
 
     customer: Mapped["User"] = relationship("User", back_populates="coupons")

@@ -32,6 +32,8 @@ depends_on: Union[str, Sequence[str], None] = None
 
 ENUM_LABELS: dict[str, tuple[str, ...]] = {
     "userrole": ("owner", "manager", "waiter", "chef", "client"),
+    "userstatus": ("active", "suspended", "pending"),
+    "entitystatus": ("active", "inactive"),
     "coupontype": ("fixed_value", "percentage"),
     "ingredienttype": ("normal", "sauce", "extra", "drink", "base", "side"),
     "productcustomizationoptiontype": ("add", "remove", "extra", "substitute_sauce", "substitute_side"),
@@ -48,6 +50,15 @@ ENUM_LABELS: dict[str, tuple[str, ...]] = {
 ENUM_COLUMNS: tuple[tuple[str, str, str, dict[str, str]], ...] = (
     (
         "user",
+        "status",
+        "userstatus",
+        {
+            "1": "active",
+            "0": "suspended",
+        },
+    ),
+    (
+        "user",
         "role",
         "userrole",
         {
@@ -55,6 +66,42 @@ ENUM_COLUMNS: tuple[tuple[str, str, str, dict[str, str]], ...] = (
             "staff_admin": "manager",
             "admin": "manager",
             "customer": "client",
+        },
+    ),
+    (
+        "category",
+        "status",
+        "entitystatus",
+        {
+            "1": "active",
+            "0": "inactive",
+        },
+    ),
+    (
+        "product",
+        "status",
+        "entitystatus",
+        {
+            "1": "active",
+            "0": "inactive",
+        },
+    ),
+    (
+        "ingredient",
+        "status",
+        "entitystatus",
+        {
+            "1": "active",
+            "0": "inactive",
+        },
+    ),
+    (
+        "product_customization_option",
+        "status",
+        "entitystatus",
+        {
+            "1": "active",
+            "0": "inactive",
         },
     ),
     (

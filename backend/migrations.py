@@ -14,6 +14,14 @@ ALEMBIC_INI_PATH = Path(__file__).parent / "alembic.ini"
 REQUIRED_SCHEMA_OBJECTS: dict[str, set[str]] = {
     "product": set(),
     "site_setting": {"key", "value"},
+    "session": {"user_id", "token_hash"},
+    "user": {"email", "password", "role"},
+}
+
+LEGACY_PORTUGUESE_BASELINE_REVISION = "20260819_0001"
+LEGACY_PORTUGUESE_SCHEMA_TABLES = {
+    "categoria",
+    "produto",
 }
 
 
@@ -58,6 +66,19 @@ def existing_database_matches_current_baseline(connection: Connection) -> bool:
     return not _missing_required_schema_objects(connection)
 
 
+def existing_database_matches_legacy_portuguese_baseline(connection: Connection) -> bool:
+    """Return true for pre-Alembic databases that can be migrated by the PT->EN rename migration.
+
+    The initial Alembic revision is a baseline of the current English schema and
+    uses ``create_all``. Legacy databases already contain the same application
+    data in the old Portuguese schema, so they must be stamped at the baseline
+    revision first; otherwise Alembic would create empty English tables before
+    the rename migration has a chance to preserve the existing rows.
+    """
+    table_names = set(sa_inspect(connection).get_table_names())
+    return LEGACY_PORTUGUESE_SCHEMA_TABLES.issubset(table_names)
+
+
 def can_recreate_incompatible_sqlite_database(app_settings: Settings, database_url: str) -> bool:
     return (
         app_settings.environment in {"development", "test"}
@@ -98,6 +119,9 @@ def run_or_stamp_migrations() -> None:
     - Databases with alembic_version are upgraded normally.
     - Existing SQLite development/test databases without alembic_version are
       stamped as head only when required baseline tables/columns already exist.
+    - Existing pre-Alembic Portuguese-schema databases are stamped at the
+      baseline revision and then upgraded, allowing the PT->EN rename migration
+      to preserve data.
     - Incompatible SQLite development/test databases without alembic_version are
       recreated only when the development reset safety flag is enabled.
     - Existing production databases without alembic_version fail loudly.
@@ -105,13 +129,29 @@ def run_or_stamp_migrations() -> None:
     if not settings.auto_apply_migrations:
         return
 
-    with engine.begin() as conn:
+    # Do not wrap Alembic in engine.begin() here. Some SQLite migrations need to
+    # temporarily toggle PRAGMA foreign_keys, and SQLite only applies that PRAGMA
+    # outside an active transaction. Alembic/migrations still create their own
+    # transaction boundaries where supported.
+    with engine.connect() as conn:
         alembic_config = _alembic_config(conn)
         table_names = set(sa_inspect(conn).get_table_names())
         has_alembic_version = "alembic_version" in table_names
         has_application_tables = bool(table_names - {"alembic_version"})
 
         if not has_alembic_version and has_application_tables:
+            if existing_database_matches_legacy_portuguese_baseline(conn):
+                if not can_stamp_existing_database_without_alembic(settings, settings.database_url):
+                    raise _unsafe_migration_error(
+                        "the alembic_version table is missing and the existing Portuguese legacy "
+                        "schema requires stamping before it can be migrated"
+                    )
+
+                alembic_command.stamp(alembic_config, LEGACY_PORTUGUESE_BASELINE_REVISION)
+                alembic_command.upgrade(alembic_config, "head")
+                conn.commit()
+                return
+
             missing_schema_objects = _missing_required_schema_objects(conn)
 
             if missing_schema_objects:
@@ -128,9 +168,11 @@ def run_or_stamp_migrations() -> None:
                     raise _unsafe_migration_error("the alembic_version table is missing")
 
                 alembic_command.stamp(alembic_config, "head")
+                conn.commit()
                 return
 
         try:
             alembic_command.upgrade(alembic_config, "head")
+            conn.commit()
         except CommandError as exc:
             raise _unsafe_migration_error(str(exc)) from exc
