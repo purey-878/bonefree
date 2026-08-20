@@ -6,8 +6,6 @@ import {
   Banknote,
   Check,
   ChevronDown,
-  CreditCard,
-  Download,
   Headphones,
   MailCheck,
   MapPin,
@@ -15,7 +13,6 @@ import {
   ReceiptText,
   ShoppingBag,
   Sparkles,
-  Smartphone,
   Truck,
   Trash2,
 } from "lucide-react"
@@ -43,13 +40,6 @@ interface CheckoutForm {
   promoCode: string
 }
 
-interface CardForm {
-  number: string
-  expiry: string
-  cvv: string
-  holder: string
-}
-
 interface ConfirmedOrderSnapshot {
   items: CartItem[]
   subtotal: number
@@ -70,22 +60,9 @@ const initialForm: CheckoutForm = {
   promoCode: "",
 }
 
-const initialCardForm: CardForm = {
-  number: "",
-  expiry: "",
-  cvv: "",
-  holder: "",
-}
-
 const VAT_RATE = 0.13
 const MAX_TABLE_NUMBER = 30
-const TERMINAL_ORDER_STATUSES = new Set(["delivered", "delivered", "cancelled", "refunded"])
-
-const paymentOptions: Array<{ value: PaymentMethod; label: string; icon: typeof CreditCard }> = [
-  { value: "cash", label: "Pagar ao balcão", icon: Banknote },
-  { value: "card", label: "Cartão", icon: CreditCard },
-  { value: "mbway", label: "MB Way", icon: Smartphone },
-]
+const TERMINAL_ORDER_STATUSES = new Set(["delivered", "cancelled"])
 
 const fulfillmentOptions: Array<{ value: FulfillmentMethod; label: string; description: string; icon: typeof ShoppingBag }> = [
   { value: "dine_in", label: "Comer no restaurante", description: "Coma na BONEFREE com serviço à mesa opcional.", icon: MapPin },
@@ -148,65 +125,11 @@ function getFulfillmentLabel(method: FulfillmentMethod) {
 }
 
 function getPaymentMethodLabel(method: PaymentMethod) {
-  return paymentOptions.find((option) => option.value === method)?.label ?? method
+  return method === "counter" ? "Pagar ao balcão" : method
 }
 
 function checkoutImageUrl(src?: string | null) {
   return resolveProductImageUrl(src)
-}
-
-function formatCardNumber(value: string) {
-  return value.replace(/\D/g, "").slice(0, 19).replace(/(.{4})/g, "$1 ").trim()
-}
-
-function cardType(value: string) {
-  const digits = value.replace(/\D/g, "")
-  if (/^4/.test(digits)) return "Visa"
-  if (/^(5[1-5]|2[2-7])/.test(digits)) return "Mastercard"
-  if (/^3[47]/.test(digits)) return "Amex"
-  return digits.length ? "Cartão" : ""
-}
-
-function luhnValid(value: string) {
-  const digits = value.replace(/\D/g, "")
-  if (digits.length < 12) return false
-  let sum = 0
-  let alternate = false
-  for (let index = digits.length - 1; index >= 0; index -= 1) {
-    let number = Number(digits[index])
-    if (alternate) {
-      number *= 2
-      if (number > 9) number -= 9
-    }
-    sum += number
-    alternate = !alternate
-  }
-  return sum % 10 === 0
-}
-
-function formatExpiry(value: string) {
-  const digits = value.replace(/\D/g, "").slice(0, 4)
-  return digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits
-}
-
-function validateCard(card: CardForm): FieldErrors<keyof CardForm> {
-  const errors: FieldErrors<keyof CardForm> = {}
-  const digits = card.number.replace(/\D/g, "")
-  if (!luhnValid(card.number)) errors.number = "Introduza um número de cartão válido."
-  const [monthRaw, yearRaw] = card.expiry.split("/")
-  const month = Number(monthRaw)
-  const year = Number(yearRaw)
-  const now = new Date()
-  const expiryDate = new Date(2000 + year, month)
-  if (!/^\d{2}\/\d{2}$/.test(card.expiry) || month < 1 || month > 12 || expiryDate <= new Date(now.getFullYear(), now.getMonth())) {
-    errors.expiry = "Introduza uma data de validade futura válida."
-  }
-  if (!/^\d{3,4}$/.test(card.cvv)) errors.cvv = "O CVV deve ter 3 ou 4 dígitos."
-  if (!card.holder.trim() || !/^[A-Za-zÀ-ÖØ-öø-ÿ '’-]+$/.test(card.holder.trim())) {
-    errors.holder = "Introduza o nome do titular do cartão."
-  }
-  if (cardType(card.number) === "Amex" && digits.length !== 15) errors.number = "Os cartões Amex devem ter 15 dígitos."
-  return errors
 }
 
 function Checkout() {
@@ -216,7 +139,7 @@ function Checkout() {
   const toast = useToast()
   const [form, setForm] = useState(initialForm)
   const [fulfillment, setFulfillment] = useState<FulfillmentMethod>("dine_in")
-  const [payment, setPayment] = useState<PaymentMethod>("card")
+  const payment: PaymentMethod = "counter"
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
@@ -228,12 +151,8 @@ function Checkout() {
   const [showOrderSummary, setShowOrderSummary] = useState(true)
   const [showStatusPopup, setShowStatusPopup] = useState(false)
   const [showCouponEntry, setShowCouponEntry] = useState(false)
-  const [isDownloadingReceipt, setIsDownloadingReceipt] = useState(false)
-  const [receiptDownloadError, setReceiptDownloadError] = useState<string | null>(null)
   const [activeOrderCount, setActiveOrderCount] = useState<number | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors<keyof CheckoutForm>>({})
-  const [cardForm, setCardForm] = useState<CardForm>(initialCardForm)
-  const [cardErrors, setCardErrors] = useState<FieldErrors<keyof CardForm>>({})
   const [cartBusyKey, setCartBusyKey] = useState<string | null>(null)
   const [upsellProducts, setUpsellProducts] = useState<Product[]>([])
   const [upsellBusyId, setUpsellBusyId] = useState<number | null>(null)
@@ -327,19 +246,6 @@ function Checkout() {
     if (field === "promoCode") setAppliedCoupon(null)
   }
 
-  const updateCardField = (field: keyof CardForm, value: string) => {
-    const nextValue = field === "number"
-      ? formatCardNumber(value)
-      : field === "expiry"
-        ? formatExpiry(value)
-        : field === "cvv"
-          ? value.replace(/\D/g, "").slice(0, 4)
-          : value
-    const nextCard = { ...cardForm, [field]: nextValue }
-    setCardForm(nextCard)
-    setCardErrors(validateCard(nextCard))
-  }
-
   const validate = () => {
     const errors: FieldErrors<keyof CheckoutForm> = {}
     const firstNameError = validateName(form.firstName)
@@ -363,11 +269,6 @@ function Checkout() {
 
     setFieldErrors(errors)
     if (Object.keys(errors).length > 0) return "Corrija os campos assinalados."
-    if (payment === "card") {
-      const nextCardErrors = validateCard(cardForm)
-      setCardErrors(nextCardErrors)
-      if (Object.keys(nextCardErrors).length > 0) return "Corrija os campos do cartão assinalados."
-    }
     return null
   }
 
@@ -455,7 +356,6 @@ function Checkout() {
     try {
       setIsSubmitting(true)
       setFormError(null)
-      setReceiptDownloadError(null)
       const order = await checkoutService.createOrder({
         customer: {
           firstName: form.firstName.trim(),
@@ -465,7 +365,7 @@ function Checkout() {
           tableNumber: fulfillment === "dine_in" && form.tableNumber.trim() ? parseInt(form.tableNumber, 10) : null,
         },
         fulfillmentMethod: fulfillment,
-        paymentMethod: payment,
+        paymentMethod: "counter",
         promoCode: appliedCoupon?.code ?? null,
         items: items.map((item) => ({
           productId: item.productId,
@@ -478,7 +378,7 @@ function Checkout() {
         subtotal,
         status: order.status,
         fulfillmentMethod: order.deliveryMethod,
-        paymentMethod: payment,
+        paymentMethod: "counter",
         customer: { ...form },
         createdAt: new Date().toISOString(),
         orderId: order.orderId,
@@ -506,35 +406,6 @@ function Checkout() {
       toast.error(message)
     } finally {
       setIsSubmitting(false)
-    }
-  }
-
-  const handleDownloadReceipt = async () => {
-    if (!confirmedOrder?.orderId) {
-      setReceiptDownloadError("O recibo ainda não está pronto.")
-      toast.warning("O recibo ainda não está pronto.")
-      return
-    }
-
-    try {
-      setIsDownloadingReceipt(true)
-      setReceiptDownloadError(null)
-      const { blob, filename } = await checkoutService.downloadReceipt(confirmedOrder.orderId)
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement("a")
-      link.href = url
-      link.download = filename
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      window.setTimeout(() => URL.revokeObjectURL(url), 0)
-      toast.success("Recibo descarregado com sucesso.")
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Não foi possível descarregar o recibo."
-      setReceiptDownloadError(message)
-      toast.error(message)
-    } finally {
-      setIsDownloadingReceipt(false)
     }
   }
 
@@ -571,14 +442,8 @@ function Checkout() {
       delivered: "entregue",
       cancelled: "cancelado",
     } as Record<string, string>)[rawStatus] ?? rawStatus.replace(/_/g, " ")
-    const isCounterPayment = confirmationPayment === "cash"
     const paymentLabel = getPaymentMethodLabel(confirmationPayment)
-    const paymentMethodLabel = confirmationPayment === "card"
-      ? "Visa terminado em 4242"
-      : confirmationPayment === "cash"
-        ? "Pagar ao balcão"
-        : "MB Way aprovado"
-    const paymentReference = `BONEFREE-${confirmedOrder?.orderId ?? orderNumber}`
+    const paymentMethodLabel = "Pagar ao balcão"
     const customerName = `${confirmationCustomer.firstName} ${confirmationCustomer.lastName}`.trim()
     const tableLabel = confirmationFulfillment === "dine_in" && confirmationCustomer.tableNumber
       ? `Mesa ${confirmationCustomer.tableNumber}`
@@ -588,15 +453,9 @@ function Checkout() {
     const imageForItem = (src?: string | null) => {
       return resolveProductImageUrl(src)
     }
-    const paymentNote = confirmationPayment === "cash"
-      ? "Pague ao balcão para a cozinha começar a preparar o pedido."
-      : "Pagamento recebido. A cozinha já tem o seu pedido."
-    const confirmationMessage = isCounterPayment
-      ? "Obrigado pela sua compra. O pedido foi confirmado e aguarda pagamento ao balcão."
-      : "Obrigado pela sua compra. O pedido foi confirmado."
-    const nextStepMessage = isCounterPayment
-      ? "Pague ao balcão e acompanhe a barra de progresso inferior."
-      : "Acompanhe a barra de progresso inferior para ver atualizações em direto."
+    const paymentNote = "Pague ao balcão para a cozinha começar a preparar o pedido."
+    const confirmationMessage = "O pedido foi recebido e aguarda pagamento ao balcão."
+    const nextStepMessage = "Após o pagamento, a preparação começa e o recibo fica disponível."
     const hasMultipleActiveOrders = activeOrderCount !== null && activeOrderCount > 1
     const highlightOrderStatus = () => {
       window.dispatchEvent(new Event("order-status-highlight"))
@@ -643,7 +502,7 @@ function Checkout() {
               </Link>
             </div>
 
-            <section className="confirmation-premium-hero" aria-labelledby="payment-success-title">
+            <section className="confirmation-premium-hero" aria-labelledby="order-confirmation-title">
               <div className="confirmation-success-motion" aria-hidden="true">
                 <svg className="confirmation-checkmark" viewBox="0 0 100 100">
                   <circle cx="50" cy="50" r="44" />
@@ -653,18 +512,18 @@ function Checkout() {
 
               <div className="confirmation-hero-copy">
                 <p className="confirmation-kicker">Confirmação do pedido</p>
-                <h1 id="payment-success-title">Pagamento efetuado</h1>
+                <h1 id="order-confirmation-title">Pedido recebido</h1>
                 <p>{confirmationMessage}</p>
               </div>
 
-              <div className="confirmation-hero-metrics" aria-label="Detalhes do recibo">
+              <div className="confirmation-hero-metrics" aria-label="Detalhes do pedido">
                 <div>
                   <span>Número do pedido</span>
                   <strong>{orderNumber}</strong>
                 </div>
                 <div>
-                  <span>Referência de pagamento</span>
-                  <strong>{paymentReference}</strong>
+                  <span>Pagamento</span>
+                  <strong>Ao balcão</strong>
                 </div>
                 <div>
                   <span>Purchased</span>
@@ -673,8 +532,8 @@ function Checkout() {
               </div>
 
               <div className="confirmation-email-banner">
-                <MailCheck size={20} strokeWidth={2.4} aria-hidden="true" />
-                <span>E-mail de confirmação enviado para {confirmationCustomer.email}</span>
+                <Banknote size={20} strokeWidth={2.4} aria-hidden="true" />
+                <span>Preparação e recibo disponíveis após o pagamento ao balcão.</span>
               </div>
             </section>
 
@@ -700,7 +559,7 @@ function Checkout() {
                     <div className="confirmation-info-tile">
                       <Truck size={18} strokeWidth={2.4} />
                       <span>Entrega à cozinha</span>
-                      <strong>{isCounterPayment ? "Após pagamento ao balcão" : "Enviado para a cozinha"}</strong>
+                      <strong>Após pagamento ao balcão</strong>
                     </div>
                     <div className="confirmation-info-tile">
                       <ShoppingBag size={18} strokeWidth={2.4} />
@@ -779,7 +638,7 @@ function Checkout() {
                         <strong>{paymentMethodLabel}</strong>
                       </div>
                       <div className="total-row final">
-                        <span>Total pago</span>
+                        <span>Total a pagar</span>
                         <strong>{formatEuro(confirmationTotal)}</strong>
                       </div>
                     </div>
@@ -796,8 +655,8 @@ function Checkout() {
                   <div className="trust-card-grid">
                     <div className="trust-card">
                       <MailCheck size={22} strokeWidth={2.4} />
-                      <strong>Recibo enviado</strong>
-                      <span >O recibo do pedido foi enviado para  {confirmationCustomer.email}.</span>
+                      <strong>Recibo após pagamento</strong>
+                      <span>O recibo ficará disponível e será enviado após o pagamento ao balcão.</span>
                     </div>
 
                     <div className="trust-card">
@@ -808,17 +667,17 @@ function Checkout() {
                     <div className="trust-card">
                       <Headphones size={22} strokeWidth={2.4} />
                       <strong>Algo não está bem?</strong>
-                      <span>Podemos ajudar ao balcão com substituições, reembolsos ou correções do pedido.</span>
+                      <span>Podemos ajudar ao balcão com substituições ou correções do pedido.</span>
                     </div>
                   </div>
                 </section>
               </div>
 
-              <aside className="confirmation-receipt-card" aria-label="Recibo">
+              <aside className="confirmation-receipt-card" aria-label="Resumo do pedido">
                 <div className="receipt-card-top">
                   <ReceiptText size={24} strokeWidth={2.4} aria-hidden="true" />
                   <div>
-                    <p>Recibo</p>
+                    <p>Resumo</p>
                     <h2>Pedido {orderNumber}</h2>
                   </div>
                 </div>
@@ -833,10 +692,6 @@ function Checkout() {
                     <strong>{paymentLabel}</strong>
                   </div>
                   <div>
-                    <span>ID da Transação</span>
-                    <strong>{paymentReference}</strong>
-                  </div>
-                  <div>
                     <span>Tipo de pedido</span>
                     <strong>{getFulfillmentLabel(confirmationFulfillment)}</strong>
                   </div>
@@ -849,7 +704,7 @@ function Checkout() {
                     <strong>{readableStatus}</strong>
                   </div>
                   <div>
-                    <span>Total pago</span>
+                    <span>Total a pagar</span>
                     <strong>{formatEuro(confirmationTotal)}</strong>
                   </div>
                 </div>
@@ -878,19 +733,6 @@ function Checkout() {
                   <Link to="/profile?tab=orders" className="confirmation-secondary-action">
                     Ver detalhes do pedido
                   </Link>
-                  <button
-                    type="button"
-                    className="confirmation-secondary-action"
-                    onClick={handleDownloadReceipt}
-                    disabled={isDownloadingReceipt}
-                    aria-busy={isDownloadingReceipt}
-                  >
-                    <Download size={16} strokeWidth={2.4} />
-                    {isDownloadingReceipt ? "A preparar PDF..." : "Descarregar recibo"}
-                  </button>
-                  {receiptDownloadError && (
-                    <p className="receipt-download-error" role="alert">{receiptDownloadError}</p>
-                  )}
                   <button type="button" className="confirmation-secondary-action" onClick={goBack}>
                     <ArrowLeft size={16} strokeWidth={2.4} />
                     Voltar
@@ -908,7 +750,7 @@ function Checkout() {
 
           <div className="confirmation-mobile-cta" aria-label="Ações do pedido">
             <div>
-              <span>Total pago</span>
+              <span>Total a pagar</span>
               <strong>{formatEuro(confirmationTotal)}</strong>
             </div>
             <button type="button" className="bonefree-button" onClick={highlightOrderStatus}>
@@ -1124,62 +966,21 @@ function Checkout() {
                   <span>2</span>
                   <div>
                     <h2>Método de pagamento</h2>
-                    <p>Como pretende pagar o seu pedido?</p>
+                    <p>Por enquanto, os pedidos são pagos presencialmente.</p>
                   </div>
                 </div>
 
-                <div className="checkout-payment-pills">
-                  {paymentOptions.map(({ value, label, icon: Icon }) => (
-                    <label key={value} className={`payment-pill ${payment === value ? "active" : ""}`}>
-                      <input type="radio" name="payment" value={value} checked={payment === value} onChange={() => setPayment(value)} />
-                      <span className="payment-pill-icon">
-                        <Icon size={20} strokeWidth={2.4} aria-hidden="true" />
-                      </span>
-                      <span className="payment-pill-text">
-                        {label}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-
-                {payment === "card" && (
-                  <div className="checkout-card-fields animated-section">
-                    <label>
-                      Número do cartão
-                      <span className="checkout-card-input-wrap">
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          autoComplete="cc-number"
-                          placeholder="4242 4242 4242 4242"
-                          maxLength={23}
-                          value={cardForm.number}
-                          onChange={(event) => updateCardField("number", event.target.value)}
-                          aria-invalid={Boolean(cardErrors.number)}
-                        />
-                        {cardType(cardForm.number) && <small>{cardType(cardForm.number)}</small>}
-                      </span>
-                      {cardErrors.number && <small className="field-error">{cardErrors.number}</small>}
-                    </label>
-                    <div className="two-columns">
-                      <label>
-                        Validade
-                        <input type="text" inputMode="numeric" autoComplete="cc-exp" placeholder="MM/AA" maxLength={5} value={cardForm.expiry} onChange={(event) => updateCardField("expiry", event.target.value)} aria-invalid={Boolean(cardErrors.expiry)} />
-                        {cardErrors.expiry && <small className="field-error">{cardErrors.expiry}</small>}
-                      </label>
-                      <label>
-                        CVV
-                        <input type="text" inputMode="numeric" autoComplete="cc-csc" placeholder="123" maxLength={4} value={cardForm.cvv} onChange={(event) => updateCardField("cvv", event.target.value)} aria-invalid={Boolean(cardErrors.cvv)} />
-                        {cardErrors.cvv && <small className="field-error">{cardErrors.cvv}</small>}
-                      </label>
-                    </div>
-                    <label>
-                      Nome do titular
-                      <input type="text" autoComplete="cc-name" placeholder="Nome no cartão" value={cardForm.holder} onChange={(event) => updateCardField("holder", event.target.value)} aria-invalid={Boolean(cardErrors.holder)} />
-                      {cardErrors.holder && <small className="field-error">{cardErrors.holder}</small>}
-                    </label>
+                <div className="checkout-payment-pills" role="note" aria-label="Pagamento ao balcão">
+                  <div className="payment-pill active">
+                    <span className="payment-pill-icon">
+                      <Banknote size={20} strokeWidth={2.4} aria-hidden="true" />
+                    </span>
+                    <span className="payment-pill-text">
+                      <strong>Pagar ao balcão</strong>
+                      <small>A preparação e o recibo ficam disponíveis depois da confirmação do pagamento.</small>
+                    </span>
                   </div>
-                )}
+                </div>
 
               </section>
 

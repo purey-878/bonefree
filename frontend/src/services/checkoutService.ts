@@ -27,7 +27,7 @@ export function contentDispositionFilename(response: Response, fallback: string)
 
 export const checkoutService = {
   async createOrder(payload: CheckoutPayload): Promise<OrderResponse> {
-    const body = toDto<CheckoutRequest>(payload);
+    const body = toDto<CheckoutRequest>({ ...payload, paymentMethod: 'counter' });
     return toDomain<OrderResponse>(await apiData(checkoutCreateOrder({
       body,
       client: customerApiClient,

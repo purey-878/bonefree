@@ -8,8 +8,8 @@ import { ACTIVE_ORDER_KEY } from "./orderStatusStorage"
 import "./OrderStatusBar.css"
 
 const SERVED_STATUSES = new Set(["delivered"])
-const TERMINAL_STATUSES = new Set(["delivered", "cancelled", "refunded"])
-const DISMISSIBLE_STATUSES = new Set(["ready", "delivered", "cancelled", "refunded"])
+const TERMINAL_STATUSES = new Set(["delivered", "cancelled"])
+const DISMISSIBLE_STATUSES = new Set(["ready", "delivered", "cancelled"])
 const STATUS_STEPS = ["confirmed", "in_preparation", "ready", "delivered"]
 
 function statusLabel(status: string) {
@@ -20,7 +20,6 @@ function statusLabel(status: string) {
     ready: "Pronta",
     delivered: "Servido",
     cancelled: "Cancelada",
-    refunded: "Reembolsada",
   }
 
   return labels[status] ?? status.replace(/_/g, " ")
@@ -34,7 +33,7 @@ function statusIndex(status: string) {
 }
 
 function statusProgress(status: string) {
-  if (SERVED_STATUSES.has(status) || status === "cancelled" || status === "refunded") return 100
+  if (SERVED_STATUSES.has(status) || status === "cancelled") return 100
 
   const currentStep = statusIndex(status)
   return Math.min(100, Math.max(12, (currentStep / (STATUS_STEPS.length - 1)) * 100))
@@ -76,12 +75,11 @@ function statusMessage(order: OrderResponse, cancelError: string | null, ongoing
   if (cancelError) return cancelError
   if (SERVED_STATUSES.has(order.status)) return "Servido. Bom apetite."
   if (order.status === "cancelled") return "Este pedido foi cancelado."
-  if (order.status === "refunded") return "Este pedido foi reembolsado."
   if (ongoingCount > 1) {
     return "A barra mostra o pedido mais antigo em curso. Veja todos os pedidos em Perfil > Pedidos."
   }
   if (isPaymentConfirmed(order)) {
-    return "Para pedidos de reembolso ou cancelamento após pagamento, fale com um membro da equipa ao balcão."
+    return "Para assistência após o pagamento, fale com um membro da equipa ao balcão."
   }
   return "Vamos manter esta barra atualizada até o seu pedido ser servido."
 }

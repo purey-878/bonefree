@@ -11,11 +11,10 @@ import CustomSelect from "../ui/CustomSelect";
 type Props = {
   orders: AdminOrder[];
   onRefresh: () => void;
-  onInitiateRefund: (order: AdminOrder) => void;
   onUpdateStatus: (orderId: number, status: string) => Promise<void> | void;
 };
 
-const allStatuses = ["pending", "confirmed", "in_preparation", "ready", "delivered", "cancelled", "refunded"];
+const allStatuses = ["pending", "confirmed", "in_preparation", "ready", "delivered", "cancelled"];
 
 const defaultOrderFilters = {
   search: "",
@@ -39,7 +38,7 @@ function paymentParts(order: AdminOrder): { method: string; status: string } {
   return { method, status };
 }
 
-export default function SuperAdminOrdersView({ orders, onRefresh, onInitiateRefund, onUpdateStatus }: Props) {
+export default function SuperAdminOrdersView({ orders, onRefresh, onUpdateStatus }: Props) {
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [quickFilter, setQuickFilter] = useState("all");
   const [ordersSectionCollapsed, setOrdersSectionCollapsed] = useState(false);
@@ -80,7 +79,6 @@ export default function SuperAdminOrdersView({ orders, onRefresh, onInitiateRefu
       if (quickFilter === "preparing" && order.state !== "in_preparation") return false;
       if (quickFilter === "ready" && order.state !== "ready") return false;
       if (quickFilter === "cancelled" && order.state !== "cancelled") return false;
-      if (quickFilter === "refunded" && order.state !== "refunded") return false;
       if (quickFilter === "customized" && !hasCustomization(order)) return false;
 
       if (filters.status && order.state !== filters.status) return false;
@@ -145,7 +143,6 @@ export default function SuperAdminOrdersView({ orders, onRefresh, onInitiateRefu
           ["preparing", "Em preparação"],
           ["ready", "Prontos"],
           ["cancelled", "Cancelados"],
-          ["refunded", "Reembolsados"],
           ["customized", "Com personalizações"],
         ].map(([value, label]) => (
           <button key={value} className={quickFilter === value ? "active" : ""} onClick={() => setQuickFilter(value)}>
@@ -240,9 +237,6 @@ export default function SuperAdminOrdersView({ orders, onRefresh, onInitiateRefu
 
                 <div className="order-admin-card-actions">
                   <CustomSelect className="ad-select" value={order.state} onChange={(nextValue) => onUpdateStatus(order.orderId, String(nextValue))} options={allStatuses.map((status) => ({ value: status, label: formatOrderStatus(status) }))} />
-                  {order.paymentStatus === "paid" && order.state !== "refunded" && (
-                    <button className="ad-btn ad-btn-danger" onClick={() => onInitiateRefund(order)}>Reembolsar</button>
-                  )}
                   {order.state !== "cancelled" && (
                     <button className="ad-btn ad-btn-danger" onClick={() => onUpdateStatus(order.orderId, "cancelled")}>Cancelar</button>
                   )}
@@ -287,9 +281,6 @@ export default function SuperAdminOrdersView({ orders, onRefresh, onInitiateRefu
                 <td>
                   <div className="order-admin-actions">
                     <CustomSelect className="ad-select" value={order.state} onChange={(nextValue) => onUpdateStatus(order.orderId, String(nextValue))} options={allStatuses.map((status) => ({ value: status, label: formatOrderStatus(status) }))} />
-                    {order.paymentStatus === "paid" && order.state !== "refunded" && (
-                      <button className="ad-btn ad-btn-sm ad-btn-danger" onClick={() => onInitiateRefund(order)}>Reembolsar</button>
-                    )}
                     {order.state !== "cancelled" && (
                       <button className="ad-btn ad-btn-sm ad-btn-danger" onClick={() => onUpdateStatus(order.orderId, "cancelled")}>Cancelar</button>
                     )}
@@ -305,7 +296,7 @@ export default function SuperAdminOrdersView({ orders, onRefresh, onInitiateRefu
         )}
       </div>
 
-      <OrderDetailsDrawer order={selectedOrder} canRefund onInitiateRefund={onInitiateRefund} onClose={() => setSelectedOrderId(null)} />
+      <OrderDetailsDrawer order={selectedOrder} onClose={() => setSelectedOrderId(null)} />
     </div>
   );
 }

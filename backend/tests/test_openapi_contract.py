@@ -116,9 +116,12 @@ class OpenApiContractTests(unittest.TestCase):
         self.assertIn("multipart/form-data", upload_content)
 
         pdf_schema = self.schema["paths"]["/checkout/orders/{order_id}/receipt.pdf"]["get"]["responses"]["200"]["content"]["application/pdf"]["schema"]
-        csv_schema = self.schema["paths"]["/admin/refunds/export"]["get"]["responses"]["200"]["content"]["text/csv"]["schema"]
         self.assertEqual(pdf_schema, {"type": "string", "format": "binary"})
-        self.assertEqual(csv_schema, {"type": "string", "format": "binary"})
+
+    def test_contract_contains_no_refund_feature(self):
+        serialized_schema = json.dumps(self.schema).casefold()
+        self.assertNotIn("refund", serialized_schema)
+        self.assertNotIn("refunded", serialized_schema)
 
     def test_public_contract_has_no_legacy_property_names(self):
         forbidden = {

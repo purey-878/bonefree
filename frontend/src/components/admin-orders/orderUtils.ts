@@ -7,7 +7,6 @@ export const ORDER_STATUS_LABELS: Record<string, string> = {
   ready: "Pronto",
   delivered: "Concluído",
   cancelled: "Cancelado",
-  refunded: "Reembolsado",
 };
 
 export const ORDER_STATUS_TONES: Record<string, string> = {
@@ -17,7 +16,6 @@ export const ORDER_STATUS_TONES: Record<string, string> = {
   ready: "ready",
   delivered: "completed",
   cancelled: "cancelled",
-  refunded: "cancelled",
 };
 
 export function formatOrderStatus(status: string): string {
@@ -145,6 +143,6 @@ export function paymentLabel(order: AdminOrder): string {
       : order.paymentMethod === "mbway"
         ? "MB Way"
         : order.paymentMethod ?? "-";
-  const status = order.paymentStatus === "paid" ? "Pago" : order.paymentStatus === "refunded" ? "Reembolsado" : order.paymentStatus ? order.paymentStatus.replace(/_/g, " ") : "-";
+  const status = order.paymentStatus === "paid" ? "Pago" : order.paymentStatus ? order.paymentStatus.replace(/_/g, " ") : "-";
   return `${method} / ${status}`;
 }

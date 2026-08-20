@@ -201,7 +201,6 @@ class SqlAlchemy2BehaviorTests(unittest.TestCase):
     def test_collection_relationships_avoid_joined_row_multiplication(self):
         self.assertEqual(Product.images.property.lazy, "selectin")
         self.assertEqual(Order.items.property.lazy, "selectin")
-        self.assertEqual(Order.refunds.property.lazy, "selectin")
 
     def test_product_listing_uses_constant_query_count(self):
         second_product = Product(

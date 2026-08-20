@@ -84,40 +84,9 @@ export interface AdminOrder {
   tableNumber?: number | null;
   canceledAt?: string | null;
   cancellationOrigin?: string | null;
-  refundStatus?: string | null;
-  refundId?: number | null;
-  refundAmount?: number | null;
-  refundReason?: string | null;
-  refundNotes?: string | null;
-  refundProcessedBy?: string | null;
-  refundProcessedByRole?: string | null;
-  refundDate?: string | null;
   totalItems: number;
   items: AdminOrderItem[];
 }
-
-export type RefundReason = 'client_changed_mind' | 'wrong_order_served' | 'missing_item' | 'food_quality_issue' | 'payment_issue' | 'duplicate_payment' | 'other';
-export interface RefundPayload { amount: number; reason: RefundReason; notes: string; }
-
-export interface AdminRefund {
-  refundId: number;
-  orderId: number;
-  receiptNumber: string;
-  orderNumber: string;
-  originalInvoiceNumber: string;
-  customerName: string;
-  customerEmail: string;
-  amount: number;
-  reason: RefundReason;
-  notes: string;
-  processedBy: string;
-  processedByRole: string;
-  date: string;
-  status: string;
-  refundMethod: string;
-}
-
-export interface RefundFilters { dateFrom?: string; dateTo?: string; staffMember?: string; reason?: string; refundStatus?: string; }
 
 export interface ReviewReply { replyId: number; reviewId: number; adminId: number; text: string; createdAt: string; updatedAt: string; }
 export type ReactionType = 'like' | 'heart';

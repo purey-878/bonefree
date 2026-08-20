@@ -7,14 +7,11 @@ import { customizationText, customizationTone, fulfillmentLabel, handoffLabel, p
 type Props = {
   order: AdminOrder | null;
   kitchenMode?: boolean;
-  canRefund?: boolean;
-  onInitiateRefund?: (order: AdminOrder) => void;
   onClose: () => void;
 };
 
-export default function OrderDetailsDrawer({ order, kitchenMode = false, canRefund = false, onInitiateRefund, onClose }: Props) {
+export default function OrderDetailsDrawer({ order, kitchenMode = false, onClose }: Props) {
   if (!order) return null;
-  const refundAvailable = canRefund && !kitchenMode && order.paymentStatus === "paid" && order.state !== "refunded";
 
   return (
     <>
@@ -35,25 +32,6 @@ export default function OrderDetailsDrawer({ order, kitchenMode = false, canRefu
           <span className="order-meta-chip">{handoffLabel(order)}</span>
           {!kitchenMode && <span className="order-meta-chip">{paymentLabel(order)}</span>}
         </div>
-
-        {!kitchenMode && (
-          <section className="order-drawer-section">
-            <h4>Estado do reembolso</h4>
-            <p>{order.refundStatus ?? "Nenhum"}</p>
-            {order.refundId && (
-              <div className="order-refund-audit">
-                <span>Processado por: {order.refundProcessedBy}</span>
-                <span>Cargo: {order.refundProcessedByRole}</span>
-                <span>Valor reembolsado: {formatEuro(order.refundAmount ?? 0)}</span>
-                <span>Motivo: {order.refundReason}</span>
-                <span>Data: {order.refundDate ? new Date(order.refundDate).toLocaleString("pt-PT") : "-"}</span>
-              </div>
-            )}
-            {refundAvailable && (
-              <button className="ad-btn ad-btn-primary" onClick={() => onInitiateRefund?.(order)}>Iniciar reembolso</button>
-            )}
-          </section>
-        )}
 
         {!kitchenMode && (
           <section className="order-drawer-section">

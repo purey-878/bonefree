@@ -59,7 +59,6 @@ class OrderState(StrEnum):
     READY = "ready"
     DELIVERED = "delivered"
     CANCELLED = "cancelled"
-    REFUNDED = "refunded"
 
 
 class PaymentMethod(StrEnum):
@@ -71,7 +70,6 @@ class PaymentMethod(StrEnum):
 class PaymentStatus(StrEnum):
     UNPAID = "unpaid"
     PAID = "paid"
-    REFUNDED = "refunded"
 
 
 class ReviewStatus(StrEnum):
@@ -89,31 +87,12 @@ class PaymentState(StrEnum):
     PENDING = "pending"
     APPROVED = "approved"
     REJECTED = "rejected"
-    REFUNDED = "refunded"
-
-
-class RefundStatus(StrEnum):
-    APPROVED = "approved"
 
 
 class CancellationOrigin(StrEnum):
     CLIENT = "client"
     ADMIN = "admin"
     SYSTEM = "system"
-
-
-class RefundReason(StrEnum):
-    CLIENT_CHANGED_MIND = "client_changed_mind"
-    WRONG_ORDER_SERVED = "wrong_order_served"
-    MISSING_ITEM = "missing_item"
-    FOOD_QUALITY_ISSUE = "food_quality_issue"
-    PAYMENT_ISSUE = "payment_issue"
-    DUPLICATE_PAYMENT = "duplicate_payment"
-    OTHER = "other"
-
-
-class RefundMethod(StrEnum):
-    ORIGINAL_PAYMENT_METHOD = "original_payment_method"
 
 
 class FulfillmentMethod(StrEnum):
@@ -123,10 +102,7 @@ class FulfillmentMethod(StrEnum):
 
 
 class CheckoutPaymentMethod(StrEnum):
-    CARD = "card"
-    CASH = "cash"
-    MBWAY = "mbway"
-    QR_PAY = "qr_pay"
+    COUNTER = "counter"
 
 
 class SiteSettingKey(StrEnum):
@@ -271,7 +247,6 @@ LEGACY_VALUE_MAP: dict[type[StrEnum], dict[str, StrEnum]] = {
         "pronta": OrderState.READY,
         "entregue": OrderState.DELIVERED,
         "cancelada": OrderState.CANCELLED,
-        "reembolsada": OrderState.REFUNDED,
     },
     PaymentMethod: {
         "cartao": PaymentMethod.CARD,
@@ -280,7 +255,6 @@ LEGACY_VALUE_MAP: dict[type[StrEnum], dict[str, StrEnum]] = {
     PaymentStatus: {
         "nao_pago": PaymentStatus.UNPAID,
         "pago": PaymentStatus.PAID,
-        "reembolsado": PaymentStatus.REFUNDED,
     },
     ReviewStatus: {
         "pendente": ReviewStatus.PENDING,
@@ -291,10 +265,6 @@ LEGACY_VALUE_MAP: dict[type[StrEnum], dict[str, StrEnum]] = {
         "pendente": PaymentState.PENDING,
         "aprovado": PaymentState.APPROVED,
         "rejeitado": PaymentState.REJECTED,
-        "reembolsado": PaymentState.REFUNDED,
-    },
-    RefundStatus: {
-        "aprovado": RefundStatus.APPROVED,
     },
     CouponDiscountType: {
         "VALOR_FIXO": CouponDiscountType.FIXED_VALUE,

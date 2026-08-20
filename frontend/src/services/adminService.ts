@@ -11,7 +11,6 @@ import {
   adminManagementDeleteProduct,
   adminManagementDeleteProductImage,
   adminManagementDeleteStaffAdmin,
-  adminManagementExportRefunds,
   adminManagementGetAnalyticsSeries,
   adminManagementGetDashboardAnalytics,
   adminManagementGetLowStockProducts,
@@ -26,12 +25,10 @@ import {
   adminManagementListKitchenOrders,
   adminManagementListOrders,
   adminManagementListProducts,
-  adminManagementListRefunds,
   adminManagementListStaffAdmins,
   adminManagementListStaffOrders,
   adminManagementPayCounterOrder,
   adminManagementReadCurrentAdmin,
-  adminManagementRefundOrder,
   adminManagementToggleProductStatus,
   adminManagementUpdateCategory,
   adminManagementUpdateCustomer,
@@ -62,7 +59,6 @@ import type {
 } from '../api/generated';
 import { adminApiClient, apiData, publicApiClient } from '../api/clients';
 import { toDomain, toDto } from '../api/mappers';
-import { contentDispositionFilename } from './checkoutService';
 import type {
   AdminCustomer,
   AdminCustomerPayload,
@@ -71,7 +67,6 @@ import type {
   AdminOrder,
   AdminProduct,
   AdminProductPayload,
-  AdminRefund,
   AdminReview,
   AdminUserPayload,
   AnalyticsMetric,
@@ -84,8 +79,6 @@ import type {
   ProductAnalytics,
   ProductFilters,
   ReactionType,
-  RefundFilters,
-  RefundPayload,
   ReviewReaction,
   ReviewReply,
   SalesPerformance,
@@ -213,34 +206,6 @@ export async function payCounterOrder(orderId: number): Promise<AdminOrder> {
   const value = await apiData(adminManagementPayCounterOrder({ path: { order_id: orderId }, client: adminApiClient, throwOnError: true }));
   return toDomain(value.order);
 }
-export async function refundOrder(orderId: number, payload: RefundPayload): Promise<AdminOrder> {
-  const value = await apiData(adminManagementRefundOrder({
-    path: { order_id: orderId }, body: payload, client: adminApiClient, throwOnError: true,
-  }));
-  return toDomain(value.order);
-}
-
-function refundQuery(filters: RefundFilters) {
-  return {
-    date_from: filters.dateFrom,
-    date_to: filters.dateTo,
-    staff_member: filters.staffMember ? Number(filters.staffMember) : undefined,
-    reason: filters.reason,
-    refund_status: filters.refundStatus,
-  };
-}
-
-export async function listRefunds(filters: RefundFilters = {}): Promise<AdminRefund[]> {
-  return toDomain(await apiData(adminManagementListRefunds({ query: refundQuery(filters), client: adminApiClient, throwOnError: true })));
-}
-export async function exportRefunds(filters: RefundFilters = {}): Promise<{ blob: Blob; filename: string }> {
-  const result = await adminManagementExportRefunds({ query: refundQuery(filters), client: adminApiClient, throwOnError: true });
-  return {
-    blob: result.data instanceof Blob ? result.data : new Blob([result.data]),
-    filename: contentDispositionFilename(result.response, 'bonefree-refunds.csv'),
-  };
-}
-
 export async function listCustomers(search = ''): Promise<AdminCustomer[]> {
   return toDomain(await apiData(adminManagementListCustomers({
     query: { skip: 0, limit: 100, search: search.trim() || undefined }, client: adminApiClient, throwOnError: true,

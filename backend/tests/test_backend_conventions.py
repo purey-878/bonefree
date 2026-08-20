@@ -84,6 +84,38 @@ def _dependency_names(node: ast.FunctionDef | ast.AsyncFunctionDef) -> set[str]:
 
 
 class BackendConventionTests(unittest.TestCase):
+    def test_active_sources_do_not_restore_removed_refunds_or_legacy_branding(self):
+        source_roots = [BACKEND, ROOT / "frontend" / "src"]
+        extra_files = [ROOT / "frontend" / "openapi" / "openapi.json"]
+        allowed_suffixes = {".css", ".html", ".js", ".json", ".py", ".ts", ".tsx"}
+        violations = []
+
+        paths = list(extra_files)
+        for source_root in source_roots:
+            paths.extend(
+                path
+                for path in source_root.rglob("*")
+                if path.is_file() and path.suffix.casefold() in allowed_suffixes
+            )
+
+        for path in paths:
+            relative_parts = path.relative_to(ROOT).parts
+            if len(relative_parts) >= 2 and relative_parts[:2] in {
+                ("backend", "alembic"),
+                ("backend", "tests"),
+            }:
+                continue
+            text = path.read_text(encoding="utf-8").casefold()
+            for forbidden in ("refund", "prey"):
+                if forbidden in text:
+                    violations.append(f"{path.relative_to(ROOT)}:{forbidden}")
+
+        self.assertEqual(
+            violations,
+            [],
+            f"Removed refund features and legacy branding must not return: {violations}",
+        )
+
     def test_runtime_code_does_not_use_legacy_session_query(self):
         violations = []
         for path in _runtime_python_files():

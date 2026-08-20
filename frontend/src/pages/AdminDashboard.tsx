@@ -37,9 +37,6 @@ import {
   deleteProductImage,
   updateOrderStatus,
   payCounterOrder,
-  refundOrder,
-  listRefunds,
-  exportRefunds,
   listCustomers,
   createCustomer,
   updateCustomer,
@@ -71,7 +68,6 @@ import {
 } from "../services/siteSettingsService"
 import type {
   AdminOrder,
-  AdminRefund,
   AdminCustomer,
   AdminCustomerPayload,
   AnalyticsMetric,
@@ -95,9 +91,6 @@ import type {
   SalesDay,
   ReactionType,
   IngredientType,
-  RefundFilters,
-  RefundPayload,
-  RefundReason,
   UserStatus,
 } from "../types/admin"
 import type {
@@ -133,7 +126,7 @@ function handleAdminImageError(event: SyntheticEvent<HTMLImageElement>) {
   applyApiImageFallback(event.currentTarget)
 }
 
-type TabType = "dashboard" | "products" | "ingredients" | "categories" | "orders" | "refunds" | "reviews" | "analytics" | "clientes" | "staff" | "settings"
+type TabType = "dashboard" | "products" | "ingredients" | "categories" | "orders" | "reviews" | "analytics" | "clientes" | "staff" | "settings"
 type AdminExperience = "staff" | "super" | "kitchen"
 type AdminTheme = "light" | "dark"
 type SiteSettingsTab = "promote" | "coupons" | "theme" | "company" | "social" | "events"
@@ -205,7 +198,6 @@ const NAV_ITEMS: { tab: TabType; label: string; icon: string }[] = [
   { tab: "ingredients", label: "Ingredientes", icon: "M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48 2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48 2.83-2.83" },
   { tab: "categories", label: "Categorias", icon: "M4 6h16M4 12h16M4 18h7" },
   { tab: "orders", label: "Pedidos", icon: "M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" },
-  { tab: "refunds", label: "Reembolsos", icon: "M12 8c-2.21 0-4 1.12-4 2.5S9.79 13 12 13s4-1.12 4-2.5S14.21 8 12 8zm0 0V4m0 9v7m-7-8a7 7 0 1014 0 7 7 0 00-14 0z" },
   { tab: "reviews", label: "Avaliações", icon: "M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.958a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.446a1 1 0 00-.364 1.118l1.286 3.958c.3.921-.755 1.688-1.539 1.118l-3.367-2.446a1 1 0 00-1.176 0l-3.367 2.446c-.784.57-1.838-.197-1.539-1.118l1.286-3.958a1 1 0 00-.364-1.118L4.06 9.385c-.783-.57-.38-1.81.588-1.81H8.81a1 1 0 00.95-.69l1.286-3.958z" },
   { tab: "clientes", label: "Clientes", icon: "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100-8 4 4 0 000 8M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" },
   { tab: "staff", label: "Equipa", icon: "M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8M16 11l2 2 4-4" },
@@ -238,12 +230,12 @@ function isHexColor(value: string) {
   return /^#[0-9a-fA-F]{6}$/.test(value)
 }
 
-const OWNER_TABS: TabType[] = ["dashboard", "products", "ingredients", "categories", "orders", "refunds", "reviews", "clientes", "staff", "settings", "analytics"]
-const MANAGER_TABS: TabType[] = ["orders", "refunds", "products", "ingredients", "categories"]
-const WAITER_TABS: TabType[] = ["orders", "refunds"]
+const OWNER_TABS: TabType[] = ["dashboard", "products", "ingredients", "categories", "orders", "reviews", "clientes", "staff", "settings", "analytics"]
+const MANAGER_TABS: TabType[] = ["orders", "products", "ingredients", "categories"]
+const WAITER_TABS: TabType[] = ["orders"]
 const CHEF_TABS: TabType[] = ["orders"]
 const NAV_GROUPS: { label: string; tabs: TabType[] }[] = [
-  { label: "Principal", tabs: ["dashboard", "orders", "refunds"] },
+  { label: "Principal", tabs: ["dashboard", "orders"] },
   { label: "Menu", tabs: ["products", "ingredients", "categories"] },
   { label: "Comunidade", tabs: ["reviews", "clientes"] },
   { label: "Admin", tabs: ["staff", "settings", "analytics"] },
@@ -367,188 +359,6 @@ const STAFF_ROLE_OPTIONS = [
   { value: "waiter", label: "Waiter" },
   { value: "chef", label: "Chef" },
 ]
-
-const REFUND_REASONS: RefundReason[] = [
-  "client_changed_mind",
-  "wrong_order_served",
-  "missing_item",
-  "food_quality_issue",
-  "payment_issue",
-  "duplicate_payment",
-  "other",
-]
-
-const REFUND_REASON_LABELS: Record<RefundReason, string> = {
-  "client_changed_mind": "Cliente mudou de ideias",
-  "wrong_order_served": "Pedido errado servido",
-  "missing_item": "Item em falta",
-  "food_quality_issue": "Problema de qualidade da comida",
-  "payment_issue": "Problema de pagamento",
-  "duplicate_payment": "Pagamento duplicado",
-  other: "Outro",
-}
-
-function RefundDialog({
-  order,
-  processing,
-  onClose,
-  onSubmit,
-}: {
-  order: AdminOrder | null
-  processing: boolean
-  onClose: () => void
-  onSubmit: (payload: RefundPayload) => void
-}) {
-  if (!order) return null
-
-  return (
-    <RefundDialogForm
-      key={order.orderId}
-      order={order}
-      processing={processing}
-      onClose={onClose}
-      onSubmit={onSubmit}
-    />
-  )
-}
-
-function RefundDialogForm({
-  order,
-  processing,
-  onClose,
-  onSubmit,
-}: {
-  order: AdminOrder
-  processing: boolean
-  onClose: () => void
-  onSubmit: (payload: RefundPayload) => void
-}) {
-  const [amount, setAmount] = useState(() => order.total?.toFixed(2) ?? "")
-  const [reason, setReason] = useState<RefundReason>("client_changed_mind")
-  const [notes, setNotes] = useState("")
-
-  const submit = (event: FormEvent) => {
-    event.preventDefault()
-    onSubmit({ amount: Number.parseFloat(amount), reason, notes })
-  }
-
-  return (
-    <>
-      <div className="ad-drawer-backdrop ad-refund-backdrop" onClick={onClose} />
-      <form className="ad-refund-dialog" onSubmit={submit}>
-        <header>
-          <div>
-            <p className="order-drawer-kicker">Pedido #{order.orderId}</p>
-            <h3>Iniciar reembolso</h3>
-          </div>
-          <button type="button" className="ad-btn ad-btn-sm ad-btn-ghost" onClick={onClose}>Fechar</button>
-        </header>
-        <div className="ad-form-group">
-          <label>Valor do reembolso</label>
-          <input type="number" min="0.01" max={order.total ?? undefined} step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} required />
-        </div>
-        <div className="ad-form-group">
-          <label>Motivo do reembolso</label>
-          <CustomSelect className="ad-select" value={reason} onChange={(nextValue) => setReason(String(nextValue) as RefundReason)} options={REFUND_REASONS.map((value) => ({ value, label: REFUND_REASON_LABELS[value] }))} />
-        </div>
-        <div className="ad-form-group">
-          <label>Notas</label>
-          <textarea value={notes} onChange={(event) => setNotes(event.target.value)} required rows={5} />
-        </div>
-        <footer>
-          <button type="button" className="ad-btn ad-btn-ghost" onClick={onClose}>Cancelar</button>
-          <button type="submit" className="ad-btn ad-btn-danger" disabled={processing || !notes.trim()}>
-            {processing ? "A processar..." : "Processar reembolso"}
-          </button>
-        </footer>
-      </form>
-    </>
-  )
-}
-
-function RefundsPanel({
-  refunds,
-  staffAdmins,
-  filters,
-  loading,
-  onFiltersChange,
-  onRefresh,
-  onExport,
-}: {
-  refunds: AdminRefund[]
-  staffAdmins: CurrentAdmin[]
-  filters: RefundFilters
-  loading: boolean
-  onFiltersChange: (filters: RefundFilters) => void
-  onRefresh: () => void
-  onExport: () => void
-}) {
-  return (
-    <div className="ad-content">
-      <div className="ad-section-bar">
-        <div>
-          <h2 className="ad-section-title">Reembolsos</h2>
-          <p className="ad-section-sub">Histórico permanente de reembolsos para equipa, admin e contabilidade.</p>
-        </div>
-        <div className="ad-settings-actions">
-          <button className="ad-btn ad-btn-ghost" onClick={onRefresh}>Atualizar</button>
-          <button className="ad-btn ad-btn-primary" onClick={onExport}>Exportar CSV</button>
-        </div>
-      </div>
-
-      <div className="ad-card order-admin-filters">
-        <div className="ad-filter-grid">
-          <div className="ad-form-group"><label>Data desde</label><input type="date" value={filters.dateFrom ?? ""} onChange={(event) => onFiltersChange({ ...filters, dateFrom: event.target.value })} /></div>
-          <div className="ad-form-group"><label>Data até</label><input type="date" value={filters.dateTo ?? ""} onChange={(event) => onFiltersChange({ ...filters, dateTo: event.target.value })} /></div>
-          <div className="ad-form-group">
-            <label>Membro da equipa</label>
-            <CustomSelect className="ad-select" value={filters.staffMember ?? ""} onChange={(nextValue) => onFiltersChange({ ...filters, staffMember: String(nextValue) })} options={[{ value: "", label: "Toda a equipa" }, ...staffAdmins.map((staff) => ({ value: String(staff.adminId), label: staff.name }))]} />
-          </div>
-          <div className="ad-form-group">
-            <label>Motivo do reembolso</label>
-            <CustomSelect className="ad-select" value={filters.reason ?? ""} onChange={(nextValue) => onFiltersChange({ ...filters, reason: String(nextValue) })} options={[{ value: "", label: "Todos os motivos" }, ...REFUND_REASONS.map((value) => ({ value, label: REFUND_REASON_LABELS[value] }))]} />
-          </div>
-          <div className="ad-form-group">
-            <label>Estado do reembolso</label>
-            <CustomSelect className="ad-select" value={filters.refundStatus ?? ""} onChange={(nextValue) => onFiltersChange({ ...filters, refundStatus: String(nextValue) })} options={[{ value: "", label: "Todos os estados" }, { value: "approved", label: "Aprovado" }]} />
-          </div>
-        </div>
-      </div>
-
-      <div className="ad-card order-admin-table-card">
-        <table className="ad-table order-admin-table">
-          <thead>
-            <tr>
-              <th>ID do reembolso</th>
-              <th>ID do pedido</th>
-              <th>Cliente</th>
-              <th>Valor</th>
-              <th>Motivo</th>
-              <th>Processado por</th>
-              <th>Data</th>
-              <th>Estado</th>
-            </tr>
-          </thead>
-          <tbody>
-            {refunds.map((refund) => (
-              <tr key={refund.refundId}>
-                <td><strong>{refund.refundId}</strong></td>
-                <td>{refund.orderId}</td>
-                <td>{refund.customerName}<br /><span>{refund.customerEmail}</span></td>
-                <td><strong>{formatEuro(refund.amount)}</strong></td>
-                <td>{REFUND_REASON_LABELS[refund.reason as RefundReason] ?? refund.reason}</td>
-                <td>{refund.processedBy}<br /><span>{refund.processedByRole}</span></td>
-                <td>{new Date(refund.date).toLocaleString("pt-PT")}</td>
-                <td>{refund.status}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {loading ? <p className="ad-empty">A carregar reembolsos...</p> : refunds.length === 0 && <p className="ad-empty">Nenhum reembolso corresponde a estes filtros</p>}
-      </div>
-    </div>
-  )
-}
 
 function statusMatchesFilter(status: string | null | undefined, filter: DirectoryStatusFilter): boolean {
   if (filter === "all") return true
@@ -1548,11 +1358,6 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
   const [productAnalyticsLoading, setProductAnalyticsLoading] = useState(false)
   const [productAnalyticsDays, setProductAnalyticsDays] = useState(30)
   const [orders, setOrders] = useState<AdminOrder[]>([])
-  const [refunds, setRefunds] = useState<AdminRefund[]>([])
-  const [refundFilters, setRefundFilters] = useState<RefundFilters>({})
-  const [refundLoading, setRefundLoading] = useState(false)
-  const [refundProcessing, setRefundProcessing] = useState(false)
-  const [refundOrderTarget, setRefundOrderTarget] = useState<AdminOrder | null>(null)
   const [reviews, setReviews] = useState<AdminReview[]>([])
   const [reviewsLoading, setReviewsLoading] = useState(false)
   const [analyticsSeries, setAnalyticsSeries] = useState<Partial<Record<AnalyticsMetric, AnalyticsSeries>>>({})
@@ -1824,17 +1629,6 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
     }
   }, [experience])
 
-  const handleLoadRefunds = useCallback(async (nextFilters = refundFilters) => {
-    try {
-      setRefundLoading(true)
-      setRefunds(await listRefunds(nextFilters))
-    } catch (err) {
-      setError(getErrorMessage(err, "Failed to load refunds"))
-    } finally {
-      setRefundLoading(false)
-    }
-  }, [refundFilters])
-
   const handleLoadAnalyticsMetric = useCallback(async (metric: AnalyticsMetric, nextRange?: AnalyticsRange) => {
     const activeRange = nextRange ?? analyticsRanges[metric]
     const customRange = analyticsCustomRanges[metric]
@@ -2066,11 +1860,6 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
     }
   }, [activeTab, currentAdmin, handleLoadOrders])
 
-  useEffect(() => {
-    if (!currentAdmin || activeTab !== "refunds") return
-    void handleLoadRefunds()
-  }, [activeTab, currentAdmin, handleLoadRefunds])
-
   const handleTabChange = (tab: TabType) => {
     if (!allowedTabs.includes(tab)) {
       setActiveTab("orders")
@@ -2090,8 +1879,6 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
       if (products.length === 0 && deletedProducts.length === 0) void handleLoadProducts()
     } else if (tab === "orders" && orders.length === 0) {
       void handleLoadOrders()
-    } else if (tab === "refunds" && refunds.length === 0) {
-      void handleLoadRefunds()
     } else if (tab === "reviews" && reviews.length === 0) {
       void handleLoadReviews()
     } else if (tab === "clientes" && clientes.length === 0) {
@@ -2933,50 +2720,6 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
       const message = getErrorMessage(err, "Failed to mark order as paid")
       setError(message)
       toast.error("Unable to mark order as paid.")
-    }
-  }
-
-  const handleRefundOrder = async (payload: RefundPayload) => {
-    if (!refundOrderTarget) return
-    try {
-      setRefundProcessing(true)
-      refreshOrder(await refundOrder(refundOrderTarget.orderId, payload))
-      setRefundOrderTarget(null)
-      toast.success("Order refunded successfully.")
-      void handleLoadRefunds()
-    } catch (err) {
-      const message = getErrorMessage(err, "Failed to refund order")
-      setError(message)
-      toast.error("Unable to refund order.")
-    } finally {
-      setRefundProcessing(false)
-    }
-  }
-
-  const handleRefundFiltersChange = (nextFilters: RefundFilters) => {
-    setRefundFilters(nextFilters)
-    void handleLoadRefunds(nextFilters)
-  }
-
-  const handleOpenRefundDialog = (order: AdminOrder) => {
-    setIsAdminSidebarOpen(false)
-    setRefundOrderTarget(order)
-  }
-
-  const handleExportRefunds = async () => {
-    try {
-      const { blob, filename } = await exportRefunds(refundFilters)
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement("a")
-      link.href = url
-      link.download = filename
-      link.click()
-      window.URL.revokeObjectURL(url)
-      toast.success("Refund export downloaded.")
-    } catch (err) {
-      const message = getErrorMessage(err, "Failed to export refunds")
-      setError(message)
-      toast.error("Unable to export refunds.")
     }
   }
 
@@ -5333,23 +5076,11 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
             {experience === "kitchen" ? (
               <KitchenOrdersBoard orders={orders} onRefresh={handleLoadOrders} onUpdateStatus={handleOrderStatusChange} />
             ) : experience === "staff" ? (
-              <StaffOrdersBoard orders={orders} onRefresh={handleLoadOrders} onMarkPaid={handlePayCounterOrder} onInitiateRefund={handleOpenRefundDialog} onUpdateStatus={handleOrderStatusChange} />
+              <StaffOrdersBoard orders={orders} onRefresh={handleLoadOrders} onMarkPaid={handlePayCounterOrder} onUpdateStatus={handleOrderStatusChange} />
             ) : (
-              <SuperAdminOrdersView orders={orders} onRefresh={handleLoadOrders} onInitiateRefund={handleOpenRefundDialog} onUpdateStatus={handleOrderStatusChange} />
+              <SuperAdminOrdersView orders={orders} onRefresh={handleLoadOrders} onUpdateStatus={handleOrderStatusChange} />
             )}
           </div>
-        )}
-
-        {activeTab === "refunds" && (
-          <RefundsPanel
-            refunds={refunds}
-            staffAdmins={staffAdmins}
-            filters={refundFilters}
-            loading={refundLoading}
-            onFiltersChange={handleRefundFiltersChange}
-            onRefresh={() => void handleLoadRefunds()}
-            onExport={handleExportRefunds}
-          />
         )}
 
         {activeTab === "reviews" && (
@@ -5803,12 +5534,6 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
         loading={confirmLoading}
         onConfirm={handleConfirmSubmit}
         onCancel={handleConfirmCancel}
-      />
-      <RefundDialog
-        order={refundOrderTarget}
-        processing={refundProcessing}
-        onClose={() => setRefundOrderTarget(null)}
-        onSubmit={handleRefundOrder}
       />
     </div>
   )

@@ -160,9 +160,7 @@
 }
 
 .order-status-bar.status-cancelled,
-.order-status-mini.status-cancelled,
-.order-status-bar.status-refunded,
-.order-status-mini.status-refunded {
+.order-status-mini.status-cancelled {
   --order-status-bg: #fef2f2;
   --order-status-border: #ef4444;
   --order-status-accent: #991b1b;

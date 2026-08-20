@@ -52,10 +52,6 @@ const EXACT_MESSAGE_TRANSLATIONS: Record<string, string> = {
   "Unable to update order status.": "Não foi possível atualizar o estado do pedido.",
   "Order marked as paid.": "Pedido marcado como pago.",
   "Unable to mark order as paid.": "Não foi possível marcar o pedido como pago.",
-  "Order refunded successfully.": "Pedido reembolsado com sucesso.",
-  "Unable to refund order.": "Não foi possível reembolsar o pedido.",
-  "Refund export downloaded.": "Exportação dos reembolsos descarregada.",
-  "Unable to export refunds.": "Não foi possível exportar os reembolsos.",
   "Customer updated successfully.": "Cliente atualizado com sucesso.",
   "Customer created successfully.": "Cliente criado com sucesso.",
   "Unable to save customer.": "Não foi possível guardar o cliente.",
@@ -189,12 +185,12 @@ export function translateUserMessage(message: string): string {
   const exact = EXACT_MESSAGE_TRANSLATIONS[trimmed];
   if (exact) return exact;
 
-  const failedAction = trimmed.match(/^Failed to (fetch|load|update|save|create|delete|deactivate|reactivate|restore|remove|upload|export|refund|mark)\s+(.+?)\.?$/i);
+  const failedAction = trimmed.match(/^Failed to (fetch|load|update|save|create|delete|deactivate|reactivate|restore|remove|upload|export|mark)\s+(.+?)\.?$/i);
   if (failedAction?.[1] && failedAction?.[2]) {
     return `${failedActionPrefix(failedAction[1])} ${translatedResource(failedAction[2])}.`;
   }
 
-  const unableAction = trimmed.match(/^Unable to (save|delete|restore|deactivate|activate|update|mark|refund|export|reactivate)\s+(.+?)\.?$/i);
+  const unableAction = trimmed.match(/^Unable to (save|delete|restore|deactivate|activate|update|mark|export|reactivate)\s+(.+?)\.?$/i);
   if (unableAction?.[1] && unableAction?.[2]) {
     return `${unableActionPrefix(unableAction[1])} ${translatedResource(unableAction[2])}.`;
   }
@@ -239,7 +235,6 @@ function failedActionPrefix(action: string): string {
   if (normalized === "reactivate" || normalized === "restore") return "Não foi possível restaurar";
   if (normalized === "upload") return "Não foi possível carregar";
   if (normalized === "export") return "Não foi possível exportar";
-  if (normalized === "refund") return "Não foi possível reembolsar";
   if (normalized === "mark") return "Não foi possível marcar";
   return "Não foi possível processar";
 }
@@ -262,7 +257,6 @@ function translatedResource(resource: string): string {
     "staff orders": "os pedidos da equipa",
     "kitchen orders": "os pedidos da cozinha",
     order: "o pedido",
-    refunds: "os reembolsos",
     customers: "os clientes",
     customer: "o cliente",
     "staff admins": "os administradores",

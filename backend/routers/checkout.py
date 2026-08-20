@@ -1,20 +1,19 @@
 """Checkout routes backed by the bonefree_resturante order schema."""
 
-import logging
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 from uuid import uuid4
 from urllib.parse import quote
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Response, status
+from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy import delete, exists, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from dependencies import get_current_user
 from services.auth_service import hash_password
 from database import get_db
-from schemas.enums import CancellationOrigin, CheckoutPaymentMethod, CouponType, EntityStatus, OrderState, PaymentMethod, PaymentState, PaymentStatus, UserRole, UserStatus, normalize_enum
+from schemas.enums import CancellationOrigin, CouponType, EntityStatus, OrderState, PaymentMethod, PaymentState, PaymentStatus, UserRole, UserStatus, normalize_enum
 from models import (
     Cart,
     CartProduct,
@@ -28,8 +27,7 @@ from models import (
     Product,
 )
 from schemas.checkout import CouponResponse, CouponValidationRequest, CouponValidationResponse, CheckoutItem, CheckoutRequest, OrderResponse
-from services.invoices import ensure_invoice_for_order
-from services.receipt_email import build_order_receipt_payload, build_saved_order_receipt_payload, send_purchase_receipt
+from services.receipt_email import build_saved_order_receipt_payload
 from services.order_customization import customization_from_json, customization_to_json
 from services.product_availability import inactive_base_product_ids
 from services.product_pricing import discounted_product_price
@@ -46,11 +44,9 @@ except ModuleNotFoundError as exc:
     render_receipt_pdf = None
 
 router = APIRouter(prefix="/checkout", tags=["Checkout"])
-logger = logging.getLogger(__name__)
 
 SERVICE_FEE = Decimal("0")
 VAT_PERCENTAGE = Decimal("13.00")
-ONLINE_PAYMENT_METHODS = {PaymentMethod.CARD, PaymentMethod.MBWAY}
 
 
 def _product_image_path(product: Product | None) -> str | None:
@@ -72,19 +68,6 @@ def _product_image_path(product: Product | None) -> str | None:
     return f"/menu-images/{image_path}"
 
 
-def _payment_method(payment_method: str | CheckoutPaymentMethod) -> PaymentMethod:
-    payment_method = CheckoutPaymentMethod(payment_method)
-    if payment_method == CheckoutPaymentMethod.CASH:
-        return PaymentMethod.COUNTER
-    if payment_method in {CheckoutPaymentMethod.MBWAY, CheckoutPaymentMethod.QR_PAY}:
-        return PaymentMethod.MBWAY
-    return PaymentMethod.CARD
-
-
-def _is_online_payment(method: PaymentMethod | None) -> bool:
-    return method in ONLINE_PAYMENT_METHODS
-
-
 def _included_vat(total: Decimal, vat_percentage: Decimal = VAT_PERCENTAGE) -> Decimal:
     if total <= 0:
         return Decimal("0.00")
@@ -92,17 +75,8 @@ def _included_vat(total: Decimal, vat_percentage: Decimal = VAT_PERCENTAGE) -> D
     return (total - (total / multiplier)).quantize(Decimal("0.01"))
 
 
-def _response_payment_method(order: Order) -> str:
-    checkout_payment = _note_value(order.notes, "checkout_payment")
-    if checkout_payment == "qr_pay":
-        return "mbway"
-    if checkout_payment in {"card", "cash", "mbway"}:
-        return checkout_payment
-    if order.payment_method == PaymentMethod.COUNTER:
-        return CheckoutPaymentMethod.CASH
-    if order.payment_method == PaymentMethod.MBWAY:
-        return CheckoutPaymentMethod.MBWAY
-    return "card"
+def _response_payment_method(order: Order) -> PaymentMethod:
+    return order.payment_method or PaymentMethod.COUNTER
 
 
 def _cart_items_for_user(db: Session, current_user: Customer) -> list[CheckoutItem]:
@@ -376,13 +350,6 @@ def _order_response(order: Order) -> dict:
         discount = _coupon_discount_from_notes(order.notes)
     fees = Decimal(str(order.total)) + discount - subtotal
     response_payment = _response_payment_method(order)
-    latest_refund = sorted(
-        order.refunds or [],
-        key=lambda refund: refund.refunded_at or datetime.min,
-        reverse=True,
-    )
-    refund = latest_refund[0] if latest_refund else None
-
     return {
         "order_id": order.order_id,
         "order_number": f"ENC-{order.order_id:06d}",
@@ -391,10 +358,6 @@ def _order_response(order: Order) -> dict:
         "can_cancel": _can_customer_cancel(order),
         "cancellation_source": order.cancellation_origin,
         "cancelled_at": order.canceled_at,
-        "refund_status": "Approved" if refund else "None",
-        "refund_amount": refund.value if refund else None,
-        "refund_reason": refund.reason if refund else None,
-        "refund_date": refund.refunded_at if refund else None,
         "delivery_method": _fulfillment_from_notes(order.notes),
         "payment_method": response_payment,
         "subtotal": subtotal,
@@ -478,7 +441,6 @@ def validate_coupon(
 )
 def create_order(
     body: CheckoutRequest,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: Customer = Depends(get_current_user),
 ):
@@ -532,8 +494,7 @@ def create_order(
         })
 
     customer = _get_or_create_checkout_customer(db, body, current_user)
-    db_method = _payment_method(body.payment_method)
-    online_payment = _is_online_payment(db_method)
+    db_method = PaymentMethod.COUNTER
     delivery_fee = Decimal("0")
     coupon, coupon_discount = _get_valid_coupon(db, current_user, body.promo_code, subtotal)
     total = subtotal - coupon_discount + delivery_fee + SERVICE_FEE
@@ -551,9 +512,9 @@ def create_order(
     order = Order(
         customer_id=customer.customer_id,
         admin_id=None,
-        state=OrderState.CONFIRMED if online_payment else OrderState.PENDING,
+        state=OrderState.PENDING,
         payment_method=db_method,
-        payment_status=PaymentStatus.PAID if online_payment else PaymentStatus.UNPAID,
+        payment_status=PaymentStatus.UNPAID,
         subtotal=subtotal,
         vat_percentage=VAT_PERCENTAGE,
         vat_amount=vat_amount,
@@ -580,15 +541,13 @@ def create_order(
     db.add(Payment(
         order_id=order.order_id,
         method=db_method,
-        state=PaymentState.APPROVED if online_payment else PaymentState.PENDING,
+        state=PaymentState.PENDING,
         value=total,
-        transaction_reference=f"{'MBW' if db_method == PaymentMethod.MBWAY else 'TXN' if online_payment else 'BAL'}-{datetime.utcnow().strftime('%Y%m%d')}-{order.order_id:03d}",
-        paid_at=datetime.utcnow() if online_payment else None,
+        transaction_reference=f"COUNTER-{datetime.utcnow().strftime('%Y%m%d')}-{order.order_id:03d}",
+        paid_at=None,
     ))
 
     db.flush()
-    if online_payment:
-        ensure_invoice_for_order(db, order)
     _clear_user_cart(db, current_user)
     db.commit()
 
@@ -599,13 +558,6 @@ def create_order(
         .limit(1)
     )
     response = _order_response(saved)
-
-    if online_payment:
-        try:
-            receipt_payload = build_order_receipt_payload(saved, body, delivery_fee, SERVICE_FEE)
-            background_tasks.add_task(send_purchase_receipt, receipt_payload)
-        except Exception:
-            logger.exception("Failed to schedule receipt email for order %s.", order.order_id)
 
     return response
 
@@ -632,7 +584,7 @@ def cancel_order(
     if not order:
         raise AppHTTPException(status_code=404, error="order_not_found", message="Order not found.", details={"reason": "request_failed"})
     if not _can_customer_cancel(order):
-        raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="order_cannot_be_cancelled", message="Order cannot be cancelled.", details={"order_id": order.order_id, "state": str(order.state), "payment_status": str(order.payment_status)})
+        raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="order_cannot_be_cancelled", message="Order cannot be cancelled.", details={"order_id": order.order_id, "state": str(order.state), "payment_status": str(order.payment_status)})
 
     order.state = OrderState.CANCELLED
     order.canceled_at = datetime.utcnow()
@@ -678,6 +630,13 @@ def download_order_receipt_pdf(
     )
     if not order:
         raise AppHTTPException(status_code=404, error="order_not_found", message="Order not found.", details={"reason": "request_failed"})
+    if order.payment_status != PaymentStatus.PAID:
+        raise AppHTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            error="receipt_not_available",
+            message="The receipt is available only after counter payment.",
+            details={"order_id": order.order_id},
+        )
 
     receipt = build_saved_order_receipt_payload(order)
     filename = receipt_pdf_filename(receipt)

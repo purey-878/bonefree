@@ -83,15 +83,11 @@ def _fulfillment_from_notes(notes: str | None) -> str:
 
 
 def _payment_method_response(method: PaymentMethod | None) -> str:
-    if method == PaymentMethod.COUNTER:
-        return "cash"
-    if method == PaymentMethod.MBWAY:
-        return "mbway"
-    return "card"
+    return (method or PaymentMethod.COUNTER).value
 
 
 def _payment_filter_values(payment: str) -> list[PaymentMethod | str]:
-    if payment == "cash":
+    if payment in {"cash", "counter"}:
         return [PaymentMethod.COUNTER]
     if payment == "mbway":
         return [PaymentMethod.MBWAY]
@@ -106,13 +102,6 @@ def _order_response(order: Order) -> dict:
         subtotal = sum(Decimal(str(item.unit_price)) * item.quantity for item in order.items)
     discount = Decimal(str(getattr(order, "total_discount", 0) or 0))
     fees = Decimal(str(order.total)) + discount - subtotal
-    latest_refund = sorted(
-        order.refunds or [],
-        key=lambda refund: refund.refunded_at or datetime.min,
-        reverse=True,
-    )
-    refund = latest_refund[0] if latest_refund else None
-
     return {
         "order_id": order.order_id,
         "order_number": f"ENC-{order.order_id:06d}",
@@ -121,10 +110,6 @@ def _order_response(order: Order) -> dict:
         "can_cancel": order.state == OrderState.PENDING and order.payment_status == PaymentStatus.UNPAID,
         "cancellation_source": order.cancellation_origin,
         "cancelled_at": order.canceled_at,
-        "refund_status": "Approved" if refund else "None",
-        "refund_amount": refund.value if refund else None,
-        "refund_reason": refund.reason if refund else None,
-        "refund_date": refund.refunded_at if refund else None,
         "delivery_method": _fulfillment_from_notes(order.notes),
         "payment_method": _payment_method_response(order.payment_method),
         "subtotal": subtotal,

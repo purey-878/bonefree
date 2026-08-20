@@ -30,61 +30,6 @@
   transition: grid-template-columns 0.2s ease;
 }
 
-.ad-refund-dialog {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  z-index: 1210;
-  display: grid;
-  width: min(520px, calc(100vw - 32px));
-  max-height: calc(100vh - 48px);
-  gap: 16px;
-  padding: 20px;
-  overflow: auto;
-  border: 1px solid var(--ad-border);
-  border-radius: 8px;
-  background: var(--ad-surface);
-  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.28);
-  transform: translate(-50%, -50%);
-}
-
-.ad-refund-backdrop {
-  z-index: 1209;
-  background: rgba(15, 23, 42, 0.34);
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-
-.ad-refund-dialog header,
-.ad-refund-dialog footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.ad-refund-dialog h3 {
-  margin: 0;
-  color: var(--ad-text);
-}
-
-.ad-refund-dialog textarea {
-  min-height: 120px;
-  resize: vertical;
-}
-
-.order-refund-audit {
-  display: grid;
-  gap: 5px;
-  margin: 8px 0 12px;
-  padding: 10px;
-  border: 1px solid var(--ad-border);
-  border-radius: 8px;
-  background: var(--ad-surface-soft);
-  color: var(--ad-muted);
-  font-size: 0.86rem;
-}
-
 .ad-theme-dark {
   --ad-bg: #0f0f0f;
   --ad-surface: #18181b;
@@ -4577,8 +4522,6 @@
   --order-card-avatar-text: #1d4ed8;
   --order-card-paid-bg: #dcfce7;
   --order-card-paid-text: #15803d;
-  --order-card-refund-bg: #fef3c7;
-  --order-card-refund-text: #b45309;
   --order-card-wait: #b45309;
   --order-card-danger: #dc2626;
   --order-card-danger-hover: rgba(220, 38, 38, 0.08);
@@ -4617,8 +4560,6 @@
   --order-card-avatar-text: #b8d5ff;
   --order-card-paid-bg: #1f6b16;
   --order-card-paid-text: #83f66f;
-  --order-card-refund-bg: #51371a;
-  --order-card-refund-text: #f8c876;
   --order-card-wait: #f3ad28;
   --order-card-danger: #ff7373;
   --order-card-danger-hover: rgba(224, 82, 82, 0.12);
@@ -4765,11 +4706,6 @@
 .order-payment-pago {
   background: var(--order-card-paid-bg);
   color: var(--order-card-paid-text);
-}
-
-.order-payment-reembolsado {
-  background: var(--order-card-refund-bg);
-  color: var(--order-card-refund-text);
 }
 
 .order-admin-wait-line {
@@ -9088,7 +9024,6 @@
     grid-template-columns: 1fr;
   }
 
-  .ad-refund-dialog,
   .ad-modal,
   .ad-product-modal {
     width: calc(100vw - 16px);

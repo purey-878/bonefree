@@ -139,7 +139,6 @@ label{
 .order-status-badge-ready { background: #dcfce7; color: #166534; }
 .order-status-badge-completed { background: #e5e7eb; color: #374151; }
 .order-status-badge-cancelled { background: #fee2e2; color: #991b1b; }
-.order-status-badge-refunded { background: #f3e8ff; color: #6b21a8; }
 
 .order-details-backdrop-customer {
   position: fixed;
@@ -250,11 +249,6 @@ label{
   color: #9a3412;
 }
 
-.order-detail-note.refunded {
-  background: #faf5ff;
-  color: #6b21a8;
-}
-
 .checkout-mini-cart {
   gap: 10px;
 }
@@ -319,19 +313,6 @@ label{
   font-size: 0.78rem;
   font-weight: 900;
   text-align: right;
-}
-
-.checkout-card-input-wrap {
-  position: relative;
-  display: block;
-}
-
-.checkout-card-input-wrap small {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  color: var(--brand-accent);
-  transform: translateY(-50%);
 }
 
 @media (max-width: 900px) {
@@ -519,9 +500,7 @@ label{
 }
 
 .checkout-fields input.is-invalid,
-.checkout-table-number input.is-invalid,
-.checkout-card-fields input[aria-invalid="true"] {
-
+.checkout-table-number input.is-invalid {
   outline: none;
 }
 
@@ -806,26 +785,6 @@ label{
     transform: translateY(0);
     max-height: 500px;
   }
-}
-
-.checkout-card-fields label {
-  display: grid;
-  gap: 4px;
-  color: rgba(247, 249, 244, 0.86);
-  font-size: 0.9rem;
-  font-weight: 850;
-}
-
-.checkout-card-fields input {
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
-  background: rgba(255, 255, 255, 0.08) !important;
-  color: #ffffff;
-  padding: 12px 14px;
-}
-
-.checkout-card-fields input:focus {
-  border-color: var(--brand-accent) !important;
-  background: rgba(255, 255, 255, 0.1) !important;
 }
 
 .checkout-promo-code {
@@ -1804,7 +1763,6 @@ label{
 
 .checkout-fields label,
 .checkout-table-number label,
-.checkout-card-fields label,
 .checkout-promo-code label,
 .payment-pill-text,
 .status-step.active .status-label {
@@ -1812,7 +1770,6 @@ label{
 }
 
 .checkout-fields input,
-.checkout-card-fields input,
 .checkout-promo-code input,
 .checkout-table-number input {
   border-color: #dbe5d7 !important;

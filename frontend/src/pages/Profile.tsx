@@ -92,7 +92,6 @@ const statusOptions = [
   { value: "ready", label: "Pronta" },
   { value: "delivered", label: "Servido" },
   { value: "cancelled", label: "Cancelada" },
-  { value: "refunded", label: "Reembolsada" },
 ]
 
 const tabs: Array<{ id: ProfileTab; label: string; icon: typeof ReceiptText }> = [
@@ -102,7 +101,7 @@ const tabs: Array<{ id: ProfileTab; label: string; icon: typeof ReceiptText }> =
   { id: "personal", label: "Dados pessoais", icon: UserRound },
 ]
 
-const orderTerminalStatuses = new Set(["delivered", "cancelled", "refunded"])
+const orderTerminalStatuses = new Set(["delivered", "cancelled"])
 
 function profileTabFromParam(value: string | null): ProfileTab | null {
   if (value === "overview" || value === "orders" || value === "coupons" || value === "personal") return value
@@ -129,10 +128,7 @@ function formatFulfillment(value: string) {
 }
 
 function formatPayment(value: string) {
-  if (value === "card") return "Cartão"
-  if (value === "mbway") return "MB Way"
-  if (value === "cash") return "Pagar ao balcão"
-  if (value === "qr_pay") return "MB Way"
+  if (value === "counter") return "Pagar ao balcão"
   return value
 }
 
@@ -148,7 +144,6 @@ function formatStatus(value: string) {
     ready: "Pronta",
     delivered: "Servido",
     cancelled: "Cancelada",
-    refunded: "Reembolsada",
   }
 
   return labels[value] ?? value
@@ -882,9 +877,7 @@ function Profile() {
                   onChange={(nextValue) => updateFilter("payment", String(nextValue))}
                   options={[
                     { value: "", label: "Todos os pagamentos" },
-                    { value: "card", label: "Cartão" },
-                    { value: "mbway", label: "MB Way" },
-                    { value: "cash", label: "Pagar ao balcão" },
+                    { value: "counter", label: "Pagar ao balcão" },
                   ]}
                 />
               </label>
@@ -1220,15 +1213,17 @@ function OrderTimelineCard({
         >
           <ReceiptText size={16} /> Ver detalhes
         </button>
-        <button
-          type="button"
-          className="profile-soft-action"
-          onClick={() => onViewReceipt(order)}
-          disabled={busyKey === `receipt-${order.orderId}`}
-        >
-          <ReceiptText size={16} />
-          {busyKey === `receipt-${order.orderId}` ? "A abrir..." : "Ver recibo"}
-        </button>
+        {order.paymentStatus === "paid" && (
+          <button
+            type="button"
+            className="profile-soft-action"
+            onClick={() => onViewReceipt(order)}
+            disabled={busyKey === `receipt-${order.orderId}`}
+          >
+            <ReceiptText size={16} />
+            {busyKey === `receipt-${order.orderId}` ? "A abrir..." : "Ver recibo"}
+          </button>
+        )}
         {canTrack && (
           <button
             type="button"

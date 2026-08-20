@@ -13,8 +13,6 @@ from schemas.enums import (
     OrderState,
     PaymentMethod,
     PaymentStatus,
-    RefundReason,
-    RefundStatus,
 )
 from .customization import ItemCustomization
 from .id_types import ProductId
@@ -112,10 +110,6 @@ class OrderResponse(BaseModel):
     can_cancel: bool = False
     cancellation_source: Optional[CancellationOrigin] = None
     cancelled_at: Optional[datetime] = None
-    refund_status: Optional[RefundStatus] = None
-    refund_amount: Optional[Decimal] = None
-    refund_reason: Optional[RefundReason] = None
-    refund_date: Optional[datetime] = None
     delivery_method: FulfillmentMethod
     payment_method: PaymentMethod
     subtotal: Decimal

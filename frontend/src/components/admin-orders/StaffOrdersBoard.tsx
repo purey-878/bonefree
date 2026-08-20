@@ -18,7 +18,6 @@ type Props = {
   orders: AdminOrder[];
   onRefresh: () => void;
   onMarkPaid: (orderId: number) => Promise<void> | void;
-  onInitiateRefund: (order: AdminOrder) => void;
   onUpdateStatus: (orderId: number, status: string) => Promise<void> | void;
 };
 
@@ -63,7 +62,7 @@ const defaultStaffOrderFilters = {
   dateTo: "",
 };
 
-export default function StaffOrdersBoard({ orders, onRefresh, onMarkPaid, onInitiateRefund, onUpdateStatus }: Props) {
+export default function StaffOrdersBoard({ orders, onRefresh, onMarkPaid, onUpdateStatus }: Props) {
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [quickFilter, setQuickFilter] = useState("all");
   const [collapsedOrderIds, setCollapsedOrderIds] = useState<Set<number>>(new Set());
@@ -315,7 +314,7 @@ export default function StaffOrdersBoard({ orders, onRefresh, onMarkPaid, onInit
         ))}
       </div>
 
-      <OrderDetailsDrawer order={selectedOrder} canRefund onInitiateRefund={onInitiateRefund} onClose={() => setSelectedOrderId(null)} />
+      <OrderDetailsDrawer order={selectedOrder} onClose={() => setSelectedOrderId(null)} />
     </div>
   );
 }

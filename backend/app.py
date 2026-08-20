@@ -1,4 +1,5 @@
 import logging
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import cast
 
@@ -43,71 +44,95 @@ def require_explicit_operation_id(route: APIRoute) -> str:
         )
     return route.operation_id
 
-run_or_stamp_migrations()
-
-if settings.environment == "development":
-    seed_test_users()
-
-missing_email_config = validate_email_config()
-if missing_email_config:
-    logger.warning("Email provider configuration is missing or empty: %s", ", ".join(missing_email_config))
-
-
-app = FastAPI(
-    title=settings.app_name,
-    version=settings.app_version,
-    description="Backend API for the Bonefree project",
-    docs_url="/docs" if settings.docs_enabled else None,
-    redoc_url="/redoc" if settings.docs_enabled else None,
-    openapi_url="/openapi.json" if settings.docs_enabled else None,
-    generate_unique_id_function=require_explicit_operation_id,
-    responses={
-        400: {"model": ApiErrorResponse, "description": "Invalid request"},
-        401: {"model": ApiErrorResponse, "description": "Authentication required"},
-        403: {"model": ApiErrorResponse, "description": "Permission denied"},
-        404: {"model": ApiErrorResponse, "description": "Resource not found"},
-        409: {"model": ApiErrorResponse, "description": "Request conflict"},
-        422: {"model": ApiErrorResponse, "description": "Validation error"},
-        500: {"model": ApiErrorResponse, "description": "Internal server error"},
-    },
-)
-app.add_exception_handler(AppHTTPException, cast(ExceptionHandler, app_http_exception_handler))
-app.add_exception_handler(StarletteHTTPException, cast(ExceptionHandler, http_exception_handler))
-app.add_exception_handler(RequestValidationError, cast(ExceptionHandler, request_validation_exception_handler))
-app.add_exception_handler(Exception, cast(ExceptionHandler, unexpected_exception_handler))
-
 PUBLIC_ASSETS_DIR = Path(__file__).resolve().parents[1] / "public" / "assets"
-PUBLIC_ASSETS_DIR.mkdir(parents=True, exist_ok=True)
-app.mount("/assets", StaticFiles(directory=PUBLIC_ASSETS_DIR), name="assets")
-
 UPLOADS_DIR = Path(__file__).resolve().parents[1] / "uploads"
-UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["Content-Disposition"],
-)
 
 
-@app.get("/health", tags=["Health"], response_model=HealthResponse, operation_id="health_health_check")
-def health_check() -> HealthResponse:
-    return HealthResponse(status="healthy")
+def create_app(
+    *,
+    run_startup_tasks: bool = True,
+    public_assets_dir: Path | None = None,
+    uploads_dir: Path | None = None,
+) -> FastAPI:
+    """Build an application instance without forcing database startup work at import time."""
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI):
+        if run_startup_tasks:
+            run_or_stamp_migrations()
+            if settings.environment == "development":
+                seed_test_users()
+
+            missing_email_config = validate_email_config()
+            if missing_email_config:
+                logger.warning(
+                    "Email provider configuration is missing or empty: %s",
+                    ", ".join(missing_email_config),
+                )
+        yield
+
+    application = FastAPI(
+        title=settings.app_name,
+        version=settings.app_version,
+        description="Backend API for the Bonefree project",
+        docs_url="/docs" if settings.docs_enabled else None,
+        redoc_url="/redoc" if settings.docs_enabled else None,
+        openapi_url="/openapi.json" if settings.docs_enabled else None,
+        generate_unique_id_function=require_explicit_operation_id,
+        lifespan=lifespan,
+        responses={
+            400: {"model": ApiErrorResponse, "description": "Invalid request"},
+            401: {"model": ApiErrorResponse, "description": "Authentication required"},
+            403: {"model": ApiErrorResponse, "description": "Permission denied"},
+            404: {"model": ApiErrorResponse, "description": "Resource not found"},
+            409: {"model": ApiErrorResponse, "description": "Request conflict"},
+            422: {"model": ApiErrorResponse, "description": "Validation error"},
+            500: {"model": ApiErrorResponse, "description": "Internal server error"},
+        },
+    )
+    application.add_exception_handler(AppHTTPException, cast(ExceptionHandler, app_http_exception_handler))
+    application.add_exception_handler(StarletteHTTPException, cast(ExceptionHandler, http_exception_handler))
+    application.add_exception_handler(RequestValidationError, cast(ExceptionHandler, request_validation_exception_handler))
+    application.add_exception_handler(Exception, cast(ExceptionHandler, unexpected_exception_handler))
+
+    resolved_assets = public_assets_dir or PUBLIC_ASSETS_DIR
+    resolved_uploads = uploads_dir or UPLOADS_DIR
+    resolved_assets.mkdir(parents=True, exist_ok=True)
+    resolved_uploads.mkdir(parents=True, exist_ok=True)
+    application.mount("/assets", StaticFiles(directory=resolved_assets), name="assets")
+    application.mount("/uploads", StaticFiles(directory=resolved_uploads), name="uploads")
+
+    application.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+        expose_headers=["Content-Disposition"],
+    )
+
+    @application.get(
+        "/health",
+        tags=["Health"],
+        response_model=HealthResponse,
+        operation_id="health_health_check",
+    )
+    def health_check() -> HealthResponse:
+        return HealthResponse(status="healthy")
+
+    application.include_router(auth_router)
+    application.include_router(products_router, prefix="/products", tags=["Products"])
+    application.include_router(cart_router)
+    application.include_router(checkout_router)
+    application.include_router(profile_router)
+    application.include_router(reviews_router)
+    application.include_router(admin_router)
+    application.include_router(site_settings_public_router)
+    application.include_router(site_settings_admin_router)
+    return application
 
 
-app.include_router(auth_router)
-app.include_router(products_router, prefix="/products", tags=["Products"])
-app.include_router(cart_router)
-app.include_router(checkout_router)
-app.include_router(profile_router)
-app.include_router(reviews_router)
-app.include_router(admin_router)
-app.include_router(site_settings_public_router)
-app.include_router(site_settings_admin_router)
+app = create_app()
 
 
 if __name__ == "__main__":

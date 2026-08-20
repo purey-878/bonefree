@@ -1,7 +1,7 @@
 import type { ItemCustomization } from './cart';
 
 export type FulfillmentMethod = 'dine_in' | 'pickup' | 'takeaway';
-export type PaymentMethod = 'card' | 'cash' | 'mbway' | 'qr_pay';
+export type PaymentMethod = 'counter';
 
 export interface CheckoutCustomer {
   firstName: string;
@@ -45,10 +45,6 @@ export interface OrderResponse {
   canCancel: boolean;
   cancellationSource?: string | null;
   cancelledAt?: string | null;
-  refundStatus?: string | null;
-  refundAmount?: number | null;
-  refundReason?: string | null;
-  refundDate?: string | null;
   deliveryMethod: FulfillmentMethod;
   paymentMethod: string;
   subtotal: number;

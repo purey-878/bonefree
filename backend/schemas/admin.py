@@ -13,9 +13,6 @@ from schemas.enums import (
     OrderState,
     PaymentMethod,
     PaymentStatus,
-    RefundMethod,
-    RefundReason,
-    RefundStatus,
     UserRole,
     UserStatus,
     enum_values,
@@ -354,14 +351,6 @@ class OrderResponse(BaseModel):
     table_number: Optional[int] = None
     canceled_at: Optional[datetime] = None
     cancellation_origin: Optional[CancellationOrigin] = None
-    refund_status: Optional[RefundStatus] = None
-    refund_id: Optional[int] = None
-    refund_amount: Optional[float] = None
-    refund_reason: Optional[RefundReason] = None
-    refund_notes: Optional[str] = None
-    refund_processed_by: Optional[str] = None
-    refund_processed_by_role: Optional[str] = None
-    refund_date: Optional[datetime] = None
     total_items: int
     items: List[CartItemResponse]
 
@@ -397,37 +386,6 @@ class KitchenOrderResponse(BaseModel):
     updated_at: Optional[datetime] = None
     total_items: int
     items: List[CartItemResponse]
-
-
-class RefundOrderResponse(BaseModel):
-    message: str
-    order: OrderResponse
-
-
-class RefundRequest(BaseModel):
-    amount: float = Field(..., gt=0)
-    reason: RefundReason
-    notes: str = Field(..., min_length=1, max_length=1000)
-
-
-class RefundResponse(BaseModel):
-    refund_id: int
-    order_id: int
-    receipt_number: str
-    order_number: str
-    original_invoice_number: str
-    customer_name: str
-    customer_email: str
-    amount: float
-    reason: RefundReason
-    notes: str
-    processed_by: str
-    processed_by_role: str
-    date: datetime
-    status: RefundStatus
-    refund_method: RefundMethod
-
-    model_config = ConfigDict(from_attributes=True)
 
 
 # Analytics Schemas

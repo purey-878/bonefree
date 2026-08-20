@@ -85,7 +85,7 @@ async def request_validation_exception_handler(
 ) -> JSONResponse:
     fields = [map_pydantic_error(error) for error in exc.errors()]
     return JSONResponse(
-        status_code=status.HTTP_400_BAD_REQUEST,
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content=build_error_payload(
             "validation_error",
             "Validation failed.",

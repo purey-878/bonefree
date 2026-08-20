@@ -436,7 +436,7 @@ export type CheckoutItem = {
 /**
  * CheckoutPaymentMethod
  */
-export type CheckoutPaymentMethod = 'card' | 'cash' | 'mbway' | 'qr_pay';
+export type CheckoutPaymentMethod = 'counter';
 
 /**
  * CheckoutRequest
@@ -1367,7 +1367,7 @@ export type OrderItemResponse = {
 /**
  * OrderState
  */
-export type OrderState = 'pending' | 'confirmed' | 'in_preparation' | 'ready' | 'delivered' | 'cancelled' | 'refunded';
+export type OrderState = 'pending' | 'confirmed' | 'in_preparation' | 'ready' | 'delivered' | 'cancelled';
 
 /**
  * OrderStatusUpdate
@@ -1384,7 +1384,7 @@ export type PaymentMethod = 'card' | 'mbway' | 'counter';
 /**
  * PaymentStatus
  */
-export type PaymentStatus = 'unpaid' | 'paid' | 'refunded';
+export type PaymentStatus = 'unpaid' | 'paid';
 
 /**
  * PeriodicSalesResponse
@@ -2180,104 +2180,6 @@ export type ProductUpdate = {
 };
 
 /**
- * RefundMethod
- */
-export type RefundMethod = 'original_payment_method';
-
-/**
- * RefundOrderResponse
- */
-export type RefundOrderResponse = {
-    /**
-     * Message
-     */
-    message: string;
-    order: SchemasAdminOrderResponse;
-};
-
-/**
- * RefundReason
- */
-export type RefundReason = 'client_changed_mind' | 'wrong_order_served' | 'missing_item' | 'food_quality_issue' | 'payment_issue' | 'duplicate_payment' | 'other';
-
-/**
- * RefundRequest
- */
-export type RefundRequest = {
-    /**
-     * Amount
-     */
-    amount: number;
-    /**
-     * Notes
-     */
-    notes: string;
-    reason: RefundReason;
-};
-
-/**
- * RefundResponse
- */
-export type RefundResponse = {
-    /**
-     * Amount
-     */
-    amount: number;
-    /**
-     * Customer Email
-     */
-    customer_email: string;
-    /**
-     * Customer Name
-     */
-    customer_name: string;
-    /**
-     * Date
-     */
-    date: string;
-    /**
-     * Notes
-     */
-    notes: string;
-    /**
-     * Order Id
-     */
-    order_id: number;
-    /**
-     * Order Number
-     */
-    order_number: string;
-    /**
-     * Original Invoice Number
-     */
-    original_invoice_number: string;
-    /**
-     * Processed By
-     */
-    processed_by: string;
-    /**
-     * Processed By Role
-     */
-    processed_by_role: string;
-    reason: RefundReason;
-    /**
-     * Receipt Number
-     */
-    receipt_number: string;
-    /**
-     * Refund Id
-     */
-    refund_id: number;
-    refund_method: RefundMethod;
-    status: RefundStatus;
-};
-
-/**
- * RefundStatus
- */
-export type RefundStatus = 'approved';
-
-/**
  * ResetPasswordRequest
  */
 export type ResetPasswordRequest = {
@@ -2984,32 +2886,6 @@ export type SchemasAdminOrderResponse = {
     order_id: number;
     payment_method: PaymentMethod;
     payment_status: PaymentStatus;
-    /**
-     * Refund Amount
-     */
-    refund_amount?: number | null;
-    /**
-     * Refund Date
-     */
-    refund_date?: string | null;
-    /**
-     * Refund Id
-     */
-    refund_id?: number | null;
-    /**
-     * Refund Notes
-     */
-    refund_notes?: string | null;
-    /**
-     * Refund Processed By
-     */
-    refund_processed_by?: string | null;
-    /**
-     * Refund Processed By Role
-     */
-    refund_processed_by_role?: string | null;
-    refund_reason?: RefundReason | null;
-    refund_status?: RefundStatus | null;
     state: OrderState;
     /**
      * Table Number
@@ -3077,16 +2953,6 @@ export type SchemasCheckoutOrderResponse = {
     order_number: string;
     payment_method: PaymentMethod;
     payment_status: PaymentStatus;
-    /**
-     * Refund Amount
-     */
-    refund_amount?: string | null;
-    /**
-     * Refund Date
-     */
-    refund_date?: string | null;
-    refund_reason?: RefundReason | null;
-    refund_status?: RefundStatus | null;
     /**
      * Service Fee
      */
@@ -4414,60 +4280,6 @@ export type AdminManagementPayCounterOrderResponses = {
 
 export type AdminManagementPayCounterOrderResponse = AdminManagementPayCounterOrderResponses[keyof AdminManagementPayCounterOrderResponses];
 
-export type AdminManagementRefundOrderData = {
-    body: RefundRequest;
-    path: {
-        /**
-         * Order Id
-         */
-        order_id: number;
-    };
-    query?: never;
-    url: '/admin/orders/{order_id}/refund';
-};
-
-export type AdminManagementRefundOrderErrors = {
-    /**
-     * Invalid request
-     */
-    400: ApiErrorResponse;
-    /**
-     * Authentication required
-     */
-    401: ApiErrorResponse;
-    /**
-     * Permission denied
-     */
-    403: ApiErrorResponse;
-    /**
-     * Resource not found
-     */
-    404: ApiErrorResponse;
-    /**
-     * Request conflict
-     */
-    409: ApiErrorResponse;
-    /**
-     * Validation error
-     */
-    422: ApiErrorResponse;
-    /**
-     * Internal server error
-     */
-    500: ApiErrorResponse;
-};
-
-export type AdminManagementRefundOrderError = AdminManagementRefundOrderErrors[keyof AdminManagementRefundOrderErrors];
-
-export type AdminManagementRefundOrderResponses = {
-    /**
-     * Successful Response
-     */
-    200: RefundOrderResponse;
-};
-
-export type AdminManagementRefundOrderResponse = AdminManagementRefundOrderResponses[keyof AdminManagementRefundOrderResponses];
-
 export type AdminManagementUpdateOrderStatusData = {
     body: OrderStatusUpdate;
     path: {
@@ -5054,148 +4866,6 @@ export type AdminManagementToggleProductStatusResponses = {
 };
 
 export type AdminManagementToggleProductStatusResponse = AdminManagementToggleProductStatusResponses[keyof AdminManagementToggleProductStatusResponses];
-
-export type AdminManagementListRefundsData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Date From
-         */
-        date_from?: string | null;
-        /**
-         * Date To
-         */
-        date_to?: string | null;
-        /**
-         * Staff Member
-         */
-        staff_member?: number | null;
-        /**
-         * Reason
-         */
-        reason?: string | null;
-        /**
-         * Refund Status
-         */
-        refund_status?: string | null;
-    };
-    url: '/admin/refunds';
-};
-
-export type AdminManagementListRefundsErrors = {
-    /**
-     * Invalid request
-     */
-    400: ApiErrorResponse;
-    /**
-     * Authentication required
-     */
-    401: ApiErrorResponse;
-    /**
-     * Permission denied
-     */
-    403: ApiErrorResponse;
-    /**
-     * Resource not found
-     */
-    404: ApiErrorResponse;
-    /**
-     * Request conflict
-     */
-    409: ApiErrorResponse;
-    /**
-     * Validation error
-     */
-    422: ApiErrorResponse;
-    /**
-     * Internal server error
-     */
-    500: ApiErrorResponse;
-};
-
-export type AdminManagementListRefundsError = AdminManagementListRefundsErrors[keyof AdminManagementListRefundsErrors];
-
-export type AdminManagementListRefundsResponses = {
-    /**
-     * Response Admin Management List Refunds
-     *
-     * Successful Response
-     */
-    200: Array<RefundResponse>;
-};
-
-export type AdminManagementListRefundsResponse = AdminManagementListRefundsResponses[keyof AdminManagementListRefundsResponses];
-
-export type AdminManagementExportRefundsData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Date From
-         */
-        date_from?: string | null;
-        /**
-         * Date To
-         */
-        date_to?: string | null;
-        /**
-         * Staff Member
-         */
-        staff_member?: number | null;
-        /**
-         * Reason
-         */
-        reason?: string | null;
-        /**
-         * Refund Status
-         */
-        refund_status?: string | null;
-    };
-    url: '/admin/refunds/export';
-};
-
-export type AdminManagementExportRefundsErrors = {
-    /**
-     * Invalid request
-     */
-    400: ApiErrorResponse;
-    /**
-     * Authentication required
-     */
-    401: ApiErrorResponse;
-    /**
-     * Permission denied
-     */
-    403: ApiErrorResponse;
-    /**
-     * Resource not found
-     */
-    404: ApiErrorResponse;
-    /**
-     * Request conflict
-     */
-    409: ApiErrorResponse;
-    /**
-     * Validation error
-     */
-    422: ApiErrorResponse;
-    /**
-     * Internal server error
-     */
-    500: ApiErrorResponse;
-};
-
-export type AdminManagementExportRefundsError = AdminManagementExportRefundsErrors[keyof AdminManagementExportRefundsErrors];
-
-export type AdminManagementExportRefundsResponses = {
-    /**
-     * Refund export
-     */
-    200: Blob | File;
-};
-
-export type AdminManagementExportRefundsResponse = AdminManagementExportRefundsResponses[keyof AdminManagementExportRefundsResponses];
 
 export type ReviewsDeleteReviewReactionData = {
     body?: never;

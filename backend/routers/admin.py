@@ -5,11 +5,9 @@ Admin routes for product management and analytics.
 import os
 import uuid
 import logging
-import csv
 from decimal import Decimal
-from io import StringIO
 from pathlib import Path
-from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response, status, Query, UploadFile, File
+from fastapi import APIRouter, BackgroundTasks, Depends, Request, status, Query, UploadFile, File
 from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import desc, extract, func, or_, select
 from datetime import datetime, timedelta
@@ -17,11 +15,11 @@ from typing import Dict, List, Optional, Union
 
 from database import get_db
 from dependencies import require_role
-from schemas.enums import ADMIN_ROLES, EntityStatus, IngredientType, OrderState, PaymentMethod, PaymentState, PaymentStatus, RefundMethod, RefundStatus, ReviewStatus, UserRole, UserStatus, normalize_admin_role
+from schemas.enums import ADMIN_ROLES, EntityStatus, IngredientType, OrderState, PaymentMethod, PaymentState, PaymentStatus, ReviewStatus, UserRole, UserStatus, normalize_admin_role
 from models import (
     Admin, Product, Cart, CartProduct as CartItem, Customer, ProductImage,
     Category, Order, OrderProduct, Payment, ProductReview,
-    Ingredient, ProductIngredient, Refund, CustomerBillingAddress,
+    Ingredient, ProductIngredient, CustomerBillingAddress,
 )
 from services.auth_service import (
     CHEF_ROLE,
@@ -43,20 +41,12 @@ from schemas.admin import (
     CategoryCreate, CategoryResponse, CategoryUpdate, SalesPerformanceResponse,
     CustomerAdminCreate, CustomerAdminResponse, CustomerAdminUpdate,
     CounterPaymentResponse, KitchenOrderResponse, OrderStatusUpdate,
-    RefundOrderResponse, RefundRequest, RefundResponse,
     StaffAdminCreate, StaffAdminUpdate, AdminResponse,
 )
 from schemas.user import MessageResponse
 from services.invoices import ensure_invoice_for_order
 from services.order_customization import customization_lines
 from services.receipt_email import build_saved_order_receipt_payload, send_purchase_receipt
-from services.refund_receipt import (
-    REFUND_METHOD_TEXT,
-    build_refund_receipt_payload,
-    original_invoice_number,
-    refund_receipt_number,
-    send_refund_email,
-)
 from utils.id_format import format_category_id, format_product_id, parse_category_id, parse_product_id
 from core.errors import AppHTTPException
 
@@ -121,18 +111,6 @@ def _empty_sales_stats() -> SalesStats:
         "quantity_sold": 0,
         "order_count": 0,
     }
-
-
-def _format_money_pt(value: object) -> str:
-    amount = Decimal(str(value or 0)).quantize(Decimal("0.01"))
-    sign = "-" if amount < 0 else ""
-    amount = abs(amount)
-    whole, cents = f"{amount:.2f}".split(".")
-    groups = []
-    while whole:
-        groups.insert(0, whole[-3:])
-        whole = whole[:-3]
-    return f"{sign}{'.'.join(groups)},{cents} €"
 
 
 def _shift_month(date_value: datetime, months: int) -> datetime:
@@ -598,7 +576,6 @@ def _order_fulfillment_method(notes: str | None) -> str:
 
 
 def _order_response(order: Order) -> OrderResponse:
-    latest_refund = _latest_refund(order)
     return OrderResponse(
         order_id=order.order_id,
         customer_id=order.customer_id,
@@ -618,14 +595,6 @@ def _order_response(order: Order) -> OrderResponse:
         table_number=_order_table_number(order.notes),
         canceled_at=order.canceled_at,
         cancellation_origin=order.cancellation_origin,
-        refund_status="Approved" if latest_refund else "None",
-        refund_id=latest_refund.refund_id if latest_refund else None,
-        refund_amount=float(latest_refund.value) if latest_refund else None,
-        refund_reason=latest_refund.reason if latest_refund else None,
-        refund_notes=latest_refund.notes if latest_refund else None,
-        refund_processed_by=latest_refund.admin.name if latest_refund and latest_refund.admin else None,
-        refund_processed_by_role=normalize_admin_role(latest_refund.admin.role) if latest_refund and latest_refund.admin else None,
-        refund_date=latest_refund.refunded_at if latest_refund else None,
         updated_at=order.updated_at,
         total_items=sum(item.quantity for item in order.items),
         items=[
@@ -641,38 +610,6 @@ def _order_response(order: Order) -> OrderResponse:
             )
             for item in order.items
         ],
-    )
-
-
-def _latest_refund(order: Order) -> Refund | None:
-    refunds = sorted(order.refunds or [], key=lambda refund: refund.refunded_at or datetime.min, reverse=True)
-    return refunds[0] if refunds else None
-
-
-def _refund_response(refund: Refund) -> RefundResponse:
-    order = refund.order
-    customer = order.customer if order else None
-    admin = refund.admin
-    customer_name = (
-        f"{customer.name or ''} {customer.last_name or ''}".strip()
-        if customer else "Customer"
-    ) or "Customer"
-    return RefundResponse(
-        refund_id=refund.refund_id,
-        order_id=refund.order_id,
-        receipt_number=refund.receipt_number,
-        order_number=f"ENC-{refund.order_id:06d}",
-        original_invoice_number=original_invoice_number(order),
-        customer_name=customer_name,
-        customer_email=customer.email if customer else "",
-        amount=float(refund.value),
-        reason=refund.reason,
-        notes=refund.notes,
-        processed_by=admin.name if admin else "Staff",
-        processed_by_role=normalize_admin_role(admin.role) if admin else UserRole.MANAGER,
-        date=refund.refunded_at,
-        status=refund.status,
-        refund_method=REFUND_METHOD_TEXT,
     )
 
 
@@ -702,14 +639,16 @@ def _get_order_or_404(db: Session, order_id: int) -> Order:
     return order
 
 
-def _ensure_order_status_allowed(current_admin: Admin, next_status: str | OrderState) -> None:
+def _ensure_order_status_allowed(current_admin: Admin, order: Order, next_status: str | OrderState) -> None:
     next_state = OrderState(next_status)
     if current_admin.role == CHEF_ROLE and next_state not in CHEF_ALLOWED_STATES:
         raise AppHTTPException(status_code=403, error="permission_denied", message="Permission denied.", details={"reason": "request_failed"})
-    if current_admin.role == SUPER_ADMIN_ROLE and next_state == OrderState.REFUNDED:
-        return
     if current_admin.role in {STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE} and next_state not in STAFF_ALLOWED_STATES:
-        raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="invalid_order_state_transition", message="Order cannot be moved to the requested state.", details={"order_id": order.order_id, "next_state": str(next_state), "admin_role": str(current_admin.role)})
+        raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="invalid_order_state_transition", message="Order cannot be moved to the requested state.", details={"order_id": order.order_id, "next_state": str(next_state), "admin_role": str(current_admin.role)})
+    if order.payment_status == PaymentStatus.UNPAID and next_state not in {OrderState.PENDING, OrderState.CANCELLED}:
+        raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="payment_required", message="Counter payment must be confirmed before advancing the order.", details={"order_id": order.order_id, "next_state": str(next_state)})
+    if order.payment_status == PaymentStatus.PAID and next_state == OrderState.CANCELLED:
+        raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="paid_order_cannot_be_cancelled", message="A paid order cannot be cancelled in the system.", details={"order_id": order.order_id})
 
 
 def _is_kitchen_visible(order: Order) -> bool:
@@ -725,6 +664,8 @@ def _is_kitchen_visible(order: Order) -> bool:
 # ─────────────────────────────────────────────────────────────
 def _confirm_counter_payment(db: Session, order: Order, current_admin: Admin) -> bool:
     was_paid = order.payment_status == PaymentStatus.PAID
+    if was_paid:
+        return True
     order.payment_status = PaymentStatus.PAID
 
     now = datetime.utcnow()
@@ -738,7 +679,7 @@ def _confirm_counter_payment(db: Session, order: Order, current_admin: Admin) ->
             method=PaymentMethod.COUNTER,
             state=PaymentState.APPROVED,
             value=order.total,
-            transaction_reference=f"BAL-{now.strftime('%Y%m%d')}-{order.order_id:03d}",
+            transaction_reference=f"COUNTER-{now.strftime('%Y%m%d')}-{order.order_id:03d}",
             paid_at=now,
             confirmed_by_admin_id=current_admin.admin_id,
         ))
@@ -1515,34 +1456,18 @@ def get_order(
 def update_order_status(
     order_id: int,
     body: OrderStatusUpdate,
-    background_tasks: BackgroundTasks,
     current_admin: Admin = Depends(require_role(CHEF_ROLE, STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     order = _get_order_or_404(db, order_id)
     if current_admin.role == CHEF_ROLE and not _is_kitchen_visible(order):
         raise AppHTTPException(status_code=403, error="permission_denied", message="Permission denied.", details={"reason": "request_failed"})
-    _ensure_order_status_allowed(current_admin, body.state)
-    should_confirm_counter_payment = (
-        current_admin.role in {STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE}
-        and order.payment_method == PaymentMethod.COUNTER
-        and order.payment_status == PaymentStatus.UNPAID
-        and body.state not in {OrderState.PENDING, OrderState.REFUNDED}
-    )
-    was_paid = False
-    if should_confirm_counter_payment:
-        was_paid = _confirm_counter_payment(db, order, current_admin)
+    _ensure_order_status_allowed(current_admin, order, body.state)
     order.state = body.state
     order.admin_id = current_admin.admin_id
     order.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(order)
-    if should_confirm_counter_payment and not was_paid:
-        try:
-            receipt_payload = build_saved_order_receipt_payload(order)
-            background_tasks.add_task(send_purchase_receipt, receipt_payload)
-        except Exception:
-            logger.exception("Failed to schedule receipt email for counter order %s.", order.order_id)
     return _order_response(order)
 
 
@@ -1559,9 +1484,11 @@ def pay_counter_order(
 ):
     order = _get_order_or_404(db, order_id)
     if order.payment_method != PaymentMethod.COUNTER:
-        raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="invalid_payment_method", message="Order payment method does not allow counter payment confirmation.", details={"order_id": order.order_id, "payment_method": str(order.payment_method)})
-    if order.payment_status == PaymentStatus.REFUNDED:
-        raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="order_already_refunded", message="Order has already been refunded.", details={"order_id": order.order_id})
+        raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="invalid_payment_method", message="Order payment method does not allow counter payment confirmation.", details={"order_id": order.order_id, "payment_method": str(order.payment_method)})
+    if order.payment_status == PaymentStatus.PAID:
+        return CounterPaymentResponse(message="Counter order marked as paid.", order=_order_response(order))
+    if order.state in {OrderState.CANCELLED, OrderState.DELIVERED}:
+        raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="invalid_order_state_transition", message="This order can no longer be paid at the counter.", details={"order_id": order.order_id, "state": str(order.state)})
 
     was_paid = _confirm_counter_payment(db, order, current_admin)
     if order.state not in KITCHEN_VISIBLE_STATES and order.state not in {OrderState.DELIVERED, OrderState.CANCELLED}:
@@ -1578,138 +1505,6 @@ def pay_counter_order(
             logger.exception("Failed to schedule receipt email for counter order %s.", order.order_id)
 
     return CounterPaymentResponse(message="Counter order marked as paid.", order=_order_response(order))
-
-
-@router.post(
-    "/orders/{order_id}/refund",
-    response_model=RefundOrderResponse,
-    operation_id="admin_management_refund_order",
-)
-def refund_order(
-    order_id: int,
-    body: RefundRequest,
-    background_tasks: BackgroundTasks,
-    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
-    db: Session = Depends(get_db),
-):
-    order = _get_order_or_404(db, order_id)
-    if order.payment_status == PaymentStatus.REFUNDED:
-        raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="order_already_refunded", message="Order has already been refunded.", details={"order_id": order.order_id})
-    if order.payment_status != PaymentStatus.PAID:
-        raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="order_not_paid", message="Only paid orders can be refunded.", details={"order_id": order.order_id, "payment_status": str(order.payment_status)})
-    if Decimal(str(body.amount)) > Decimal(str(order.total)):
-        raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="refund_amount_exceeds_order_total", message="Refund amount cannot exceed order total.", details={"order_id": order.order_id, "amount": str(body.amount), "total": str(order.total)})
-
-    order.payment_status = PaymentStatus.REFUNDED
-    order.state = OrderState.REFUNDED
-    order.admin_id = current_admin.admin_id
-    order.updated_at = datetime.utcnow()
-    if order.payment:
-        order.payment.state = PaymentState.REFUNDED
-
-    refund = Refund(
-        order_id=order.order_id,
-        payment_id=order.payment.payment_id if order.payment else None,
-        admin_id=current_admin.admin_id,
-        value=Decimal(str(body.amount)).quantize(Decimal("0.01")),
-        reason=body.reason,
-        notes=body.notes.strip(),
-        status=RefundStatus.APPROVED,
-        method=RefundMethod.ORIGINAL_PAYMENT_METHOD,
-        receipt_number=f"RR-TMP-{uuid.uuid4().hex[:12].upper()}",
-        refunded_at=datetime.utcnow(),
-    )
-    db.add(refund)
-    db.flush()
-    refund.receipt_number = refund_receipt_number(refund)
-    db.commit()
-    db.refresh(refund)
-    db.refresh(order)
-
-    try:
-        receipt_payload = build_refund_receipt_payload(refund)
-        background_tasks.add_task(send_refund_email, receipt_payload)
-    except Exception:
-        logger.exception("Failed to schedule refund email for order %s.", order.order_id)
-
-    return RefundOrderResponse(message="Order refunded.", order=_order_response(order))
-
-
-@router.get(
-    "/refunds",
-    response_model=List[RefundResponse],
-    operation_id="admin_management_list_refunds",
-)
-def list_refunds(
-    date_from: Optional[str] = Query(None),
-    date_to: Optional[str] = Query(None),
-    staff_member: Optional[int] = Query(None),
-    reason: Optional[str] = Query(None),
-    refund_status: Optional[str] = Query(None),
-    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
-    db: Session = Depends(get_db),
-):
-    stmt = select(Refund).options(
-        joinedload(Refund.order).joinedload(Order.customer),
-        joinedload(Refund.admin),
-    )
-    if date_from:
-        parsed_date_from = _parse_date_param(date_from, datetime.utcnow()).date()
-        stmt = stmt.where(Refund.refunded_at >= datetime.combine(parsed_date_from, datetime.min.time()))
-    if date_to:
-        parsed_date_to = _parse_date_param(date_to, datetime.utcnow()).date()
-        stmt = stmt.where(Refund.refunded_at <= datetime.combine(parsed_date_to, datetime.max.time()))
-    if staff_member:
-        stmt = stmt.where(Refund.admin_id == staff_member)
-    if reason:
-        stmt = stmt.where(Refund.reason == reason)
-    if refund_status:
-        stmt = stmt.where(Refund.status == refund_status)
-
-    refunds = db.scalars(stmt.order_by(Refund.refunded_at.desc())).unique().all()
-    return [_refund_response(refund) for refund in refunds]
-
-
-@router.get(
-    "/refunds/export",
-    response_class=Response,
-    operation_id="admin_management_export_refunds",
-    responses={
-        200: {
-            "description": "Refund export",
-            "content": {"text/csv": {"schema": {"type": "string", "format": "binary"}}},
-        }
-    },
-)
-def export_refunds(
-    date_from: Optional[str] = Query(None),
-    date_to: Optional[str] = Query(None),
-    staff_member: Optional[int] = Query(None),
-    reason: Optional[str] = Query(None),
-    refund_status: Optional[str] = Query(None),
-    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
-    db: Session = Depends(get_db),
-):
-    refunds = list_refunds(date_from, date_to, staff_member, reason, refund_status, current_admin, db)
-    output = StringIO()
-    writer = csv.writer(output)
-    writer.writerow(["Refund ID", "Order ID", "Customer", "Amount", "Reason", "Processed By", "Date", "Status"])
-    for refund in refunds:
-        writer.writerow([
-            refund.refund_id,
-            refund.order_id,
-            refund.customer_name,
-            _format_money_pt(refund.amount),
-            refund.reason,
-            refund.processed_by,
-            refund.date.strftime("%Y-%m-%d %H:%M"),
-            refund.status,
-        ])
-    return Response(
-        content=output.getvalue(),
-        media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=\"bonefree-refunds.csv\""},
-    )
 
 
 # CUSTOMERS

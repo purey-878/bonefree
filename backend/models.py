@@ -20,9 +20,6 @@ from schemas.enums import (
     PaymentState,
     PaymentStatus,
     ProductCustomizationOptionType,
-    RefundMethod,
-    RefundReason,
-    RefundStatus,
     ReviewReactionType,
     ReviewStatus,
     SiteSettingKey,
@@ -424,8 +421,6 @@ class Order(AppBaseModel):
     admin: Mapped["User"] = relationship("User", foreign_keys=[admin_id])
     items: Mapped[List["OrderProduct"]] = relationship("OrderProduct", back_populates="order", cascade="all, delete-orphan", lazy='selectin')
     payment: Mapped["Payment"] = relationship("Payment", back_populates="order", uselist=False, cascade="all, delete-orphan", lazy='joined')
-    # Parent-side 0..N: an order may exist without any refunds.
-    refunds: Mapped[List["Refund"]] = relationship("Refund", back_populates="order", cascade="all, delete-orphan", lazy='selectin')
     invoice: Mapped["Invoice"] = relationship("Invoice", back_populates="order", uselist=False, cascade="all, delete-orphan")
 
 
@@ -557,37 +552,3 @@ class Payment(AppBaseModel):
 
     order: Mapped[Order] = relationship("Order", back_populates="payment")
     confirmed_by: Mapped["User"] = relationship("User")
-    # Parent-side 0..N: a payment may exist without any refunds.
-    refunds: Mapped[List[Refund]] = relationship("Refund", back_populates="payment")
-
-
-class Refund(AppBaseModel):
-    __tablename__ = 'refund'
-
-    refund_id = synonym("id")
-
-    order_id: Mapped[int] = mapped_column(Integer, ForeignKey('customer_order.id'), nullable=False, index=True)
-    payment_id: Mapped[int] = mapped_column(Integer, ForeignKey('payment.id'), nullable=True)
-    admin_id: Mapped[int] = mapped_column(Integer, ForeignKey('user.id'), nullable=False, index=True)
-    value: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
-    reason: Mapped[RefundReason] = mapped_column(
-        SAEnum(RefundReason, values_callable=enum_values),
-        nullable=False,
-    )
-    notes: Mapped[str] = mapped_column(Text, nullable=False)
-    status: Mapped[RefundStatus] = mapped_column(
-        SAEnum(RefundStatus, values_callable=enum_values),
-        default=RefundStatus.APPROVED,
-        nullable=False,
-    )
-    method: Mapped[RefundMethod] = mapped_column(
-        SAEnum(RefundMethod, values_callable=enum_values),
-        nullable=False,
-        default=RefundMethod.ORIGINAL_PAYMENT_METHOD,
-    )
-    receipt_number: Mapped[str] = mapped_column(String(40), nullable=False, unique=True, index=True)
-    refunded_at: Mapped[datetime] = mapped_column(DateTime, default=naive_utc_now, nullable=False, index=True)
-
-    order: Mapped[Order] = relationship("Order", back_populates="refunds")
-    payment: Mapped[Payment] = relationship("Payment", back_populates="refunds")
-    admin: Mapped["User"] = relationship("User")

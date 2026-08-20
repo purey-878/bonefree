@@ -13,7 +13,6 @@ from typing import Any
 HTTP_METHODS = {"get", "post", "put", "patch", "delete", "options", "head", "trace"}
 BINARY_RESPONSES = {
     ("/checkout/orders/{order_id}/receipt.pdf", "get", "application/pdf"),
-    ("/admin/refunds/export", "get", "text/csv"),
 }
 FORBIDDEN_SCHEMA_PROPERTIES = {
     "calorias",
