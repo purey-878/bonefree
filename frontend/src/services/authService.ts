@@ -1,175 +1,108 @@
-import { API_BASE, authHeaders } from "./api";
-import { translateApiError, translateFieldError, translateUserMessage } from "../utils/messages";
-import type { ApiErrorField } from "../utils/messages";
-import type { User, RegisterRequest, ProfileUpdateRequest } from "../types/user";
-import type { OrderResponse } from "../types/checkout";
+import {
+  authForgotPassword,
+  authGetMe,
+  authLogin,
+  authRegister,
+  authResetPassword,
+  authVerifyPasswordOtp,
+  profileGetPurchaseHistory,
+  profileUpdateProfile,
+} from '../api/generated';
+import type {
+  ProfileGetPurchaseHistoryData,
+  TokenResponse,
+  UserProfileUpdate,
+} from '../api/generated';
+import { apiData, customerApiClient, publicApiClient } from '../api/clients';
+import { toDomain, toDto } from '../api/mappers';
+import type { OrderResponse } from '../types/checkout';
+import type { ProfileUpdateRequest, RegisterRequest, User } from '../types/user';
 
 export interface AuthResponse {
-  access_token: string;
-  token_type: string;
+  accessToken: string;
+  tokenType: string;
   user: User;
 }
 
-export interface VerifyOtpResponse {
-  message: string;
-  reset_token: string;
-}
+export interface VerifyOtpResponse { message: string; resetToken: string; }
 
-type ApiErrorResponse = {
-  error?: string;
-  message?: string;
-  detail?: string | { error?: string; message?: string; detail?: string };
-  details?: {
-    fields?: ApiErrorField[];
-  };
-};
-
-async function parseError(response: Response, fallback: string): Promise<Error> {
-  try {
-    const payload = (await response.json()) as ApiErrorResponse;
-
-    if (typeof payload.detail === "object" && payload.detail !== null) {
-      return new Error(
-        translateUserMessage(
-          payload.detail.message || payload.detail.detail || payload.detail.error || fallback,
-        ),
-      );
-    }
-
-    const firstFieldError = payload.details?.fields?.[0];
-    if (firstFieldError) {
-      return new Error(translateFieldError(firstFieldError));
-    }
-
-    return new Error(translateApiError(payload.error, translateUserMessage(payload.message || payload.detail || fallback)));
-  } catch {
-    return new Error(translateUserMessage(fallback));
-  }
+function mapAuthResponse(dto: TokenResponse): AuthResponse {
+  return toDomain<AuthResponse>(dto);
 }
 
 export const authService = {
   async login(email: string, password: string): Promise<AuthResponse> {
-    const response = await fetch(`${API_BASE}/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-
-    if (!response.ok) {
-      throw await parseError(response, "Login failed");
-    }
-
-    return response.json();
+    const dto = await apiData(authLogin({
+      body: { email, password },
+      client: publicApiClient,
+      throwOnError: true,
+    }));
+    return mapAuthResponse(dto);
   },
 
   async register(data: RegisterRequest): Promise<AuthResponse> {
-    const response = await fetch(`${API_BASE}/register`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    const dto = await apiData(authRegister({
+      body: {
         email: data.email,
         password: data.password,
-        name: data.nome,
-        last_name: data.apelido,
-        phone: data.telefone,
-        tax_id: data.nif,
-      }),
-    });
-
-    if (!response.ok) {
-      throw await parseError(response, "Registration failed");
-    }
-
-    return response.json();
+        name: data.name,
+        last_name: data.lastName,
+        phone: data.phone,
+        tax_id: data.taxId,
+      },
+      client: publicApiClient,
+      throwOnError: true,
+    }));
+    return mapAuthResponse(dto);
   },
 
   async requestPasswordReset(email: string): Promise<{ message: string }> {
-    const response = await fetch(`${API_BASE}/password/forgot`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
-    });
-
-    if (!response.ok) {
-      throw await parseError(response, "Unable to send reset code");
-    }
-
-    return response.json();
+    return apiData(authForgotPassword({
+      body: { email },
+      client: publicApiClient,
+      throwOnError: true,
+    }));
   },
 
   async verifyPasswordOtp(email: string, code: string): Promise<VerifyOtpResponse> {
-    const response = await fetch(`${API_BASE}/password/verify-otp`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, code }),
-    });
-
-    if (!response.ok) {
-      throw await parseError(response, "Invalid reset code");
-    }
-
-    return response.json();
+    const dto = await apiData(authVerifyPasswordOtp({
+      body: { email, code },
+      client: publicApiClient,
+      throwOnError: true,
+    }));
+    return toDomain<VerifyOtpResponse>(dto);
   },
 
   async resetPassword(email: string, resetToken: string, newPassword: string): Promise<{ message: string }> {
-    const response = await fetch(`${API_BASE}/password/reset`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email,
-        reset_token: resetToken,
-        new_password: newPassword,
-      }),
-    });
-
-    if (!response.ok) {
-      throw await parseError(response, "Unable to reset password");
-    }
-
-    return response.json();
+    return apiData(authResetPassword({
+      body: { email, reset_token: resetToken, new_password: newPassword },
+      client: publicApiClient,
+      throwOnError: true,
+    }));
   },
 
   async getCurrentUser(): Promise<User> {
-    const response = await fetch(`${API_BASE}/me`, {
-      headers: authHeaders(),
-    });
-
-    if (!response.ok) {
-      throw new Error("Não foi possível carregar os dados do utilizador.");
-    }
-
-    return response.json();
+    return toDomain<User>(await apiData(authGetMe({
+      client: customerApiClient,
+      throwOnError: true,
+    })));
   },
 
   async updateProfile(data: ProfileUpdateRequest): Promise<User> {
-    const response = await fetch(`${API_BASE}/profile`, {
-      method: "PUT",
-      headers: authHeaders(),
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      throw await parseError(response, "Failed to update profile");
-    }
-
-    return response.json();
+    const body = toDto<UserProfileUpdate>(data);
+    return toDomain<User>(await apiData(profileUpdateProfile({
+      body,
+      client: customerApiClient,
+      throwOnError: true,
+    })));
   },
 
   async getPurchaseHistory(filters: Record<string, string>): Promise<OrderResponse[]> {
-    const params = new URLSearchParams();
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value) params.append(key, value);
-    });
-
-    const query = params.toString();
-    const response = await fetch(`${API_BASE}/profile/orders${query ? `?${query}` : ""}`, {
-      headers: authHeaders(),
-    });
-
-    if (!response.ok) {
-      throw await parseError(response, "Failed to fetch purchase history");
-    }
-
-    return response.json();
+    const query = toDto<NonNullable<ProfileGetPurchaseHistoryData['query']>>(filters);
+    return toDomain<OrderResponse[]>(await apiData(profileGetPurchaseHistory({
+      query,
+      client: customerApiClient,
+      throwOnError: true,
+    })));
   },
 };

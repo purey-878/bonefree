@@ -31,8 +31,8 @@ function applySiteTheme(theme: SiteThemeResponse) {
   root.style.setProperty("--glass-bg", colors.surface);
   root.style.setProperty("--glass-bg-strong", colors.surface);
 
-  document.body.dataset.siteTheme = theme.theme_id;
-  document.body.dataset.seasonalEffect = String(theme.decoration_enabled);
+  document.body.dataset.siteTheme = theme.themeId;
+  document.body.dataset.seasonalEffect = String(theme.decorationEnabled);
   document.body.dataset.themeButtonStyle = ui.buttonStyle;
 
   const headingFont = config.fonts?.heading;

@@ -112,8 +112,8 @@
   transition: width 0.35s ease;
 }
 
-.order-status-bar.status-pendente,
-.order-status-mini.status-pendente {
+.order-status-bar.status-pending,
+.order-status-mini.status-pending {
   --order-status-bg: #fff7ed;
   --order-status-border: #fb923c;
   --order-status-accent: #c2410c;
@@ -121,8 +121,8 @@
   --order-status-progress-bg: #fed7aa;
 }
 
-.order-status-bar.status-confirmada,
-.order-status-mini.status-confirmada {
+.order-status-bar.status-confirmed,
+.order-status-mini.status-confirmed {
   --order-status-bg: #eff6ff;
   --order-status-border: #60a5fa;
   --order-status-accent: #1d4ed8;
@@ -130,8 +130,8 @@
   --order-status-progress-bg: #bfdbfe;
 }
 
-.order-status-bar.status-em_preparacao,
-.order-status-mini.status-em_preparacao {
+.order-status-bar.status-in_preparation,
+.order-status-mini.status-in_preparation {
   --order-status-bg: #fffbeb;
   --order-status-border: #f59e0b;
   --order-status-accent: #b45309;
@@ -139,8 +139,8 @@
   --order-status-progress-bg: #fde68a;
 }
 
-.order-status-bar.status-pronta,
-.order-status-mini.status-pronta {
+.order-status-bar.status-ready,
+.order-status-mini.status-ready {
   --order-status-bg: #f0fdf4;
   --order-status-border: #22c55e;
   --order-status-accent: #15803d;
@@ -148,8 +148,8 @@
   --order-status-progress-bg: #bbf7d0;
 }
 
-.order-status-bar.status-entregue,
-.order-status-mini.status-entregue,
+.order-status-bar.status-delivered,
+.order-status-mini.status-delivered,
 .order-status-bar.status-servido,
 .order-status-mini.status-servido {
   --order-status-bg: #f4f4f5;
@@ -159,10 +159,10 @@
   --order-status-progress-bg: #d4d4d8;
 }
 
-.order-status-bar.status-cancelada,
-.order-status-mini.status-cancelada,
-.order-status-bar.status-reembolsada,
-.order-status-mini.status-reembolsada {
+.order-status-bar.status-cancelled,
+.order-status-mini.status-cancelled,
+.order-status-bar.status-refunded,
+.order-status-mini.status-refunded {
   --order-status-bg: #fef2f2;
   --order-status-border: #ef4444;
   --order-status-accent: #991b1b;

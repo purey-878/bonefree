@@ -28,7 +28,7 @@ import { rememberActiveOrder } from "../components/orderStatusStorage"
 import type { CartItem, GuestCartItem } from "../types/cart"
 import type { Coupon, CouponValidation, FulfillmentMethod, PaymentMethod } from "../types/checkout"
 import type { Product } from "../types/product"
-import { resolveProductImageUrl, useApiImageFallback } from "../utils/imageFallback"
+import { applyApiImageFallback, resolveProductImageUrl } from "../utils/imageFallback"
 import { validateEmail, validateName, validateNif } from "../utils/validation"
 import type { FieldErrors } from "../utils/validation"
 import { formatEuro } from "../utils/money"
@@ -38,7 +38,7 @@ interface CheckoutForm {
   firstName: string
   lastName: string
   email: string
-  nif: string
+  taxId: string
   tableNumber: string
   promoCode: string
 }
@@ -65,7 +65,7 @@ const initialForm: CheckoutForm = {
   firstName: "",
   lastName: "",
   email: "",
-  nif: "",
+  taxId: "",
   tableNumber: "",
   promoCode: "",
 }
@@ -79,7 +79,7 @@ const initialCardForm: CardForm = {
 
 const VAT_RATE = 0.13
 const MAX_TABLE_NUMBER = 30
-const TERMINAL_ORDER_STATUSES = new Set(["entregue", "servido", "cancelada", "reembolsada"])
+const TERMINAL_ORDER_STATUSES = new Set(["delivered", "delivered", "cancelled", "refunded"])
 
 const paymentOptions: Array<{ value: PaymentMethod; label: string; icon: typeof CreditCard }> = [
   { value: "cash", label: "Pagar ao balcão", icon: Banknote },
@@ -119,7 +119,7 @@ function getUpsellLabel(product: Product) {
   const name = normalizeSearchText(product.name)
   const category = normalizeSearchText([product.category, ...(product.tags ?? [])])
   const searchable = `${name} ${category}`
-  const isAlcoholic = Boolean(product.contains_alcohol) || blockedDrinkKeywords.some((keyword) => searchable.includes(keyword))
+  const isAlcoholic = Boolean(product.containsAlcohol) || blockedDrinkKeywords.some((keyword) => searchable.includes(keyword))
 
   if (!isAlcoholic && upsellGroups[1].keywords.some((keyword) => searchable.includes(keyword))) {
     return "Bebida"
@@ -140,7 +140,7 @@ function getUpsellLabel(product: Product) {
 }
 
 function isCartItem(item: CartItem | GuestCartItem): item is CartItem {
-  return "nome" in item
+  return "name" in item
 }
 
 function getFulfillmentLabel(method: FulfillmentMethod) {
@@ -248,11 +248,11 @@ function Checkout() {
     if (!user) return
     setForm((current) => ({
       ...current,
-      firstName: user.nome ?? "",
-      lastName: user.apelido ?? "",
+      firstName: user.name ?? "",
+      lastName: user.lastName ?? "",
       email: user.email ?? "",
 
-      nif: user.nif ?? "",
+      taxId: user.taxId ?? "",
     }))
   }, [user])
 
@@ -263,26 +263,26 @@ function Checkout() {
   }, [fulfillment])
 
   const items = useMemo<CartItem[]>(
-    () => cart?.itens?.flatMap((item) => isCartItem(item) ? [item] : []) ?? [],
+    () => cart?.items?.flatMap((item) => isCartItem(item) ? [item] : []) ?? [],
     [cart],
   )
   const subtotal = Number(cart?.total ?? 0)
-  const discount = Math.min(subtotal, Number(appliedCoupon?.desconto ?? 0))
+  const discount = Math.min(subtotal, Number(appliedCoupon?.discount ?? 0))
   const total = Math.max(0, subtotal - discount)
   const vatAmount = total - total / (1 + VAT_RATE)
   const subtotalExVat = total - vatAmount
   const checkoutUpsells = useMemo(() => {
-    const cartProductIds = new Set(items.map((item) => item.id_produto))
+    const cartProductIds = new Set(items.map((item) => item.productId))
     const candidates = upsellProducts
       .map((product) => ({ product, label: getUpsellLabel(product) }))
       .filter(({ product, label }) => {
-        const hasStock = product.stock > 0 && product.available !== false && !product.unavailable_due_to_inactive_base
+        const hasStock = product.stock > 0 && product.available !== false && !product.unavailableDueToInactiveBase
         return hasStock && !cartProductIds.has(product.id) && Boolean(label)
       })
       .sort((a, b) => {
         const aGroup = upsellGroups.findIndex((group) => group.label === a.label)
         const bGroup = upsellGroups.findIndex((group) => group.label === b.label)
-        return aGroup - bGroup || a.product.price - b.product.price
+        return aGroup - bGroup || (a.product.price ?? 0) - (b.product.price ?? 0)
       })
 
     const sauces = candidates.filter((item) => item.label === "Molho extra").slice(0, 2)
@@ -320,7 +320,7 @@ function Checkout() {
       firstName: validateName,
       lastName: validateName,
       email: validateEmail,
-      nif: (input) => validateNif(input),
+      taxId: (input) => validateNif(input),
     }
     const nextError = validators[field]?.(nextValue) ?? ""
     setFieldErrors((current) => ({ ...current, [field]: nextError || undefined }))
@@ -345,11 +345,11 @@ function Checkout() {
     const firstNameError = validateName(form.firstName)
     const lastNameError = validateName(form.lastName)
     const emailError = validateEmail(form.email)
-    const nifError = validateNif(form.nif)
+    const nifError = validateNif(form.taxId)
     if (firstNameError) errors.firstName = firstNameError
     if (lastNameError) errors.lastName = lastNameError
     if (emailError) errors.email = emailError
-    if (nifError) errors.nif = nifError
+    if (nifError) errors.taxId = nifError
 
     const tableValue = form.tableNumber.trim()
     const tableNum = Number(tableValue)
@@ -372,11 +372,11 @@ function Checkout() {
   }
 
   const handleQuantityChange = async (item: CartItem, quantity: number) => {
-    const key = `${item.cart_log_id}-${item.id_produto}`
+    const key = `${item.cartProductId}-${item.productId}`
     try {
       setCartBusyKey(key)
       setFormError(null)
-      await updateQuantity(item.id_produto, quantity, item.stock, item.cart_log_id, item.customizacao)
+      await updateQuantity(item.productId, quantity, item.stock, item.cartProductId, item.customization)
       if (appliedCoupon) setAppliedCoupon(null)
     } catch (err) {
       const message = err instanceof Error ? err.message : "Não foi possível atualizar este artigo."
@@ -388,11 +388,11 @@ function Checkout() {
   }
 
   const handleRemoveItem = async (item: CartItem) => {
-    const key = `${item.cart_log_id}-${item.id_produto}`
+    const key = `${item.cartProductId}-${item.productId}`
     try {
       setCartBusyKey(key)
       setFormError(null)
-      await removeItem(item.id_produto, item.cart_log_id, item.customizacao)
+      await removeItem(item.productId, item.cartProductId, item.customization)
       if (appliedCoupon) setAppliedCoupon(null)
     } catch (err) {
       const message = err instanceof Error ? err.message : "Não foi possível remover este artigo."
@@ -458,35 +458,35 @@ function Checkout() {
       setReceiptDownloadError(null)
       const order = await checkoutService.createOrder({
         customer: {
-          first_name: form.firstName.trim(),
-          last_name: form.lastName.trim(),
+          firstName: form.firstName.trim(),
+          lastName: form.lastName.trim(),
           email: form.email.trim(),
-          nif: form.nif.trim() || null,
-          table_number: fulfillment === "dine_in" && form.tableNumber.trim() ? parseInt(form.tableNumber, 10) : null,
+          taxId: form.taxId.trim() || null,
+          tableNumber: fulfillment === "dine_in" && form.tableNumber.trim() ? parseInt(form.tableNumber, 10) : null,
         },
-        fulfillment_method: fulfillment,
-        payment_method: payment,
-        promo_code: appliedCoupon?.codigo ?? null,
+        fulfillmentMethod: fulfillment,
+        paymentMethod: payment,
+        promoCode: appliedCoupon?.code ?? null,
         items: items.map((item) => ({
-          id_produto: item.id_produto,
-          quantidade: item.quantidade,
-          customizacao: item.customizacao ?? null,
+          productId: item.productId,
+          quantity: item.quantity,
+          customization: item.customization ?? null,
         })),
       })
       setConfirmedOrder({
         items,
         subtotal,
         status: order.status,
-        fulfillmentMethod: order.metodo_entrega,
-        paymentMethod: order.metodo_pagamento,
+        fulfillmentMethod: order.deliveryMethod,
+        paymentMethod: payment,
         customer: { ...form },
         createdAt: new Date().toISOString(),
-        orderId: order.id_pedido,
+        orderId: order.orderId,
       })
-      setOrderNumber(order.numero_pedido)
-      setEarnedCoupon(order.cupom_gerado ?? null)
+      setOrderNumber(order.orderNumber)
+      setEarnedCoupon(order.generatedCoupon ?? null)
       setShowStatusPopup(true)
-      rememberActiveOrder(order.id_pedido)
+      rememberActiveOrder(order.orderId)
       checkoutService.getHistory()
         .then((history) => {
           setActiveOrderCount(history.filter((historyOrder) => !TERMINAL_ORDER_STATUSES.has(historyOrder.status)).length)
@@ -496,7 +496,7 @@ function Checkout() {
           setActiveOrderCount(null)
         })
       cartService.finishCheckout()
-      if (!user?.nif && form.nif.trim()) {
+      if (!user?.taxId && form.taxId.trim()) {
         await refreshUser()
       }
       toast.success("Pedido efetuado com sucesso.")
@@ -551,7 +551,7 @@ function Checkout() {
   if (orderNumber) {
     const confirmationItems = confirmedOrder?.items ?? items
     const confirmationSubtotal = confirmedOrder?.subtotal ?? subtotal
-    const confirmationDiscount = Math.min(confirmationSubtotal, Number(appliedCoupon?.desconto ?? 0))
+    const confirmationDiscount = Math.min(confirmationSubtotal, Number(appliedCoupon?.discount ?? 0))
     const confirmationTotal = Math.max(0, confirmationSubtotal - confirmationDiscount)
     const confirmationCustomer = confirmedOrder?.customer ?? form
     const confirmationFulfillment = confirmedOrder?.fulfillmentMethod ?? fulfillment
@@ -562,14 +562,14 @@ function Checkout() {
       hour: "numeric",
       minute: "2-digit",
     })
-    const rawStatus = confirmedOrder?.status ?? "confirmada"
+    const rawStatus = confirmedOrder?.status ?? "confirmed"
     const readableStatus = ({
-      pendente: "com pagamento pendente",
-      confirmada: "recebido",
-      em_preparacao: "em preparação",
-      pronta: "pronto",
-      entregue: "entregue",
-      cancelada: "cancelado",
+      pending: "com pagamento pendente",
+      confirmed: "recebido",
+      in_preparation: "em preparação",
+      ready: "pronto",
+      delivered: "entregue",
+      cancelled: "cancelado",
     } as Record<string, string>)[rawStatus] ?? rawStatus.replace(/_/g, " ")
     const isCounterPayment = confirmationPayment === "cash"
     const paymentLabel = getPaymentMethodLabel(confirmationPayment)
@@ -585,7 +585,7 @@ function Checkout() {
       : confirmationFulfillment === "takeaway"
         ? "Balcão para levar"
         : "Entrega ao balcão"
-    const imageForItem = (src?: string) => {
+    const imageForItem = (src?: string | null) => {
       return resolveProductImageUrl(src)
     }
     const paymentNote = confirmationPayment === "cash"
@@ -738,20 +738,20 @@ function Checkout() {
                   <div className={`confirmation-summary-content confirmation-summary-premium-content ${showOrderSummary ? "open" : ""}`} id="confirmation-order-summary">
                     <div className="confirmation-items">
                       {confirmationItems.map((item) => {
-                        const customizationLines = customizationSummary(item.customizacao)
+                        const customizationLines = customizationSummary(item.customization)
                         return (
-                          <div key={`${item.cart_log_id}-${item.id_produto}`} className="confirmation-item confirmation-item-premium">
+                          <div key={`${item.cartProductId}-${item.productId}`} className="confirmation-item confirmation-item-premium">
                             <img
-                              src={imageForItem(item.caminho_imagem)}
+                              src={imageForItem(item.imagePath)}
                               alt=""
                               onError={(event) => {
-                                useApiImageFallback(event.currentTarget)
+                                applyApiImageFallback(event.currentTarget)
                               }}
                             />
                             <div className="item-details">
                               <div>
-                                <p className="item-name">{item.nome}</p>
-                                <p className="item-meta">Qtd. {item.quantidade}</p>
+                                <p className="item-name">{item.name}</p>
+                                <p className="item-meta">Qtd. {item.quantity}</p>
                                 {customizationLines.length > 0 && (
                                   <p className="item-customizations">{customizationLines.join(" | ")}</p>
                                 )}
@@ -799,7 +799,7 @@ function Checkout() {
                       <strong>Recibo enviado</strong>
                       <span >O recibo do pedido foi enviado para  {confirmationCustomer.email}.</span>
                     </div>
-                    
+
                     <div className="trust-card">
                       <ShoppingBag size={22} strokeWidth={2.4} />
                       <strong>Atualizações da cozinha</strong>
@@ -948,7 +948,7 @@ function Checkout() {
                 const busy = upsellBusyId === product.id
                 return (
                   <article key={product.id} className="checkout-upsell-item">
-                    <img src={checkoutImageUrl(product.image)} alt="" onError={(event) => useApiImageFallback(event.currentTarget)} />
+                    <img src={checkoutImageUrl(product.image)} alt="" onError={(event) => applyApiImageFallback(event.currentTarget)} />
                     <div>
                       <span>{label}</span>
                       <strong>{product.name}</strong>
@@ -1046,17 +1046,17 @@ function Checkout() {
                   <label>
                     NIF (opcional)
                     <input
-                      value={form.nif}
-                      onChange={(e) => updateForm("nif", e.target.value)}
-                      className={fieldErrors.nif ? "is-invalid" : ""}
+                      value={form.taxId}
+                      onChange={(e) => updateForm("taxId", e.target.value)}
+                      className={fieldErrors.taxId ? "is-invalid" : ""}
                       autoComplete="off"
                       inputMode="numeric"
                       maxLength={9}
                       placeholder="Opcional"
-                      aria-invalid={Boolean(fieldErrors.nif)}
+                      aria-invalid={Boolean(fieldErrors.taxId)}
                     />
-                    {fieldErrors.nif && (
-                      <small className="field-error">{fieldErrors.nif}</small>
+                    {fieldErrors.taxId && (
+                      <small className="field-error">{fieldErrors.taxId}</small>
                     )}
                   </label>
                 </div>
@@ -1064,7 +1064,7 @@ function Checkout() {
                 <div className="checkout-fiscal-note">
                   <ReceiptText size={17} strokeWidth={2.4} aria-hidden="true" />
                   <p>
-                    Quer que a morada apareca na fatura/recibo? Adicione ou atualize a morada de faturacao no{" "}
+                    Quer que a morada apareça na fatura/recibo? Adicione ou atualize a morada de faturação no{" "}
                     <Link to="/profile?tab=personal">perfil</Link> antes de finalizar o pedido.
                   </p>
                 </div>
@@ -1191,26 +1191,26 @@ function Checkout() {
 
                 <div className="checkout-summary-items checkout-mini-cart">
                   {items.map((item) => {
-                    const customizationLines = customizationSummary(item.customizacao)
-                    const busy = cartBusyKey === `${item.cart_log_id}-${item.id_produto}`
+                    const customizationLines = customizationSummary(item.customization)
+                    const busy = cartBusyKey === `${item.cartProductId}-${item.productId}`
                     return (
-                      <div key={`${item.cart_log_id}-${item.id_produto}`} className="checkout-summary-item checkout-summary-item-detailed checkout-mini-cart-item">
-                        <img src={checkoutImageUrl(item.caminho_imagem)} alt={item.nome} onError={(event) => useApiImageFallback(event.currentTarget)} />
+                      <div key={`${item.cartProductId}-${item.productId}`} className="checkout-summary-item checkout-summary-item-detailed checkout-mini-cart-item">
+                        <img src={checkoutImageUrl(item.imagePath)} alt={item.name} onError={(event) => applyApiImageFallback(event.currentTarget)} />
                         <div className="checkout-mini-cart-copy">
                           <span>
-                            {item.nome}
+                            {item.name}
                             {customizationLines.length > 0 && (
                               <small>{customizationLines.join(" | ")}</small>
                             )}
                           </span>
                           <div className="checkout-mini-cart-actions">
-                            <div className="checkout-qty-control" aria-label={`Quantidade de ${item.nome}`}>
-                              <button type="button" onClick={() => handleQuantityChange(item, item.quantidade - 1)} disabled={busy} aria-label={`Diminuir ${item.nome}`}>-</button>
-                              <strong>{busy ? <LoaderCircle className="checkout-item-spinner" size={15} aria-hidden="true" /> : item.quantidade}</strong>
-                              <button type="button" onClick={() => handleQuantityChange(item, item.quantidade + 1)} disabled={busy} aria-label={`Aumentar ${item.nome}`}>+</button>
+                            <div className="checkout-qty-control" aria-label={`Quantidade de ${item.name}`}>
+                              <button type="button" onClick={() => handleQuantityChange(item, item.quantity - 1)} disabled={busy} aria-label={`Diminuir ${item.name}`}>-</button>
+                              <strong>{busy ? <LoaderCircle className="checkout-item-spinner" size={15} aria-hidden="true" /> : item.quantity}</strong>
+                              <button type="button" onClick={() => handleQuantityChange(item, item.quantity + 1)} disabled={busy} aria-label={`Aumentar ${item.name}`}>+</button>
                             </div>
                             <strong>{formatEuro(item.subtotal)}</strong>
-                            <button type="button" className="checkout-remove-item" onClick={() => handleRemoveItem(item)} disabled={busy} aria-label={`Remover ${item.nome}`}>
+                            <button type="button" className="checkout-remove-item" onClick={() => handleRemoveItem(item)} disabled={busy} aria-label={`Remover ${item.name}`}>
                               <Trash2 size={15} aria-hidden="true" />
                             </button>
                           </div>
@@ -1252,7 +1252,7 @@ function Checkout() {
                     aria-controls="checkout-coupon-entry"
                   >
                     <span><Sparkles size={16} strokeWidth={2.4} /> Cupão?</span>
-                    <strong>{appliedCoupon ? `-${formatEuro(appliedCoupon.desconto)}` : "Adicionar código"}</strong>
+                    <strong>{appliedCoupon ? `-${formatEuro(appliedCoupon.discount)}` : "Adicionar código"}</strong>
                   </button>
 
                   {showCouponEntry && (
@@ -1272,13 +1272,13 @@ function Checkout() {
                         </div>
                         <datalist id="available-coupons">
                           {availableCoupons.map((coupon) => (
-                            <option key={coupon.id_cupom} value={coupon.codigo}>
-                              {formatEuro(coupon.valor)} off
+                            <option key={coupon.couponId} value={coupon.code}>
+                              {formatEuro(coupon.value)} off
                             </option>
                           ))}
                         </datalist>
                         {appliedCoupon && (
-                          <small>Cupão aplicado: -{formatEuro(appliedCoupon.desconto)}</small>
+                          <small>Cupão aplicado: -{formatEuro(appliedCoupon.discount)}</small>
                         )}
                       </label>
                     </div>

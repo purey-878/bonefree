@@ -72,7 +72,7 @@ export default function Events() {
       <EventsShell>
         <EventsBento>
           <HeroTile>
-            <HeroImage src={featuredEvent.image_url} alt={featuredEvent.title} />
+            <HeroImage src={featuredEvent.imageUrl} alt={featuredEvent.title} />
             <HeroScrim />
             <HeroContent>
               <EventKicker>{featuredEvent.kicker}</EventKicker>
@@ -80,7 +80,7 @@ export default function Events() {
               <p>Noites de DJ, pratos vegetais, cocktails e energia costeira até tarde na Costa da Caparica.</p>
               <HeroMeta>
                 <EventMeta icon={<CalendarDays size={16} />}>{formatEventDate(featuredEvent.date)}</EventMeta>
-                <EventMeta icon={<Clock size={16} />}>{featuredEvent.start_time} - {featuredEvent.end_time}</EventMeta>
+                <EventMeta icon={<Clock size={16} />}>{featuredEvent.startTime} - {featuredEvent.endTime}</EventMeta>
               </HeroMeta>
             </HeroContent>
           </HeroTile>
@@ -98,7 +98,7 @@ export default function Events() {
 
           <DateTile>
             <span>{formatEventDate(featuredEvent.date)}</span>
-            <strong>{featuredEvent.start_time}</strong>
+            <strong>{featuredEvent.startTime}</strong>
             <small>portas e cozinha no mesmo ritmo</small>
           </DateTile>
 
@@ -110,11 +110,11 @@ export default function Events() {
 
           {secondaryEvents.map((event) => (
             <SmallEventTile key={event.id}>
-              <img src={event.image_url} alt={event.title} />
+              <img src={event.imageUrl} alt={event.title} />
               <div>
                 <span>{event.kicker}</span>
                 <h3>{event.title}</h3>
-                <p>{formatEventDate(event.date)} · {event.start_time} - {event.end_time}</p>
+                <p>{formatEventDate(event.date)} · {event.startTime} - {event.endTime}</p>
               </div>
             </SmallEventTile>
           ))}

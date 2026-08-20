@@ -15,7 +15,7 @@ const MenuSection: React.FC = () => {
         const data = await productService.getAll();
         setProducts(data);
       } catch (fetchError) {
-        setError('Unable to load menu items.');
+        setError('Não foi possível carregar os itens do menu.');
         console.error(fetchError);
       } finally {
         setLoading(false);

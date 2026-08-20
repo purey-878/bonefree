@@ -66,12 +66,12 @@ export const defaultThemeConfig: ThemeConfig = {
 };
 
 export const defaultSiteThemeResponse: SiteThemeResponse = {
-  theme_id: "normal",
+  themeId: "normal",
   colors: {},
-  decoration_enabled: true,
-  decoration_intensity: 2,
-  custom_decorations: [],
-  custom_name: null,
+  decorationEnabled: true,
+  decorationIntensity: 2,
+  customDecorations: [],
+  customName: null,
   config: defaultThemeConfig,
 };
 

@@ -74,7 +74,7 @@ def _ingredient_nutrition_response(row: ProductIngredient) -> ProductIngredientN
         status=ingredient.status or EntityStatus.INACTIVE,
         quantity=row.quantity,
         calories_per_gram=calories_per_gram,
-        calorias=round(calories, 2),
+        calories=round(calories, 2),
     )
 
 
@@ -93,7 +93,7 @@ def _product_ingredient_nutrition(db: Session, product_id: int) -> list[ProductI
     ]
 
 
-@router.get('/', response_model=list[ProductResponse])
+@router.get('/', response_model=list[ProductResponse], operation_id="products_list_products")
 def list_products(db: Session = Depends(get_db)):
     """Get all active products with their images."""
     query = select(Product).where(active_product_filter()).options(joinedload(Product.images))
@@ -110,7 +110,11 @@ def list_products(db: Session = Depends(get_db)):
     ]
 
 
-@router.get('/{product_id}/availability-suggestions', response_model=AvailabilitySuggestionResponse)
+@router.get(
+    '/{product_id}/availability-suggestions',
+    response_model=AvailabilitySuggestionResponse,
+    operation_id="products_get_availability_suggestions",
+)
 def get_availability_suggestions(
     product_id: str,
     quantity: int = Query(1, ge=1),
@@ -160,7 +164,11 @@ def get_availability_suggestions(
     )
 
 
-@router.get('/{product_id}/customization-options', response_model=ProductCustomizationOptions)
+@router.get(
+    '/{product_id}/customization-options',
+    response_model=ProductCustomizationOptions,
+    operation_id="products_get_customization_options",
+)
 def get_customization_options(
     product_id: str,
     db: Session = Depends(get_db),
@@ -232,7 +240,11 @@ def get_customization_options(
     )
 
 
-@router.get('/{product_id}/customization', response_model=ProductCustomizationResponse)
+@router.get(
+    '/{product_id}/customization',
+    response_model=ProductCustomizationResponse,
+    operation_id="products_get_product_customization",
+)
 def get_product_customization(
     product_id: str,
     db: Session = Depends(get_db),
@@ -311,7 +323,7 @@ def get_product_customization(
     )
 
 
-@router.get('/{product_id}', response_model=ProductResponse)
+@router.get('/{product_id}', response_model=ProductResponse, operation_id="products_get_product")
 def get_product(product_id: str, db: Session = Depends(get_db)):
     """Get a single active product by ID, including its images."""
     parsed_product_id = parse_product_id(product_id)

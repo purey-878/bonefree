@@ -880,24 +880,24 @@
   white-space: normal;
 }
 
-.profile-status.pendente {
+.profile-status.pending {
   color: #8a5a06;
   background: #fff6db;
 }
 
-.profile-status.em_preparacao {
+.profile-status.in_preparation {
   color: #8f3d0f;
   background: #fff0e6;
 }
 
-.profile-status.cancelada {
+.profile-status.cancelled {
   color: var(--profile-danger);
   background: #fff0ed;
 }
 
-.profile-status.entregue,
-.profile-status.pronta,
-.profile-status.confirmada {
+.profile-status.delivered,
+.profile-status.ready,
+.profile-status.confirmed {
   color: #0d6a39;
   background: #e8f8ee;
 }

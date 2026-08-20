@@ -32,9 +32,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     const data = await authService.login(email, password)
-    setToken(data.access_token)
+    setToken(data.accessToken)
     setUser(data.user)
-    localStorage.setItem('token', data.access_token)
+    localStorage.setItem('token', data.accessToken)
 
     try {
       await cartService.mergeGuestCartOnLogin()
@@ -45,9 +45,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (payload: RegisterRequest) => {
     const data = await authService.register(payload)
-    setToken(data.access_token)
+    setToken(data.accessToken)
     setUser(data.user)
-    localStorage.setItem('token', data.access_token)
+    localStorage.setItem('token', data.accessToken)
 
     try {
       await cartService.mergeGuestCartOnLogin()

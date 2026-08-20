@@ -14,7 +14,7 @@ export function resolveProductImageUrl(image: string | null | undefined, fallbac
   return `/assets/images/menu-images/${image}`
 }
 
-export function useApiImageFallback(image: HTMLImageElement, fallback = productImageFallback) {
+export function applyApiImageFallback(image: HTMLImageElement, fallback = productImageFallback) {
   if (image.dataset.apiFallbackTried !== "true") {
     const sourceUrl = new URL(image.currentSrc || image.src, window.location.origin)
     const canRetryFromApi =

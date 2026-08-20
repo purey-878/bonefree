@@ -1,81 +1,63 @@
-import type { ItemCustomization } from "./cart";
+import type { ItemCustomization } from './cart';
 
-export type FulfillmentMethod = "dine_in" | "pickup" | "takeaway";
-export type PaymentMethod = "card" | "cash" | "mbway";
+export type FulfillmentMethod = 'dine_in' | 'pickup' | 'takeaway';
+export type PaymentMethod = 'card' | 'cash' | 'mbway' | 'qr_pay';
 
 export interface CheckoutCustomer {
-  first_name: string;
-  last_name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   phone?: string | null;
-  nif?: string | null;
-  table_number?: number | null;
+  taxId?: string | null;
+  tableNumber?: number | null;
 }
 
-export interface CheckoutItem {
-  id_produto: number;
-  quantidade: number;
-  customizacao?: ItemCustomization | null;
-}
+export interface CheckoutItem { productId: number; quantity: number; customization?: ItemCustomization | null; }
 
 export interface CheckoutPayload {
   customer: CheckoutCustomer;
-  fulfillment_method: FulfillmentMethod;
-  payment_method: PaymentMethod;
+  fulfillmentMethod: FulfillmentMethod;
+  paymentMethod: PaymentMethod;
   items: CheckoutItem[];
-  promo_code?: string | null;
+  promoCode?: string | null;
 }
 
-export interface Coupon {
-  id_cupom: number;
-  codigo: string;
-  tipo: "VALOR_FIXO" | "PERCENTAGEM";
-  valor: number;
-  valor_minimo_pedido: number;
-  expira_em?: string | null;
-}
-
-export interface CouponValidation {
-  codigo: string;
-  desconto: number;
-  valor: number;
-  tipo: "VALOR_FIXO" | "PERCENTAGEM";
-  valor_minimo_pedido: number;
-}
+export interface Coupon { couponId: number; code: string; type: 'fixed_value' | 'percentage'; value: number; minimumOrderValue: number; expiresAt?: string | null; }
+export interface CouponValidation { code: string; discount: number; value: number; type: 'fixed_value' | 'percentage'; minimumOrderValue: number; }
 
 export interface OrderItem {
-  id_produto: number;
-  id_produto_display: string;
-  nome_produto: string;
-  preco_unitario: number;
-  quantidade: number;
+  productId: number;
+  productDisplayId: string;
+  productName: string;
+  unitPrice: number;
+  quantity: number;
   subtotal: number;
-  customizacao?: ItemCustomization | null;
-  imagem?: string | null;
-  calorias?: number | null;
+  customization?: ItemCustomization | null;
+  image?: string | null;
+  calories?: number | null;
 }
 
 export interface OrderResponse {
-  id_pedido: number;
-  numero_pedido: string;
+  orderId: number;
+  orderNumber: string;
   status: string;
-  estado_pagamento: string;
-  can_cancel: boolean;
-  cancellation_source?: string | null;
-  cancelled_at?: string | null;
-  refund_status?: string;
-  refund_amount?: number | null;
-  refund_reason?: string | null;
-  refund_date?: string | null;
-  metodo_entrega: FulfillmentMethod;
-  metodo_pagamento: PaymentMethod;
+  paymentStatus: string;
+  canCancel: boolean;
+  cancellationSource?: string | null;
+  cancelledAt?: string | null;
+  refundStatus?: string | null;
+  refundAmount?: number | null;
+  refundReason?: string | null;
+  refundDate?: string | null;
+  deliveryMethod: FulfillmentMethod;
+  paymentMethod: string;
   subtotal: number;
-  desconto: number;
-  taxa_entrega: number;
-  taxa_servico: number;
+  discount: number;
+  deliveryFee: number;
+  serviceFee: number;
   total: number;
-  cupom_codigo?: string | null;
-  cupom_gerado?: string | null;
-  data_criacao: string;
-  itens: OrderItem[];
+  couponCode?: string | null;
+  generatedCoupon?: string | null;
+  createdAt: string;
+  items: OrderItem[];
 }

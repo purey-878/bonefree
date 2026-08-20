@@ -14,7 +14,7 @@ import {
   loyaltyCouponDetail,
   loyaltyCouponHeadline,
 } from "../utils/loyaltyCoupon";
-import { productImageFallback, resolveProductImageUrl, useApiImageFallback } from "../utils/imageFallback";
+import { applyApiImageFallback, productImageFallback, resolveProductImageUrl } from "../utils/imageFallback";
 import { formatEuro } from "../utils/money";
 
 
@@ -36,57 +36,54 @@ const hiddenHomeProductNames = new Set(["latino loaded nachos", "lationo loaded 
 
 const fallbackHomeReviews: HomeReview[] = [
   {
-    id_review: -1,
-    id_produto: 0,
-    id_produto_display: "bonefree-menu",
-    id_cliente: 0,
-    id_encomenda_produto: null,
-    cliente_nome: "Marta S.",
+    reviewId: -1,
+    productId: 0,
+    productDisplayId: "bonefree-menu",
+    customerId: 0,
+    orderProductId: null,
+    customerName: "Marta S.",
     rating: 5,
-    titulo: "Jantar leve, cheio de sabor",
-    comentario: "Os pratos chegaram coloridos, bem temperados e com aquele cuidado de cozinha que faz a mesa ficar em silêncio por uns segundos.",
-    status: "aprovado",
-    data_criacao: "2026-05-18T20:30:00Z",
-    data_atualizacao: "2026-05-18T20:30:00Z",
-    is_owner: false,
+    title: "Jantar leve, cheio de sabor",
+    comment: "Os pratos chegaram coloridos, bem temperados e com aquele cuidado de cozinha que faz a mesa ficar em silêncio por uns segundos.",
+    status: "approved",
+    createdAt: "2026-05-18T20:30:00Z",
+    updatedAt: "2026-05-18T20:30:00Z",
+    isOwner: false,
     productName: "Menu BONEFREE",
-    productId: 0,
     productPath: "/menu",
   },
   {
-    id_review: -2,
-    id_produto: 0,
-    id_produto_display: "bonefree-favorites",
-    id_cliente: 0,
-    id_encomenda_produto: null,
-    cliente_nome: "Rui e Ana",
+    reviewId: -2,
+    productId: 0,
+    productDisplayId: "bonefree-favorites",
+    customerId: 0,
+    orderProductId: null,
+    customerName: "Rui e Ana",
     rating: 5,
-    titulo: "Perfeito para partilhar",
-    comentario: "Pedimos vários pratos para dividir e tudo tinha textura, frescura e molhos com personalidade. Ficou vontade de voltar e provar o resto.",
-    status: "aprovado",
-    data_criacao: "2026-05-09T21:15:00Z",
-    data_atualizacao: "2026-05-09T21:15:00Z",
-    is_owner: false,
+    title: "Perfeito para partilhar",
+    comment: "Pedimos vários pratos para dividir e tudo tinha textura, frescura e molhos com personalidade. Ficou vontade de voltar e provar o resto.",
+    status: "approved",
+    createdAt: "2026-05-09T21:15:00Z",
+    updatedAt: "2026-05-09T21:15:00Z",
+    isOwner: false,
     productName: "Favoritos da casa",
-    productId: 0,
     productPath: "/menu",
   },
   {
-    id_review: -3,
-    id_produto: 0,
-    id_produto_display: "bonefree-experience",
-    id_cliente: 0,
-    id_encomenda_produto: null,
-    cliente_nome: "Cliente BONEFREE",
-    rating: 5,
-    titulo: "Ambiente descontraído",
-    comentario: "Boa música, equipa atenta e comida vegan que não parece uma alternativa. Parece simplesmente uma boa escolha.",
-    status: "aprovado",
-    data_criacao: "2026-04-27T19:45:00Z",
-    data_atualizacao: "2026-04-27T19:45:00Z",
-    is_owner: false,
-    productName: "Experiência BONEFREE",
+    reviewId: -3,
     productId: 0,
+    productDisplayId: "bonefree-experience",
+    customerId: 0,
+    orderProductId: null,
+    customerName: "Cliente BONEFREE",
+    rating: 5,
+    title: "Ambiente descontraído",
+    comment: "Boa música, equipa atenta e comida vegan que não parece uma alternativa. Parece simplesmente uma boa escolha.",
+    status: "approved",
+    createdAt: "2026-04-27T19:45:00Z",
+    updatedAt: "2026-04-27T19:45:00Z",
+    isOwner: false,
+    productName: "Experiência BONEFREE",
     productPath: "/menu",
   },
 ];
@@ -106,7 +103,7 @@ function isHiddenHomeProduct(product: Product) {
 }
 
 function reviewCopy(review: ProductReview) {
-  return review.comentario?.trim() || review.titulo?.trim() || "";
+  return review.comment?.trim() || review.title?.trim() || "";
 }
 
 function hasMeaningfulReviewCopy(review: ProductReview) {
@@ -153,9 +150,9 @@ const HomePage = () => {
 
       const writtenReviews = reviewGroups
         .flatMap((result) => (result.status === "fulfilled" ? result.value : []))
-        .filter((review) => review.status === "aprovado" && hasMeaningfulReviewCopy(review))
+        .filter((review) => review.status === "approved" && hasMeaningfulReviewCopy(review))
         .sort((a, b) => {
-          const dateDiff = new Date(b.data_criacao).getTime() - new Date(a.data_criacao).getTime();
+          const dateDiff = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
           if (dateDiff !== 0) return dateDiff;
           return b.rating - a.rating;
         })
@@ -169,11 +166,11 @@ const HomePage = () => {
       try {
         const [data, chefSpecialSetting, couponSettings] = await Promise.all([
           productService.getAll(),
-          getPublicChefSpecial().catch(() => ({ product_id: null })),
+          getPublicChefSpecial().catch(() => ({ productId: null })),
           getPublicLoyaltyCouponSettings().catch(() => defaultLoyaltyCouponSettings),
         ]);
         setProducts(data);
-        setChefSpecialProductId(chefSpecialSetting.product_id ?? null);
+        setChefSpecialProductId(chefSpecialSetting.productId ?? null);
         setLoyaltyCouponSettings(couponSettings);
         void fetchHomeReviews(data);
       } catch (fetchError) {
@@ -325,7 +322,7 @@ const HomePage = () => {
         <HeroOverlay />
         <Navbar />
         <HeroContent>
-          
+
           <HeroCopy>
             <Eyebrow>
               <Sparkles size={16} />
@@ -358,7 +355,7 @@ const HomePage = () => {
                 Ritmo fresco de cozinha
               </TrustItem>
             </TrustStrip>
-            
+
           </HeroCopy>
 
           <FeaturedDishCard
@@ -393,7 +390,7 @@ const HomePage = () => {
                   key={heroDish.id}
                   alt={heroDish.name}
                   onError={(event) => {
-                    useApiImageFallback(event.currentTarget, fallbackDishImage);
+                    applyApiImageFallback(event.currentTarget, fallbackDishImage);
                   }}
                   src={resolveImage(heroDish.image)}
                 />
@@ -443,7 +440,7 @@ const HomePage = () => {
         </CategoryTrack>
       </CategorySection>
 
-      
+
       {loyaltyCouponSettings.enabled && (
         <LoyaltyRewardBanner aria-label="Recompensa de fidelização BONEFREE" className="mt-5">
           <div>
@@ -509,7 +506,7 @@ const HomePage = () => {
           <ChefImage
             alt={chefSpecial?.name ?? "Especial de hoje"}
             onError={(event) => {
-              useApiImageFallback(event.currentTarget, fallbackDishImage);
+              applyApiImageFallback(event.currentTarget, fallbackDishImage);
             }}
             src={resolveImage(chefSpecial?.image)}
           />
@@ -526,7 +523,7 @@ const HomePage = () => {
               : "Pergunte à equipa o que sai hoje da cozinha com os sabores mais vivos."}
           </p>
           <ChefDetails>
-           
+
             {chefSpecial && <strong>{formatEuro(chefSpecial.price)}</strong>}
             {chefSpecial && (
               <span>{chefSpecial.stock > 0 ? `${chefSpecial.stock} disponíveis` : "Pergunte à equipa"}</span>
@@ -545,7 +542,7 @@ const HomePage = () => {
           <h2>O que a sala recorda</h2>
         </SectionHeader>
         {reviewsLoading ? (
-          <TestimonialGrid aria-label="A carregar notas dos clientes">
+          <TestimonialGrid aria-label="A carregar notes dos clientes">
             {Array.from({ length: 3 }, (_, index) => (
               <TestimonialSkeleton key={index}>
                 <Skeleton width="42%" height="18px" />
@@ -557,7 +554,7 @@ const HomePage = () => {
         ) : (
           <TestimonialGrid aria-label="Avaliações dos clientes">
             {displayedHomeReviews.map((review) => (
-              <TestimonialCard key={review.id_review}>
+              <TestimonialCard key={review.reviewId}>
                 <ReviewStars aria-label={`${review.rating} em 5 estrelas`}>
                   {Array.from({ length: 5 }, (_, index) => (
                     <Star key={index} size={15} fill={index < review.rating ? "currentColor" : "none"} />
@@ -565,11 +562,11 @@ const HomePage = () => {
                 </ReviewStars>
                 <blockquote>{reviewCopy(review)}</blockquote>
                 <ReviewMeta>
-                  <span>{review.cliente_nome || "Cliente BONEFREE"}</span>
+                  <span>{review.customerName || "Cliente BONEFREE"}</span>
                   <small>
                     <ProductReviewLink to={review.productPath ?? `/product/${review.productId}`}>{review.productName}</ProductReviewLink>
                     {" | "}
-                    {new Date(review.data_criacao).toLocaleDateString("en-GB")}
+                    {new Date(review.createdAt).toLocaleDateString("en-GB")}
                   </small>
                 </ReviewMeta>
               </TestimonialCard>

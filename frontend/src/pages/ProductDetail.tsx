@@ -43,7 +43,7 @@ import type {
   ProductSuggestion,
 } from "../types/product"
 import type { ItemCustomization, ProductCustomizationOptions } from "../types/cart"
-import { productImageFallback, resolveProductImageUrl, useApiImageFallback } from "../utils/imageFallback"
+import { applyApiImageFallback, productImageFallback, resolveProductImageUrl } from "../utils/imageFallback"
 import { formatEuro } from "../utils/money"
 
 type GalleryImage = {
@@ -115,14 +115,14 @@ function formatCalories(value: number | null | undefined) {
 
 function productCalorieTotal(product: Product) {
   if (
-    product.total_calorias != null &&
-    Number.isFinite(Number(product.total_calorias)) &&
-    Number(product.total_calorias) > 0
+    product.totalCalories != null &&
+    Number.isFinite(Number(product.totalCalories)) &&
+    Number(product.totalCalories) > 0
   ) {
-    return Number(product.total_calorias)
+    return Number(product.totalCalories)
   }
-  const ingredientTotal = (product.ingredientes ?? []).reduce((sum, ingredient) => {
-    const calories = Number(ingredient.calorias ?? 0)
+  const ingredientTotal = (product.ingredients ?? []).reduce((sum, ingredient) => {
+    const calories = Number(ingredient.calories ?? 0)
     return Number.isFinite(calories) && calories > 0 ? sum + calories : sum
   }, 0)
   return ingredientTotal > 0 ? ingredientTotal : null
@@ -257,8 +257,8 @@ export const ProductDetail = () => {
           setReviewStats(stats)
           setReviews(reviewList)
           setReviewEligibility(eligibility)
-          const firstReviewableItem = eligibility.existing_review ? null : eligibility.items.find(item => !item.existing_review)
-          setSelectedOrderItemId(firstReviewableItem?.id_encomenda_produto ?? "")
+          const firstReviewableItem = eligibility.existingReview ? null : eligibility.items.find(item => !item.existingReview)
+          setSelectedOrderItemId(firstReviewableItem?.orderProductId ?? "")
         } catch (reviewLoadError) {
           console.error("Não foi possível carregar avaliações.", reviewLoadError)
           setReviewStats(null)
@@ -302,7 +302,7 @@ export const ProductDetail = () => {
       const pricedCustomization = hasCustomization(customization)
         ? {
             ...customization,
-            preco_unitario_final: Number(product.price ?? 0) + (customization.add.length * customizationAddSurcharge),
+            finalUnitPrice: Number(product.price ?? 0) + (customization.add.length * customizationAddSurcharge),
           }
         : null
 
@@ -356,8 +356,8 @@ export const ProductDetail = () => {
     setReviewStats(stats)
     setReviews(reviewList)
     setReviewEligibility(eligibility)
-    const firstReviewableItem = eligibility.existing_review ? null : eligibility.items.find(item => !item.existing_review)
-    setSelectedOrderItemId(firstReviewableItem?.id_encomenda_produto ?? "")
+    const firstReviewableItem = eligibility.existingReview ? null : eligibility.items.find(item => !item.existingReview)
+    setSelectedOrderItemId(firstReviewableItem?.orderProductId ?? "")
   }
 
   const resetReviewForm = () => {
@@ -387,8 +387,8 @@ export const ProductDetail = () => {
       return
     }
 
-    if (reviewEligibility.existing_review) {
-      handleEditReview(reviewEligibility.existing_review)
+    if (reviewEligibility.existingReview) {
+      handleEditReview(reviewEligibility.existingReview)
       setToastError(false)
       setToastMessage("Já avaliou este produto. Pode editar a sua avaliação.")
       toast.info("Já avaliou este produto. Pode editar a sua avaliação.")
@@ -416,8 +416,8 @@ export const ProductDetail = () => {
       if (editingReviewId) {
         await productService.updateReview(editingReviewId, {
           rating: reviewRating,
-          titulo: reviewTitle,
-          comentario: reviewComment,
+          title: reviewTitle,
+          comment: reviewComment,
         })
         setToastError(false)
         setToastMessage("Avaliação atualizada.")
@@ -425,10 +425,10 @@ export const ProductDetail = () => {
       } else {
         if (!selectedOrderItemId) throw new Error("Escolha um item comprado para avaliar.")
         await productService.createReview(product.id, {
-          id_encomenda_produto: Number(selectedOrderItemId),
+          orderProductId: Number(selectedOrderItemId),
           rating: reviewRating,
-          titulo: reviewTitle,
-          comentario: reviewComment,
+          title: reviewTitle,
+          comment: reviewComment,
         })
         setToastError(false)
         setToastMessage("Avaliação publicada.")
@@ -449,11 +449,11 @@ export const ProductDetail = () => {
   }
 
   const handleEditReview = (review: ProductReview) => {
-    setEditingReviewId(review.id_review)
+    setEditingReviewId(review.reviewId)
     setReviewFormOpen(true)
     setReviewRating(review.rating)
-    setReviewTitle(review.titulo ?? "")
-    setReviewComment(review.comentario ?? "")
+    setReviewTitle(review.title ?? "")
+    setReviewComment(review.comment ?? "")
     setReviewError(null)
   }
 
@@ -468,8 +468,8 @@ export const ProductDetail = () => {
     setReviewSubmitting(true)
     setReviewError(null)
     try {
-      await productService.deleteReview(review.id_review)
-      if (editingReviewId === review.id_review) resetReviewForm()
+      await productService.deleteReview(review.reviewId)
+      if (editingReviewId === review.reviewId) resetReviewForm()
       await reloadReviews(product.id)
       setToastError(false)
       setToastMessage("Avaliação apagada.")
@@ -488,25 +488,25 @@ export const ProductDetail = () => {
   }
 
   const renderSuggestionCard = (suggestion: ProductSuggestion) => {
-    const suggestionProduct = productsById[suggestion.id_produto]
-    const price = suggestion.preco ?? suggestionProduct?.price ?? 0
+    const suggestionProduct = productsById[suggestion.productId]
+    const price = suggestion.price ?? suggestionProduct?.price ?? 0
     const productShape: Product = {
-      id: suggestion.id_produto,
-      id_display: suggestion.id_produto_display,
-      category: suggestion.categoria,
-      name: suggestion.nome,
+      id: suggestion.productId,
+      idDisplay: suggestion.productDisplayId,
+      category: suggestion.category,
+      name: suggestion.name,
       description: suggestion.reason,
       image: suggestionProduct?.image ?? null,
       price,
       stock: suggestion.stock,
-      customizavel: suggestionProduct?.customizavel ?? false,
+      customizable: suggestionProduct?.customizable ?? false,
     }
 
     return (
       <ProductCard
-        key={suggestion.id_produto}
+        key={suggestion.productId}
         product={productShape}
-        onSelect={() => navigate(`/product/${suggestion.id_produto}`)}
+        onSelect={() => navigate(`/product/${suggestion.productId}`)}
       />
     )
   }
@@ -551,29 +551,29 @@ export const ProductDetail = () => {
   const unavailableLabel = inStock ? "Indisponível" : "Esgotado"
   const addToCartBlockedLabel = inStock ? "Adicionar ao carrinho" : "Esgotado"
   const buyNowBlockedLabel = inStock ? "Comprar agora" : "Esgotado"
-  const ingredientBreakdown = product.ingredientes ?? []
+  const ingredientBreakdown = product.ingredients ?? []
   const inactiveNonBaseIngredients = ingredientBreakdown.filter(
-    ingredient => ingredient.status === 0 && ingredient.tipo !== "BASE",
+    ingredient => ingredient.status === "inactive" && ingredient.type !== "base",
   )
-  const inactiveIngredientNames = inactiveNonBaseIngredients.map(ingredient => ingredient.nome).join(", ")
+  const inactiveIngredientNames = inactiveNonBaseIngredients.map(ingredient => ingredient.name).join(", ")
   const productCalories = formatCalories(productCalorieTotal(product))
   const substituteSuggestions = availabilitySuggestions?.substitutes ?? []
-  const substituteIds = new Set(substituteSuggestions.map(suggestion => suggestion.id_produto))
-  const similarDishSuggestions = (availabilitySuggestions?.similar_dishes ?? [])
-    .filter(suggestion => !substituteIds.has(suggestion.id_produto))
+  const substituteIds = new Set(substituteSuggestions.map(suggestion => suggestion.productId))
+  const similarDishSuggestions = (availabilitySuggestions?.similarDishes ?? [])
+    .filter(suggestion => !substituteIds.has(suggestion.productId))
   const hasSuggestions = !canPurchase && (substituteSuggestions.length > 0 || similarDishSuggestions.length > 0)
-  const averageRating = reviewStats?.rating_medio
-  const totalReviews = reviewStats?.total_reviews ?? 0
-  const existingProductReview = reviewEligibility?.existing_review ?? null
-  const reviewableItems = existingProductReview ? [] : reviewEligibility?.items.filter(item => !item.existing_review) ?? []
+  const averageRating = reviewStats?.averageRating
+  const totalReviews = reviewStats?.totalReviews ?? 0
+  const existingProductReview = reviewEligibility?.existingReview ?? null
+  const reviewableItems = existingProductReview ? [] : reviewEligibility?.items.filter(item => !item.existingReview) ?? []
   const canCreateReview = Boolean(reviewEligibility?.authenticated && reviewableItems.length > 0)
   const showReviewForm = (reviewFormOpen && canCreateReview) || editingReviewId !== null
   const activeImage = galleryImages[activeImageIndex] ?? galleryImages[0]
-  const discountPercent = Number(product.discount_percent ?? 0)
+  const discountPercent = Number(product.discountPercent ?? 0)
   const showDiscount =
     discountPercent > 0 &&
-    product.original_price != null &&
-    Number(product.original_price) > Number(product.price ?? 0)
+    product.originalPrice != null &&
+    Number(product.originalPrice) > Number(product.price ?? 0)
   const selectedCustomizationCount =
     customization.remove.length +
     customization.add.length +
@@ -589,7 +589,7 @@ export const ProductDetail = () => {
   const filteredReviews = reviews.filter(review => {
     if (reviewFilter === "5") return review.rating === 5
     if (reviewFilter === "4") return review.rating >= 4
-    if (reviewFilter === "with-text") return Boolean(review.comentario?.trim() || review.titulo?.trim())
+    if (reviewFilter === "with-text") return Boolean(review.comment?.trim() || review.title?.trim())
     return true
   })
 
@@ -717,7 +717,7 @@ export const ProductDetail = () => {
                 alt={activeImage?.alt ?? product.name}
                 className="pd-image p-4"
                 onError={event => {
-                  useApiImageFallback(event.currentTarget, fallbackImage)
+                  applyApiImageFallback(event.currentTarget, fallbackImage)
                 }}
               />
             <div className="pd-gallery-topline ">
@@ -729,18 +729,18 @@ export const ProductDetail = () => {
             <div className="pd-thumbnails  " aria-label="Miniaturas da galeria do produto">
               {galleryImages.map((image, index) => (
                 <button
-             
+
                   key={`${image.src}-${index}`}
                   type="button"
                   className={activeImageIndex === index ? "active p-1" : "p-2"}
                   onClick={() => setActiveImageIndex(index)}
-                  aria-label={`Show ${image.label}`}
+                  aria-label={`Mostrar ${image.label}`}
                 >
                   <img
                     src={image.src}
                     alt=""
                     onError={event => {
-                      useApiImageFallback(event.currentTarget, fallbackImage)
+                      applyApiImageFallback(event.currentTarget, fallbackImage)
                     }}
                   />
                 </button>
@@ -778,7 +778,7 @@ export const ProductDetail = () => {
 
             <div className="pd-price-card">
               {showDiscount && <em>{discountPercent}% desconto</em>}
-              {showDiscount && <del>{formatPrice(product.original_price)}</del>}
+              {showDiscount && <del>{formatPrice(product.originalPrice)}</del>}
               <strong className="red">{formatPrice(product.price)}</strong>
               {productCalories && (
                 <span className="pd-calorie-line" title={`${productCalories} quilocalorias`}>
@@ -789,7 +789,7 @@ export const ProductDetail = () => {
             </div>
 
             <p className="pd-desc">
-              {product.description || "A carefully crafted dish made with fresh, plant-based ingredients and finished to order."}
+              {product.description || "Um prato preparado cuidadosamente com ingredientes frescos de origem vegetal."}
             </p>
 
             {inactiveNonBaseIngredients.length > 0 && (
@@ -804,7 +804,7 @@ export const ProductDetail = () => {
               </div>
             )}
 
-            {inStock && product.customizavel && (
+            {inStock && product.customizable && (
               <details className="pd-customizer" open>
                 <summary>
                   <span>Personalizar pedido</span>
@@ -956,8 +956,8 @@ export const ProductDetail = () => {
           </div>
           <div className="pd-info-grid">
             <article className="pd-copy-card">
-              <h3>Description</h3>
-              <p>{product.description || "A signature plant-based plate crafted with balanced texture, bright flavor, and a clean finish."}</p>
+              <h3>Descrição</h3>
+              <p>{product.description || "Um prato vegetal de assinatura, preparado com textura equilibrada, sabor vivo e um acabamento leve."}</p>
               <ul>
                 <li>Porção equilibrada para uma pessoa ou para partilhar à mesa.</li>
                 <li>Notas de preparação personalizáveis para preferências alimentares.</li>
@@ -970,7 +970,7 @@ export const ProductDetail = () => {
                 <div><dt>Categoria</dt><dd>{product.category}</dd></div>
                 <div><dt>Disponibilidade</dt><dd>{canPurchase ? `${product.stock} disponíveis` : unavailableLabel}</dd></div>
                 <div><dt>Calorias</dt><dd>{productCalories ? `${productCalories} kcal` : "Não indicado"}</dd></div>
-                <div><dt>Personalização</dt><dd>{product.customizavel ? "Disponível" : "Preparação padrão"}</dd></div>
+                <div><dt>Personalização</dt><dd>{product.customizable ? "Disponível" : "Preparação padrão"}</dd></div>
                 <div><dt>Dieta</dt><dd>100% vegan</dd></div>
               </dl>
             </article>
@@ -985,20 +985,20 @@ export const ProductDetail = () => {
               {ingredientBreakdown.length > 0 ? (
                 <div className="pd-nutrition-list">
                   {ingredientBreakdown.map((ingredient) => {
-                    const calories = formatCalories(ingredient.calorias)
-                    const caloriesPerGram = formatCalories(ingredient.calorias_por_grama)
-                    const inactive = ingredient.status === 0
+                    const calories = formatCalories(ingredient.calories)
+                    const caloriesPerGram = formatCalories(ingredient.caloriesPerGram)
+                    const inactive = ingredient.status === "inactive"
                     return (
-                      <div key={ingredient.id_ingrediente} className={`pd-nutrition-row ${inactive ? "is-inactive" : ""}`}>
+                      <div key={ingredient.ingredientId} className={`pd-nutrition-row ${inactive ? "is-inactive" : ""}`}>
                         <div>
                           <strong>
-                            {ingredient.nome}
+                            {ingredient.name}
                             {inactive && <em>Indisponível</em>}
                           </strong>
-                          <span>{ingredientTypeLabel(ingredient.tipo)} · {ingredient.quantidade || "quantity not set"}</span>
+                          <span>{ingredientTypeLabel(ingredient.type)} · {ingredient.quantity || "quantidade não definida"}</span>
                         </div>
                         <div>
-                          <span>{caloriesPerGram ? `${caloriesPerGram} kcal/g` : "kcal/g not set"}</span>
+                          <span>{caloriesPerGram ? `${caloriesPerGram} kcal/g` : "kcal/g não definido"}</span>
                           <strong>{calories ? `${calories} kcal` : "0 kcal"}</strong>
                         </div>
                       </div>
@@ -1049,7 +1049,7 @@ export const ProductDetail = () => {
               {!editingReviewId && reviewableItems.length > 1 && (
                 <label className="pd-review-field">
                   Item comprado
-                 
+
                 </label>
               )}
 
@@ -1099,20 +1099,20 @@ export const ProductDetail = () => {
                   type,
                   label,
                   Icon,
-                  count: review.reactions?.filter(reaction => reaction.tipo === type).length ?? 0,
+                  count: review.reactions?.filter(reaction => reaction.type === type).length ?? 0,
                 })).filter(reaction => reaction.count > 0)
 
                 return (
-                  <article key={review.id_review} className="pd-review-item">
+                  <article key={review.reviewId} className="pd-review-item">
                     <div className="pd-review-item-head">
                       <div>
-                        <strong>{review.cliente_nome ?? "Cliente BONEFREE"}</strong>
-                        <span>{new Date(review.data_criacao).toLocaleDateString("pt-PT")}</span>
+                        <strong>{review.customerName ?? "Cliente BONEFREE"}</strong>
+                        <span>{new Date(review.createdAt).toLocaleDateString("pt-PT")}</span>
                       </div>
                       <div className="pd-review-item-rating"><Star size={16} fill="currentColor" />{review.rating}</div>
                     </div>
-                    {review.titulo && <h3>{review.titulo}</h3>}
-                    {review.comentario && <p>{review.comentario}</p>}
+                    {review.title && <h3>{review.title}</h3>}
+                    {review.comment && <p>{review.comment}</p>}
                     {adminReactions.length > 0 && (
                       <div className="pd-review-reactions" aria-label="Reações da equipa">
                         {adminReactions.map(({ type, label, Icon, count }) => (
@@ -1123,17 +1123,17 @@ export const ProductDetail = () => {
                         ))}
                       </div>
                     )}
-                    {review.reply?.texto && (
+                    {review.reply?.text && (
                       <div className="pd-review-admin-reply">
                         <div>
                           <MessageCircle size={16} />
                           <strong>Resposta da BONEFREE</strong>
-                          <span>{new Date(review.reply.updated_at || review.reply.created_at).toLocaleDateString("pt-PT")}</span>
+                          <span>{new Date(review.reply.updatedAt || review.reply.createdAt).toLocaleDateString("pt-PT")}</span>
                         </div>
-                        <p>{review.reply.texto}</p>
+                        <p>{review.reply.text}</p>
                       </div>
                     )}
-                    {review.is_owner && (
+                    {review.isOwner && (
                       <div className="pd-review-actions">
                         <button type="button" onClick={() => handleEditReview(review)}>Editar</button>
                         <button type="button" onClick={() => handleDeleteReview(review)} disabled={reviewSubmitting}>Apagar</button>
@@ -1157,7 +1157,7 @@ export const ProductDetail = () => {
             <h2>Respostas antes do checkout</h2>
           </div>
           <div className="pd-faq-list">
-            <details open><summary>Posso personalizar este item?<ChevronDown size={18} /></summary><p>{product.customizavel ? "Sim. Use o painel de personalização acima para remover, adicionar ou indicar preferências." : "Este item usa preparação padrão, mas pode pedir orientação à equipa."}</p></details>
+            <details open><summary>Posso personalizar este item?<ChevronDown size={18} /></summary><p>{product.customizable ? "Sim. Use o painel de personalização acima para remover, adicionar ou indicar preferências." : "Este item usa preparação padrão, mas pode pedir orientação à equipa."}</p></details>
             <details><summary>A estimativa de entrega é precisa?<ChevronDown size={18} /></summary><p>A estimativa reflete a janela de preparação atual e pode mudar se a cozinha estiver ocupada.</p></details>
             <details><summary>E se tiver alergias?<ChevronDown size={18} /></summary><p>Adicione uma nota antes do checkout e fale com a equipa antes de pedir para confirmar ingredientes.</p></details>
             <details><summary>Posso voltar a pedir isto mais tarde?<ChevronDown size={18} /></summary><p>Sim. O seu histórico de pedidos pode ser usado para rever itens anteriores e voltar a pedir produtos disponíveis.</p></details>

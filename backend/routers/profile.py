@@ -142,19 +142,19 @@ def _order_response(order: Order) -> dict:
                 "customization": customization_from_json(item.customization),
                 "subtotal": Decimal(str(item.unit_price)) * item.quantity,
                 "image": _product_image_path(item.product),
-                "calorias": item.product.total_calories if item.product else None,
+                "calories": item.product.total_calories if item.product else None,
             }
             for item in order.items
         ],
     }
 
 
-@router.get("", response_model=UserResponse)
+@router.get("", response_model=UserResponse, operation_id="profile_get_profile")
 def get_profile(current_user: Customer = Depends(get_current_user)):
     return current_user
 
 
-@router.put("", response_model=UserResponse)
+@router.put("", response_model=UserResponse, operation_id="profile_update_profile")
 def update_profile(
     body: UserProfileUpdate,
     db: Session = Depends(get_db),
@@ -221,7 +221,7 @@ def update_profile(
     return profile_user
 
 
-@router.get("/orders", response_model=list[OrderResponse])
+@router.get("/orders", response_model=list[OrderResponse], operation_id="profile_get_purchase_history")
 def get_purchase_history(
     status: Optional[str] = Query(None),
     payment: Optional[str] = Query(None),

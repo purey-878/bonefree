@@ -28,23 +28,23 @@ type ExtraQuantities = Record<number, number>;
 type SelectedSubstitutions = Record<number, number>;
 
 const addSurcharge = 1;
-const substitutionTypes = ["SUBSTITUIR_MOLHO", "SUBSTITUIR_ACOMPANHAMENTO"] as const;
+const substitutionTypes = ["substitute_sauce", "substitute_side"] as const;
 
 function optionPrice(option: CustomizationOption): number {
-  return Number(option.preco_extra ?? 0);
+  return Number(option.extraPrice ?? 0);
 }
 
 function optionLabel(option: CustomizationOption): string {
-  return option.nome.replace(/^Extra\s+/i, "").replace(/^Substituir por\s+/i, "");
+  return option.name.replace(/^Extra\s+/i, "").replace(/^Substituir por\s+/i, "");
 }
 
 function substitutionOptionsFor(
   ingredient: CustomizationIngredient,
   details: ProductCustomizationDetails,
 ) {
-  if (ingredient.tipo === "MOLHO") return details.opcoes.SUBSTITUIR_MOLHO;
-  if (ingredient.tipo === "ACOMPANHAMENTO") return details.opcoes.SUBSTITUIR_ACOMPANHAMENTO;
-  return substitutionTypes.flatMap((tipo) => details.opcoes[tipo]);
+  if (ingredient.type === "sauce") return details.options.substitute_sauce ?? [];
+  if (ingredient.type === "side") return details.options.substitute_side ?? [];
+  return substitutionTypes.flatMap((type) => details.options[type] ?? []);
 }
 
 export function CustomizeProductModal({
@@ -74,26 +74,26 @@ export function CustomizeProductModal({
         setDetails(data);
 
         const removableIngredientIds = new Set(
-          data.ingredientes
-            .filter((ingredient) => ingredient.removivel && ingredient.tipo === "INGREDIENTES_NORMAIS")
-            .map((ingredient) => ingredient.id_ingrediente),
+          data.ingredients
+            .filter((ingredient) => ingredient.removable && ingredient.type === "normal")
+            .map((ingredient) => ingredient.ingredientId),
         );
         setRemoved(new Set(
-          (initialCustomization?.ingredientes_removidos ?? [])
+          (initialCustomization?.removedIngredients ?? [])
             .filter((ingredientId) => removableIngredientIds.has(ingredientId)),
         ));
         setExtras(Object.fromEntries(
           (initialCustomization?.extras ?? [])
-            .filter((item) => item.id_opcao > 0 && item.quantidade > 0)
-            .map((item) => [item.id_opcao, item.quantidade]),
+            .filter((item) => item.optionId > 0 && item.quantity > 0)
+            .map((item) => [item.optionId, item.quantity]),
         ));
         setSubstitutions(Object.fromEntries(
-          (initialCustomization?.substituicoes ?? []).flatMap((item) => {
+          (initialCustomization?.substitutions ?? []).flatMap((item) => {
             const option = substitutionTypes
-              .flatMap((tipo) => data.opcoes[tipo])
-              .find((candidate) => candidate.id_ingrediente === item.id_ingrediente_novo);
+              .flatMap((type) => data.options[type] ?? [])
+              .find((candidate) => candidate.ingredientId === item.newIngredientId);
 
-            return option ? [[item.id_ingrediente_original, option.id_opcao]] : [];
+            return option ? [[item.originalIngredientId, option.optionId]] : [];
           }),
         ));
         setNotes(initialCustomization?.note ?? "");
@@ -122,7 +122,7 @@ export function CustomizeProductModal({
   }, []);
 
   const extraOptions = useMemo(
-    () => details ? [...details.opcoes.EXTRA, ...details.opcoes.ADICIONAR] : [],
+    () => details ? [...(details.options.extra ?? []), ...(details.options.add ?? [])] : [],
     [details],
   );
 
@@ -130,81 +130,81 @@ export function CustomizeProductModal({
     if (!details) return Number(product.price ?? 0) * quantity;
 
     const extrasTotal = extraOptions.reduce((sum, option) => {
-      return sum + (extras[option.id_opcao] ?? 0) * addSurcharge;
+      return sum + (extras[option.optionId] ?? 0) * addSurcharge;
     }, 0);
 
     const substitutionsTotal = Object.values(substitutions).reduce((sum, optionId) => {
       const option = substitutionTypes
-        .flatMap((tipo) => details.opcoes[tipo])
-        .find((item) => item.id_opcao === optionId);
+        .flatMap((type) => details.options[type] ?? [])
+        .find((item) => item.optionId === optionId);
       return sum + (option ? optionPrice(option) : 0);
     }, 0);
 
-    return (Number(details.preco_base) + extrasTotal + substitutionsTotal) * quantity;
+    return (Number(details.basePrice) + extrasTotal + substitutionsTotal) * quantity;
   }, [details, extraOptions, extras, product.price, quantity, substitutions]);
 
   const updateExtra = (option: CustomizationOption, delta: number) => {
     setExtras((current) => {
-      const nextQuantity = Math.max(0, Math.min(option.max_quantidade, (current[option.id_opcao] ?? 0) + delta));
+      const nextQuantity = Math.max(0, Math.min(option.maxQuantity, (current[option.optionId] ?? 0) + delta));
       const next = { ...current };
       if (nextQuantity === 0) {
-        delete next[option.id_opcao];
+        delete next[option.optionId];
       } else {
-        next[option.id_opcao] = nextQuantity;
+        next[option.optionId] = nextQuantity;
       }
       return next;
     });
   };
 
   const toggleIngredient = (ingredient: CustomizationIngredient) => {
-    if (!ingredient.removivel || ingredient.tipo !== "INGREDIENTES_NORMAIS") return;
+    if (!ingredient.removable || ingredient.type !== "normal") return;
 
     setRemoved((current) => {
       const next = new Set(current);
-      if (next.has(ingredient.id_ingrediente)) {
-        next.delete(ingredient.id_ingrediente);
+      if (next.has(ingredient.ingredientId)) {
+        next.delete(ingredient.ingredientId);
       } else {
-        next.add(ingredient.id_ingrediente);
+        next.add(ingredient.ingredientId);
       }
       return next;
     });
   };
 
   const submit = async () => {
-    if (!details || !details.customizavel) return;
+    if (!details || !details.customizable) return;
 
-    const selectedExtras = Object.entries(extras).map(([idOpcao, quantidade]) => ({
-      id_opcao: Number(idOpcao),
-      quantidade,
+    const selectedExtras = Object.entries(extras).map(([idOpcao, quantity]) => ({
+      optionId: Number(idOpcao),
+      quantity,
     }));
 
     const selectedSubstitutions = Object.entries(substitutions).flatMap(([originalId, optionId]) => {
       const option = substitutionTypes
-        .flatMap((tipo) => details.opcoes[tipo])
-        .find((item) => item.id_opcao === optionId);
+        .flatMap((type) => details.options[type] ?? [])
+        .find((item) => item.optionId === optionId);
 
-      if (!option?.id_ingrediente) return [];
+      if (!option?.ingredientId) return [];
       return [{
-        id_ingrediente_original: Number(originalId),
-        id_ingrediente_novo: option.id_ingrediente,
+        originalIngredientId: Number(originalId),
+        newIngredientId: option.ingredientId,
       }];
     });
 
     try {
       setSubmitting(true);
       await cartService.addCustomizedItem({
-        id_produto: product.id,
-        quantidade: quantity,
-        ingredientes_removidos: Array.from(removed).filter((ingredientId) => (
-          details.ingredientes.some((ingredient) => (
-            ingredient.id_ingrediente === ingredientId &&
-            ingredient.removivel &&
-            ingredient.tipo === "INGREDIENTES_NORMAIS"
+        productId: product.id,
+        quantity: quantity,
+        removedIngredients: Array.from(removed).filter((ingredientId) => (
+          details.ingredients.some((ingredient) => (
+            ingredient.ingredientId === ingredientId &&
+            ingredient.removable &&
+            ingredient.type === "normal"
           ))
         )),
         extras: selectedExtras,
-        substituicoes: selectedSubstitutions,
-        observacoes: notes.trim() || null,
+        substitutions: selectedSubstitutions,
+        notes: notes.trim() || null,
       }, product.stock);
       onAdded(product.name);
       onClose();
@@ -241,46 +241,46 @@ export function CustomizeProductModal({
               <section className="customize-section">
                 <h3>Ingredientes</h3>
                 <div className="customize-list">
-                  {details.ingredientes.map((ingredient) => (
-                    <label key={ingredient.id_ingrediente} className="customize-check">
+                  {details.ingredients.map((ingredient) => (
+                    <label key={ingredient.ingredientId} className="customize-check">
                       <input
                         type="checkbox"
-                        checked={!removed.has(ingredient.id_ingrediente)}
-                        disabled={!ingredient.removivel || ingredient.tipo !== "INGREDIENTES_NORMAIS"}
+                        checked={!removed.has(ingredient.ingredientId)}
+                        disabled={!ingredient.removable || ingredient.type !== "normal"}
                         onChange={() => toggleIngredient(ingredient)}
                       />
-                      <span>{ingredient.nome}</span>
+                      <span>{ingredient.name}</span>
                     </label>
                   ))}
                 </div>
               </section>
 
-              {details.ingredientes_substituiveis.length > 0 && (
+              {details.substitutableIngredients.length > 0 && (
                 <section className="customize-section">
                   <h3>Trocas</h3>
                   <div className="customize-list">
-                    {details.ingredientes_substituiveis.map((ingredient) => {
+                    {details.substitutableIngredients.map((ingredient) => {
                       const options = substitutionOptionsFor(ingredient, details);
                       if (options.length === 0) return null;
 
                       return (
-                        <label key={ingredient.id_ingrediente} className="customize-select-row">
-                          <span>{ingredient.nome}</span>
+                        <label key={ingredient.ingredientId} className="customize-select-row">
+                          <span>{ingredient.name}</span>
                           <CustomSelect
-                            value={substitutions[ingredient.id_ingrediente] ?? ""}
+                            value={substitutions[ingredient.ingredientId] ?? ""}
                             onChange={(nextValue) => {
                               const optionId = Number(nextValue);
                               setSubstitutions((current) => {
                                 const next = { ...current };
-                                if (optionId) next[ingredient.id_ingrediente] = optionId;
-                                else delete next[ingredient.id_ingrediente];
+                                if (optionId) next[ingredient.ingredientId] = optionId;
+                                else delete next[ingredient.ingredientId];
                                 return next;
                               });
                             }}
                             options={[
                               { value: "", label: "Manter original" },
                               ...options.map((option) => ({
-                                value: option.id_opcao,
+                                value: option.optionId,
                                 label: `${optionLabel(option)}${optionPrice(option) > 0 ? ` (+${formatEuro(optionPrice(option))})` : ""}`,
                               })),
                             ]}
@@ -297,17 +297,17 @@ export function CustomizeProductModal({
                   <h3>Extras</h3>
                   <div className="customize-list">
                     {extraOptions.map((option) => (
-                      <div key={option.id_opcao} className="customize-extra-row">
+                      <div key={option.optionId} className="customize-extra-row">
                         <div>
                           <strong>{optionLabel(option)}</strong>
                           <span>{formatEuro(addSurcharge)}</span>
                         </div>
                         <div className="customize-stepper">
-                          <button type="button" onClick={() => updateExtra(option, -1)} disabled={!extras[option.id_opcao]} aria-label={`Diminuir ${option.nome}`}>
+                          <button type="button" onClick={() => updateExtra(option, -1)} disabled={!extras[option.optionId]} aria-label={`Diminuir ${option.name}`}>
                             <Minus size={15} />
                           </button>
-                          <span>{extras[option.id_opcao] ?? 0}</span>
-                          <button type="button" onClick={() => updateExtra(option, 1)} disabled={(extras[option.id_opcao] ?? 0) >= option.max_quantidade} aria-label={`Aumentar ${option.nome}`}>
+                          <span>{extras[option.optionId] ?? 0}</span>
+                          <button type="button" onClick={() => updateExtra(option, 1)} disabled={(extras[option.optionId] ?? 0) >= option.maxQuantity} aria-label={`Aumentar ${option.name}`}>
                             <Plus size={15} />
                           </button>
                         </div>
@@ -343,7 +343,7 @@ export function CustomizeProductModal({
                   <Plus size={15} />
                 </button>
               </div>
-              <Button onClick={submit} isLoading={submitting} disabled={!details.customizavel}>
+              <Button onClick={submit} isLoading={submitting} disabled={!details.customizable}>
                 {submitLabel}
               </Button>
             </footer>

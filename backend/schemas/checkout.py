@@ -99,7 +99,7 @@ class OrderItemResponse(BaseModel):
     subtotal: Decimal
     customization: Optional[ItemCustomization] = None
     image: Optional[str] = None
-    calorias: Optional[Decimal] = None
+    calories: Optional[Decimal] = None
 
     model_config = ConfigDict(from_attributes=True)
 

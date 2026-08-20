@@ -15,7 +15,7 @@ type Props = {
   onUpdateStatus: (orderId: number, status: string) => Promise<void> | void;
 };
 
-const allStatuses = ["pendente", "confirmada", "em_preparacao", "pronta", "entregue", "cancelada", "reembolsada"];
+const allStatuses = ["pending", "confirmed", "in_preparation", "ready", "delivered", "cancelled", "refunded"];
 
 const defaultOrderFilters = {
   search: "",
@@ -28,7 +28,7 @@ const defaultOrderFilters = {
 };
 
 function customerInitials(order: AdminOrder): string {
-  const name = order.cliente_nome?.trim();
+  const name = order.customerName?.trim();
   if (!name) return "CL";
   const parts = name.split(/\s+/).filter(Boolean);
   return parts.slice(0, 2).map((part) => part[0]).join("").toUpperCase();
@@ -46,25 +46,25 @@ export default function SuperAdminOrdersView({ orders, onRefresh, onInitiateRefu
   const [filters, setFilters] = useState(defaultOrderFilters);
 
   const selectedOrder = useMemo(
-    () => orders.find((order) => order.id_carrinho === selectedOrderId) ?? null,
+    () => orders.find((order) => order.orderId === selectedOrderId) ?? null,
     [orders, selectedOrderId],
   );
 
   const summary = useMemo(() => {
-    const todayOrders = orders.filter((order) => isToday(order.data_atualizacao ?? order.data_criacao));
+    const todayOrders = orders.filter((order) => isToday(order.updatedAt ?? order.createdAt));
     return {
-      pending: orders.filter((order) => order.estado === "pendente").length,
-      preparing: orders.filter((order) => order.estado === "em_preparacao").length,
-      ready: orders.filter((order) => order.estado === "pronta").length,
-      completedToday: todayOrders.filter((order) => order.estado === "entregue").length,
+      pending: orders.filter((order) => order.state === "pending").length,
+      preparing: orders.filter((order) => order.state === "in_preparation").length,
+      ready: orders.filter((order) => order.state === "ready").length,
+      completedToday: todayOrders.filter((order) => order.state === "delivered").length,
       revenueToday: todayOrders
-        .filter((order) => order.estado_pagamento === "pago")
+        .filter((order) => order.paymentStatus === "paid")
         .reduce((sum, order) => sum + (order.total ?? 0), 0),
     };
   }, [orders]);
 
-  const paymentMethods = useMemo(() => Array.from(new Set(orders.map((order) => order.metodo_pagamento).filter(Boolean))) as string[], [orders]);
-  const paymentStatuses = useMemo(() => Array.from(new Set(orders.map((order) => order.estado_pagamento).filter(Boolean))) as string[], [orders]);
+  const paymentMethods = useMemo(() => Array.from(new Set(orders.map((order) => order.paymentMethod).filter(Boolean))) as string[], [orders]);
+  const paymentStatuses = useMemo(() => Array.from(new Set(orders.map((order) => order.paymentStatus).filter(Boolean))) as string[], [orders]);
 
   const clearAllFilters = () => {
     setQuickFilter("all");
@@ -75,39 +75,39 @@ export default function SuperAdminOrdersView({ orders, onRefresh, onInitiateRefu
   const filteredOrders = useMemo(() => {
     const query = filters.search.trim().toLowerCase();
     return orders.filter((order) => {
-      if (quickFilter === "needs-payment" && order.estado !== "pendente") return false;
-      if (quickFilter === "queued" && order.estado !== "confirmada") return false;
-      if (quickFilter === "preparing" && order.estado !== "em_preparacao") return false;
-      if (quickFilter === "ready" && order.estado !== "pronta") return false;
-      if (quickFilter === "cancelled" && order.estado !== "cancelada") return false;
-      if (quickFilter === "refunded" && order.estado !== "reembolsada") return false;
+      if (quickFilter === "needs-payment" && order.state !== "pending") return false;
+      if (quickFilter === "queued" && order.state !== "confirmed") return false;
+      if (quickFilter === "preparing" && order.state !== "in_preparation") return false;
+      if (quickFilter === "ready" && order.state !== "ready") return false;
+      if (quickFilter === "cancelled" && order.state !== "cancelled") return false;
+      if (quickFilter === "refunded" && order.state !== "refunded") return false;
       if (quickFilter === "customized" && !hasCustomization(order)) return false;
 
-      if (filters.status && order.estado !== filters.status) return false;
-      if (filters.paymentMethod && order.metodo_pagamento !== filters.paymentMethod) return false;
-      if (filters.paymentStatus && order.estado_pagamento !== filters.paymentStatus) return false;
+      if (filters.status && order.state !== filters.status) return false;
+      if (filters.paymentMethod && order.paymentMethod !== filters.paymentMethod) return false;
+      if (filters.paymentStatus && order.paymentStatus !== filters.paymentStatus) return false;
       if (filters.customization === "customized" && !hasCustomization(order)) return false;
       if (filters.customization === "plain" && hasCustomization(order)) return false;
 
-      const created = new Date(order.data_criacao);
+      const created = new Date(order.createdAt);
       if (filters.dateFrom && created < new Date(`${filters.dateFrom}T00:00:00`)) return false;
       if (filters.dateTo && created > new Date(`${filters.dateTo}T23:59:59`)) return false;
 
       if (!query) return true;
       const haystack = [
-        order.id_carrinho,
-        `#${order.id_carrinho}`,
-        order.cliente_nome,
-        order.cliente_email,
-        order.cliente_telefone,
-        order.estado,
-        order.metodo_pagamento,
-        order.estado_pagamento,
-        order.fulfillment_method,
+        order.orderId,
+        `#${order.orderId}`,
+        order.customerName,
+        order.customerEmail,
+        order.customerPhone,
+        order.state,
+        order.paymentMethod,
+        order.paymentStatus,
+        order.fulfillmentMethod,
         fulfillmentLabel(order),
         handoffLabel(order),
-        order.table_number ? `table ${order.table_number}` : "",
-        order.items.map((item) => item.nome).join(" "),
+        order.tableNumber ? `table ${order.tableNumber}` : "",
+        order.items.map((item) => item.name).join(" "),
       ].join(" ").toLowerCase();
 
       return haystack.includes(query);
@@ -194,16 +194,16 @@ export default function SuperAdminOrdersView({ orders, onRefresh, onInitiateRefu
             const payment = paymentParts(order);
 
             return (
-              <div key={order.id_carrinho} className="col d-flex">
+              <div key={order.orderId} className="col d-flex">
                 <article className="order-admin-card">
                 <header className="order-admin-card-head">
-                  <h3>Pedido #{order.id_carrinho}</h3>
-                  <strong>{order.total_items} {order.total_items === 1 ? "item" : "itens"}</strong>
+                  <h3>Pedido #{order.orderId}</h3>
+                  <strong>{order.totalItems} {order.totalItems === 1 ? "item" : "itens"}</strong>
                 </header>
 
                 <div className="order-admin-card-chips">
                   <span className="order-table-chip">{fulfillmentLabel(order)}</span>
-                  <OrderStatusBadge status={order.estado} />
+                  <OrderStatusBadge status={order.state} />
                 </div>
 
                 <div className="order-admin-card-line">
@@ -214,16 +214,16 @@ export default function SuperAdminOrdersView({ orders, onRefresh, onInitiateRefu
                 <div className="order-admin-card-customer">
                   <span className="order-admin-avatar">{customerInitials(order)}</span>
                   <div>
-                    <strong>{order.cliente_nome || "Cliente"}</strong>
-                    {order.cliente_telefone && <span>{order.cliente_telefone}</span>}
-                    {order.cliente_email && <small>{order.cliente_email}</small>}
+                    <strong>{order.customerName || "Cliente"}</strong>
+                    {order.customerPhone && <span>{order.customerPhone}</span>}
+                    {order.customerEmail && <small>{order.customerEmail}</small>}
                   </div>
                 </div>
 
                 <div className="order-admin-card-line order-admin-payment-line">
                   <CreditCard size={16} />
                   <span>{payment.method}</span>
-                  <strong className={`order-payment-pill order-payment-${order.estado_pagamento || "unknown"}`}>{payment.status}</strong>
+                  <strong className={`order-payment-pill order-payment-${order.paymentStatus || "unknown"}`}>{payment.status}</strong>
                 </div>
 
                 {shouldShowOrderAge(order) && (
@@ -239,14 +239,14 @@ export default function SuperAdminOrdersView({ orders, onRefresh, onInitiateRefu
                 </div>
 
                 <div className="order-admin-card-actions">
-                  <CustomSelect className="ad-select" value={order.estado} onChange={(nextValue) => onUpdateStatus(order.id_carrinho, String(nextValue))} options={allStatuses.map((status) => ({ value: status, label: formatOrderStatus(status) }))} />
-                  {order.estado_pagamento === "pago" && order.estado !== "reembolsada" && (
+                  <CustomSelect className="ad-select" value={order.state} onChange={(nextValue) => onUpdateStatus(order.orderId, String(nextValue))} options={allStatuses.map((status) => ({ value: status, label: formatOrderStatus(status) }))} />
+                  {order.paymentStatus === "paid" && order.state !== "refunded" && (
                     <button className="ad-btn ad-btn-danger" onClick={() => onInitiateRefund(order)}>Reembolsar</button>
                   )}
-                  {order.estado !== "cancelada" && (
-                    <button className="ad-btn ad-btn-danger" onClick={() => onUpdateStatus(order.id_carrinho, "cancelada")}>Cancelar</button>
+                  {order.state !== "cancelled" && (
+                    <button className="ad-btn ad-btn-danger" onClick={() => onUpdateStatus(order.orderId, "cancelled")}>Cancelar</button>
                   )}
-                  <button className="ad-btn ad-btn-ghost" onClick={() => setSelectedOrderId(order.id_carrinho)}>Detalhes</button>
+                  <button className="ad-btn ad-btn-ghost" onClick={() => setSelectedOrderId(order.orderId)}>Detalhes</button>
                 </div>
                 </article>
               </div>
@@ -268,32 +268,32 @@ export default function SuperAdminOrdersView({ orders, onRefresh, onInitiateRefu
           </thead>
           <tbody>
             {filteredOrders.map((order) => (
-              <tr key={order.id_carrinho}>
-                <td><strong>#{order.id_carrinho}</strong><br /><span>{order.total_items} itens</span></td>
+              <tr key={order.orderId}>
+                <td><strong>#{order.orderId}</strong><br /><span>{order.totalItems} itens</span></td>
                 <td>
                   <span className="order-table-chip">{fulfillmentLabel(order)}</span>
                   <br />
                   <span>{handoffLabel(order)}</span>
                 </td>
                 <td>
-                  {order.cliente_nome || "Cliente"}
+                  {order.customerName || "Cliente"}
                   <br />
-                  <span>{[order.cliente_telefone, order.cliente_email].filter(Boolean).join(" / ") || "-"}</span>
+                  <span>{[order.customerPhone, order.customerEmail].filter(Boolean).join(" / ") || "-"}</span>
                 </td>
-                <td><OrderStatusBadge status={order.estado} /></td>
+                <td><OrderStatusBadge status={order.state} /></td>
                 <td>{paymentLabel(order)}</td>
                 <td><OrderAgeBadge order={order} /></td>
                 <td><strong>{formatEuro(order.total ?? 0)}</strong></td>
                 <td>
                   <div className="order-admin-actions">
-                    <CustomSelect className="ad-select" value={order.estado} onChange={(nextValue) => onUpdateStatus(order.id_carrinho, String(nextValue))} options={allStatuses.map((status) => ({ value: status, label: formatOrderStatus(status) }))} />
-                    {order.estado_pagamento === "pago" && order.estado !== "reembolsada" && (
+                    <CustomSelect className="ad-select" value={order.state} onChange={(nextValue) => onUpdateStatus(order.orderId, String(nextValue))} options={allStatuses.map((status) => ({ value: status, label: formatOrderStatus(status) }))} />
+                    {order.paymentStatus === "paid" && order.state !== "refunded" && (
                       <button className="ad-btn ad-btn-sm ad-btn-danger" onClick={() => onInitiateRefund(order)}>Reembolsar</button>
                     )}
-                    {order.estado !== "cancelada" && (
-                      <button className="ad-btn ad-btn-sm ad-btn-danger" onClick={() => onUpdateStatus(order.id_carrinho, "cancelada")}>Cancelar</button>
+                    {order.state !== "cancelled" && (
+                      <button className="ad-btn ad-btn-sm ad-btn-danger" onClick={() => onUpdateStatus(order.orderId, "cancelled")}>Cancelar</button>
                     )}
-                    <button className="ad-btn ad-btn-sm ad-btn-ghost" onClick={() => setSelectedOrderId(order.id_carrinho)}>Detalhes</button>
+                    <button className="ad-btn ad-btn-sm ad-btn-ghost" onClick={() => setSelectedOrderId(order.orderId)}>Detalhes</button>
                   </div>
                 </td>
               </tr>

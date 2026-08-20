@@ -7,7 +7,12 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "api:export": "python ../backend/scripts/export_openapi.py --output ./openapi/openapi.json",
+    "api:generate": "npm run api:export && openapi-ts",
+    "api:check": "npm run api:generate && git diff --exit-code -- openapi/openapi.json src/api/generated",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@popperjs/core": "^2.11.8",
@@ -22,6 +27,7 @@
   "devDependencies": {
     "@babel/core": "^7.29.0",
     "@eslint/js": "^9.39.4",
+    "@hey-api/openapi-ts": "0.97.0",
     "@types/babel__core": "^7.20.5",
     "@types/node": "^24.12.2",
     "@types/react": "^19.2.14",
@@ -33,6 +39,7 @@
     "globals": "^17.4.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.58.0",
-    "vite": "^8.0.4"
+    "vite": "^8.0.4",
+    "vitest": "4.1.11"
   }
 }

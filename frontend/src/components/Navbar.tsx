@@ -795,7 +795,7 @@ const Navbar = () => {
     const fetchCartCount = async () => {
       try {
         const cart = await cartService.getCart();
-        setCartCount(cart.itens?.length ?? 0);
+        setCartCount(cart.items?.length ?? 0);
       } catch (error) {
         console.error("Error fetching cart:", error);
       }
@@ -808,7 +808,7 @@ const Navbar = () => {
     const handleCartUpdate = async () => {
       try {
         const cart = await cartService.getCart();
-        setCartCount(cart.itens?.length ?? 0);
+        setCartCount(cart.items?.length ?? 0);
       } catch (error) {
         console.error("Error fetching cart:", error);
       }
@@ -834,7 +834,7 @@ const Navbar = () => {
     navigate("/");
   };
 
-  const fullName = [user?.nome, user?.apelido].filter(Boolean).join(" ").trim();
+  const fullName = [user?.name, user?.lastName].filter(Boolean).join(" ").trim();
   const displayName = fullName || user?.email || "Perfil";
   const profileInitial = (fullName || user?.email || "P").trim().charAt(0).toUpperCase();
   const glassDarkNav = location.pathname === "/" || location.pathname === "/contact" || location.pathname === "/about";

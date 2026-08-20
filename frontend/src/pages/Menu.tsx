@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { CakeSlice, Check, ChevronDown, CupSoda, Flame, Salad, Sandwich, Search, SlidersHorizontal, Soup, X } from "lucide-react";
 import { useRef } from "react";
@@ -14,7 +14,7 @@ import {
   loyaltyCouponDetail,
   loyaltyCouponHeadline,
 } from "../utils/loyaltyCoupon";
-import { resolveProductImageUrl, useApiImageFallback } from "../utils/imageFallback";
+import { applyApiImageFallback, resolveProductImageUrl } from "../utils/imageFallback";
 import { formatEuro } from "../utils/money";
 
 interface CategoryCount {
@@ -29,7 +29,7 @@ const sortLabels: Record<SortOption, string> = {
   default: "Destaques",
   "price-asc": "Preço: baixo a alto",
   "price-desc": "Preço: alto a baixo",
-  "name-asc": "Name A-Z",
+  "name-asc": "Nome A-Z",
 };
 
 const LOYALTY_BANNER_DISMISSED_KEY = "bonefree-loyalty-banner-dismissed";
@@ -294,8 +294,8 @@ function Menu() {
       const matchesSpecial =
         specialFilter === "all" ||
         (specialFilter === "gluten-free"
-          ? Boolean(product.gluten_free)
-          : isDrinkProduct(product) && Boolean(product.contains_alcohol));
+          ? Boolean(product.glutenFree)
+          : isDrinkProduct(product) && Boolean(product.containsAlcohol));
       return matchesSearch && matchesCategory && matchesPrice && matchesSpecial;
     });
 
@@ -318,7 +318,7 @@ function Menu() {
         const score = (product: Product) =>
           (product.highlighted ? 1000 : 0) +
           (hasTag(product, "popular") ? 700 : 0) +
-          (Number(product.discount_percent ?? 0) > 0 ? 250 : 0) +
+          (Number(product.discountPercent ?? 0) > 0 ? 250 : 0) +
           Number(product.sold ?? 0);
         return score(b) - score(a);
       })
@@ -446,23 +446,23 @@ function Menu() {
                   <img
                     src={resolveProductImageUrl(product.image)}
                     alt=""
-                    onError={(event) => useApiImageFallback(event.currentTarget)}
+                    onError={(event) => applyApiImageFallback(event.currentTarget)}
                   />
                 </span>
                 <span className="menu-popular-content">
                   <span className="menu-popular-category">{product.category}</span>
                   <strong>{product.name}</strong>
                   <span className="menu-popular-meta">
-                    {Number(product.discount_percent ?? 0) > 0 && product.original_price && (
+                    {Number(product.discountPercent ?? 0) > 0 && product.originalPrice && (
                       <span className="menu-popular-original-price">
-                        {formatEuro(product.original_price)}
+                        {formatEuro(product.originalPrice)}
                       </span>
                     )}
                     <span className="menu-popular-price">{formatEuro(product.price)}</span>
-                    {formatMenuCalories(product.total_calorias) && (
+                    {formatMenuCalories(product.totalCalories) && (
                       <span className="menu-popular-calories">
                         <Flame size={13} aria-hidden="true" />
-                        {formatMenuCalories(product.total_calorias)} kcal
+                        {formatMenuCalories(product.totalCalories)} kcal
                       </span>
                     )}
                   </span>
@@ -480,7 +480,7 @@ function Menu() {
             <strong className="fw-bold">{filteredProducts.length}</strong>
             <span>{filteredProducts.length === 1 ? "prato" : "pratos"}</span>
           </div>
-         
+
         </div>
 
         <section className="menu-filter-bar" aria-label="Filtros do menu">
@@ -511,7 +511,7 @@ function Menu() {
             </div>
 
             <div className="menu-filter-group menu-filter-price">
-              <label htmlFor="menu-price">Max price</label>
+              <label htmlFor="menu-price">Preço máximo</label>
               <div className="menu-price-control">
                 <input
                   id="menu-price"
@@ -551,7 +551,7 @@ function Menu() {
                   className={specialFilter === "alcohol" ? "active" : ""}
                   onClick={() => setSpecialFilter("alcohol")}
                 >
-                  <span className="fw-bold">Álcool</span> 
+                  <span className="fw-bold">Álcool</span>
                 </button>
               </div>
             </div>
@@ -612,7 +612,7 @@ function Menu() {
               className={selectedCategory === "" ? "active" : ""}
               onClick={() => selectCategory("")}
             >
-              
+
               <span className=" fw-bold">Todos</span>
               <strong className="fw-bold">{products.length}</strong>
             </button>
@@ -638,7 +638,7 @@ function Menu() {
                   {Array.from({ length: 6 }, (_, index) => (
                     <ProductCardSkeleton key={index} />
                   ))}
-                  
+
                 </div>
               ) : filteredProducts.length > 0 ? (
                 <div className="products-grid">
@@ -658,8 +658,8 @@ function Menu() {
                         onSelect={() => navigate(`/product/${product.id}`)}
                         tone="light"
                       />
-                      
-                    
+
+
                     </div>
                   ))}
                 </div>
@@ -667,14 +667,14 @@ function Menu() {
                 <div className="menu-empty-state">
                   <span>Sem resultados</span>
                   <h2>Nenhum prato encontrado</h2>
-                  <p>Experimente outra categoria, termo de pesquisa ou intervalo de preço.</p>
+                  <p>Experimente outra category, termo de pesquisa ou intervalo de preço.</p>
                   <button type="button"  onClick={handleResetFilters}>
                     Repor filtros
                   </button>
                 </div>
-                
+
               )}
-           
+
             </main>
           </div>
         </div>

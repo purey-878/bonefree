@@ -3,7 +3,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 
-from fastapi import Depends, Header, status
+from fastapi import Depends, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.orm import Session as DBSession
 
@@ -16,19 +17,18 @@ from services.auth_service import hash_session_token
 from utils.datetime_utils import to_naive_utc
 
 
-def _extract_session_token(
-    x_session_token: str | None,
-    authorization: str | None,
+bearer_security = HTTPBearer(
+    auto_error=False,
+    bearerFormat="opaque session token",
+    scheme_name="BearerAuth",
+    description="Session token returned by a customer or administrator login.",
+)
+
+
+def get_session_token_optional(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_security),
 ) -> str | None:
-    if x_session_token:
-        return x_session_token
-
-    if authorization:
-        scheme, _, token = authorization.partition(" ")
-        if scheme.lower() == "bearer" and token:
-            return token
-
-    return None
+    return credentials.credentials if credentials is not None else None
 
 
 def _current_naive_utc() -> datetime:
@@ -36,11 +36,9 @@ def _current_naive_utc() -> datetime:
 
 
 def get_current_user(
-    x_session_token: str | None = Header(default=None),
-    authorization: str | None = Header(default=None),
+    token: str | None = Depends(get_session_token_optional),
     db: DBSession = Depends(get_db),
 ) -> Customer:
-    token = _extract_session_token(x_session_token, authorization)
     if token is None:
         raise AppHTTPException(status_code=status.HTTP_401_UNAUTHORIZED, error="authentication_required", message="Authentication required.", details={"reason": "request_failed"})
 
@@ -63,11 +61,9 @@ def get_current_user(
 
 
 def get_current_user_optional(
-    x_session_token: str | None = Header(default=None),
-    authorization: str | None = Header(default=None),
+    token: str | None = Depends(get_session_token_optional),
     db: DBSession = Depends(get_db),
 ) -> Customer | None:
-    token = _extract_session_token(x_session_token, authorization)
     if token is None:
         return None
 
@@ -87,11 +83,9 @@ def get_current_user_optional(
 
 
 def get_current_admin(
-    x_session_token: str | None = Header(default=None),
-    authorization: str | None = Header(default=None),
+    token: str | None = Depends(get_session_token_optional),
     db: DBSession = Depends(get_db),
 ) -> Admin:
-    token = _extract_session_token(x_session_token, authorization)
     if token is None:
         raise AppHTTPException(status_code=status.HTTP_401_UNAUTHORIZED, error="authentication_required", message="Authentication required.", details={"reason": "request_failed"})
 

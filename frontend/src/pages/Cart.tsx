@@ -7,11 +7,11 @@ import "./Cart.css"
 import { useCart } from "../hooks"
 import { customizationSummary } from "../services"
 import type { CartItem, GuestCartItem, ItemCustomization } from "../types/cart"
-import { resolveProductImageUrl, useApiImageFallback } from "../utils/imageFallback"
+import { applyApiImageFallback, resolveProductImageUrl } from "../utils/imageFallback"
 import { formatEuro } from "../utils/money"
 
 function isCartItem(item: CartItem | GuestCartItem): item is CartItem {
-  return "nome" in item
+  return "name" in item
 }
 
 function cartImage(src?: string | null) {
@@ -58,11 +58,11 @@ function Cart({ overlay = false }: CartProps) {
     productId: number,
     lineKey: string,
     cartLogId?: number,
-    customizacao?: ItemCustomization | null,
+    customization?: ItemCustomization | null,
   ) => {
     try {
       setUpdatingItem(lineKey)
-      await removeItem(productId, cartLogId, customizacao)
+      await removeItem(productId, cartLogId, customization)
     } catch (err) {
       console.error("Erro ao remover item:", err)
     } finally {
@@ -76,16 +76,16 @@ function Cart({ overlay = false }: CartProps) {
     newQuantity: number,
     stock?: number,
     cartLogId?: number,
-    customizacao?: ItemCustomization | null,
+    customization?: ItemCustomization | null,
   ) => {
     if (newQuantity < 1) {
-      await handleRemoveItem(productId, lineKey, cartLogId, customizacao)
+      await handleRemoveItem(productId, lineKey, cartLogId, customization)
       return
     }
 
     try {
       setUpdatingItem(lineKey)
-      await updateQuantity(productId, newQuantity, stock, cartLogId, customizacao)
+      await updateQuantity(productId, newQuantity, stock, cartLogId, customization)
     } catch (err) {
       console.error("Erro ao atualizar quantidade:", err)
     } finally {
@@ -93,7 +93,7 @@ function Cart({ overlay = false }: CartProps) {
     }
   }
 
-  const items = cart?.itens ?? []
+  const items = cart?.items ?? []
   const total = Number(cart?.total ?? 0)
   const showInitialLoading = loading && !cart
 
@@ -134,28 +134,28 @@ function Cart({ overlay = false }: CartProps) {
               {items.map((item) => {
                 const itemData = isCartItem(item)
                   ? {
-                      id: item.id_produto,
-                      name: item.nome,
-                      price: Number(item.preco),
-                      quantity: item.quantidade,
-                      image: item.caminho_imagem,
+                      id: item.productId,
+                      name: item.name,
+                      price: Number(item.price),
+                      quantity: item.quantity,
+                      image: item.imagePath,
                       stock: item.stock,
-                      cartLogId: item.cart_log_id,
-                      customizacao: item.customizacao,
+                      cartLogId: item.cartProductId,
+                      customization: item.customization,
                       subtotal: Number(item.subtotal),
                     }
                   : {
-                      id: item.id_produto,
+                      id: item.productId,
                       name: "Produto",
                       price: 0,
-                      quantity: item.quantidade,
+                      quantity: item.quantity,
                       image: null,
                       stock: 99,
                       cartLogId: undefined,
-                      customizacao: item.customizacao,
+                      customization: item.customization,
                       subtotal: 0,
                     }
-                const customizationLines = customizationSummary(itemData.customizacao)
+                const customizationLines = customizationSummary(itemData.customization)
                 const customizationKey = customizationLines.join("|") || "plain"
                 const lineKey = `${itemData.id}-${itemData.cartLogId ?? customizationKey}`
                 const isUpdating = updatingItem === lineKey
@@ -167,7 +167,7 @@ function Cart({ overlay = false }: CartProps) {
                       src={cartImage(itemData.image)}
                       alt={itemData.name}
                       onError={(event) => {
-                        useApiImageFallback(event.currentTarget)
+                        applyApiImageFallback(event.currentTarget)
                       }}
                     />
 
@@ -177,7 +177,7 @@ function Cart({ overlay = false }: CartProps) {
                           <h2>{itemData.name}</h2>
                           <p>{formatEuro(itemData.price)} cada</p>
                           {customizationLines.length > 0 && (
-                            <div className="cart-customizations 
+                            <div className="cart-customizations
                             ">
                               {customizationLines.map(line => <span className="rounded-3 "  key={line}>{line}</span>)}
                             </div>
@@ -196,7 +196,7 @@ function Cart({ overlay = false }: CartProps) {
                               itemData.quantity - 1,
                               itemData.stock,
                               itemData.cartLogId,
-                              itemData.customizacao,
+                              itemData.customization,
                             )}
                             disabled={isUpdating}
                             aria-label="Diminuir quantidade"
@@ -218,7 +218,7 @@ function Cart({ overlay = false }: CartProps) {
                               itemData.quantity + 1,
                               itemData.stock,
                               itemData.cartLogId,
-                              itemData.customizacao,
+                              itemData.customization,
                             )}
                             disabled={isUpdating || !canIncrease}
                             aria-label="Aumentar quantidade"
@@ -234,7 +234,7 @@ function Cart({ overlay = false }: CartProps) {
                             itemData.id,
                             lineKey,
                             itemData.cartLogId,
-                            itemData.customizacao,
+                            itemData.customization,
                           )}
                           disabled={isUpdating}
                         >

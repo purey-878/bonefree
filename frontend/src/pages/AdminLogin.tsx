@@ -5,11 +5,11 @@ import { CakeSlice, CupSoda, Salad, Sandwich, Soup } from "lucide-react"
 import "./Auth.css"
 import Navbar from "../components/Navbar"
 import Footer from "../components/Footer"
-import { API_BASE } from "../services/api"
+import { adminLogin } from "../services/adminService"
 import type { AdminRole } from "../types/admin"
 
 function normalizeAdminRole(role: unknown): AdminRole {
-  if (role === "owner" || role === "super_admin") return "owner"
+  if (role === "owner") return "owner"
   if (role === "chef") return "chef"
   if (role === "waiter") return "waiter"
   return "manager"
@@ -34,24 +34,11 @@ export default function AdminLogin() {
     setLoading(true)
 
     try {
-      const response = await fetch(`${API_BASE}/admin/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      })
-
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.detail || "Falha no login de administração")
-      }
-
-      const data = await response.json()
+      const data = await adminLogin(email, password)
       const adminRole = normalizeAdminRole(data.admin?.role)
-      const adminName = data.admin?.nome ?? data.admin?.name ?? ""
+      const adminName = data.admin?.name ?? ""
 
-      localStorage.setItem("admin_token", data.access_token)
+      localStorage.setItem("admin_token", data.accessToken)
       localStorage.setItem("admin_name", adminName)
       localStorage.setItem("admin_role", adminRole)
 
@@ -85,7 +72,7 @@ export default function AdminLogin() {
         <h1 className="auth-title fw-extrabold">
           Login <br /> admin <span className="green">.</span>
         </h1>
-        
+
         {error && <div className="alert alert-danger">{error}</div>}
 
         <form onSubmit={handleSubmit} className="auth-form">

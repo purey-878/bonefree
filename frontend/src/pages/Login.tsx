@@ -67,7 +67,7 @@ function Login() {
           <h1 className="auth-title fw-extrabold">
             Bem-vindo  <br/> de volta <span className="green">.</span>
           </h1>
-       
+
 
           {error && <div className="alert alert-danger">{error}</div>}
 

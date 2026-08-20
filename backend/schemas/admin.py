@@ -220,7 +220,7 @@ class ProductBase(BaseModel):
     customizable: bool = True
     menu_tags: Optional[str] = None
     featured: bool = False
-    discount_percentual: float = Field(0, ge=0, le=100)
+    discount_percentage: float = Field(0, ge=0, le=100)
     gluten_free: bool = False
     contains_alcohol: bool = False
     total_calories: Optional[float] = Field(None, ge=0)
@@ -258,7 +258,7 @@ class ProductUpdate(BaseModel):
     customizable: Optional[bool] = None
     menu_tags: Optional[str] = None
     featured: Optional[bool] = None
-    discount_percentual: Optional[float] = Field(None, ge=0, le=100)
+    discount_percentage: Optional[float] = Field(None, ge=0, le=100)
     gluten_free: Optional[bool] = None
     contains_alcohol: Optional[bool] = None
     total_calories: Optional[float] = Field(None, ge=0)
@@ -288,6 +288,13 @@ class ProductImageResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ProductImageUploadResponse(BaseModel):
+    message: str
+    filename: str
+    url: str
+    image_path: str
+
+
 class ProductAdminResponse(BaseModel):
     """Response model for product in admin context."""
     product_id: int
@@ -303,7 +310,7 @@ class ProductAdminResponse(BaseModel):
     customizable: bool = True
     menu_tags: Optional[str] = None
     featured: bool = False
-    discount_percentual: float = 0
+    discount_percentage: float = 0
     gluten_free: bool = False
     contains_alcohol: bool = False
     total_calories: Optional[float] = None
@@ -331,12 +338,13 @@ class CartItemResponse(BaseModel):
 
 class OrderResponse(BaseModel):
     """Response model for order."""
-    cart_id: int
+    order_id: int
     customer_id: int
     customer_email: str
     customer_name: Optional[str]
     customer_phone: Optional[str] = None
     created_at: datetime
+    updated_at: Optional[datetime] = None
     state: OrderState
     payment_method: PaymentMethod
     payment_status: PaymentStatus
@@ -380,7 +388,7 @@ class CounterPaymentResponse(BaseModel):
 
 class KitchenOrderResponse(BaseModel):
     """Reduced order response for kitchen preparation screens."""
-    cart_id: int
+    order_id: int
     created_at: datetime
     state: OrderState
     notes: Optional[str] = None
@@ -443,29 +451,29 @@ class PopularProduct(BaseModel):
     category: str
 
 
-class VendaPeriodicaResponse(BaseModel):
+class PeriodicSalesResponse(BaseModel):
     """Response for sales in a period."""
     period: str
     total_sales: float
     quantity_sold: int
-    order_numbers: int
+    order_count: int
 
 
 class SalesPerformanceResponse(BaseModel):
     """Response for sales performance analytics."""
     total_sales: float
     quantity_sold: int
-    order_numbers: int
+    order_count: int
     period: str
-    vendas_por_dia: List[VendaPeriodicaResponse]
+    sales_by_day: List[PeriodicSalesResponse]
 
 
 class DashboardSalesGraphs(BaseModel):
     """Sales graph data for dashboard overview."""
-    por_hora: List[VendaPeriodicaResponse]
-    por_dia: List[VendaPeriodicaResponse]
-    por_mes: List[VendaPeriodicaResponse]
-    por_ano: List[VendaPeriodicaResponse]
+    by_hour: List[PeriodicSalesResponse]
+    by_day: List[PeriodicSalesResponse]
+    by_month: List[PeriodicSalesResponse]
+    by_year: List[PeriodicSalesResponse]
 
 
 class ProductAnalyticsResponse(BaseModel):
@@ -474,12 +482,12 @@ class ProductAnalyticsResponse(BaseModel):
     product_display_id: str
     total_sales: float
     quantity_sold: int
-    order_numbers: int
+    order_count: int
     current_price: float
     current_stock: int
     average_rating: Optional[float] = None
     total_reviews: int
-    vendas_por_dia: List[VendaPeriodicaResponse]
+    sales_by_day: List[PeriodicSalesResponse]
 
 
 class AnalyticsSeriesPoint(BaseModel):
@@ -488,7 +496,7 @@ class AnalyticsSeriesPoint(BaseModel):
     label: str
     value: float
     quantity_sold: int = 0
-    order_numbers: int = 0
+    order_count: int = 0
 
 
 class AnalyticsSeriesResponse(BaseModel):

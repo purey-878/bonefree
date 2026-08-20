@@ -26,31 +26,31 @@ const columns = [
   {
     id: "needs-payment",
     title: "A aguardar pagamento / pendente",
-    statuses: ["pendente"],
+    statuses: ["pending"],
     empty: "Nenhum pedido à espera de pagamento",
   },
   {
     id: "in-kitchen",
     title: "Na cozinha / em preparação",
-    statuses: ["confirmada", "em_preparacao"],
+    statuses: ["confirmed", "in_preparation"],
     empty: "Nenhum pedido ativo na cozinha",
   },
   {
     id: "ready",
     title: "Pronto para entrega",
-    statuses: ["pronta"],
+    statuses: ["ready"],
     empty: "Nada pronto agora",
   },
   {
     id: "completed",
     title: "Concluídos hoje",
-    statuses: ["entregue"],
+    statuses: ["delivered"],
     empty: "Nenhuma entrega concluída hoje",
   },
   {
     id: "cancelled",
     title: "Cancelados",
-    statuses: ["cancelada"],
+    statuses: ["cancelled"],
     empty: "Nenhum pedido cancelado",
   },
 ];
@@ -70,11 +70,11 @@ export default function StaffOrdersBoard({ orders, onRefresh, onMarkPaid, onInit
   const [filters, setFilters] = useState(defaultStaffOrderFilters);
 
   const selectedOrder = useMemo(
-    () => orders.find((order) => order.id_carrinho === selectedOrderId) ?? null,
+    () => orders.find((order) => order.orderId === selectedOrderId) ?? null,
     [orders, selectedOrderId],
   );
 
-  const paymentMethods = useMemo(() => Array.from(new Set(orders.map((order) => order.metodo_pagamento).filter(Boolean))) as string[], [orders]);
+  const paymentMethods = useMemo(() => Array.from(new Set(orders.map((order) => order.paymentMethod).filter(Boolean))) as string[], [orders]);
 
   const clearAllFilters = () => {
     setQuickFilter("all");
@@ -85,35 +85,35 @@ export default function StaffOrdersBoard({ orders, onRefresh, onMarkPaid, onInit
   const visibleOrders = useMemo(() => {
     const query = filters.search.trim().toLowerCase();
     return orders.filter((order) => {
-      if (quickFilter === "needs-payment" && order.estado !== "pendente") return false;
-      if (quickFilter === "queued" && order.estado !== "confirmada") return false;
-      if (quickFilter === "preparing" && order.estado !== "em_preparacao") return false;
-      if (quickFilter === "ready" && order.estado !== "pronta") return false;
-      if (quickFilter === "cancelled" && order.estado !== "cancelada") return false;
+      if (quickFilter === "needs-payment" && order.state !== "pending") return false;
+      if (quickFilter === "queued" && order.state !== "confirmed") return false;
+      if (quickFilter === "preparing" && order.state !== "in_preparation") return false;
+      if (quickFilter === "ready" && order.state !== "ready") return false;
+      if (quickFilter === "cancelled" && order.state !== "cancelled") return false;
       if (quickFilter === "customized" && !hasCustomization(order)) return false;
 
-      if (filters.status && order.estado !== filters.status) return false;
-      if (filters.paymentMethod && order.metodo_pagamento !== filters.paymentMethod) return false;
+      if (filters.status && order.state !== filters.status) return false;
+      if (filters.paymentMethod && order.paymentMethod !== filters.paymentMethod) return false;
 
-      const created = new Date(order.data_criacao);
+      const created = new Date(order.createdAt);
       if (filters.dateFrom && created < new Date(`${filters.dateFrom}T00:00:00`)) return false;
       if (filters.dateTo && created > new Date(`${filters.dateTo}T23:59:59`)) return false;
 
       if (!query) return true;
       const haystack = [
-        order.id_carrinho,
-        `#${order.id_carrinho}`,
-        order.cliente_nome,
-        order.cliente_email,
-        order.cliente_telefone,
-        order.estado,
-        order.metodo_pagamento,
-        order.estado_pagamento,
-        order.fulfillment_method,
+        order.orderId,
+        `#${order.orderId}`,
+        order.customerName,
+        order.customerEmail,
+        order.customerPhone,
+        order.state,
+        order.paymentMethod,
+        order.paymentStatus,
+        order.fulfillmentMethod,
         fulfillmentLabel(order),
         handoffLabel(order),
-        order.table_number ? `table ${order.table_number}` : "",
-        order.items.map((item) => item.nome).join(" "),
+        order.tableNumber ? `table ${order.tableNumber}` : "",
+        order.items.map((item) => item.name).join(" "),
       ].join(" ").toLowerCase();
 
       return haystack.includes(query);
@@ -123,11 +123,11 @@ export default function StaffOrdersBoard({ orders, onRefresh, onMarkPaid, onInit
   const grouped = useMemo(() => (
     Object.fromEntries(columns.map((column) => [
       column.id,
-      visibleOrders.filter((order) => column.statuses.includes(order.estado)),
+      visibleOrders.filter((order) => column.statuses.includes(order.state)),
     ])) as Record<string, AdminOrder[]>
   ), [visibleOrders]);
 
-  const visibleOrderIds = useMemo(() => visibleOrders.map((order) => order.id_carrinho), [visibleOrders]);
+  const visibleOrderIds = useMemo(() => visibleOrders.map((order) => order.orderId), [visibleOrders]);
   const allVisibleCollapsed = visibleOrderIds.length > 0 && visibleOrderIds.every((orderId) => collapsedOrderIds.has(orderId));
 
   const handleToggleAllCards = () => {
@@ -195,7 +195,7 @@ export default function StaffOrdersBoard({ orders, onRefresh, onMarkPaid, onInit
             <label>Estado</label>
             <select value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}>
               <option value="">Todos os estados</option>
-              {["pendente", "confirmada", "em_preparacao", "pronta", "entregue", "cancelada"].map((status) => (
+              {["pending", "confirmed", "in_preparation", "ready", "delivered", "cancelled"].map((status) => (
                 <option key={status} value={status}>{formatOrderStatus(status)}</option>
               ))}
             </select>
@@ -225,44 +225,44 @@ export default function StaffOrdersBoard({ orders, onRefresh, onMarkPaid, onInit
 
             <div className="orders-column-list">
               {grouped[column.id].map((order) => {
-                const isCollapsed = collapsedOrderIds.has(order.id_carrinho);
+                const isCollapsed = collapsedOrderIds.has(order.orderId);
                 const customizations = orderCustomizations(order);
 
                 return (
                 <article
-                  key={order.id_carrinho}
-                  className={`order-card-v2 order-card-status-${order.estado} ${isCollapsed ? "is-collapsed" : "is-expanded"}`}
+                  key={order.orderId}
+                  className={`order-card-v2 order-card-status-${order.state} ${isCollapsed ? "is-collapsed" : "is-expanded"}`}
                   onClick={(event) => {
                     const target = event.target as HTMLElement;
                     if (target.closest("button, a, input, select, textarea, summary, details")) return;
-                    handleToggleOrderCard(order.id_carrinho);
+                    handleToggleOrderCard(order.orderId);
                   }}
                   onKeyDown={isCollapsed ? (event) => {
                     if (event.key === "Enter" || event.key === " ") {
                       event.preventDefault();
-                      handleToggleOrderCard(order.id_carrinho);
+                      handleToggleOrderCard(order.orderId);
                     }
                   } : undefined}
                   role={isCollapsed ? "button" : undefined}
                   tabIndex={isCollapsed ? 0 : undefined}
-                  aria-label={isCollapsed ? `Expandir pedido ${order.id_carrinho}` : undefined}
+                  aria-label={isCollapsed ? `Expandir pedido ${order.orderId}` : undefined}
                 >
                   <header className="order-card-v2-header">
                     <div>
-                      <h4>#{order.id_carrinho}</h4>
-                      <p>{order.cliente_nome || "Cliente"}</p>
+                      <h4>#{order.orderId}</h4>
+                      <p>{order.customerName || "Cliente"}</p>
                     </div>
                     <div className="order-card-v2-header-actions">
-                      <OrderStatusBadge status={order.estado} />
+                      <OrderStatusBadge status={order.state} />
                       <button
                         type="button"
                         className="order-card-collapse-toggle"
                         onClick={(event) => {
                           event.stopPropagation();
-                          handleToggleOrderCard(order.id_carrinho);
+                          handleToggleOrderCard(order.orderId);
                         }}
                         aria-expanded={!isCollapsed}
-                        aria-label={`${isCollapsed ? "Expandir" : "Recolher"} pedido ${order.id_carrinho}`}
+                        aria-label={`${isCollapsed ? "Expandir" : "Recolher"} pedido ${order.orderId}`}
                         title={isCollapsed ? "Expandir pedido" : "Recolher pedido"}
                       >
                         {isCollapsed ? <ChevronDown size={16} strokeWidth={2.4} /> : <ChevronUp size={16} strokeWidth={2.4} />}
@@ -273,19 +273,19 @@ export default function StaffOrdersBoard({ orders, onRefresh, onMarkPaid, onInit
                   <div className="order-card-v2-meta">
                     <OrderAgeBadge order={order} />
                     <span className="order-table-chip">{handoffLabel(order)}</span>
-                    <span>{order.total_items} itens</span>
+                    <span>{order.totalItems} itens</span>
                     <strong className="order-card-v2-price">{formatEuro(order.total ?? 0)}</strong>
                   </div>
 
                   {!isCollapsed && (
                     <div className="order-card-v2-lines">
-                      <span>{order.cliente_telefone || order.cliente_email || "Sem contacto"}</span>
+                      <span>{order.customerPhone || order.customerEmail || "Sem contacto"}</span>
                       <span>{fulfillmentLabel(order)}</span>
                       <span>{paymentLabel(order)}</span>
                     </div>
                   )}
 
-                  {!isCollapsed && order.notas && <p className="order-note-inline">{order.notas}</p>}
+                  {!isCollapsed && order.notes && <p className="order-note-inline">{order.notes}</p>}
 
                   {!isCollapsed && customizations.length > 0 && (
                     <p className="order-custom-summary">{customizations.length} item(ns) personalizado(s)</p>
@@ -293,16 +293,16 @@ export default function StaffOrdersBoard({ orders, onRefresh, onMarkPaid, onInit
 
                   {!isCollapsed && (
                   <div className="order-card-actions">
-                    {order.estado === "pendente" && order.metodo_pagamento === "balcao" && order.estado_pagamento !== "pago" && (
-                      <button className="ad-btn ad-btn-primary" onClick={() => onMarkPaid(order.id_carrinho)}>Confirmar pagamento</button>
+                    {order.state === "pending" && order.paymentMethod === "counter" && order.paymentStatus !== "paid" && (
+                      <button className="ad-btn ad-btn-primary" onClick={() => onMarkPaid(order.orderId)}>Confirmar pagamento</button>
                     )}
-                    {order.estado === "pendente" && order.estado_pagamento === "pago" && (
-                      <button className="ad-btn ad-btn-primary" onClick={() => onUpdateStatus(order.id_carrinho, "confirmada")}>Enviar para a cozinha</button>
+                    {order.state === "pending" && order.paymentStatus === "paid" && (
+                      <button className="ad-btn ad-btn-primary" onClick={() => onUpdateStatus(order.orderId, "confirmed")}>Enviar para a cozinha</button>
                     )}
-                    {order.estado === "pronta" && (
-                      <button className="ad-btn ad-btn-primary" onClick={() => onUpdateStatus(order.id_carrinho, "entregue")}>Concluir entrega</button>
+                    {order.state === "ready" && (
+                      <button className="ad-btn ad-btn-primary" onClick={() => onUpdateStatus(order.orderId, "delivered")}>Concluir entrega</button>
                     )}
-                    <button className="ad-btn ad-btn-ghost" onClick={() => setSelectedOrderId(order.id_carrinho)}>Ver detalhes</button>
+                    <button className="ad-btn ad-btn-ghost" onClick={() => setSelectedOrderId(order.orderId)}>Ver detalhes</button>
                   </div>
                   )}
                 </article>

@@ -35,14 +35,14 @@ export function useCart() {
    * Add item to cart
    */
   const addItem = useCallback(async (
-    id_produto: number,
-    quantidade: number = 1,
+    productId: number,
+    quantity: number = 1,
     stock?: number,
-    customizacao?: ItemCustomization | null,
+    customization?: ItemCustomization | null,
   ) => {
     try {
       setError(null);
-      await cartService.addItem(id_produto, quantidade, stock, customizacao);
+      await cartService.addItem(productId, quantity, stock, customization);
       await loadCart(true);
     } catch (err) {
       const errorMsg = translateUserMessage(err instanceof Error ? err.message : "Failed to add item");
@@ -56,13 +56,13 @@ export function useCart() {
    * Remove item from cart
    */
   const removeItem = useCallback(async (
-    id_produto: number,
+    productId: number,
     cartLogId?: number,
-    customizacao?: ItemCustomization | null,
+    customization?: ItemCustomization | null,
   ) => {
     try {
       setError(null);
-      await cartService.removeItem(id_produto, cartLogId, customizacao);
+      await cartService.removeItem(productId, cartLogId, customization);
       await loadCart(true);
     } catch (err) {
       const errorMsg = translateUserMessage(err instanceof Error ? err.message : "Failed to remove item");
@@ -76,20 +76,20 @@ export function useCart() {
    * Update item quantity
    */
   const updateQuantity = useCallback(async (
-    id_produto: number,
-    quantidade: number,
+    productId: number,
+    quantity: number,
     stock?: number,
     cartLogId?: number,
-    customizacao?: ItemCustomization | null,
+    customization?: ItemCustomization | null,
   ) => {
-    if (quantidade < 1) {
-      await removeItem(id_produto, cartLogId, customizacao);
+    if (quantity < 1) {
+      await removeItem(productId, cartLogId, customization);
       return;
     }
 
     try {
       setError(null);
-      await cartService.updateItem(id_produto, quantidade, stock, cartLogId, customizacao);
+      await cartService.updateItem(productId, quantity, stock, cartLogId, customization);
       await loadCart(true);
     } catch (err) {
       const errorMsg = translateUserMessage(err instanceof Error ? err.message : "Failed to update quantity");
@@ -143,7 +143,7 @@ export function useCart() {
     updateQuantity,
     clearCart,
     clearError,
-    itemCount: cart?.itens?.length ?? 0,
+    itemCount: cart?.items?.length ?? 0,
     total: cart?.total ?? 0,
   };
 }

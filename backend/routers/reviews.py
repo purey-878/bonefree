@@ -117,7 +117,11 @@ def _existing_product_review(db: Session, current_user: Customer, product_id: in
     ).first()
 
 
-@router.get("/products/{product_id}/reviews", response_model=list[ProductReviewResponse])
+@router.get(
+    "/products/{product_id}/reviews",
+    response_model=list[ProductReviewResponse],
+    operation_id="reviews_list_product_reviews",
+)
 def list_product_reviews(
     product_id: str,
     db: Session = Depends(get_db),
@@ -135,7 +139,11 @@ def list_product_reviews(
     return [_review_response(review, current_user) for review in reviews]
 
 
-@router.get("/products/{product_id}/reviews/stats", response_model=ProductReviewStatsResponse)
+@router.get(
+    "/products/{product_id}/reviews/stats",
+    response_model=ProductReviewStatsResponse,
+    operation_id="reviews_get_product_review_stats",
+)
 def get_product_review_stats(product_id: str, db: Session = Depends(get_db)):
     parsed_product_id = parse_product_id(product_id)
     _get_active_product(db, parsed_product_id)
@@ -152,7 +160,11 @@ def get_product_review_stats(product_id: str, db: Session = Depends(get_db)):
     )
 
 
-@router.get("/products/{product_id}/reviews/eligibility", response_model=ProductReviewEligibilityResponse)
+@router.get(
+    "/products/{product_id}/reviews/eligibility",
+    response_model=ProductReviewEligibilityResponse,
+    operation_id="reviews_get_product_review_eligibility",
+)
 def get_product_review_eligibility(
     product_id: str,
     db: Session = Depends(get_db),
@@ -211,7 +223,12 @@ def get_product_review_eligibility(
     )
 
 
-@router.post("/products/{product_id}/reviews", response_model=ProductReviewResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/products/{product_id}/reviews",
+    response_model=ProductReviewResponse,
+    status_code=status.HTTP_201_CREATED,
+    operation_id="reviews_create_product_review",
+)
 def create_product_review(
     product_id: str,
     body: ProductReviewCreate,
@@ -267,7 +284,11 @@ def create_product_review(
     return _review_response(review, current_user)
 
 
-@router.put("/reviews/{review_id}", response_model=ProductReviewResponse)
+@router.put(
+    "/reviews/{review_id}",
+    response_model=ProductReviewResponse,
+    operation_id="reviews_update_product_review",
+)
 def update_product_review(
     review_id: int,
     body: ProductReviewUpdate,
@@ -296,7 +317,11 @@ def update_product_review(
     return _review_response(review, current_user)
 
 
-@router.delete("/reviews/{review_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/reviews/{review_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    operation_id="reviews_delete_product_review",
+)
 def delete_product_review(
     review_id: int,
     db: Session = Depends(get_db),
@@ -308,7 +333,12 @@ def delete_product_review(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.post("/admin/reviews/{review_id}/reply", response_model=ReviewReplyResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/admin/reviews/{review_id}/reply",
+    response_model=ReviewReplyResponse,
+    status_code=status.HTTP_201_CREATED,
+    operation_id="reviews_create_review_reply",
+)
 def create_review_reply(
     review_id: int,
     body: ReviewReplyCreate,
@@ -323,7 +353,11 @@ def create_review_reply(
     return reply
 
 
-@router.put("/admin/reviews/{review_id}/reply/{reply_id}", response_model=ReviewReplyResponse)
+@router.put(
+    "/admin/reviews/{review_id}/reply/{reply_id}",
+    response_model=ReviewReplyResponse,
+    operation_id="reviews_update_review_reply",
+)
 def update_review_reply(
     review_id: int,
     reply_id: int,
@@ -340,7 +374,11 @@ def update_review_reply(
     return reply
 
 
-@router.delete("/admin/reviews/{review_id}/reply/{reply_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/admin/reviews/{review_id}/reply/{reply_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    operation_id="reviews_delete_review_reply",
+)
 def delete_review_reply(
     review_id: int,
     reply_id: int,
@@ -354,7 +392,11 @@ def delete_review_reply(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.post("/admin/reviews/{review_id}/reaction", response_model=ReviewReactionResponse)
+@router.post(
+    "/admin/reviews/{review_id}/reaction",
+    response_model=ReviewReactionResponse,
+    operation_id="reviews_upsert_review_reaction",
+)
 def upsert_review_reaction(
     review_id: int,
     body: ReviewReactionCreate,
@@ -376,7 +418,11 @@ def upsert_review_reaction(
     return reaction
 
 
-@router.delete("/admin/reviews/{review_id}/reaction", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/admin/reviews/{review_id}/reaction",
+    status_code=status.HTTP_204_NO_CONTENT,
+    operation_id="reviews_delete_review_reaction",
+)
 def delete_review_reaction(
     review_id: int,
     db: Session = Depends(get_db),

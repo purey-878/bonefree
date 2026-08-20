@@ -19,9 +19,9 @@ type Props = {
 };
 
 const columns = [
-  { id: "confirmada", title: "Na fila", empty: "Nada em fila" },
-  { id: "em_preparacao", title: "Em preparação", empty: "Nada em preparação agora" },
-  { id: "pronta", title: "Prontos", empty: "Nenhum pedido pronto" },
+  { id: "confirmed", title: "Na fila", empty: "Nada em fila" },
+  { id: "in_preparation", title: "Em preparação", empty: "Nada em preparação agora" },
+  { id: "ready", title: "Prontos", empty: "Nenhum pedido pronto" },
 ];
 
 export default function KitchenOrdersBoard({ orders, onRefresh, onUpdateStatus }: Props) {
@@ -29,20 +29,20 @@ export default function KitchenOrdersBoard({ orders, onRefresh, onUpdateStatus }
   const [quickFilter, setQuickFilter] = useState("all");
 
   const selectedOrder = useMemo(
-    () => orders.find((order) => order.id_carrinho === selectedOrderId) ?? null,
+    () => orders.find((order) => order.orderId === selectedOrderId) ?? null,
     [orders, selectedOrderId],
   );
 
   const visibleOrders = useMemo(() => {
     if (quickFilter === "customized") return orders.filter(hasCustomization);
-    if (quickFilter !== "all") return orders.filter((order) => order.estado === quickFilter);
+    if (quickFilter !== "all") return orders.filter((order) => order.state === quickFilter);
     return orders;
   }, [orders, quickFilter]);
 
   const grouped = useMemo(() => (
     Object.fromEntries(columns.map((column) => [
       column.id,
-      visibleOrders.filter((order) => order.estado === column.id),
+      visibleOrders.filter((order) => order.state === column.id),
     ])) as Record<string, AdminOrder[]>
   ), [visibleOrders]);
 
@@ -59,9 +59,9 @@ export default function KitchenOrdersBoard({ orders, onRefresh, onUpdateStatus }
       <div className="order-quick-filters" role="group" aria-label="Filtros de pedidos da cozinha">
         {[
           ["all", "Todos"],
-          ["confirmada", "Na fila"],
-          ["em_preparacao", "Em preparação"],
-          ["pronta", "Prontos"],
+          ["confirmed", "Na fila"],
+          ["in_preparation", "Em preparação"],
+          ["ready", "Prontos"],
           ["customized", "Com personalizações"],
         ].map(([value, label]) => (
           <button key={value} className={quickFilter === value ? "active" : ""} onClick={() => setQuickFilter(value)}>
@@ -80,31 +80,31 @@ export default function KitchenOrdersBoard({ orders, onRefresh, onUpdateStatus }
 
             <div className="orders-column-list">
               {grouped[column.id].map((order) => (
-                <article key={order.id_carrinho} className={`kitchen-order-card kitchen-order-card-${order.estado}`}>
+                <article key={order.orderId} className={`kitchen-order-card kitchen-order-card-${order.state}`}>
                   <header className="kitchen-order-card-header">
                     <div>
-                      <h4>#{order.id_carrinho}</h4>
+                      <h4>#{order.orderId}</h4>
                       <span className="order-table-chip kitchen">{fulfillmentLabel(order)}</span>
                       <span className="order-table-chip kitchen">{handoffLabel(order)}</span>
                     </div>
                     <OrderAgeBadge order={order} />
                   </header>
 
-                  {order.notas && (
+                  {order.notes && (
                     <div className="order-note-box compact">
                       <strong>Notas</strong>
-                      <p>{order.notas}</p>
+                      <p>{order.notes}</p>
                     </div>
                   )}
 
                   <div className="kitchen-item-list">
                     {order.items.map((item, index) => {
-                      const lines = visibleCustomizationLines(item.customizacao_resumo);
+                      const lines = visibleCustomizationLines(item.customizationSummary);
                       return (
-                        <div key={`${item.id_produto}-${index}`} className="kitchen-item">
+                        <div key={`${item.productId}-${index}`} className="kitchen-item">
                           <div className="kitchen-item-main">
-                            <span>{item.quantidade}x</span>
-                            <strong>{item.nome}</strong>
+                            <span>{item.quantity}x</span>
+                            <strong>{item.name}</strong>
                           </div>
                           {lines.length > 0 && (
                             <div className="order-customization-chips">
@@ -124,13 +124,13 @@ export default function KitchenOrdersBoard({ orders, onRefresh, onUpdateStatus }
                   </div>
 
                   <div className="order-card-actions">
-                    {order.estado === "confirmada" && (
-                      <button className="ad-btn ad-btn-primary" onClick={() => onUpdateStatus(order.id_carrinho, "em_preparacao")}>Começar preparação</button>
+                    {order.state === "confirmed" && (
+                      <button className="ad-btn ad-btn-primary" onClick={() => onUpdateStatus(order.orderId, "in_preparation")}>Começar preparação</button>
                     )}
-                    {order.estado === "em_preparacao" && (
-                      <button className="ad-btn ad-btn-primary" onClick={() => onUpdateStatus(order.id_carrinho, "pronta")}>Marcar como pronto</button>
+                    {order.state === "in_preparation" && (
+                      <button className="ad-btn ad-btn-primary" onClick={() => onUpdateStatus(order.orderId, "ready")}>Marcar como pronto</button>
                     )}
-                    <button className="ad-btn ad-btn-ghost" onClick={() => setSelectedOrderId(order.id_carrinho)}>{formatOrderStatus(order.estado)}</button>
+                    <button className="ad-btn ad-btn-ghost" onClick={() => setSelectedOrderId(order.orderId)}>{formatOrderStatus(order.state)}</button>
                   </div>
                 </article>
               ))}

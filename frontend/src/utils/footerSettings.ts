@@ -1,7 +1,7 @@
 import type { CompanyDetailsSettings, SocialMediaSettings, SocialPlatform } from "../types/siteSettings"
 
 export const defaultCompanyDetails: CompanyDetailsSettings = {
-  brand_name: "BONEFREE",
+  brandName: "BONEFREE",
   description:
     "A BONEFREE é um restaurante e bar vegan na Costa da Caparica. Servimos pratos 100% vegetais, cocktails artesanais e um ambiente descontraído.",
   address: "Bonefree, R. Eng. Henrique Mendia 28A, 2825-450 Costa da Caparica",

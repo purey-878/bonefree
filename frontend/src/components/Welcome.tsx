@@ -52,7 +52,7 @@ const WelcomeSection = () => {
               <img
                 src={ASSETS.images.hero.burgerGirl.replace('.webp', '.jpg')}
                 className="img-fluid rounded"
-                alt="Happy customer enjoying a burger"
+                alt="Cliente a saborear um hambúrguer"
                 loading="lazy"
                 decoding="async"
               />

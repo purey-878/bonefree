@@ -1,194 +1,168 @@
-import { API_BASE, authHeaders, getToken } from "./api";
-import type { Product } from "../types/product";
-import type { Cart, CartItem, CustomizedCartItemRequest, GuestCartItem, ItemCustomization, MergeResult } from "../types/cart";
-import { translateUserMessage } from "../utils/messages";
+import {
+  cartAddCustomizedItem,
+  cartAddItem,
+  cartClearCart,
+  cartGetCart,
+  cartMergeCart,
+  cartRemoveItem,
+  cartUpdateItem,
+} from '../api/generated';
+import type {
+  AddItemSchema,
+  CustomizedCartItemRequest as CustomizedCartItemDto,
+  MergeCartSchema,
+} from '../api/generated';
+import { apiData, customerApiClient, getStoredToken } from '../api/clients';
+import { toDomain, toDto } from '../api/mappers';
+import type { Product } from '../types/product';
+import type { Cart, CartItem, CustomizedCartItemRequest, GuestCartItem, ItemCustomization, MergeResult } from '../types/cart';
+import { productService } from './productService';
 
-const GUEST_CART_KEY = "guest_cart";
-const LEGACY_CART_KEY = "cart";
+const GUEST_CART_KEY = 'guest_cart';
+const LEGACY_CART_KEY = 'cart';
 
 const customizationLabelTranslations: Record<string, string> = {
-  remove: "Remover",
-  add: "Adicionar",
-  preferences: "Preferências",
-  note: "Nota",
+  remove: 'Remover',
+  add: 'Adicionar',
+  preferences: 'Preferências',
+  note: 'Nota',
 };
 
 const customizationValueTranslations: Record<string, string> = {
-  "extra sauce": "Molho extra",
-  "extra vegan cheese": "Queijo vegan extra",
-  "extra pickles": "Pickles extra",
-  "extra jalapenos": "Jalapeños extra",
-  "extra jalapeños": "Jalapeños extra",
-  "extra salad": "Salada extra",
-  "extra crispy onions": "Cebola crocante extra",
-  "light sauce": "Pouco molho",
-  "sauce on the side": "Molho à parte",
-  "extra spicy": "Mais picante",
-  "no spice": "Sem picante",
-  "cut in half": "Cortado ao meio",
-  pickles: "Pickles",
-  onion: "Cebola",
-  tomato: "Tomate",
-  lettuce: "Alface",
-  sauce: "Molho",
-  slaw: "Couve marinada",
-  coriander: "Coentros",
-  spice: "Picante",
-  berries: "Frutos vermelhos",
-  seeds: "Sementes",
-  syrup: "Calda",
+  'extra sauce': 'Molho extra',
+  'extra vegan cheese': 'Queijo vegan extra',
+  'extra pickles': 'Pickles extra',
+  'extra jalapenos': 'Jalapeños extra',
+  'extra jalapeños': 'Jalapeños extra',
+  'extra salad': 'Salada extra',
+  'extra crispy onions': 'Cebola crocante extra',
+  'light sauce': 'Pouco molho',
+  'sauce on the side': 'Molho à parte',
+  'extra spicy': 'Mais picante',
+  'no spice': 'Sem picante',
+  'cut in half': 'Cortado ao meio',
+  pickles: 'Pickles', onion: 'Cebola', tomato: 'Tomate', lettuce: 'Alface', sauce: 'Molho',
+  slaw: 'Couve marinada', coriander: 'Coentros', spice: 'Picante', berries: 'Frutos vermelhos',
+  seeds: 'Sementes', syrup: 'Calda',
 };
 
-/**
- * Dispatch custom event to notify app of cart updates
- */
 export function dispatchCartUpdate(): void {
   try {
-    const event = new CustomEvent("cartUpdated", { detail: { timestamp: Date.now() } });
-    window.dispatchEvent(event);
+    window.dispatchEvent(new CustomEvent('cartUpdated', { detail: { timestamp: Date.now() } }));
   } catch (error) {
-    console.error("Error dispatching cart update:", error);
+    console.error('Error dispatching cart update:', error);
   }
 }
 
 function isCartItem(item: CartItem | GuestCartItem): item is CartItem {
-  return "nome" in item;
+  return 'name' in item;
 }
 
 export function emptyCustomization(): ItemCustomization {
   return {
-    remove: [],
-    add: [],
-    preferences: [],
-    note: null,
-    ingredientes_removidos: [],
-    extras: [],
-    substituicoes: [],
-    preco_unitario_final: null,
+    remove: [], add: [], preferences: [], note: null,
+    removedIngredients: [], extras: [], substitutions: [], finalUnitPrice: null,
   };
-}
-
-export function normalizeCustomization(customization?: ItemCustomization | null): ItemCustomization | null {
-  if (!customization) return null;
-
-  const normalized: ItemCustomization = {
-    remove: uniqueList(customization.remove ?? []),
-    add: uniqueList(customization.add ?? []),
-    preferences: uniqueList(customization.preferences ?? []),
-    note: customization.note?.trim() || null,
-    ingredientes_removidos: uniqueNumbers(customization.ingredientes_removidos),
-    extras: (customization.extras ?? [])
-      .filter((item) => item.id_opcao > 0 && item.quantidade > 0)
-      .map((item) => ({ id_opcao: item.id_opcao, quantidade: item.quantidade })),
-    substituicoes: (customization.substituicoes ?? [])
-      .filter((item) => item.id_ingrediente_original > 0 && item.id_ingrediente_novo > 0)
-      .map((item) => ({
-        id_ingrediente_original: item.id_ingrediente_original,
-        id_ingrediente_novo: item.id_ingrediente_novo,
-      })),
-    preco_unitario_final: customization.preco_unitario_final ?? null,
-  };
-
-  return hasCustomization(normalized) ? normalized : null;
-}
-
-export function hasCustomization(customization?: ItemCustomization | null): boolean {
-  if (!customization) return false;
-  return (
-    (customization.remove?.length ?? 0) > 0 ||
-    (customization.add?.length ?? 0) > 0 ||
-    (customization.preferences?.length ?? 0) > 0 ||
-    Boolean(customization.note?.trim()) ||
-    Boolean(customization.ingredientes_removidos?.length) ||
-    Boolean(customization.extras?.length) ||
-    Boolean(customization.substituicoes?.length)
-  );
-}
-
-export function customizationSummary(customization?: ItemCustomization | null): string[] {
-  const normalized = normalizeCustomization(customization);
-  if (!normalized) return [];
-
-  const lines: string[] = [];
-  if (normalized.remove.length) lines.push(`${customizationLabelTranslations.remove}: ${translatedChoices(normalized.remove)}`);
-  if (normalized.add.length) lines.push(`${customizationLabelTranslations.add}: ${translatedChoices(normalized.add)}`);
-  if (normalized.preferences.length) lines.push(`${customizationLabelTranslations.preferences}: ${translatedChoices(normalized.preferences)}`);
-  if (normalized.note) lines.push(`${customizationLabelTranslations.note}: ${normalized.note}`);
-  return lines;
-}
-
-function customizationKey(customization?: ItemCustomization | null): string {
-  const normalized = normalizeCustomization(customization);
-  return normalized ? JSON.stringify(normalized) : "";
 }
 
 function uniqueList(values: string[] = []): string[] {
   const seen = new Set<string>();
-  return values
-    .map((value) => value.trim())
-    .filter((value) => {
-      if (!value) return false;
-      const key = value.toLowerCase();
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-}
-
-function translatedChoice(value: string): string {
-  return customizationValueTranslations[value.trim().toLowerCase()] ?? value;
-}
-
-function translatedChoices(values: string[]): string {
-  return values.map(translatedChoice).join(", ");
+  return values.map((value) => value.trim()).filter((value) => {
+    const key = value.toLowerCase();
+    if (!value || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function uniqueNumbers(values: number[] = []): number[] {
   return Array.from(new Set(values.filter((value) => Number.isInteger(value) && value > 0))).sort((a, b) => a - b);
 }
 
-async function fetchProducts(): Promise<Product[]> {
-  const response = await fetch(`${API_BASE}/products/`);
-
-  if (!response.ok) {
-    throw new Error("Não foi possível carregar os produtos.");
-  }
-
-  return response.json();
-}
-
-async function cartError(response: Response, fallback: string): Promise<Error> {
-  try {
-    const data = await response.json();
-    return new Error(translateUserMessage(data.detail || fallback));
-  } catch {
-    return new Error(translateUserMessage(fallback));
-  }
-}
-
-function normalizeCart(cart: Partial<Cart> | null | undefined): Cart {
-  const items = Array.isArray(cart?.itens) ? cart.itens : [];
-  const total = typeof cart?.total === "number"
-    ? cart.total
-    : items.reduce((sum, item) => sum + ("subtotal" in item ? Number(item.subtotal ?? 0) : 0), 0);
-
-  return {
-    id_carrinho: cart?.id_carrinho ?? null,
-    itens: items,
-    total,
+export function normalizeCustomization(customization?: ItemCustomization | null): ItemCustomization | null {
+  if (!customization) return null;
+  const normalized: ItemCustomization = {
+    remove: uniqueList(customization.remove ?? []),
+    add: uniqueList(customization.add ?? []),
+    preferences: uniqueList(customization.preferences ?? []),
+    note: customization.note?.trim() || null,
+    removedIngredients: uniqueNumbers(customization.removedIngredients),
+    extras: (customization.extras ?? [])
+      .filter((item) => item.optionId > 0 && item.quantity > 0)
+      .map((item) => ({ optionId: item.optionId, quantity: item.quantity })),
+    substitutions: (customization.substitutions ?? [])
+      .filter((item) => item.originalIngredientId > 0 && item.newIngredientId > 0)
+      .map((item) => ({
+        originalIngredientId: item.originalIngredientId,
+        newIngredientId: item.newIngredientId,
+      })),
+    finalUnitPrice: customization.finalUnitPrice ?? null,
   };
+  return hasCustomization(normalized) ? normalized : null;
 }
 
-/**
- * Guest Cart Logic (LocalStorage)
- */
+export function hasCustomization(customization?: ItemCustomization | null): boolean {
+  if (!customization) return false;
+  return Boolean(
+    customization.remove?.length || customization.add?.length || customization.preferences?.length
+    || customization.note?.trim() || customization.removedIngredients?.length
+    || customization.extras?.length || customization.substitutions?.length,
+  );
+}
+
+export function customizationSummary(customization?: ItemCustomization | null): string[] {
+  const normalized = normalizeCustomization(customization);
+  if (!normalized) return [];
+  const translated = (values: string[]) => values
+    .map((value) => customizationValueTranslations[value.trim().toLowerCase()] ?? value).join(', ');
+  const lines: string[] = [];
+  if (normalized.remove.length) lines.push(`${customizationLabelTranslations.remove}: ${translated(normalized.remove)}`);
+  if (normalized.add.length) lines.push(`${customizationLabelTranslations.add}: ${translated(normalized.add)}`);
+  if (normalized.preferences.length) lines.push(`${customizationLabelTranslations.preferences}: ${translated(normalized.preferences)}`);
+  if (normalized.note) lines.push(`${customizationLabelTranslations.note}: ${normalized.note}`);
+  return lines;
+}
+
+function customizationKey(customization?: ItemCustomization | null): string {
+  const normalized = normalizeCustomization(customization);
+  return normalized ? JSON.stringify(normalized) : '';
+}
+
+function normalizeCart(value: unknown): Cart {
+  const cart = toDomain<Cart>(value);
+  const items = Array.isArray(cart?.items) ? cart.items : [];
+  const normalizedItems = items.map((item) => {
+    if (!isCartItem(item)) return item;
+    return {
+      ...item,
+      price: Number(item.price),
+      subtotal: Number(item.subtotal),
+      customization: normalizeCustomization(item.customization),
+    };
+  });
+  const total = cart?.total == null
+    ? normalizedItems.reduce((sum, item) => sum + (isCartItem(item) ? item.subtotal : 0), 0)
+    : Number(cart.total);
+  return { cartId: cart?.cartId ?? null, items: normalizedItems, total };
+}
+
+function readGuestItem(value: unknown): GuestCartItem | null {
+  if (typeof value !== 'object' || value === null) return null;
+  const record = value as Record<string, unknown>;
+  const productId = Number(record.productId ?? record.id_produto);
+  const quantity = Number(record.quantity ?? record.quantidade);
+  if (!Number.isInteger(productId) || productId <= 0 || !Number.isFinite(quantity) || quantity <= 0) return null;
+  const customization = (record.customization ?? record.personalizacao) as ItemCustomization | null | undefined;
+  return { productId, quantity, customization: normalizeCustomization(customization) };
+}
+
 export const guestCartService = {
   get(): GuestCartItem[] {
     try {
-      const parsed = JSON.parse(localStorage.getItem(GUEST_CART_KEY) || localStorage.getItem(LEGACY_CART_KEY) || "[]");
-      return Array.isArray(parsed) ? parsed : [];
+      const parsed = JSON.parse(localStorage.getItem(GUEST_CART_KEY) || localStorage.getItem(LEGACY_CART_KEY) || '[]');
+      return Array.isArray(parsed) ? parsed.map(readGuestItem).filter((item): item is GuestCartItem => item !== null) : [];
     } catch (error) {
-      console.error("Error reading guest cart:", error);
+      console.error('Error reading guest cart:', error);
       return [];
     }
   },
@@ -197,7 +171,7 @@ export const guestCartService = {
     try {
       localStorage.setItem(GUEST_CART_KEY, JSON.stringify(Array.isArray(items) ? items : []));
     } catch (error) {
-      console.error("Error saving guest cart:", error);
+      console.error('Error saving guest cart:', error);
     } finally {
       dispatchCartUpdate();
     }
@@ -207,281 +181,175 @@ export const guestCartService = {
     try {
       localStorage.removeItem(GUEST_CART_KEY);
       localStorage.removeItem(LEGACY_CART_KEY);
-    } catch (error) {
-      console.error("Error clearing guest cart:", error);
     } finally {
       dispatchCartUpdate();
     }
   },
 
-  addItem(id_produto: number, quantidade: number = 1, stock?: number, customizacao?: ItemCustomization | null): GuestCartItem[] {
+  addItem(productId: number, quantity = 1, stock?: number, customization?: ItemCustomization | null): GuestCartItem[] {
     const cart = this.get();
-    const normalizedCustomization = normalizeCustomization(customizacao);
+    const normalizedCustomization = normalizeCustomization(customization);
     const targetKey = customizationKey(normalizedCustomization);
-    const existing = cart.find((i) => i.id_produto === id_produto && customizationKey(i.customizacao) === targetKey);
-    const safeQuantity = Math.max(1, Number(quantidade) || 1);
+    const existing = cart.find((item) => item.productId === productId && customizationKey(item.customization) === targetKey);
+    const safeQuantity = Math.max(1, Number(quantity) || 1);
     const safeStock = stock !== undefined && Number.isFinite(stock) ? Math.max(0, stock) : undefined;
-
     if (existing) {
-      const nova = (Number(existing.quantidade) || 0) + safeQuantity;
-      existing.quantidade = safeStock !== undefined ? Math.min(nova, safeStock) : nova;
+      const next = existing.quantity + safeQuantity;
+      existing.quantity = safeStock === undefined ? next : Math.min(next, safeStock);
     } else {
       cart.push({
-        id_produto,
-        quantidade: safeStock !== undefined ? Math.min(safeQuantity, safeStock) : safeQuantity,
-        customizacao: normalizedCustomization,
+        productId,
+        quantity: safeStock === undefined ? safeQuantity : Math.min(safeQuantity, safeStock),
+        customization: normalizedCustomization,
       });
     }
-
     this.save(cart);
     return cart;
   },
 
-  updateItem(id_produto: number, quantidade: number, stock?: number, customizacao?: ItemCustomization | null): GuestCartItem[] {
+  updateItem(productId: number, quantity: number, stock?: number, customization?: ItemCustomization | null): GuestCartItem[] {
     let cart = this.get();
-    const targetKey = customizationKey(customizacao);
-
-    if (quantidade <= 0) {
-      cart = cart.filter((i) => !(i.id_produto === id_produto && customizationKey(i.customizacao) === targetKey));
+    const targetKey = customizationKey(customization);
+    if (quantity <= 0) {
+      cart = cart.filter((item) => !(item.productId === productId && customizationKey(item.customization) === targetKey));
     } else {
-      const item = cart.find((i) => i.id_produto === id_produto && customizationKey(i.customizacao) === targetKey);
-      if (item) {
-        item.quantidade = stock !== undefined ? Math.min(quantidade, stock) : quantidade;
-      }
+      const item = cart.find((entry) => entry.productId === productId && customizationKey(entry.customization) === targetKey);
+      if (item) item.quantity = stock === undefined ? quantity : Math.min(quantity, stock);
     }
-
     this.save(cart);
     return cart;
   },
 
-  removeItem(id_produto: number, customizacao?: ItemCustomization | null): GuestCartItem[] {
-    const targetKey = customizationKey(customizacao);
-    const cart = this.get().filter((i) => !(i.id_produto === id_produto && customizationKey(i.customizacao) === targetKey));
+  removeItem(productId: number, customization?: ItemCustomization | null): GuestCartItem[] {
+    const targetKey = customizationKey(customization);
+    const cart = this.get().filter((item) => !(item.productId === productId && customizationKey(item.customization) === targetKey));
     this.save(cart);
     return cart;
   },
 };
 
-/**
- * API Cart Logic
- */
 export const apiCartService = {
   async getCart(): Promise<Cart> {
-    const res = await fetch(`${API_BASE}/cart/`, { headers: authHeaders() });
-    if (!res.ok) throw await cartError(res, "Failed to get cart");
-    return normalizeCart(await res.json());
+    return normalizeCart(await apiData(cartGetCart({ client: customerApiClient, throwOnError: true })));
   },
 
-  async addItem(id_produto: number, quantidade: number = 1, customizacao?: ItemCustomization | null): Promise<Cart> {
-    const res = await fetch(`${API_BASE}/cart/add`, {
-      method: "POST",
-      headers: authHeaders(),
-      body: JSON.stringify({ id_produto, quantidade, customizacao: normalizeCustomization(customizacao) }),
-    });
-    if (!res.ok) {
-      throw await cartError(res, "Failed to add item");
-    }
-    const result = await res.json();
+  async addItem(productId: number, quantity = 1, customization?: ItemCustomization | null): Promise<Cart> {
+    const body: AddItemSchema = toDto({ productId, quantity, customization: normalizeCustomization(customization) });
+    const cart = normalizeCart(await apiData(cartAddItem({ body, client: customerApiClient, throwOnError: true })));
     dispatchCartUpdate();
-    return normalizeCart(result);
+    return cart;
   },
 
   async addCustomizedItem(body: CustomizedCartItemRequest): Promise<Cart> {
-    const res = await fetch(`${API_BASE}/carrinho/itens/customizado`, {
-      method: "POST",
-      headers: authHeaders(),
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) {
-      throw await cartError(res, "Failed to add customized item");
-    }
-    const result = await res.json();
+    const dto = toDto<CustomizedCartItemDto>(body);
+    const cart = normalizeCart(await apiData(cartAddCustomizedItem({ body: dto, client: customerApiClient, throwOnError: true })));
     dispatchCartUpdate();
-    return normalizeCart(result);
+    return cart;
   },
 
-  async updateItem(id_produto: number, quantidade: number, cartLogId?: number): Promise<Cart> {
-    const res = await fetch(`${API_BASE}/cart/update`, {
-      method: "PUT",
-      headers: authHeaders(),
-      body: JSON.stringify({ id_produto, quantidade, cart_log_id: cartLogId }),
-    });
-    if (!res.ok) {
-      throw await cartError(res, "Failed to update item");
-    }
-    const result = await res.json();
+  async updateItem(productId: number, quantity: number, cartProductId?: number): Promise<Cart> {
+    const cart = normalizeCart(await apiData(cartUpdateItem({
+      body: { product_id: productId, quantity, cart_product_id: cartProductId },
+      client: customerApiClient,
+      throwOnError: true,
+    })));
     dispatchCartUpdate();
-    return normalizeCart(result);
+    return cart;
   },
 
-  async removeItem(id_produto: number, cartLogId?: number): Promise<Cart> {
-    const query = cartLogId !== undefined ? `?cart_log_id=${cartLogId}` : "";
-    const res = await fetch(`${API_BASE}/cart/remove/${id_produto}${query}`, {
-      method: "DELETE",
-      headers: authHeaders(),
-    });
-    if (!res.ok) throw await cartError(res, "Failed to remove item");
-    const result = await res.json();
+  async removeItem(productId: number, cartProductId?: number): Promise<Cart> {
+    const cart = normalizeCart(await apiData(cartRemoveItem({
+      path: { product_id: String(productId) },
+      query: { cart_product_id: cartProductId },
+      client: customerApiClient,
+      throwOnError: true,
+    })));
     dispatchCartUpdate();
-    return normalizeCart(result);
+    return cart;
   },
 
   async mergeGuestCart(items: GuestCartItem[]): Promise<MergeResult> {
-    const res = await fetch(`${API_BASE}/cart/merge`, {
-      method: "POST",
-      headers: authHeaders(),
-      body: JSON.stringify({ itens: items }),
-    });
-    if (!res.ok) throw await cartError(res, "Failed to merge cart");
-    return res.json();
+    const body = toDto<MergeCartSchema>({ items });
+    return toDomain<MergeResult>(await apiData(cartMergeCart({ body, client: customerApiClient, throwOnError: true })));
   },
 
   async clearCart(): Promise<void> {
-    const res = await fetch(`${API_BASE}/cart/clear`, {
-      method: "DELETE",
-      headers: authHeaders(),
-    });
-    if (!res.ok) throw await cartError(res, "Failed to clear cart");
+    await cartClearCart({ client: customerApiClient, throwOnError: true });
     dispatchCartUpdate();
   },
 };
 
-/**
- * Unified Cart Service (guest or logged-in)
- */
 export const cartService = {
   async getCart(): Promise<Cart> {
-    if (getToken()) {
-      return apiCartService.getCart();
-    }
-
+    if (getStoredToken('token')) return apiCartService.getCart();
     const guestItems = guestCartService.get();
-    if (guestItems.length === 0) {
-      return {
-        id_carrinho: null,
-        itens: [],
-        total: 0,
-      };
-    }
-
+    if (!guestItems.length) return { cartId: null, items: [], total: 0 };
     try {
-      const products = await fetchProducts();
-      const productMap = new Map(products.map((product) => [product.id, product]));
-      const enrichedItems: CartItem[] = guestItems.flatMap((item) => {
-        const product = productMap.get(item.id_produto);
-
-        if (!product) {
-          return [];
-        }
-
-        const unitPrice = Number(item.customizacao?.preco_unitario_final ?? product.price);
-
+      const products = await productService.getAll();
+      const productMap = new Map<number, Product>(products.map((product) => [product.id, product]));
+      const items: CartItem[] = guestItems.flatMap((item) => {
+        const product = productMap.get(item.productId);
+        if (!product) return [];
+        const unitPrice = Number(item.customization?.finalUnitPrice ?? product.price ?? 0);
         return [{
-          cart_log_id: 0,
-          id_produto: item.id_produto,
-          id_produto_display: product.id_display,
-          nome: product.name,
-          preco: unitPrice,
-          quantidade: item.quantidade,
+          cartProductId: 0,
+          productId: item.productId,
+          productDisplayId: product.idDisplay,
+          name: product.name,
+          price: unitPrice,
+          quantity: item.quantity,
           stock: product.stock,
-          caminho_imagem: product.image ?? undefined,
-          customizacao: normalizeCustomization(item.customizacao),
-          subtotal: unitPrice * item.quantidade,
+          imagePath: product.image,
+          customization: normalizeCustomization(item.customization),
+          subtotal: unitPrice * item.quantity,
         }];
       });
-
-      return {
-        id_carrinho: null,
-        itens: enrichedItems,
-        total: enrichedItems.reduce((sum, item) => sum + item.subtotal, 0),
-      };
+      return { cartId: null, items, total: items.reduce((sum, item) => sum + item.subtotal, 0) };
     } catch (error) {
-      console.error("Error loading guest cart products:", error);
+      console.error('Error loading guest cart products:', error);
+      return { cartId: null, items: guestItems, total: null };
     }
-
-    return {
-      id_carrinho: null,
-      itens: guestItems,
-      total: null,
-    };
   },
 
-  async addItem(
-    id_produto: number,
-    quantidade: number = 1,
-    stock?: number,
-    customizacao?: ItemCustomization | null,
-  ): Promise<Cart | GuestCartItem[]> {
-    return getToken()
-      ? apiCartService.addItem(id_produto, quantidade, customizacao)
-      : guestCartService.addItem(id_produto, quantidade, stock, customizacao);
+  async addItem(productId: number, quantity = 1, stock?: number, customization?: ItemCustomization | null) {
+    return getStoredToken('token')
+      ? apiCartService.addItem(productId, quantity, customization)
+      : guestCartService.addItem(productId, quantity, stock, customization);
   },
 
-  async addCustomizedItem(
-    body: CustomizedCartItemRequest,
-    stock?: number,
-  ): Promise<Cart | GuestCartItem[]> {
+  async addCustomizedItem(body: CustomizedCartItemRequest, stock?: number) {
     const validatedCart = await apiCartService.addCustomizedItem(body);
-    if (getToken()) {
-      return validatedCart;
-    }
-
-    const validatedItem = validatedCart.itens?.[0] as CartItem | undefined;
-    return guestCartService.addItem(
-      body.id_produto,
-      body.quantidade,
-      stock,
-      validatedItem?.customizacao ?? null,
-    );
+    if (getStoredToken('token')) return validatedCart;
+    const validatedItem = validatedCart.items[0] as CartItem | undefined;
+    return guestCartService.addItem(body.productId, body.quantity, stock, validatedItem?.customization);
   },
 
-  async updateItem(
-    id_produto: number,
-    quantidade: number,
-    stock?: number,
-    cartLogId?: number,
-    customizacao?: ItemCustomization | null,
-  ): Promise<Cart | GuestCartItem[]> {
-    return getToken()
-      ? apiCartService.updateItem(id_produto, quantidade, cartLogId)
-      : guestCartService.updateItem(id_produto, quantidade, stock, customizacao);
+  async updateItem(productId: number, quantity: number, stock?: number, cartProductId?: number, customization?: ItemCustomization | null) {
+    return getStoredToken('token')
+      ? apiCartService.updateItem(productId, quantity, cartProductId)
+      : guestCartService.updateItem(productId, quantity, stock, customization);
   },
 
-  async removeItem(
-    id_produto: number,
-    cartLogId?: number,
-    customizacao?: ItemCustomization | null,
-  ): Promise<Cart | GuestCartItem[]> {
-    return getToken()
-      ? apiCartService.removeItem(id_produto, cartLogId)
-      : guestCartService.removeItem(id_produto, customizacao);
+  async removeItem(productId: number, cartProductId?: number, customization?: ItemCustomization | null) {
+    return getStoredToken('token')
+      ? apiCartService.removeItem(productId, cartProductId)
+      : guestCartService.removeItem(productId, customization);
   },
 
   async clearCart(): Promise<void> {
-    if (getToken()) {
-      await apiCartService.clearCart();
-      return;
-    }
-
-    guestCartService.clear();
+    if (getStoredToken('token')) await apiCartService.clearCart();
+    else guestCartService.clear();
   },
 
   finishCheckout(): void {
-    if (!getToken()) {
-      guestCartService.clear();
-      return;
-    }
-
-    dispatchCartUpdate();
+    if (!getStoredToken('token')) guestCartService.clear();
+    else dispatchCartUpdate();
   },
 
   async mergeGuestCartOnLogin(): Promise<MergeResult> {
-    const guestItems = guestCartService.get();
-    if (guestItems.length === 0) {
-      const currentCart = await apiCartService.getCart();
-      return { merged: [], capped: [], skipped: [], carrinho: currentCart };
-    }
-    const result = await apiCartService.mergeGuestCart(guestItems);
+    const items = guestCartService.get();
+    if (!items.length) return { merged: [], capped: [], skipped: [], cart: await apiCartService.getCart() };
+    const result = await apiCartService.mergeGuestCart(items);
     guestCartService.clear();
     return result;
   },

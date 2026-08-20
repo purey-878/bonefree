@@ -1,5 +1,33 @@
-import { API_BASE, adminHeaders } from "./api";
-import { translateUserMessage } from "../utils/messages";
+import {
+  siteSettingsReadAdminChefSpecial,
+  siteSettingsReadAdminCompanyDetails,
+  siteSettingsReadAdminEvents,
+  siteSettingsReadAdminLoyaltyCouponSettings,
+  siteSettingsReadAdminSiteTheme,
+  siteSettingsReadAdminSocialMedia,
+  siteSettingsReadPublicChefSpecial,
+  siteSettingsReadPublicCompanyDetails,
+  siteSettingsReadPublicEvents,
+  siteSettingsReadPublicLoyaltyCouponSettings,
+  siteSettingsReadPublicSiteTheme,
+  siteSettingsReadPublicSocialMedia,
+  siteSettingsUpdateAdminChefSpecial,
+  siteSettingsUpdateAdminCompanyDetails,
+  siteSettingsUpdateAdminEvents,
+  siteSettingsUpdateAdminLoyaltyCouponSettings,
+  siteSettingsUpdateAdminSiteTheme,
+  siteSettingsUpdateAdminSocialMedia,
+} from '../api/generated';
+import type {
+  ChefSpecialSettings as ChefSpecialDto,
+  CompanyDetailsSettings as CompanyDetailsDto,
+  EventsSettings as EventsDto,
+  LoyaltyCouponSettingsInput as LoyaltyCouponDto,
+  SiteThemeSettings as SiteThemeDto,
+  SocialMediaSettings as SocialMediaDto,
+} from '../api/generated';
+import { adminApiClient, apiData, publicApiClient } from '../api/clients';
+import { toDomain, toDto } from '../api/mappers';
 import type {
   ChefSpecialSettings,
   CompanyDetailsSettings,
@@ -8,157 +36,73 @@ import type {
   SiteThemeResponse,
   SiteThemeSettings,
   SocialMediaSettings,
-} from "../types/siteSettings";
-
-async function parseError(response: Response, fallback: string): Promise<Error> {
-  try {
-    const data = (await response.json()) as { detail?: string };
-    return new Error(translateUserMessage(data.detail || fallback));
-  } catch {
-    return new Error(translateUserMessage(fallback));
-  }
-}
+} from '../types/siteSettings';
 
 export async function getPublicSiteTheme(): Promise<SiteThemeResponse> {
-  const response = await fetch(`${API_BASE}/site-settings/theme`);
-  if (!response.ok) throw await parseError(response, "Não foi possível carregar o tema do site.");
-  return response.json();
+  return toDomain(await apiData(siteSettingsReadPublicSiteTheme({ client: publicApiClient, throwOnError: true })));
 }
-
 export async function getPublicChefSpecial(): Promise<ChefSpecialSettings> {
-  const response = await fetch(`${API_BASE}/site-settings/chef-special`);
-  if (!response.ok) throw await parseError(response, "Não foi possível carregar o produto em destaque.");
-  return response.json();
+  return toDomain(await apiData(siteSettingsReadPublicChefSpecial({ client: publicApiClient, throwOnError: true })));
 }
-
 export async function getPublicLoyaltyCouponSettings(): Promise<LoyaltyCouponSettings> {
-  const response = await fetch(`${API_BASE}/site-settings/loyalty-coupons`);
-  if (!response.ok) throw await parseError(response, "Não foi possível carregar as definições de cupões.");
-  return response.json();
+  return toDomain(await apiData(siteSettingsReadPublicLoyaltyCouponSettings({ client: publicApiClient, throwOnError: true })));
 }
-
 export async function getPublicCompanyDetails(): Promise<CompanyDetailsSettings> {
-  const response = await fetch(`${API_BASE}/site-settings/company-details`);
-  if (!response.ok) throw await parseError(response, "Não foi possível carregar os detalhes da empresa.");
-  return response.json();
+  return toDomain(await apiData(siteSettingsReadPublicCompanyDetails({ client: publicApiClient, throwOnError: true })));
 }
-
 export async function getPublicSocialMediaSettings(): Promise<SocialMediaSettings> {
-  const response = await fetch(`${API_BASE}/site-settings/social-media`);
-  if (!response.ok) throw await parseError(response, "Não foi possível carregar as definições de redes sociais.");
-  return response.json();
+  return toDomain(await apiData(siteSettingsReadPublicSocialMedia({ client: publicApiClient, throwOnError: true })));
 }
-
 export async function getPublicEventsSettings(): Promise<EventsSettings> {
-  const response = await fetch(`${API_BASE}/site-settings/events`);
-  if (!response.ok) throw await parseError(response, "Não foi possível carregar as definições de eventos.");
-  return response.json();
+  return toDomain(await apiData(siteSettingsReadPublicEvents({ client: publicApiClient, throwOnError: true })));
 }
 
 export async function getAdminSiteTheme(): Promise<SiteThemeResponse> {
-  const response = await fetch(`${API_BASE}/admin/site-settings/theme`, {
-    headers: adminHeaders(),
-  });
-  if (!response.ok) throw await parseError(response, "Não foi possível carregar o tema do site.");
-  return response.json();
+  return toDomain(await apiData(siteSettingsReadAdminSiteTheme({ client: adminApiClient, throwOnError: true })));
 }
-
 export async function getAdminChefSpecial(): Promise<ChefSpecialSettings> {
-  const response = await fetch(`${API_BASE}/admin/site-settings/chef-special`, {
-    headers: adminHeaders(),
-  });
-  if (!response.ok) throw await parseError(response, "Não foi possível carregar o produto em destaque.");
-  return response.json();
+  return toDomain(await apiData(siteSettingsReadAdminChefSpecial({ client: adminApiClient, throwOnError: true })));
 }
-
 export async function getAdminLoyaltyCouponSettings(): Promise<LoyaltyCouponSettings> {
-  const response = await fetch(`${API_BASE}/admin/site-settings/loyalty-coupons`, {
-    headers: adminHeaders(),
-  });
-  if (!response.ok) throw await parseError(response, "Não foi possível carregar as definições de cupões.");
-  return response.json();
+  return toDomain(await apiData(siteSettingsReadAdminLoyaltyCouponSettings({ client: adminApiClient, throwOnError: true })));
 }
-
 export async function getAdminCompanyDetails(): Promise<CompanyDetailsSettings> {
-  const response = await fetch(`${API_BASE}/admin/site-settings/company-details`, {
-    headers: adminHeaders(),
-  });
-  if (!response.ok) throw await parseError(response, "Não foi possível carregar os detalhes da empresa.");
-  return response.json();
+  return toDomain(await apiData(siteSettingsReadAdminCompanyDetails({ client: adminApiClient, throwOnError: true })));
 }
-
 export async function getAdminSocialMediaSettings(): Promise<SocialMediaSettings> {
-  const response = await fetch(`${API_BASE}/admin/site-settings/social-media`, {
-    headers: adminHeaders(),
-  });
-  if (!response.ok) throw await parseError(response, "Não foi possível carregar as definições de redes sociais.");
-  return response.json();
+  return toDomain(await apiData(siteSettingsReadAdminSocialMedia({ client: adminApiClient, throwOnError: true })));
 }
-
 export async function getAdminEventsSettings(): Promise<EventsSettings> {
-  const response = await fetch(`${API_BASE}/admin/site-settings/events`, {
-    headers: adminHeaders(),
-  });
-  if (!response.ok) throw await parseError(response, "Não foi possível carregar as definições de eventos.");
-  return response.json();
+  return toDomain(await apiData(siteSettingsReadAdminEvents({ client: adminApiClient, throwOnError: true })));
 }
 
 export async function updateAdminSiteTheme(payload: SiteThemeSettings): Promise<SiteThemeResponse> {
-  const response = await fetch(`${API_BASE}/admin/site-settings/theme`, {
-    method: "PUT",
-    headers: adminHeaders(),
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) throw await parseError(response, "Não foi possível guardar o tema do site.");
-  return response.json();
+  return toDomain(await apiData(siteSettingsUpdateAdminSiteTheme({
+    body: toDto<SiteThemeDto>(payload), client: adminApiClient, throwOnError: true,
+  })));
 }
-
 export async function updateAdminChefSpecial(payload: ChefSpecialSettings): Promise<ChefSpecialSettings> {
-  const response = await fetch(`${API_BASE}/admin/site-settings/chef-special`, {
-    method: "PUT",
-    headers: adminHeaders(),
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) throw await parseError(response, "Não foi possível guardar o produto em destaque.");
-  return response.json();
+  return toDomain(await apiData(siteSettingsUpdateAdminChefSpecial({
+    body: toDto<ChefSpecialDto>(payload), client: adminApiClient, throwOnError: true,
+  })));
 }
-
 export async function updateAdminLoyaltyCouponSettings(payload: LoyaltyCouponSettings): Promise<LoyaltyCouponSettings> {
-  const response = await fetch(`${API_BASE}/admin/site-settings/loyalty-coupons`, {
-    method: "PUT",
-    headers: adminHeaders(),
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) throw await parseError(response, "Não foi possível guardar as definições de cupões.");
-  return response.json();
+  return toDomain(await apiData(siteSettingsUpdateAdminLoyaltyCouponSettings({
+    body: toDto<LoyaltyCouponDto>(payload), client: adminApiClient, throwOnError: true,
+  })));
 }
-
 export async function updateAdminCompanyDetails(payload: CompanyDetailsSettings): Promise<CompanyDetailsSettings> {
-  const response = await fetch(`${API_BASE}/admin/site-settings/company-details`, {
-    method: "PUT",
-    headers: adminHeaders(),
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) throw await parseError(response, "Não foi possível guardar os detalhes da empresa.");
-  return response.json();
+  return toDomain(await apiData(siteSettingsUpdateAdminCompanyDetails({
+    body: toDto<CompanyDetailsDto>(payload), client: adminApiClient, throwOnError: true,
+  })));
 }
-
 export async function updateAdminSocialMediaSettings(payload: SocialMediaSettings): Promise<SocialMediaSettings> {
-  const response = await fetch(`${API_BASE}/admin/site-settings/social-media`, {
-    method: "PUT",
-    headers: adminHeaders(),
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) throw await parseError(response, "Não foi possível guardar as definições de redes sociais.");
-  return response.json();
+  return toDomain(await apiData(siteSettingsUpdateAdminSocialMedia({
+    body: toDto<SocialMediaDto>(payload), client: adminApiClient, throwOnError: true,
+  })));
 }
-
 export async function updateAdminEventsSettings(payload: EventsSettings): Promise<EventsSettings> {
-  const response = await fetch(`${API_BASE}/admin/site-settings/events`, {
-    method: "PUT",
-    headers: adminHeaders(),
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) throw await parseError(response, "Não foi possível guardar as definições de eventos.");
-  return response.json();
+  return toDomain(await apiData(siteSettingsUpdateAdminEvents({
+    body: toDto<EventsDto>(payload), client: adminApiClient, throwOnError: true,
+  })));
 }

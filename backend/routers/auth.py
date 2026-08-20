@@ -1,11 +1,11 @@
 import logging
 from datetime import datetime
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Header, Request, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session as DBSession
 
-from dependencies import get_current_user, get_db
+from dependencies import get_current_user, get_db, get_session_token_optional
 from schemas.enums import UserRole, UserStatus
 from models import Customer, Session
 from schemas.user import (
@@ -55,7 +55,7 @@ def _send_welcome_email_background(email: str, name: str | None = None) -> None:
         logger.error("Welcome email background task failed for %s. Check auth email service logs for details.", email)
 
 
-@router.post("/register", response_model=TokenResponse)
+@router.post("/register", response_model=TokenResponse, operation_id="auth_register")
 def register(user: UserRegister, background_tasks: BackgroundTasks, request: Request, db: DBSession = Depends(get_db)):
     """Register a new user"""
     _rate_limit_auth(request, "register")
@@ -111,7 +111,7 @@ def register(user: UserRegister, background_tasks: BackgroundTasks, request: Req
     }
 
 
-@router.post("/password/forgot", response_model=MessageResponse)
+@router.post("/password/forgot", response_model=MessageResponse, operation_id="auth_forgot_password")
 def forgot_password(body: ForgotPasswordRequest, db: DBSession = Depends(get_db)):
     """Start a password reset and email a six-digit code."""
     generic_message = "Se existir uma conta com este email, foi enviado um código de redefinição."
@@ -129,7 +129,7 @@ def forgot_password(body: ForgotPasswordRequest, db: DBSession = Depends(get_db)
     return {"message": generic_message}
 
 
-@router.post("/password/verify-otp", response_model=VerifyOTPResponse)
+@router.post("/password/verify-otp", response_model=VerifyOTPResponse, operation_id="auth_verify_password_otp")
 def verify_password_otp(body: VerifyOTPRequest, db: DBSession = Depends(get_db)):
     """Verify a password reset code and return a short-lived reset token."""
     db_user = db.scalar(select(Customer).where(Customer.email == body.email))
@@ -154,7 +154,7 @@ def verify_password_otp(body: VerifyOTPRequest, db: DBSession = Depends(get_db))
     return {"message": message, "reset_token": reset_token}
 
 
-@router.post("/password/reset", response_model=MessageResponse)
+@router.post("/password/reset", response_model=MessageResponse, operation_id="auth_reset_password")
 def reset_password(body: ResetPasswordRequest, db: DBSession = Depends(get_db)):
     """Reset a password after OTP verification."""
     db_user = db.scalar(select(Customer).where(Customer.email == body.email))
@@ -182,7 +182,7 @@ def reset_password(body: ResetPasswordRequest, db: DBSession = Depends(get_db)):
     return {"message": "A palavra-passe foi redefinida."}
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login", response_model=TokenResponse, operation_id="auth_login")
 def login(user: UserAuth, request: Request, db: DBSession = Depends(get_db)):
     """Login user"""
     _rate_limit_auth(request, "login")
@@ -196,17 +196,22 @@ def login(user: UserAuth, request: Request, db: DBSession = Depends(get_db)):
     }
 
 
-@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT, description=LOGOUT_DESC)
+@router.post(
+    "/logout",
+    status_code=status.HTTP_204_NO_CONTENT,
+    description=LOGOUT_DESC,
+    operation_id="auth_logout",
+)
 def logout(
-    x_session_token: str | None = Header(default=None),
+    token: str | None = Depends(get_session_token_optional),
     db: DBSession = Depends(get_db),
 ) -> Response:
-    if x_session_token is None:
+    if token is None:
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     session = db.scalar(
         select(Session).where(
-            Session.token_hash == hash_session_token(x_session_token)
+            Session.token_hash == hash_session_token(token)
         )
     )
     if session is not None:
@@ -216,7 +221,7 @@ def logout(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.get("/me", response_model=UserResponse)
+@router.get("/me", response_model=UserResponse, operation_id="auth_get_me")
 def get_me(current_user: Customer = Depends(get_current_user)):
     """Get current logged in user"""
     return UserResponse.model_validate(current_user)

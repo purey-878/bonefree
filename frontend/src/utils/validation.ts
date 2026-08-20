@@ -62,16 +62,16 @@ export function validatePhone(value: string, required = true) {
 }
 
 export function validateNif(value: string, required = false) {
-  const nif = normalizeText(value)
-  if (!nif) return required ? "O NIF deve conter exatamente 9 dígitos." : ""
-  if (!/^\d{9}$/.test(nif)) return "O NIF deve conter exatamente 9 dígitos."
-  const checksum = nif
+  const taxId = normalizeText(value)
+  if (!taxId) return required ? "O NIF deve conter exatamente 9 dígitos." : ""
+  if (!/^\d{9}$/.test(taxId)) return "O NIF deve conter exatamente 9 dígitos."
+  const checksum = taxId
     .slice(0, 8)
     .split("")
     .reduce((sum, digit, index) => sum + Number(digit) * (9 - index), 0)
   let checkDigit = 11 - (checksum % 11)
   if (checkDigit >= 10) checkDigit = 0
-  return checkDigit === Number(nif[8]) ? "" : "NIF português inválido."
+  return checkDigit === Number(taxId[8]) ? "" : "NIF português inválido."
 }
 
 export function validatePostalCode(value: string, required = false) {

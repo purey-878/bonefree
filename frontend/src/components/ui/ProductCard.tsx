@@ -8,7 +8,7 @@ import styled, { css } from 'styled-components'
 
 import { AddToCartButton } from './Button'
 import { Badge, StockBadge } from './Badge'
-import { productImageFallback, resolveProductImageUrl, useApiImageFallback } from '../../utils/imageFallback'
+import { applyApiImageFallback, productImageFallback, resolveProductImageUrl } from '../../utils/imageFallback'
 import { formatEuro } from '../../utils/money'
 
 export type ProductCardProduct = {
@@ -18,16 +18,16 @@ export type ProductCardProduct = {
   image?: string | null
   name: string
   price?: number | null
-  original_price?: number | null
-  discount_percent?: number
+  originalPrice?: number | null
+  discountPercent?: number
   stock?: number | null
-  total_calorias?: number | null
-  customizavel?: boolean
+  totalCalories?: number | null
+  customizable?: boolean
   tags?: string[]
   highlighted?: boolean
   available?: boolean
-  unavailable_reason?: string | null
-  unavailable_due_to_inactive_base?: boolean
+  unavailableReason?: string | null
+  unavailableDueToInactiveBase?: boolean
 }
 
 export type ProductCardProps = Omit<
@@ -390,21 +390,21 @@ export function ProductCard({
 }: ProductCardProps) {
   const stock = Number(product.stock ?? 0)
   const unavailable = product.available === false
-  const baseUnavailable = Boolean(product.unavailable_due_to_inactive_base)
+  const baseUnavailable = Boolean(product.unavailableDueToInactiveBase)
   const dimUnavailable = unavailable && !baseUnavailable
   const outOfStock = stock <= 0 || unavailable
   const imageSrc = resolveImageSrc(product.image)
-  const discountPercent = Number(product.discount_percent ?? 0)
+  const discountPercent = Number(product.discountPercent ?? 0)
   const showDiscount =
     discountPercent > 0 &&
-    product.original_price != null &&
-    Number(product.original_price) > Number(product.price ?? 0)
+    product.originalPrice != null &&
+    Number(product.originalPrice) > Number(product.price ?? 0)
   const displayTags = (product.tags ?? [])
     .filter((tag) => tag && tag.toLowerCase() !== 'highlight')
     .slice(0, 3)
   const hasImageTags = displayTags.length > 0
-  const showDetailsAction = Boolean(product.customizavel && onSelect)
-  const calories = formatCalories(product.total_calorias)
+  const showDetailsAction = Boolean(product.customizable && onSelect)
+  const calories = formatCalories(product.totalCalories)
 
   const handleSelect = () => {
     onSelect?.(product)
@@ -423,7 +423,7 @@ export function ProductCard({
 
 
   const handleImageError = (event: SyntheticEvent<HTMLImageElement>) => {
-    useApiImageFallback(event.currentTarget, imageFallback)
+    applyApiImageFallback(event.currentTarget, imageFallback)
   }
 
   return (
@@ -515,7 +515,7 @@ export function ProductCard({
             <PriceStack>
               {showDiscount && (
                 <OriginalPrice>
-                  {formatPrice(product.original_price, currencySymbol)}
+                  {formatPrice(product.originalPrice, currencySymbol)}
                 </OriginalPrice>
               )}
               <ProductPrice>

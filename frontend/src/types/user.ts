@@ -1,46 +1,37 @@
-/**
- * User/Auth Types
- */
-
 export interface InvoiceAddress {
-  id_endereco?: number;
-  cliente_id?: number;
-  morada?: string | null;
-  codigo_postal?: string | null;
-  cidade?: string | null;
+  addressId?: number;
+  customerId?: number;
+  address?: string | null;
+  postalCode?: string | null;
+  city?: string | null;
 }
 
 export interface User {
-  id_cliente: number;
+  customerId: number;
   email: string;
-  nome: string | null;
-  apelido: string | null;
-  telefone?: string | null;
-  nif?: string | null;
-  endereco_fatura?: InvoiceAddress | null;
-  notificacao_preferida?: string | null;
+  name: string | null;
+  lastName: string | null;
+  phone?: string | null;
+  taxId?: string | null;
+  billingAddress?: InvoiceAddress | null;
 }
 
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
+export interface LoginRequest { email: string; password: string; }
 
 export interface RegisterRequest {
   email: string;
   password: string;
-  nome: string;
-  apelido: string;
-  telefone?: string;
-  nif?: string;
+  name: string;
+  lastName: string;
+  phone?: string;
+  taxId?: string;
 }
 
 export interface ProfileUpdateRequest {
-  nome?: string | null;
-  apelido?: string | null;
+  name?: string | null;
+  lastName?: string | null;
   email?: string;
-  telefone?: string | null;
-  nif?: string | null;
-  endereco_fatura?: InvoiceAddress | null;
-  notificacao_preferida?: string;
+  phone?: string | null;
+  taxId?: string | null;
+  billingAddress?: InvoiceAddress | null;
 }

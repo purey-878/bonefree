@@ -24,7 +24,7 @@ class CustomizedCartItemRequest(BaseModel):
     removed_ingredients: List[int] = Field(default_factory=list)
     extras: List[CustomizationExtraSelection] = Field(default_factory=list)
     substitutions: List[CustomizationSubstitutionSelection] = Field(default_factory=list)
-    observacoes: Optional[str] = Field(None, max_length=255)
+    notes: Optional[str] = Field(None, max_length=255)
 
 
 class CustomizationIngredientResponse(BaseModel):

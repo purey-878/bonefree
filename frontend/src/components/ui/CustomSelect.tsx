@@ -32,7 +32,7 @@ export default function CustomSelect({
   disabled = false,
   options,
   value,
-  placeholder = "Select an option",
+  placeholder = "Selecione uma opção",
   "aria-label": ariaLabel,
   onChange,
 }: CustomSelectProps) {

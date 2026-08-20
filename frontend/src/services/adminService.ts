@@ -1,569 +1,366 @@
-import { API_BASE, adminHeaders, getAdminToken } from "./api";
-import { translateUserMessage } from "../utils/messages";
+import {
+  adminManagementAdminLogin,
+  adminManagementCreateCategory,
+  adminManagementCreateCustomer,
+  adminManagementCreateIngredient,
+  adminManagementCreateProduct,
+  adminManagementCreateStaffAdmin,
+  adminManagementDeleteCategory,
+  adminManagementDeleteCustomer,
+  adminManagementDeleteIngredient,
+  adminManagementDeleteProduct,
+  adminManagementDeleteProductImage,
+  adminManagementDeleteStaffAdmin,
+  adminManagementExportRefunds,
+  adminManagementGetAnalyticsSeries,
+  adminManagementGetDashboardAnalytics,
+  adminManagementGetLowStockProducts,
+  adminManagementGetOrder,
+  adminManagementGetPopularProducts,
+  adminManagementGetProduct,
+  adminManagementGetProductAnalytics,
+  adminManagementGetSalesPerformance,
+  adminManagementListCategories,
+  adminManagementListCustomers,
+  adminManagementListIngredients,
+  adminManagementListKitchenOrders,
+  adminManagementListOrders,
+  adminManagementListProducts,
+  adminManagementListRefunds,
+  adminManagementListStaffAdmins,
+  adminManagementListStaffOrders,
+  adminManagementPayCounterOrder,
+  adminManagementReadCurrentAdmin,
+  adminManagementRefundOrder,
+  adminManagementToggleProductStatus,
+  adminManagementUpdateCategory,
+  adminManagementUpdateCustomer,
+  adminManagementUpdateIngredient,
+  adminManagementUpdateOrderStatus,
+  adminManagementUpdateProduct,
+  adminManagementUpdateStaffAdmin,
+  adminManagementUploadProductImage,
+  reviewsCreateReviewReply,
+  reviewsDeleteReviewReaction,
+  reviewsDeleteReviewReply,
+  reviewsListProductReviews,
+  reviewsUpdateReviewReply,
+  reviewsUpsertReviewReaction,
+} from '../api/generated';
 import type {
-  AdminOrder,
-  AdminRefund,
+  CategoryCreate,
+  CategoryUpdate,
+  CustomerAdminCreate,
+  CustomerAdminUpdate,
+  IngredientCreate,
+  IngredientUpdate,
+  OrderState,
+  ProductCreate,
+  ProductUpdate,
+  StaffAdminCreate,
+  StaffAdminUpdate,
+} from '../api/generated';
+import { adminApiClient, apiData, publicApiClient } from '../api/clients';
+import { toDomain, toDto } from '../api/mappers';
+import { contentDispositionFilename } from './checkoutService';
+import type {
   AdminCustomer,
   AdminCustomerPayload,
+  AdminIngredient,
+  AdminIngredientPayload,
+  AdminOrder,
+  AdminProduct,
+  AdminProductPayload,
+  AdminRefund,
+  AdminReview,
+  AdminUserPayload,
   AnalyticsMetric,
   AnalyticsRange,
   AnalyticsSeries,
-  AdminIngredient,
-  AdminIngredientPayload,
-  AdminProduct,
-  AdminProductPayload,
-  AdminReview,
-  AdminUserPayload,
   Category,
   CategoryPayload,
   CurrentAdmin,
   DashboardData,
   ProductAnalytics,
   ProductFilters,
+  ReactionType,
   RefundFilters,
   RefundPayload,
-  SalesPerformance,
-  ReactionType,
   ReviewReaction,
   ReviewReply,
-} from "../types/admin";
+  SalesPerformance,
+} from '../types/admin';
 
-type AdminApiResponse = CurrentAdmin & {
-  admin_id?: number;
-  id_admin?: number;
-  name?: string;
-  nome?: string;
-};
+const pathId = (value: string | number) => String(value);
 
-function normalizeAdmin(data: AdminApiResponse): CurrentAdmin {
+export async function adminLogin(email: string, password: string): Promise<{ accessToken: string; tokenType: string; admin: CurrentAdmin }> {
+  return toDomain(await apiData(adminManagementAdminLogin({
+    body: { email, password }, client: publicApiClient, throwOnError: true,
+  })));
+}
+
+export async function getDashboardAnalytics(): Promise<DashboardData> {
+  const value = toDomain<DashboardData>(await apiData(adminManagementGetDashboardAnalytics({ client: adminApiClient, throwOnError: true })));
   return {
-    ...data,
-    id_admin: data.id_admin ?? data.admin_id ?? 0,
-    nome: data.nome ?? data.name ?? "",
-    email: data.email,
-    role: data.role,
-    status: data.status,
+    ...value,
+    lowStockProducts: value.lowStockProducts ?? [],
+    popularProducts: value.popularProducts ?? [],
+    salesCharts: value.salesCharts ?? { byHour: [], byDay: [], byMonth: [], byYear: [] },
   };
 }
 
-function normalizeDashboardData(data: Partial<DashboardData>): DashboardData {
-  const graphs = data.graficos_vendas ?? {
-    por_hora: [],
-    por_dia: [],
-    por_mes: [],
-    por_ano: [],
-  };
+export async function getCurrentAdmin(): Promise<CurrentAdmin> {
+  return toDomain(await apiData(adminManagementReadCurrentAdmin({ client: adminApiClient, throwOnError: true })));
+}
 
-  return {
-    total_produtos: data.total_produtos ?? 0,
-    total_categorias: data.total_categorias ?? 0,
-    total_clientes: data.total_clientes ?? 0,
-    total_carrinhos: data.total_carrinhos ?? 0,
-    produtos_baixo_estoque: Array.isArray(data.produtos_baixo_estoque) ? data.produtos_baixo_estoque : [],
-    produtos_populares: Array.isArray(data.produtos_populares) ? data.produtos_populares : [],
-    graficos_vendas: {
-      por_hora: Array.isArray(graphs.por_hora) ? graphs.por_hora : [],
-      por_dia: Array.isArray(graphs.por_dia) ? graphs.por_dia : [],
-      por_mes: Array.isArray(graphs.por_mes) ? graphs.por_mes : [],
-      por_ano: Array.isArray(graphs.por_ano) ? graphs.por_ano : [],
+export async function createProduct(product: AdminProductPayload): Promise<AdminProduct> {
+  return toDomain(await apiData(adminManagementCreateProduct({
+    body: toDto<ProductCreate>(product), client: adminApiClient, throwOnError: true,
+  })));
+}
+
+export async function listProducts(skip = 0, limit = 10, includeDeleted = false, filters?: ProductFilters): Promise<AdminProduct[]> {
+  return toDomain(await apiData(adminManagementListProducts({
+    query: {
+      skip, limit, include_deleted: includeDeleted,
+      name: filters?.name,
+      category: filters?.category == null ? undefined : String(filters.category),
+      min_price: filters?.minPrice,
+      max_price: filters?.maxPrice,
+      featured: filters?.featured,
+      gluten_free: filters?.glutenFree,
+      contains_alcohol: filters?.containsAlcohol,
     },
-  };
+    client: adminApiClient,
+    throwOnError: true,
+  })));
 }
 
-function adminPayloadToApi(payload: AdminUserPayload): Record<string, unknown> {
-  const { nome, ...rest } = payload;
-  return { ...rest, name: nome };
+export async function getProduct(productId: string | number): Promise<AdminProduct> {
+  return toDomain(await apiData(adminManagementGetProduct({
+    path: { product_id: pathId(productId) }, client: adminApiClient, throwOnError: true,
+  })));
 }
 
-async function parseError(response: Response, fallback: string): Promise<Error> {
-  try {
-    const error = (await response.json()) as { detail?: string };
-    return new Error(translateUserMessage(error.detail || fallback));
-  } catch {
-    return new Error(translateUserMessage(fallback));
-  }
+export async function getProductAnalytics(productId: string | number, days = 30): Promise<ProductAnalytics> {
+  return toDomain(await apiData(adminManagementGetProductAnalytics({
+    path: { product_id: pathId(productId) }, query: { days }, client: adminApiClient, throwOnError: true,
+  })));
 }
 
-export const getDashboardAnalytics = async (): Promise<DashboardData> => {
-  const response = await fetch(`${API_BASE}/admin/analytics/dashboard`, {
-    headers: adminHeaders(),
-  });
-  if (!response.ok) throw await parseError(response, "Failed to fetch dashboard analytics");
-  return normalizeDashboardData(await response.json());
-};
+export async function listIngredients(includeInactive = false, customizationOnly = false): Promise<AdminIngredient[]> {
+  return toDomain(await apiData(adminManagementListIngredients({
+    query: { include_inactive: includeInactive, customization_only: customizationOnly },
+    client: adminApiClient,
+    throwOnError: true,
+  })));
+}
 
-export const getCurrentAdmin = async (): Promise<CurrentAdmin> => {
-  const response = await fetch(`${API_BASE}/admin/me`, {
-    headers: adminHeaders(),
-  });
-  if (!response.ok) throw await parseError(response, "Failed to fetch current admin");
-  return normalizeAdmin(await response.json());
-};
+export async function createIngredient(payload: AdminIngredientPayload): Promise<AdminIngredient> {
+  return toDomain(await apiData(adminManagementCreateIngredient({
+    body: toDto<IngredientCreate>(payload), client: adminApiClient, throwOnError: true,
+  })));
+}
 
-export const createProduct = async (productData: AdminProductPayload): Promise<AdminProduct> => {
-  const response = await fetch(`${API_BASE}/admin/products`, {
-    method: "POST",
-    headers: adminHeaders(),
-    body: JSON.stringify(productData),
-  });
-  if (!response.ok) throw await parseError(response, "Failed to create product");
-  return response.json();
-};
+export async function updateIngredient(ingredientId: number, payload: Partial<AdminIngredientPayload>): Promise<AdminIngredient> {
+  return toDomain(await apiData(adminManagementUpdateIngredient({
+    path: { ingredient_id: ingredientId }, body: toDto<IngredientUpdate>(payload), client: adminApiClient, throwOnError: true,
+  })));
+}
 
-export const listProducts = async (
-  skip = 0,
-  limit = 10,
-  includeDeleted = false,
-  filters?: ProductFilters,
-): Promise<AdminProduct[]> => {
-  const params = new URLSearchParams();
-  params.append("skip", skip.toString());
-  params.append("limit", limit.toString());
-  params.append("include_deleted", includeDeleted.toString());
-  
-  if (filters?.name) params.append("name", filters.name);
-  if (filters?.category) params.append("category", String(filters.category));
-  if (filters?.min_price !== undefined) params.append("min_price", filters.min_price.toString());
-  if (filters?.max_price !== undefined) params.append("max_price", filters.max_price.toString());
-  if (filters?.destaque !== undefined) params.append("destaque", String(filters.destaque));
-  if (filters?.gluten_free !== undefined) params.append("gluten_free", String(filters.gluten_free));
-  if (filters?.contains_alcohol !== undefined) params.append("contains_alcohol", String(filters.contains_alcohol));
-  
-  const response = await fetch(
-    `${API_BASE}/admin/products?${params.toString()}`,
-    { headers: adminHeaders() }
-  );
-  if (!response.ok) throw await parseError(response, "Failed to fetch products");
-  return response.json();
-};
+export async function deleteIngredient(ingredientId: number): Promise<AdminIngredient> {
+  return toDomain(await apiData(adminManagementDeleteIngredient({
+    path: { ingredient_id: ingredientId }, client: adminApiClient, throwOnError: true,
+  })));
+}
 
-export const getProduct = async (productId: string | number): Promise<AdminProduct> => {
-  const response = await fetch(`${API_BASE}/admin/products/${productId}`, {
-    headers: adminHeaders(),
-  });
-  if (!response.ok) throw await parseError(response, "Failed to fetch product");
-  return response.json();
-};
+export async function updateProduct(productId: string | number, product: Partial<AdminProductPayload>): Promise<AdminProduct> {
+  return toDomain(await apiData(adminManagementUpdateProduct({
+    path: { product_id: pathId(productId) }, body: toDto<ProductUpdate>(product), client: adminApiClient, throwOnError: true,
+  })));
+}
 
-export const getProductAnalytics = async (productId: string | number, days = 30): Promise<ProductAnalytics> => {
-  const response = await fetch(
-    `${API_BASE}/admin/products/${productId}/analytics?days=${days}`,
-    { headers: adminHeaders() }
-  );
-  if (!response.ok) throw await parseError(response, "Failed to fetch product analytics");
-  return response.json();
-};
+export async function deleteProduct(productId: string | number): Promise<AdminProduct> {
+  return toDomain(await apiData(adminManagementDeleteProduct({
+    path: { product_id: pathId(productId) }, client: adminApiClient, throwOnError: true,
+  })));
+}
 
-export const listIngredients = async (includeInactive = false, customizationOnly = false): Promise<AdminIngredient[]> => {
-  const params = new URLSearchParams({
-    include_inactive: String(includeInactive),
-    customization_only: String(customizationOnly),
-  });
-  const response = await fetch(`${API_BASE}/admin/ingredients?${params.toString()}`, {
-    headers: adminHeaders(),
-  });
-  if (!response.ok) throw await parseError(response, "Failed to fetch ingredients");
-  return response.json();
-};
+export async function restoreProduct(productId: string | number): Promise<AdminProduct> {
+  return toDomain(await apiData(adminManagementToggleProductStatus({
+    path: { product_id: pathId(productId) }, client: adminApiClient, throwOnError: true,
+  })));
+}
 
-export const createIngredient = async (payload: AdminIngredientPayload): Promise<AdminIngredient> => {
-  const response = await fetch(`${API_BASE}/admin/ingredients`, {
-    method: "POST",
-    headers: adminHeaders(),
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) throw await parseError(response, "Failed to create ingredient");
-  return response.json();
-};
+export async function listOrders(skip = 0, limit = 10): Promise<AdminOrder[]> {
+  return toDomain(await apiData(adminManagementListOrders({ query: { skip, limit }, client: adminApiClient, throwOnError: true })));
+}
+export async function listStaffOrders(skip = 0, limit = 100): Promise<AdminOrder[]> {
+  return toDomain(await apiData(adminManagementListStaffOrders({ query: { skip, limit }, client: adminApiClient, throwOnError: true })));
+}
+export async function listKitchenOrders(skip = 0, limit = 50): Promise<AdminOrder[]> {
+  return toDomain(await apiData(adminManagementListKitchenOrders({ query: { skip, limit }, client: adminApiClient, throwOnError: true })));
+}
+export async function getOrder(orderId: number): Promise<AdminOrder> {
+  return toDomain(await apiData(adminManagementGetOrder({ path: { order_id: orderId }, client: adminApiClient, throwOnError: true })));
+}
+export async function updateOrderStatus(orderId: number, state: string): Promise<AdminOrder> {
+  return toDomain(await apiData(adminManagementUpdateOrderStatus({
+    path: { order_id: orderId }, body: { state: state as OrderState }, client: adminApiClient, throwOnError: true,
+  })));
+}
+export async function payCounterOrder(orderId: number): Promise<AdminOrder> {
+  const value = await apiData(adminManagementPayCounterOrder({ path: { order_id: orderId }, client: adminApiClient, throwOnError: true }));
+  return toDomain(value.order);
+}
+export async function refundOrder(orderId: number, payload: RefundPayload): Promise<AdminOrder> {
+  const value = await apiData(adminManagementRefundOrder({
+    path: { order_id: orderId }, body: payload, client: adminApiClient, throwOnError: true,
+  }));
+  return toDomain(value.order);
+}
 
-export const updateIngredient = async (
-  ingredientId: number,
-  payload: Partial<AdminIngredientPayload> & { status?: number },
-): Promise<AdminIngredient> => {
-  const response = await fetch(`${API_BASE}/admin/ingredients/${ingredientId}`, {
-    method: "PUT",
-    headers: adminHeaders(),
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) throw await parseError(response, "Failed to update ingredient");
-  return response.json();
-};
-
-export const deleteIngredient = async (ingredientId: number): Promise<AdminIngredient> => {
-  const response = await fetch(`${API_BASE}/admin/ingredients/${ingredientId}`, {
-    method: "DELETE",
-    headers: adminHeaders(),
-  });
-  if (!response.ok) throw await parseError(response, "Failed to deactivate ingredient");
-  return response.json();
-};
-
-export const updateProduct = async (productId: string | number, productData: Partial<AdminProductPayload>): Promise<AdminProduct> => {
-  const response = await fetch(`${API_BASE}/admin/products/${productId}`, {
-    method: "PUT",
-    headers: adminHeaders(),
-    body: JSON.stringify(productData),
-  });
-  if (!response.ok) throw await parseError(response, "Failed to update product");
-  return response.json();
-};
-
-export const deleteProduct = async (productId: string | number): Promise<AdminProduct> => {
-  const response = await fetch(`${API_BASE}/admin/products/${productId}`, {
-    method: "DELETE",
-    headers: adminHeaders(),
-  });
-  if (!response.ok) throw await parseError(response, "Failed to delete product");
-  return response.json();
-};
-
-export const restoreProduct = async (productId: string | number): Promise<AdminProduct> => {
-  const response = await fetch(`${API_BASE}/admin/products/${productId}/toggle-status`, {
-    method: "POST",
-    headers: adminHeaders(),
-  });
-  if (!response.ok) throw await parseError(response, "Failed to restore product");
-  return response.json();
-};
-
-export const listOrders = async (skip = 0, limit = 10): Promise<AdminOrder[]> => {
-  const response = await fetch(
-    `${API_BASE}/admin/orders?skip=${skip}&limit=${limit}`,
-    { headers: adminHeaders() }
-  );
-  if (!response.ok) throw await parseError(response, "Failed to fetch orders");
-  return response.json();
-};
-
-export const listStaffOrders = async (skip = 0, limit = 100): Promise<AdminOrder[]> => {
-  const response = await fetch(
-    `${API_BASE}/admin/staff/orders?skip=${skip}&limit=${limit}`,
-    { headers: adminHeaders() }
-  );
-  if (!response.ok) throw await parseError(response, "Failed to fetch staff orders");
-  return response.json();
-};
-
-export const listKitchenOrders = async (skip = 0, limit = 50): Promise<AdminOrder[]> => {
-  const response = await fetch(
-    `${API_BASE}/admin/kitchen/orders?skip=${skip}&limit=${limit}`,
-    { headers: adminHeaders() }
-  );
-  if (!response.ok) throw await parseError(response, "Failed to fetch kitchen orders");
-  return response.json();
-};
-
-export const getOrder = async (orderId: number): Promise<AdminOrder> => {
-  const response = await fetch(`${API_BASE}/admin/orders/${orderId}`, {
-    headers: adminHeaders(),
-  });
-  if (!response.ok) throw await parseError(response, "Failed to fetch order");
-  return response.json();
-};
-
-export const updateOrderStatus = async (orderId: number, estado: string): Promise<AdminOrder> => {
-  const response = await fetch(`${API_BASE}/admin/orders/${orderId}/status`, {
-    method: "PATCH",
-    headers: adminHeaders(),
-    body: JSON.stringify({ estado }),
-  });
-  if (!response.ok) throw await parseError(response, "Failed to update order status");
-  return response.json();
-};
-
-export const payCounterOrder = async (orderId: number): Promise<AdminOrder> => {
-  const response = await fetch(`${API_BASE}/admin/orders/${orderId}/pay-counter`, {
-    method: "POST",
-    headers: adminHeaders(),
-  });
-  if (!response.ok) throw await parseError(response, "Failed to mark counter order as paid");
-  const data = (await response.json()) as { order: AdminOrder };
-  return data.order;
-};
-
-export const refundOrder = async (orderId: number, payload: RefundPayload): Promise<AdminOrder> => {
-  const response = await fetch(`${API_BASE}/admin/orders/${orderId}/refund`, {
-    method: "POST",
-    headers: adminHeaders(),
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) throw await parseError(response, "Failed to refund order");
-  const data = (await response.json()) as { order: AdminOrder };
-  return data.order;
-};
-
-export const listRefunds = async (filters: RefundFilters = {}): Promise<AdminRefund[]> => {
-  const params = new URLSearchParams();
-  Object.entries(filters).forEach(([key, value]) => {
-    if (value) params.set(key, value);
-  });
-  const response = await fetch(`${API_BASE}/admin/refunds?${params.toString()}`, {
-    headers: adminHeaders(),
-  });
-  if (!response.ok) throw await parseError(response, "Failed to fetch refunds");
-  return response.json();
-};
-
-export const exportRefunds = async (filters: RefundFilters = {}): Promise<{ blob: Blob; filename: string }> => {
-  const params = new URLSearchParams();
-  Object.entries(filters).forEach(([key, value]) => {
-    if (value) params.set(key, value);
-  });
-  const response = await fetch(`${API_BASE}/admin/refunds/export?${params.toString()}`, {
-    headers: adminHeaders(),
-  });
-  if (!response.ok) throw await parseError(response, "Failed to export refunds");
+function refundQuery(filters: RefundFilters) {
   return {
-    blob: await response.blob(),
-    filename: "bonefree-refunds.csv",
+    date_from: filters.dateFrom,
+    date_to: filters.dateTo,
+    staff_member: filters.staffMember ? Number(filters.staffMember) : undefined,
+    reason: filters.reason,
+    refund_status: filters.refundStatus,
   };
-};
-
-export const listClientes = async (search = ""): Promise<AdminCustomer[]> => {
-  const params = new URLSearchParams({ skip: "0", limit: "100" });
-  if (search.trim()) params.set("search", search.trim());
-  const response = await fetch(`${API_BASE}/admin/clientes?${params.toString()}`, {
-    headers: adminHeaders(),
-  });
-  if (!response.ok) throw await parseError(response, "Failed to fetch customers");
-  return response.json();
-};
-
-export const createCliente = async (payload: AdminCustomerPayload): Promise<AdminCustomer> => {
-  const response = await fetch(`${API_BASE}/admin/clientes`, {
-    method: "POST",
-    headers: adminHeaders(),
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) throw await parseError(response, "Failed to create customer");
-  return response.json();
-};
-
-export const updateCliente = async (clienteId: number, payload: Partial<AdminCustomerPayload>): Promise<AdminCustomer> => {
-  const response = await fetch(`${API_BASE}/admin/clientes/${clienteId}`, {
-    method: "PUT",
-    headers: adminHeaders(),
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) throw await parseError(response, "Failed to update customer");
-  return response.json();
-};
-
-export const deleteCliente = async (clienteId: number): Promise<AdminCustomer> => {
-  const response = await fetch(`${API_BASE}/admin/clientes/${clienteId}`, {
-    method: "DELETE",
-    headers: adminHeaders(),
-  });
-  if (!response.ok) throw await parseError(response, "Failed to deactivate customer");
-  return response.json();
-};
-
-export const listStaffAdmins = async (): Promise<CurrentAdmin[]> => {
-  const response = await fetch(`${API_BASE}/admin/staff`, {
-    headers: adminHeaders(),
-  });
-  if (!response.ok) throw await parseError(response, "Failed to fetch staff admins");
-  const data = await response.json();
-  return Array.isArray(data) ? data.map(normalizeAdmin) : [];
-};
-
-export const createStaffAdmin = async (payload: AdminUserPayload & { password: string }): Promise<CurrentAdmin> => {
-  const response = await fetch(`${API_BASE}/admin/staff`, {
-    method: "POST",
-    headers: adminHeaders(),
-    body: JSON.stringify(adminPayloadToApi(payload)),
-  });
-  if (!response.ok) throw await parseError(response, "Failed to create staff admin");
-  return normalizeAdmin(await response.json());
-};
-
-export const updateStaffAdmin = async (adminId: number, payload: AdminUserPayload): Promise<CurrentAdmin> => {
-  const response = await fetch(`${API_BASE}/admin/staff/${adminId}`, {
-    method: "PUT",
-    headers: adminHeaders(),
-    body: JSON.stringify(adminPayloadToApi(payload)),
-  });
-  if (!response.ok) throw await parseError(response, "Failed to update staff admin");
-  return normalizeAdmin(await response.json());
-};
-
-export const deleteStaffAdmin = async (adminId: number): Promise<CurrentAdmin> => {
-  const response = await fetch(`${API_BASE}/admin/staff/${adminId}`, {
-    method: "DELETE",
-    headers: adminHeaders(),
-  });
-  if (!response.ok) throw await parseError(response, "Failed to deactivate staff admin");
-  return normalizeAdmin(await response.json());
-};
-
-export const listCategories = async (includeInactive = false): Promise<Category[]> => {
-  const token = getAdminToken();
-  const response = await fetch(`${API_BASE}/admin/categories?include_inactive=${includeInactive}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
-  if (!response.ok) throw await parseError(response, "Failed to load categories");
-  return response.json();
-};
-
-export const createCategory = async (payload: CategoryPayload): Promise<Category> => {
-  const response = await fetch(`${API_BASE}/admin/categories`, {
-    method: "POST",
-    headers: adminHeaders(),
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) throw await parseError(response, "Failed to create category");
-  return response.json();
-};
-
-export const updateCategory = async (categoryId: string | number, payload: Partial<CategoryPayload> & { status?: number }): Promise<Category> => {
-  const response = await fetch(`${API_BASE}/admin/categories/${categoryId}`, {
-    method: "PUT",
-    headers: adminHeaders(),
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) throw await parseError(response, "Failed to update category");
-  return response.json();
-};
-
-export const deleteCategory = async (categoryId: string | number): Promise<Category> => {
-  const response = await fetch(`${API_BASE}/admin/categories/${categoryId}`, {
-    method: "DELETE",
-    headers: adminHeaders(),
-  });
-  if (!response.ok) throw await parseError(response, "Failed to deactivate category");
-  return response.json();
-};
-
-export type UploadedProductImage = {
-  caminho_imagem: string
-  filename: string
-  message: string
-  url: string
 }
 
-export const uploadProductImage = async (productId: string | number, file: File, replaceExisting = true): Promise<UploadedProductImage> => {
-  const token = getAdminToken();
-  const form = new FormData();
-  form.append("file", file);
+export async function listRefunds(filters: RefundFilters = {}): Promise<AdminRefund[]> {
+  return toDomain(await apiData(adminManagementListRefunds({ query: refundQuery(filters), client: adminApiClient, throwOnError: true })));
+}
+export async function exportRefunds(filters: RefundFilters = {}): Promise<{ blob: Blob; filename: string }> {
+  const result = await adminManagementExportRefunds({ query: refundQuery(filters), client: adminApiClient, throwOnError: true });
+  return {
+    blob: result.data instanceof Blob ? result.data : new Blob([result.data]),
+    filename: contentDispositionFilename(result.response, 'bonefree-refunds.csv'),
+  };
+}
 
-  const response = await fetch(`${API_BASE}/admin/products/${productId}/image?replace_existing=${replaceExisting}`, {
-    method: "POST",
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-    body: form,
+export async function listCustomers(search = ''): Promise<AdminCustomer[]> {
+  return toDomain(await apiData(adminManagementListCustomers({
+    query: { skip: 0, limit: 100, search: search.trim() || undefined }, client: adminApiClient, throwOnError: true,
+  })));
+}
+export async function createCustomer(payload: AdminCustomerPayload): Promise<AdminCustomer> {
+  return toDomain(await apiData(adminManagementCreateCustomer({
+    body: toDto<CustomerAdminCreate>(payload), client: adminApiClient, throwOnError: true,
+  })));
+}
+export async function updateCustomer(customerId: number, payload: Partial<AdminCustomerPayload>): Promise<AdminCustomer> {
+  return toDomain(await apiData(adminManagementUpdateCustomer({
+    path: { customer_id: customerId }, body: toDto<CustomerAdminUpdate>(payload), client: adminApiClient, throwOnError: true,
+  })));
+}
+export async function deleteCustomer(customerId: number): Promise<AdminCustomer> {
+  return toDomain(await apiData(adminManagementDeleteCustomer({
+    path: { customer_id: customerId }, client: adminApiClient, throwOnError: true,
+  })));
+}
+
+export async function listStaffAdmins(): Promise<CurrentAdmin[]> {
+  return toDomain(await apiData(adminManagementListStaffAdmins({ client: adminApiClient, throwOnError: true })));
+}
+export async function createStaffAdmin(payload: AdminUserPayload & { password: string }): Promise<CurrentAdmin> {
+  return toDomain(await apiData(adminManagementCreateStaffAdmin({
+    body: toDto<StaffAdminCreate>(payload), client: adminApiClient, throwOnError: true,
+  })));
+}
+export async function updateStaffAdmin(adminId: number, payload: AdminUserPayload): Promise<CurrentAdmin> {
+  return toDomain(await apiData(adminManagementUpdateStaffAdmin({
+    path: { admin_id: adminId }, body: toDto<StaffAdminUpdate>(payload), client: adminApiClient, throwOnError: true,
+  })));
+}
+export async function deleteStaffAdmin(adminId: number): Promise<CurrentAdmin> {
+  return toDomain(await apiData(adminManagementDeleteStaffAdmin({
+    path: { admin_id: adminId }, client: adminApiClient, throwOnError: true,
+  })));
+}
+
+export async function listCategories(includeInactive = false): Promise<Category[]> {
+  return toDomain(await apiData(adminManagementListCategories({
+    query: { include_inactive: includeInactive }, client: adminApiClient, throwOnError: true,
+  })));
+}
+export async function createCategory(payload: CategoryPayload): Promise<Category> {
+  return toDomain(await apiData(adminManagementCreateCategory({
+    body: toDto<CategoryCreate>(payload), client: adminApiClient, throwOnError: true,
+  })));
+}
+export async function updateCategory(categoryId: string | number, payload: Partial<CategoryPayload> & { status?: Category['status'] }): Promise<Category> {
+  return toDomain(await apiData(adminManagementUpdateCategory({
+    path: { category_id: pathId(categoryId) }, body: toDto<CategoryUpdate>(payload), client: adminApiClient, throwOnError: true,
+  })));
+}
+export async function deleteCategory(categoryId: string | number): Promise<Category> {
+  return toDomain(await apiData(adminManagementDeleteCategory({
+    path: { category_id: pathId(categoryId) }, client: adminApiClient, throwOnError: true,
+  })));
+}
+
+export type UploadedProductImage = { imagePath: string; filename: string; message: string; url: string; };
+export async function uploadProductImage(productId: string | number, file: File, replaceExisting = true): Promise<UploadedProductImage> {
+  return toDomain(await apiData(adminManagementUploadProductImage({
+    path: { product_id: pathId(productId) },
+    query: { replace_existing: replaceExisting },
+    body: { file },
+    client: adminApiClient,
+    throwOnError: true,
+  })));
+}
+export async function deleteProductImage(productId: string | number, imageId: number): Promise<void> {
+  await adminManagementDeleteProductImage({
+    path: { product_id: pathId(productId), image_id: imageId }, client: adminApiClient, throwOnError: true,
   });
+}
 
-  if (!response.ok) {
-    throw await parseError(response, "Failed to upload image");
-  }
+export async function getLowStockProducts(threshold = 5, limit = 10): Promise<DashboardData['lowStockProducts']> {
+  void threshold;
+  return toDomain(await apiData(adminManagementGetLowStockProducts({ query: { limit }, client: adminApiClient, throwOnError: true })));
+}
+export async function getPopularProducts(limit = 5): Promise<DashboardData['popularProducts']> {
+  return toDomain(await apiData(adminManagementGetPopularProducts({ query: { limit }, client: adminApiClient, throwOnError: true })));
+}
+export async function getSalesPerformance(days = 7): Promise<SalesPerformance> {
+  return toDomain(await apiData(adminManagementGetSalesPerformance({ query: { days }, client: adminApiClient, throwOnError: true })));
+}
+export async function getAnalyticsSeries(metric: AnalyticsMetric, range: AnalyticsRange, startDate?: string, endDate?: string): Promise<AnalyticsSeries> {
+  return toDomain(await apiData(adminManagementGetAnalyticsSeries({
+    query: { metric, range, start_date: range === 'custom' ? startDate : undefined, end_date: range === 'custom' ? endDate : undefined },
+    client: adminApiClient,
+    throwOnError: true,
+  })));
+}
 
-  return response.json()
-};
-
-export const deleteProductImage = async (productId: string | number, imageId: number): Promise<void> => {
-  const response = await fetch(`${API_BASE}/admin/products/${productId}/images/${imageId}`, {
-    method: "DELETE",
-    headers: adminHeaders(),
+export async function listProductReviews(productId: string | number): Promise<AdminReview[]> {
+  return toDomain(await apiData(reviewsListProductReviews({
+    path: { product_id: pathId(productId) }, client: adminApiClient, throwOnError: true,
+  })));
+}
+export async function createReviewReply(reviewId: number, text: string): Promise<ReviewReply> {
+  return toDomain(await apiData(reviewsCreateReviewReply({
+    path: { review_id: reviewId }, body: { text }, client: adminApiClient, throwOnError: true,
+  })));
+}
+export async function updateReviewReply(reviewId: number, replyId: number, text: string): Promise<ReviewReply> {
+  return toDomain(await apiData(reviewsUpdateReviewReply({
+    path: { review_id: reviewId, reply_id: replyId }, body: { text }, client: adminApiClient, throwOnError: true,
+  })));
+}
+export async function deleteReviewReply(reviewId: number, replyId: number): Promise<void> {
+  await reviewsDeleteReviewReply({
+    path: { review_id: reviewId, reply_id: replyId }, client: adminApiClient, throwOnError: true,
   });
-  if (!response.ok) {
-    throw await parseError(response, "Failed to remove image");
-  }
-};
-
-export const getLowStockProducts = async (threshold = 5, limit = 10): Promise<DashboardData["produtos_baixo_estoque"]> => {
-  const response = await fetch(
-    `${API_BASE}/admin/analytics/low-stock?threshold=${threshold}&limit=${limit}`,
-    { headers: adminHeaders() }
-  );
-  if (!response.ok) throw await parseError(response, "Failed to fetch low stock products");
-  return response.json();
-};
-
-export const getPopularProducts = async (limit = 5): Promise<DashboardData["produtos_populares"]> => {
-  const response = await fetch(
-    `${API_BASE}/admin/analytics/popular-products?limit=${limit}`,
-    { headers: adminHeaders() }
-  );
-  if (!response.ok) throw await parseError(response, "Failed to fetch popular products");
-  return response.json();
-};
-
-export const getSalesPerformance = async (days = 7): Promise<SalesPerformance> => {
-  const response = await fetch(
-    `${API_BASE}/admin/analytics/sales-performance?days=${days}`,
-    { headers: adminHeaders() }
-  );
-  if (!response.ok) throw await parseError(response, "Failed to fetch sales performance");
-  return response.json();
-};
-
-export const getAnalyticsSeries = async (
-  metric: AnalyticsMetric,
-  range: AnalyticsRange,
-  startDate?: string,
-  endDate?: string,
-): Promise<AnalyticsSeries> => {
-  const params = new URLSearchParams({ metric, range });
-  if (range === "custom") {
-    if (startDate) params.set("start_date", startDate);
-    if (endDate) params.set("end_date", endDate);
-  }
-  const response = await fetch(`${API_BASE}/admin/analytics/series?${params.toString()}`, {
-    headers: adminHeaders(),
-  });
-  if (!response.ok) throw await parseError(response, "Failed to fetch analytics series");
-  return response.json();
-};
-
-export const listProductReviews = async (productId: string | number): Promise<AdminReview[]> => {
-  const response = await fetch(`${API_BASE}/products/${productId}/reviews`, {
-    headers: adminHeaders(),
-  });
-  if (!response.ok) throw await parseError(response, "Failed to fetch reviews");
-  return response.json();
-};
-
-export const createReviewReply = async (reviewId: number, texto: string): Promise<ReviewReply> => {
-  const response = await fetch(`${API_BASE}/admin/reviews/${reviewId}/reply`, {
-    method: "POST",
-    headers: adminHeaders(),
-    body: JSON.stringify({ texto }),
-  });
-  if (!response.ok) throw await parseError(response, "Failed to create review reply");
-  return response.json();
-};
-
-export const updateReviewReply = async (reviewId: number, replyId: number, texto: string): Promise<ReviewReply> => {
-  const response = await fetch(`${API_BASE}/admin/reviews/${reviewId}/reply/${replyId}`, {
-    method: "PUT",
-    headers: adminHeaders(),
-    body: JSON.stringify({ texto }),
-  });
-  if (!response.ok) throw await parseError(response, "Failed to update review reply");
-  return response.json();
-};
-
-export const deleteReviewReply = async (reviewId: number, replyId: number): Promise<void> => {
-  const response = await fetch(`${API_BASE}/admin/reviews/${reviewId}/reply/${replyId}`, {
-    method: "DELETE",
-    headers: adminHeaders(),
-  });
-  if (!response.ok) throw await parseError(response, "Failed to delete review reply");
-};
-
-export const setReviewReaction = async (reviewId: number, tipo: ReactionType): Promise<ReviewReaction> => {
-  const response = await fetch(`${API_BASE}/admin/reviews/${reviewId}/reaction`, {
-    method: "POST",
-    headers: adminHeaders(),
-    body: JSON.stringify({ tipo }),
-  });
-  if (!response.ok) throw await parseError(response, "Failed to save reaction");
-  return response.json();
-};
-
-export const deleteReviewReaction = async (reviewId: number): Promise<void> => {
-  const response = await fetch(`${API_BASE}/admin/reviews/${reviewId}/reaction`, {
-    method: "DELETE",
-    headers: adminHeaders(),
-  });
-  if (!response.ok) throw await parseError(response, "Failed to remove reaction");
-};
+}
+export async function setReviewReaction(reviewId: number, type: ReactionType): Promise<ReviewReaction> {
+  return toDomain(await apiData(reviewsUpsertReviewReaction({
+    path: { review_id: reviewId }, body: { type }, client: adminApiClient, throwOnError: true,
+  })));
+}
+export async function deleteReviewReaction(reviewId: number): Promise<void> {
+  await reviewsDeleteReviewReaction({ path: { review_id: reviewId }, client: adminApiClient, throwOnError: true });
+}

@@ -417,7 +417,7 @@ def _order_response(order: Order) -> dict:
                 "customization": customization_from_json(item.customization),
                 "subtotal": Decimal(str(item.unit_price)) * item.quantity,
                 "image": _product_image_path(item.product),
-                "calorias": item.product.total_calories if item.product else None,
+                "calories": item.product.total_calories if item.product else None,
             }
             for item in order.items
         ],
@@ -428,7 +428,7 @@ def _can_customer_cancel(order: Order) -> bool:
     return order.state == OrderState.PENDING and order.payment_status == PaymentStatus.UNPAID
 
 
-@router.get("/coupons", response_model=list[CouponResponse])
+@router.get("/coupons", response_model=list[CouponResponse], operation_id="checkout_list_available_coupons")
 def list_available_coupons(
     db: Session = Depends(get_db),
     current_user: Optional[Customer] = Depends(get_current_user_optional),
@@ -450,7 +450,11 @@ def list_available_coupons(
     ]
 
 
-@router.post("/coupons/validate", response_model=CouponValidationResponse)
+@router.post(
+    "/coupons/validate",
+    response_model=CouponValidationResponse,
+    operation_id="checkout_validate_coupon",
+)
 def validate_coupon(
     body: CouponValidationRequest,
     db: Session = Depends(get_db),
@@ -472,7 +476,12 @@ def validate_coupon(
     )
 
 
-@router.post("/orders", response_model=OrderResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/orders",
+    response_model=OrderResponse,
+    status_code=status.HTTP_201_CREATED,
+    operation_id="checkout_create_order",
+)
 def create_order(
     body: CheckoutRequest,
     background_tasks: BackgroundTasks,
@@ -610,7 +619,11 @@ def create_order(
     return response
 
 
-@router.post("/orders/{order_id}/cancel", response_model=OrderResponse)
+@router.post(
+    "/orders/{order_id}/cancel",
+    response_model=OrderResponse,
+    operation_id="checkout_cancel_order",
+)
 def cancel_order(
     order_id: int,
     db: Session = Depends(get_db),
@@ -644,7 +657,17 @@ def cancel_order(
     return _order_response(order)
 
 
-@router.get("/orders/{order_id}/receipt.pdf")
+@router.get(
+    "/orders/{order_id}/receipt.pdf",
+    response_class=Response,
+    operation_id="checkout_download_order_receipt_pdf",
+    responses={
+        200: {
+            "description": "Order receipt PDF",
+            "content": {"application/pdf": {"schema": {"type": "string", "format": "binary"}}},
+        }
+    },
+)
 def download_order_receipt_pdf(
     order_id: int,
     db: Session = Depends(get_db),
@@ -685,7 +708,11 @@ def download_order_receipt_pdf(
     )
 
 
-@router.get("/orders/history", response_model=list[OrderResponse])
+@router.get(
+    "/orders/history",
+    response_model=list[OrderResponse],
+    operation_id="checkout_list_order_history",
+)
 def list_order_history(
     db: Session = Depends(get_db),
     current_user: Optional[Customer] = Depends(get_current_user_optional),

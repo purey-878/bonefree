@@ -9,10 +9,10 @@ const Banner: React.FC = () => {
       <Navbar />
       <section className="banner">
         <div className="banner-content">
-          <img src={ASSETS.images.hero.stamp} alt="Vegan stamp" className="vegan-stamp" />
+          <img src={ASSETS.images.hero.stamp} alt="Selo vegan" className="vegan-stamp" />
           <h1>Plant-based flavor for every table</h1>
           <p>Fresh vegan dishes served with a glassy, modern interface.</p>
-          <a href="#menu" className="btn btn-custom-glass">View Menu</a>
+          <a href="#menu" className="btn btn-custom-glass">Ver menu</a>
         </div>
       </section>
     </>

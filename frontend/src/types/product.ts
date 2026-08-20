@@ -1,134 +1,130 @@
-/**
- * Product Types
- */
+export type EntityStatus = 'active' | 'inactive';
+export type IngredientType = 'normal' | 'sauce' | 'extra' | 'drink' | 'base' | 'side';
 
 export interface Product {
   id: number;
-  id_display: string;
+  idDisplay: string;
   category: string;
   name: string;
   description: string | null;
   image: string | null;
   images?: string[];
-  price: number;
-  original_price?: number | null;
-  discount_percent?: number;
+  price: number | null;
+  originalPrice?: number | null;
+  discountPercent?: number;
   stock: number;
   sold?: number;
-  total_calorias?: number | null;
-  customizavel: boolean;
+  totalCalories?: number | null;
+  customizable: boolean;
   tags?: string[];
-  gluten_free?: boolean;
-  contains_alcohol?: boolean;
+  glutenFree?: boolean;
+  containsAlcohol?: boolean;
   highlighted?: boolean;
   available?: boolean;
-  unavailable_reason?: string | null;
-  unavailable_due_to_inactive_base?: boolean;
-  ingredientes?: ProductIngredientNutrition[];
+  unavailableReason?: string | null;
+  unavailableDueToInactiveBase?: boolean;
+  ingredients?: ProductIngredientNutrition[];
 }
 
 export interface ProductIngredientNutrition {
-  id_ingrediente: number;
-  nome: string;
-  tipo: string;
-  status?: number;
-  quantidade?: string | null;
-  calorias_por_grama?: number | null;
-  calorias: number;
+  ingredientId: number;
+  name: string;
+  type: IngredientType;
+  status?: EntityStatus;
+  quantity?: string | null;
+  caloriesPerGram?: number | null;
+  calories: number;
 }
 
 export interface ProductSuggestion {
-  id_produto: number;
-  id_produto_display: string;
-  nome: string;
-  categoria: string;
-  preco: number | null;
+  productId: number;
+  productDisplayId: string;
+  name: string;
+  category: string;
+  price: number | null;
   stock: number;
   score: number;
   reason: string;
 }
 
 export interface ProductAvailabilitySuggestions {
-  id_produto: number;
-  id_produto_display: string;
-  nome: string;
-  requested_quantity: number;
-  stock_threshold: number;
+  productId: number;
+  productDisplayId: string;
+  name: string;
+  requestedQuantity: number;
+  stockThreshold: number;
   available: boolean;
-  availability_reason: string;
+  availabilityReason: string;
   substitutes: ProductSuggestion[];
-  similar_dishes: ProductSuggestion[];
+  similarDishes: ProductSuggestion[];
 }
 
-export type ReviewStatus = "pendente" | "aprovado" | "rejeitado";
+export type ReviewStatus = 'pending' | 'approved' | 'rejected';
+
+export interface ReviewReply {
+  replyId: number;
+  reviewId: number;
+  adminId: number;
+  text: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReviewReaction {
+  reactionId: number;
+  reviewId: number;
+  adminId: number;
+  type: 'like' | 'heart';
+  createdAt: string;
+}
 
 export interface ProductReview {
-  id_review: number;
-  id_produto: number;
-  id_produto_display: string;
-  id_cliente: number;
-  id_encomenda_produto: number | null;
-  cliente_nome: string | null;
+  reviewId: number;
+  productId: number;
+  productDisplayId: string;
+  customerId: number;
+  orderProductId: number | null;
+  customerName: string | null;
   rating: number;
-  titulo: string | null;
-  comentario: string | null;
+  title: string | null;
+  comment: string | null;
   status: ReviewStatus;
-  data_criacao: string;
-  data_atualizacao: string;
-  is_owner: boolean;
-  reply?: {
-    id_reply: number;
-    id_review: number;
-    id_admin: number;
-    texto: string;
-    created_at: string;
-    updated_at: string;
-  } | null;
-  replies?: Array<{
-    id_reply: number;
-    id_review: number;
-    id_admin: number;
-    texto: string;
-    created_at: string;
-    updated_at: string;
-  }>;
-  reactions?: Array<{
-    id_reaction: number;
-    id_review: number;
-    id_admin: number;
-    tipo: "like" | "heart";
-    created_at: string;
-  }>;
+  createdAt: string;
+  updatedAt: string;
+  isOwner: boolean;
+  reply?: ReviewReply | null;
+  replies?: ReviewReply[];
+  reactions?: ReviewReaction[];
 }
 
 export interface ProductReviewStats {
-  id_produto: number;
-  id_produto_display: string;
-  rating_medio: number | null;
-  total_reviews: number;
+  productId: number;
+  productDisplayId: string;
+  averageRating: number | null;
+  totalReviews: number;
 }
 
 export interface ProductReviewEligibilityItem {
-  id_encomenda_produto: number;
-  id_encomenda: number;
-  id_produto: number;
-  id_produto_display: string;
-  nome_produto: string;
-  data_encomenda: string;
-  existing_review: ProductReview | null;
+  orderProductId: number;
+  orderId: number;
+  productId: number;
+  productDisplayId: string;
+  productName: string;
+  orderedAt: string;
+  existingReview: ProductReview | null;
 }
 
 export interface ProductReviewEligibility {
   eligible: boolean;
   authenticated: boolean;
   items: ProductReviewEligibilityItem[];
-  existing_review?: ProductReview | null;
+  existingReview?: ProductReview | null;
   message: string;
 }
 
 export interface ProductReviewPayload {
-  id_encomenda_produto?: number;
+  orderProductId?: number;
   rating?: number;
-  titulo?: string | null;
-  comentario?: string | null;
+  title?: string | null;
+  comment?: string | null;
 }

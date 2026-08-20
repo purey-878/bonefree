@@ -1,101 +1,77 @@
-/**
- * Cart/Carrinho Types
- */
-
 export interface GuestCartItem {
-  id_produto: number;
-  quantidade: number;
-  customizacao?: ItemCustomization | null;
+  productId: number;
+  quantity: number;
+  customization?: ItemCustomization | null;
 }
 
-export interface CustomizationExtraSelection {
-  id_opcao: number;
-  quantidade: number;
-}
-
-export interface CustomizationSubstitutionSelection {
-  id_ingrediente_original: number;
-  id_ingrediente_novo: number;
-}
+export interface CustomizationExtraSelection { optionId: number; quantity: number; }
+export interface CustomizationSubstitutionSelection { originalIngredientId: number; newIngredientId: number; }
 
 export interface ItemCustomization {
   remove: string[];
   add: string[];
   preferences: string[];
   note?: string | null;
-  ingredientes_removidos?: number[];
+  removedIngredients?: number[];
   extras?: CustomizationExtraSelection[];
-  substituicoes?: CustomizationSubstitutionSelection[];
-  preco_unitario_final?: number | string | null;
+  substitutions?: CustomizationSubstitutionSelection[];
+  finalUnitPrice?: number | string | null;
 }
 
-export interface ProductCustomizationOptions {
-  remove: string[];
-  add: string[];
-  preferences: string[];
-}
+export interface ProductCustomizationOptions { remove: string[]; add: string[]; preferences: string[]; }
+export type CustomizationOptionType = 'add' | 'remove' | 'extra' | 'substitute_sauce' | 'substitute_side';
 
 export interface CustomizationIngredient {
-  id_ingrediente: number;
-  nome: string;
-  tipo: string;
-  removivel: boolean;
-  substituivel: boolean;
-  incluido_por_defeito: boolean;
+  ingredientId: number;
+  name: string;
+  type: string;
+  removable: boolean;
+  substitutable: boolean;
+  includedByDefault: boolean;
 }
 
 export interface CustomizationOption {
-  id_opcao: number;
-  id_ingrediente: number | null;
-  nome: string;
-  tipo: "EXTRA" | "ADICIONAR" | "SUBSTITUIR_MOLHO" | "SUBSTITUIR_ACOMPANHAMENTO";
-  preco_extra: number | string;
-  max_quantidade: number;
+  optionId: number;
+  ingredientId: number | null;
+  name: string;
+  type: CustomizationOptionType;
+  extraPrice: number | string;
+  maxQuantity: number;
 }
 
 export interface ProductCustomizationDetails {
-  id_produto: number;
-  id_produto_display: string;
-  nome: string;
-  customizavel: boolean;
-  preco_base: number | string;
-  ingredientes: CustomizationIngredient[];
-  ingredientes_removiveis: CustomizationIngredient[];
-  ingredientes_substituiveis: CustomizationIngredient[];
-  opcoes: Record<CustomizationOption["tipo"], CustomizationOption[]>;
+  productId: number;
+  productDisplayId: string;
+  name: string;
+  customizable: boolean;
+  basePrice: number | string;
+  ingredients: CustomizationIngredient[];
+  removableIngredients: CustomizationIngredient[];
+  substitutableIngredients: CustomizationIngredient[];
+  options: Partial<Record<CustomizationOptionType, CustomizationOption[]>>;
 }
 
 export interface CustomizedCartItemRequest {
-  id_produto: number;
-  quantidade: number;
-  ingredientes_removidos: number[];
+  productId: number;
+  quantity: number;
+  removedIngredients: number[];
   extras: CustomizationExtraSelection[];
-  substituicoes: CustomizationSubstitutionSelection[];
-  observacoes?: string | null;
+  substitutions: CustomizationSubstitutionSelection[];
+  notes?: string | null;
 }
 
 export interface CartItem {
-  cart_log_id: number;
-  id_produto: number;
-  id_produto_display: string;
-  nome: string;
-  preco: number;
-  quantidade: number;
+  cartProductId: number;
+  productId: number;
+  productDisplayId: string;
+  name: string;
+  price: number;
+  quantity: number;
   stock: number;
-  caminho_imagem?: string;
-  customizacao?: ItemCustomization | null;
+  imagePath?: string | null;
+  customization?: ItemCustomization | null;
   subtotal: number;
 }
 
-export interface Cart {
-  id_carrinho: number | null;
-  itens: CartItem[] | GuestCartItem[];
-  total: number | null;
-}
-
-export interface MergeResult {
-  merged: number[];
-  capped: number[];
-  skipped: number[];
-  carrinho: Cart;
-}
+export interface Cart { cartId: number | null; items: CartItem[] | GuestCartItem[]; total: number | null; }
+export interface MergeResult { merged: number[]; capped: number[]; skipped: number[]; cart: Cart; }

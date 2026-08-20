@@ -1,10 +1,20 @@
-/**
- * Product Service
- * Handles all product-related API calls
- */
-
-import { API_BASE, authHeaders } from "./api";
-import { translateUserMessage } from "../utils/messages";
+import {
+  productsGetAvailabilitySuggestions,
+  productsGetCustomizationOptions,
+  productsGetProduct,
+  productsGetProductCustomization,
+  productsListProducts,
+  reviewsCreateProductReview,
+  reviewsDeleteProductReview,
+  reviewsGetProductReviewEligibility,
+  reviewsGetProductReviewStats,
+  reviewsListProductReviews,
+  reviewsUpdateProductReview,
+} from '../api/generated';
+import type { ProductReviewCreate, ProductReviewUpdate } from '../api/generated';
+import { apiData, customerApiClient, publicApiClient } from '../api/clients';
+import { toDomain } from '../api/mappers';
+import type { ProductCustomizationDetails, ProductCustomizationOptions } from '../types/cart';
 import type {
   Product,
   ProductAvailabilitySuggestions,
@@ -12,8 +22,7 @@ import type {
   ProductReviewEligibility,
   ProductReviewPayload,
   ProductReviewStats,
-} from "../types/product";
-import type { ProductCustomizationDetails, ProductCustomizationOptions } from "../types/cart";
+} from '../types/product';
 
 interface AvailabilitySuggestionOptions {
   quantity?: number;
@@ -21,138 +30,115 @@ interface AvailabilitySuggestionOptions {
   limit?: number;
 }
 
-async function parseError(response: Response, fallback: string): Promise<Error> {
-  try {
-    const data = await response.json();
-    return new Error(translateUserMessage(data.detail || fallback));
-  } catch {
-    return new Error(translateUserMessage(fallback));
-  }
-}
-
 export const productService = {
-  /**
-   * Fetch all products from the API
-   */
   async getAll(): Promise<Product[]> {
-    const response = await fetch(`${API_BASE}/products/`);
-    if (!response.ok) {
-      throw new Error("Não foi possível carregar os produtos.");
-    }
-    return response.json();
+    return toDomain<Product[]>(await apiData(productsListProducts({
+      client: publicApiClient,
+      throwOnError: true,
+    })));
   },
 
-  /**
-   * Fetch a single product by ID
-   */
   async getById(id: string | number): Promise<Product> {
-    const response = await fetch(`${API_BASE}/products/${id}`);
-    if (!response.ok) {
-      throw new Error(`Produto ${id} não encontrado.`);
-    }
-    return response.json();
+    return toDomain<Product>(await apiData(productsGetProduct({
+      path: { product_id: String(id) },
+      client: publicApiClient,
+      throwOnError: true,
+    })));
   },
 
-  /**
-   * Fetch stock-out replacement items and available similar dishes.
-   */
   async getAvailabilitySuggestions(
     id: string | number,
     options: AvailabilitySuggestionOptions = {},
   ): Promise<ProductAvailabilitySuggestions> {
-    const params = new URLSearchParams();
-    if (options.quantity !== undefined) params.set("quantity", String(options.quantity));
-    if (options.stockThreshold !== undefined) params.set("stock_threshold", String(options.stockThreshold));
-    if (options.limit !== undefined) params.set("limit", String(options.limit));
-
-    const query = params.toString();
-    const response = await fetch(
-      `${API_BASE}/products/${id}/availability-suggestions${query ? `?${query}` : ""}`,
-    );
-    if (!response.ok) {
-      throw new Error(`Não foi possível carregar sugestões para o produto ${id}.`);
-    }
-    return response.json();
+    return toDomain<ProductAvailabilitySuggestions>(await apiData(productsGetAvailabilitySuggestions({
+      path: { product_id: String(id) },
+      query: {
+        quantity: options.quantity,
+        stock_threshold: options.stockThreshold,
+        limit: options.limit,
+      },
+      client: publicApiClient,
+      throwOnError: true,
+    })));
   },
 
-  /**
-   * Fetch item-level customization choices for a product.
-   */
   async getCustomizationOptions(id: string | number): Promise<ProductCustomizationOptions> {
-    const response = await fetch(`${API_BASE}/products/${id}/customization-options`);
-    if (!response.ok) {
-      throw new Error(`Não foi possível carregar as opções de personalização do produto ${id}.`);
-    }
-    return response.json();
+    return toDomain<ProductCustomizationOptions>(await apiData(productsGetCustomizationOptions({
+      path: { product_id: String(id) },
+      client: publicApiClient,
+      throwOnError: true,
+    })));
   },
 
   async getCustomizationDetails(id: string | number): Promise<ProductCustomizationDetails> {
-    const response = await fetch(`${API_BASE}/produtos/${id}/customizacao`);
-    if (!response.ok) {
-      throw new Error(`Não foi possível carregar os detalhes de personalização do produto ${id}.`);
-    }
-    return response.json();
+    return toDomain<ProductCustomizationDetails>(await apiData(productsGetProductCustomization({
+      path: { product_id: String(id) },
+      client: publicApiClient,
+      throwOnError: true,
+    })));
   },
 
   async getReviews(id: string | number): Promise<ProductReview[]> {
-    const response = await fetch(`${API_BASE}/products/${id}/reviews`, {
-      headers: authHeaders(),
-    });
-    if (!response.ok) {
-      throw await parseError(response, "Não foi possível carregar as avaliações.");
-    }
-    return response.json();
+    return toDomain<ProductReview[]>(await apiData(reviewsListProductReviews({
+      path: { product_id: String(id) },
+      client: customerApiClient,
+      throwOnError: true,
+    })));
   },
 
   async getReviewStats(id: string | number): Promise<ProductReviewStats> {
-    const response = await fetch(`${API_BASE}/products/${id}/reviews/stats`);
-    if (!response.ok) {
-      throw await parseError(response, "Não foi possível carregar as estatísticas das avaliações.");
-    }
-    return response.json();
+    return toDomain<ProductReviewStats>(await apiData(reviewsGetProductReviewStats({
+      path: { product_id: String(id) },
+      client: publicApiClient,
+      throwOnError: true,
+    })));
   },
 
   async getReviewEligibility(id: string | number): Promise<ProductReviewEligibility> {
-    const response = await fetch(`${API_BASE}/products/${id}/reviews/eligibility`, {
-      headers: authHeaders(),
-    });
-    if (!response.ok) {
-      throw await parseError(response, "Não foi possível verificar a elegibilidade da avaliação.");
-    }
-    return response.json();
+    return toDomain<ProductReviewEligibility>(await apiData(reviewsGetProductReviewEligibility({
+      path: { product_id: String(id) },
+      client: customerApiClient,
+      throwOnError: true,
+    })));
   },
 
   async createReview(id: string | number, payload: ProductReviewPayload): Promise<ProductReview> {
-    const response = await fetch(`${API_BASE}/products/${id}/reviews`, {
-      method: "POST",
-      headers: authHeaders(),
-      body: JSON.stringify(payload),
-    });
-    if (!response.ok) {
-      throw await parseError(response, "Não foi possível criar a avaliação.");
+    if (payload.orderProductId === undefined || payload.rating === undefined) {
+      throw new TypeError('orderProductId and rating are required to create a review');
     }
-    return response.json();
+    const body: ProductReviewCreate = {
+      order_product_id: payload.orderProductId,
+      rating: payload.rating,
+      title: payload.title,
+      comment: payload.comment,
+    };
+    return toDomain<ProductReview>(await apiData(reviewsCreateProductReview({
+      path: { product_id: String(id) },
+      body,
+      client: customerApiClient,
+      throwOnError: true,
+    })));
   },
 
   async updateReview(reviewId: number, payload: ProductReviewPayload): Promise<ProductReview> {
-    const response = await fetch(`${API_BASE}/reviews/${reviewId}`, {
-      method: "PUT",
-      headers: authHeaders(),
-      body: JSON.stringify(payload),
-    });
-    if (!response.ok) {
-      throw await parseError(response, "Não foi possível atualizar a avaliação.");
-    }
-    return response.json();
+    const body: ProductReviewUpdate = {
+      rating: payload.rating,
+      title: payload.title,
+      comment: payload.comment,
+    };
+    return toDomain<ProductReview>(await apiData(reviewsUpdateProductReview({
+      path: { review_id: reviewId },
+      body,
+      client: customerApiClient,
+      throwOnError: true,
+    })));
   },
 
   async deleteReview(reviewId: number): Promise<void> {
-    const response = await fetch(`${API_BASE}/reviews/${reviewId}`, {
-      method: "DELETE",
-      headers: authHeaders(),
+    await reviewsDeleteProductReview({
+      path: { review_id: reviewId },
+      client: customerApiClient,
+      throwOnError: true,
     });
-    if (!response.ok) {
-      throw await parseError(response, "Não foi possível apagar a avaliação.");
-    }
   },
 };

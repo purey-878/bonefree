@@ -32,11 +32,11 @@ from services.auth_service import (
 )
 from schemas.admin import (
     AdminLogin, AdminTokenResponse,
-    ProductCreate, ProductUpdate, ProductAdminResponse,
+    ProductCreate, ProductUpdate, ProductAdminResponse, ProductImageUploadResponse,
     IngredientCreate, IngredientResponse, IngredientUpdate, ProductIngredientPayload,
     ProductIngredientResponse,
     OrderResponse, CartItemResponse, LowStockProduct,
-    PopularProduct, VendaPeriodicaResponse, DashboardAnalytics,
+    PopularProduct, PeriodicSalesResponse, DashboardAnalytics,
     DashboardSalesGraphs,
     ProductAnalyticsResponse,
     AnalyticsSeriesPoint, AnalyticsSeriesResponse,
@@ -46,6 +46,7 @@ from schemas.admin import (
     RefundOrderResponse, RefundRequest, RefundResponse,
     StaffAdminCreate, StaffAdminUpdate, AdminResponse,
 )
+from schemas.user import MessageResponse
 from services.invoices import ensure_invoice_for_order
 from services.order_customization import customization_lines
 from services.receipt_email import build_saved_order_receipt_payload, send_purchase_receipt
@@ -97,7 +98,7 @@ STAFF_ALLOWED_STATES = {
 SalesStats = Dict[str, Union[float, int]]
 
 
-@router.post("/login", response_model=AdminTokenResponse)
+@router.post("/login", response_model=AdminTokenResponse, operation_id="admin_management_admin_login")
 def admin_login(credentials: AdminLogin, request: Request, db: Session = Depends(get_db)):
     admin = db.scalar(select(Admin).where(Admin.email == credentials.email))
     admin, access_token = authenticate_admin(db, admin, credentials.password, request)
@@ -108,7 +109,7 @@ def admin_login(credentials: AdminLogin, request: Request, db: Session = Depends
     }
 
 
-@router.get("/me", response_model=AdminResponse)
+@router.get("/me", response_model=AdminResponse, operation_id="admin_management_read_current_admin")
 def read_current_admin(current_admin: Admin = Depends(get_current_admin)):
     current_admin.role = normalize_admin_role(current_admin.role)
     return current_admin
@@ -141,12 +142,12 @@ def _shift_month(date_value: datetime, months: int) -> datetime:
     return date_value.replace(year=year, month=month)
 
 
-def _sales_point(period: str, stats: SalesStats) -> VendaPeriodicaResponse:
-    return VendaPeriodicaResponse(
+def _sales_point(period: str, stats: SalesStats) -> PeriodicSalesResponse:
+    return PeriodicSalesResponse(
         period=period,
         total_sales=float(stats["total_sales"]),
         quantity_sold=int(stats["quantity_sold"]),
-        order_numbers=int(stats["order_numbers"]),
+        order_count=int(stats["order_numbers"]),
     )
 
 
@@ -225,10 +226,10 @@ def _build_dashboard_sales_graphs(db: Session) -> DashboardSalesGraphs:
             )
 
     return DashboardSalesGraphs(
-        por_hora=[_sales_point(key, hourly_buckets[key]) for key in hourly_keys],
-        por_dia=[_sales_point(key, daily_buckets[key]) for key in daily_keys],
-        por_mes=[_sales_point(key, monthly_buckets[key]) for key in monthly_keys],
-        por_ano=[_sales_point(key, yearly_buckets[key]) for key in yearly_keys],
+        by_hour=[_sales_point(key, hourly_buckets[key]) for key in hourly_keys],
+        by_day=[_sales_point(key, daily_buckets[key]) for key in daily_keys],
+        by_month=[_sales_point(key, monthly_buckets[key]) for key in monthly_keys],
+        by_year=[_sales_point(key, yearly_buckets[key]) for key in yearly_keys],
     )
 
 
@@ -361,7 +362,12 @@ def _product_admin_response(
     product: Product,
     ingredient_lookup: Optional[Dict[int, List[ProductIngredientResponse]]] = None,
 ) -> ProductAdminResponse:
-    data = ProductAdminResponse.model_validate(product).model_dump()
+    data = {
+        field_name: getattr(product, field_name)
+        for field_name in ProductAdminResponse.model_fields
+        if field_name not in {"discount_percentage", "ingredients"}
+    }
+    data["discount_percentage"] = float(product.discount_percentual or 0)
     ingredients = None if ingredient_lookup is None else ingredient_lookup.get(product.product_id)
     if ingredients is None:
         ingredients = _product_ingredient_lookup(db, [product.product_id]).get(product.product_id, [])
@@ -465,7 +471,7 @@ def _order_fulfillment_method(notes: str | None) -> str:
 def _order_response(order: Order) -> OrderResponse:
     latest_refund = _latest_refund(order)
     return OrderResponse(
-        cart_id=order.order_id,
+        order_id=order.order_id,
         customer_id=order.customer_id,
         customer_email=order.customer.email if order.customer else "Unknown",
         customer_name=(
@@ -544,7 +550,7 @@ def _refund_response(refund: Refund) -> RefundResponse:
 def _kitchen_order_response(order: Order) -> KitchenOrderResponse:
     order = _order_response(order)
     return KitchenOrderResponse(
-        cart_id=order.cart_id,
+        order_id=order.order_id,
         created_at=order.created_at,
         state=order.state,
         notes=order.notes,
@@ -629,7 +635,11 @@ def _staff_order_filter():
 # CATEGORIES
 # ─────────────────────────────────────────────────────────────
 
-@router.get("/categories", response_model=List[CategoryResponse])
+@router.get(
+    "/categories",
+    response_model=List[CategoryResponse],
+    operation_id="admin_management_list_categories",
+)
 def list_categories(
     include_inactive: bool = Query(False),
     current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
@@ -641,7 +651,12 @@ def list_categories(
     return db.scalars(stmt.order_by(Category.category_name.asc())).all()
 
 
-@router.post("/categories", response_model=CategoryResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/categories",
+    response_model=CategoryResponse,
+    status_code=status.HTTP_201_CREATED,
+    operation_id="admin_management_create_category",
+)
 def create_category(
     category: CategoryCreate,
     current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
@@ -659,7 +674,11 @@ def create_category(
     return new_category
 
 
-@router.put("/categories/{category_id}", response_model=CategoryResponse)
+@router.put(
+    "/categories/{category_id}",
+    response_model=CategoryResponse,
+    operation_id="admin_management_update_category",
+)
 def update_category(
     category_id: str,
     category_update: CategoryUpdate,
@@ -683,7 +702,11 @@ def update_category(
     return category
 
 
-@router.delete("/categories/{category_id}", response_model=CategoryResponse)
+@router.delete(
+    "/categories/{category_id}",
+    response_model=CategoryResponse,
+    operation_id="admin_management_delete_category",
+)
 def delete_category(
     category_id: str,
     current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
@@ -716,7 +739,11 @@ def delete_category(
 
 # INGREDIENTS
 
-@router.get("/ingredients", response_model=List[IngredientResponse])
+@router.get(
+    "/ingredients",
+    response_model=List[IngredientResponse],
+    operation_id="admin_management_list_ingredients",
+)
 def list_ingredients(
     include_inactive: bool = Query(False),
     customization_only: bool = Query(False),
@@ -746,7 +773,12 @@ def list_ingredients(
     return db.scalars(stmt.order_by(Ingredient.type.asc(), Ingredient.name.asc())).all()
 
 
-@router.post("/ingredients", response_model=IngredientResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/ingredients",
+    response_model=IngredientResponse,
+    status_code=status.HTTP_201_CREATED,
+    operation_id="admin_management_create_ingredient",
+)
 def create_ingredient(
     ingredient: IngredientCreate,
     current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
@@ -777,7 +809,11 @@ def create_ingredient(
     return new_ingredient
 
 
-@router.put("/ingredients/{ingredient_id}", response_model=IngredientResponse)
+@router.put(
+    "/ingredients/{ingredient_id}",
+    response_model=IngredientResponse,
+    operation_id="admin_management_update_ingredient",
+)
 def update_ingredient(
     ingredient_id: int,
     ingredient_update: IngredientUpdate,
@@ -813,7 +849,11 @@ def update_ingredient(
     return ingredient
 
 
-@router.delete("/ingredients/{ingredient_id}", response_model=IngredientResponse)
+@router.delete(
+    "/ingredients/{ingredient_id}",
+    response_model=IngredientResponse,
+    operation_id="admin_management_delete_ingredient",
+)
 def delete_ingredient(
     ingredient_id: int,
     current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
@@ -829,7 +869,12 @@ def delete_ingredient(
     return ingredient
 
 
-@router.post("/products", response_model=ProductAdminResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/products",
+    response_model=ProductAdminResponse,
+    status_code=status.HTTP_201_CREATED,
+    operation_id="admin_management_create_product",
+)
 def create_product(
     product: ProductCreate,
     current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
@@ -856,7 +901,7 @@ def create_product(
         customizable=1 if product.customizable else 0,
         menu_tags=product.menu_tags,
         featured=1 if product.featured else 0,
-        discount_percentual=product.discount_percentual,
+        discount_percentual=product.discount_percentage,
         gluten_free=1 if product.gluten_free else 0,
         contains_alcohol=1 if product.contains_alcohol else 0,
         total_calories=product.total_calories,
@@ -875,7 +920,11 @@ def create_product(
     return _product_admin_response(db, saved_product)
 
 
-@router.get("/products", response_model=List[ProductAdminResponse])
+@router.get(
+    "/products",
+    response_model=List[ProductAdminResponse],
+    operation_id="admin_management_list_products",
+)
 def list_products(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
@@ -921,7 +970,11 @@ def list_products(
     return [_product_admin_response(db, product, ingredient_lookup) for product in products]
 
 
-@router.get("/products/{product_id}", response_model=ProductAdminResponse)
+@router.get(
+    "/products/{product_id}",
+    response_model=ProductAdminResponse,
+    operation_id="admin_management_get_product",
+)
 def get_product(
     product_id: str,
     current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
@@ -941,7 +994,11 @@ def get_product(
     return _product_admin_response(db, product)
 
 
-@router.get("/products/{product_id}/analytics", response_model=ProductAnalyticsResponse)
+@router.get(
+    "/products/{product_id}/analytics",
+    response_model=ProductAnalyticsResponse,
+    operation_id="admin_management_get_product_analytics",
+)
 def get_product_analytics(
     product_id: str,
     days: int = Query(30, ge=1, le=365),
@@ -1000,16 +1057,20 @@ def get_product_analytics(
         product_display_id=format_product_id(parsed_product_id),
         total_sales=total_sales,
         quantity_sold=quantity_sold,
-        order_numbers=len(order_ids),
+        order_count=len(order_ids),
         current_price=float(product.price),
         current_stock=product.stock,
         average_rating=float(average_rating) if average_rating is not None else None,
         total_reviews=total_reviews,
-        vendas_por_dia=[_sales_point(key, daily_buckets[key]) for key in daily_keys],
+        sales_by_day=[_sales_point(key, daily_buckets[key]) for key in daily_keys],
     )
 
 
-@router.put("/products/{product_id}", response_model=ProductAdminResponse)
+@router.put(
+    "/products/{product_id}",
+    response_model=ProductAdminResponse,
+    operation_id="admin_management_update_product",
+)
 def update_product(
     product_id: str,
     product_update: ProductUpdate,
@@ -1053,8 +1114,8 @@ def update_product(
         product.menu_tags = product_update.menu_tags
     if product_update.featured is not None:
         product.featured = 1 if product_update.featured else 0
-    if product_update.discount_percentual is not None:
-        product.discount_percentual = product_update.discount_percentual
+    if product_update.discount_percentage is not None:
+        product.discount_percentual = product_update.discount_percentage
     if product_update.gluten_free is not None:
         product.gluten_free = 1 if product_update.gluten_free else 0
     if product_update.contains_alcohol is not None:
@@ -1069,7 +1130,11 @@ def update_product(
     return _product_admin_response(db, product)
 
 
-@router.post("/products/{product_id}/toggle-status", response_model=ProductAdminResponse)
+@router.post(
+    "/products/{product_id}/toggle-status",
+    response_model=ProductAdminResponse,
+    operation_id="admin_management_toggle_product_status",
+)
 def toggle_product_status(
     product_id: str,
     current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
@@ -1092,7 +1157,11 @@ def toggle_product_status(
     return _product_admin_response(db, product)
 
 
-@router.delete("/products/{product_id}", response_model=ProductAdminResponse)
+@router.delete(
+    "/products/{product_id}",
+    response_model=ProductAdminResponse,
+    operation_id="admin_management_delete_product",
+)
 def delete_product(
     product_id: str,
     current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
@@ -1110,7 +1179,11 @@ def delete_product(
     return _product_admin_response(db, product)
 
 
-@router.post("/products/{product_id}/image")
+@router.post(
+    "/products/{product_id}/image",
+    response_model=ProductImageUploadResponse,
+    operation_id="admin_management_upload_product_image",
+)
 def upload_product_image(
     product_id: str,
     file: UploadFile = File(...),
@@ -1123,23 +1196,23 @@ def upload_product_image(
     product = db.scalar(select(Product).where(Product.product_id == parsed_product_id))
     if not product:
         raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
-    
+
     # Validate file type
     allowed_types = {"image/jpeg", "image/png", "image/webp", "image/avif", "image/gif"}
     if file.content_type not in allowed_types:
         raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="invalid_image_type", message="Image type is not supported.", details={"content_type": file.content_type, "allowed_types": sorted(allowed_types)})
-    
+
     try:
         # Generate unique filename
         file_ext = file.filename.split(".")[-1].lower() if file.filename else "jpg"
         unique_filename = f"{format_product_id(parsed_product_id)}_{uuid.uuid4().hex}.{file_ext}"
         filepath = UPLOAD_DIR / unique_filename
         public_image_path = f"/uploads/images/{unique_filename}"
-        
+
         # Save file
         with open(filepath, "wb") as f:
             f.write(file.file.read())
-        
+
         if replace_existing:
             # Delete old images for this product
             old_images = db.scalars(select(ProductImage).where(ProductImage.product_id == parsed_product_id)).all()
@@ -1147,7 +1220,7 @@ def upload_product_image(
                 _delete_uploaded_image_file(old_img.image_path)
                 db.delete(old_img)
             db.commit()
-        
+
         # Create new image record
         new_image = ProductImage(
             product_id=parsed_product_id,
@@ -1155,20 +1228,24 @@ def upload_product_image(
         )
         db.add(new_image)
         db.commit()
-        
+
         return {
             "message": "Image uploaded successfully",
             "filename": unique_filename,
             "url": public_image_path,
             "image_path": public_image_path,
         }
-    
+
     except Exception as e:
         db.rollback()
         raise AppHTTPException(status_code=500, error="internal_server_error", message="Internal server error.", details={"reason": "request_failed"})
 
 
-@router.delete("/products/{product_id}/images/{image_id}")
+@router.delete(
+    "/products/{product_id}/images/{image_id}",
+    response_model=MessageResponse,
+    operation_id="admin_management_delete_product_image",
+)
 def delete_product_image(
     product_id: str,
     image_id: int,
@@ -1196,7 +1273,11 @@ def delete_product_image(
 # ORDERS
 # ─────────────────────────────────────────────────────────────
 
-@router.get("/orders", response_model=List[OrderResponse])
+@router.get(
+    "/orders",
+    response_model=List[OrderResponse],
+    operation_id="admin_management_list_orders",
+)
 def list_orders(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
@@ -1213,7 +1294,11 @@ def list_orders(
     return [_order_response(order) for order in orders]
 
 
-@router.get("/staff/orders", response_model=List[OrderResponse])
+@router.get(
+    "/staff/orders",
+    response_model=List[OrderResponse],
+    operation_id="admin_management_list_staff_orders",
+)
 def list_staff_orders(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=200),
@@ -1231,7 +1316,11 @@ def list_staff_orders(
     return [_order_response(order) for order in orders]
 
 
-@router.get("/kitchen/orders", response_model=List[KitchenOrderResponse])
+@router.get(
+    "/kitchen/orders",
+    response_model=List[KitchenOrderResponse],
+    operation_id="admin_management_list_kitchen_orders",
+)
 def list_kitchen_orders(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
@@ -1258,7 +1347,11 @@ def list_kitchen_orders(
     return [_kitchen_order_response(order) for order in orders]
 
 
-@router.get("/kitchen/orders/{order_id}", response_model=KitchenOrderResponse)
+@router.get(
+    "/kitchen/orders/{order_id}",
+    response_model=KitchenOrderResponse,
+    operation_id="admin_management_get_kitchen_order",
+)
 def get_kitchen_order(
     order_id: int,
     current_admin: Admin = Depends(require_role(CHEF_ROLE, STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
@@ -1270,7 +1363,11 @@ def get_kitchen_order(
     return _kitchen_order_response(order)
 
 
-@router.get("/orders/{order_id}", response_model=OrderResponse)
+@router.get(
+    "/orders/{order_id}",
+    response_model=OrderResponse,
+    operation_id="admin_management_get_order",
+)
 def get_order(
     order_id: int,
     current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
@@ -1279,7 +1376,11 @@ def get_order(
     return _order_response(_get_order_or_404(db, order_id))
 
 
-@router.patch("/orders/{order_id}/status", response_model=OrderResponse)
+@router.patch(
+    "/orders/{order_id}/status",
+    response_model=OrderResponse,
+    operation_id="admin_management_update_order_status",
+)
 def update_order_status(
     order_id: int,
     body: OrderStatusUpdate,
@@ -1314,8 +1415,11 @@ def update_order_status(
     return _order_response(order)
 
 
-@router.post("/orders/{order_id}/mark-paid", response_model=CounterPaymentResponse)
-@router.post("/orders/{order_id}/pay-counter", response_model=CounterPaymentResponse)
+@router.post(
+    "/orders/{order_id}/pay-counter",
+    response_model=CounterPaymentResponse,
+    operation_id="admin_management_pay_counter_order",
+)
 def pay_counter_order(
     order_id: int,
     background_tasks: BackgroundTasks,
@@ -1345,7 +1449,11 @@ def pay_counter_order(
     return CounterPaymentResponse(message="Pedido ao balcão marcado como pago.", order=_order_response(order))
 
 
-@router.post("/orders/{order_id}/refund", response_model=RefundOrderResponse)
+@router.post(
+    "/orders/{order_id}/refund",
+    response_model=RefundOrderResponse,
+    operation_id="admin_management_refund_order",
+)
 def refund_order(
     order_id: int,
     body: RefundRequest,
@@ -1396,7 +1504,11 @@ def refund_order(
     return RefundOrderResponse(message="Pedido reembolsado.", order=_order_response(order))
 
 
-@router.get("/refunds", response_model=List[RefundResponse])
+@router.get(
+    "/refunds",
+    response_model=List[RefundResponse],
+    operation_id="admin_management_list_refunds",
+)
 def list_refunds(
     date_from: Optional[str] = Query(None),
     date_to: Optional[str] = Query(None),
@@ -1425,7 +1537,17 @@ def list_refunds(
     return [_refund_response(refund) for refund in refunds]
 
 
-@router.get("/refunds/export")
+@router.get(
+    "/refunds/export",
+    response_class=Response,
+    operation_id="admin_management_export_refunds",
+    responses={
+        200: {
+            "description": "Refund export",
+            "content": {"text/csv": {"schema": {"type": "string", "format": "binary"}}},
+        }
+    },
+)
 def export_refunds(
     date_from: Optional[str] = Query(None),
     date_to: Optional[str] = Query(None),
@@ -1506,7 +1628,11 @@ def _customer_admin_response(customer: Customer) -> dict:
     }
 
 
-@router.get("/customers", response_model=List[CustomerAdminResponse])
+@router.get(
+    "/customers",
+    response_model=List[CustomerAdminResponse],
+    operation_id="admin_management_list_customers",
+)
 def list_customers(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
@@ -1522,7 +1648,12 @@ def list_customers(
     return [_customer_admin_response(customer) for customer in customers]
 
 
-@router.post("/customers", response_model=CustomerAdminResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/customers",
+    response_model=CustomerAdminResponse,
+    status_code=status.HTTP_201_CREATED,
+    operation_id="admin_management_create_customer",
+)
 def create_customer(
     body: CustomerAdminCreate,
     current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
@@ -1551,7 +1682,11 @@ def create_customer(
     return _customer_admin_response(customer)
 
 
-@router.put("/customers/{customer_id}", response_model=CustomerAdminResponse)
+@router.put(
+    "/customers/{customer_id}",
+    response_model=CustomerAdminResponse,
+    operation_id="admin_management_update_customer",
+)
 def update_customer(
     customer_id: int,
     body: CustomerAdminUpdate,
@@ -1589,7 +1724,11 @@ def update_customer(
     return _customer_admin_response(customer)
 
 
-@router.delete("/customers/{customer_id}", response_model=CustomerAdminResponse)
+@router.delete(
+    "/customers/{customer_id}",
+    response_model=CustomerAdminResponse,
+    operation_id="admin_management_delete_customer",
+)
 def delete_customer(
     customer_id: int,
     current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
@@ -1610,7 +1749,11 @@ def delete_customer(
 
 # STAFF ADMINS
 
-@router.get("/staff", response_model=List[AdminResponse])
+@router.get(
+    "/staff",
+    response_model=List[AdminResponse],
+    operation_id="admin_management_list_staff_admins",
+)
 def list_staff_admins(
     current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
@@ -1623,7 +1766,12 @@ def list_staff_admins(
     return admins
 
 
-@router.post("/staff", response_model=AdminResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/staff",
+    response_model=AdminResponse,
+    status_code=status.HTTP_201_CREATED,
+    operation_id="admin_management_create_staff_admin",
+)
 def create_staff_admin(
     body: StaffAdminCreate,
     current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
@@ -1647,7 +1795,11 @@ def create_staff_admin(
     return admin
 
 
-@router.put("/staff/{admin_id}", response_model=AdminResponse)
+@router.put(
+    "/staff/{admin_id}",
+    response_model=AdminResponse,
+    operation_id="admin_management_update_staff_admin",
+)
 def update_staff_admin(
     admin_id: int,
     body: StaffAdminUpdate,
@@ -1678,7 +1830,11 @@ def update_staff_admin(
     return admin
 
 
-@router.delete("/staff/{admin_id}", response_model=AdminResponse)
+@router.delete(
+    "/staff/{admin_id}",
+    response_model=AdminResponse,
+    operation_id="admin_management_delete_staff_admin",
+)
 def delete_staff_admin(
     admin_id: int,
     current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
@@ -1699,7 +1855,11 @@ def delete_staff_admin(
 # ANALYTICS
 # ─────────────────────────────────────────────────────────────
 
-@router.get("/analytics/dashboard", response_model=DashboardAnalytics)
+@router.get(
+    "/analytics/dashboard",
+    response_model=DashboardAnalytics,
+    operation_id="admin_management_get_dashboard_analytics",
+)
 def get_dashboard_analytics(
     current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
@@ -1711,7 +1871,7 @@ def get_dashboard_analytics(
         select(func.count(Customer.customer_id)).where(Customer.status == UserStatus.ACTIVE, Customer.role == UserRole.CLIENT)
     ) or 0
     total_carts = db.scalar(select(func.count(Cart.cart_id))) or 0
-    
+
     # Get low-stock products
     low_stock_products = [
         LowStockProduct(
@@ -1729,7 +1889,7 @@ def get_dashboard_analytics(
             .limit(5)
         ).all()
     ]
-    
+
     # Get popular products
     popular_products = [
         PopularProduct(
@@ -1747,7 +1907,7 @@ def get_dashboard_analytics(
             .limit(5)
         ).all()
     ]
-    
+
     return DashboardAnalytics(
         total_products=total_products,
         total_categories=total_categories,
@@ -1758,7 +1918,11 @@ def get_dashboard_analytics(
         sales_charts=_build_dashboard_sales_graphs(db),
     )
 
-@router.get("/analytics/low-stock", response_model=List[LowStockProduct])
+@router.get(
+    "/analytics/low-stock",
+    response_model=List[LowStockProduct],
+    operation_id="admin_management_get_low_stock_products",
+)
 def get_low_stock_products(
     limit: int = Query(5, ge=1, le=100),
     current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
@@ -1784,7 +1948,11 @@ def get_low_stock_products(
     ]
 
 
-@router.get("/analytics/popular-products", response_model=List[PopularProduct])
+@router.get(
+    "/analytics/popular-products",
+    response_model=List[PopularProduct],
+    operation_id="admin_management_get_popular_products",
+)
 def get_popular_products(
     limit: int = Query(5, ge=1, le=20),
     current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
@@ -1810,7 +1978,11 @@ def get_popular_products(
     ]
 
 
-@router.get("/analytics/series", response_model=AnalyticsSeriesResponse)
+@router.get(
+    "/analytics/series",
+    response_model=AnalyticsSeriesResponse,
+    operation_id="admin_management_get_analytics_series",
+)
 def get_analytics_series(
     metric: str = Query(..., pattern="^(sales|orders|clients|products)$"),
     range: str = Query("month", pattern="^(day|month|year|custom)$"),
@@ -1875,7 +2047,7 @@ def get_analytics_series(
             label=_analytics_label(key, granularity),
             value=float(buckets[key]["value"]),
             quantity_sold=int(buckets[key]["quantity_sold"]),
-            order_numbers=int(buckets[key]["order_numbers"]),
+            order_count=int(buckets[key]["order_numbers"]),
         )
         for key in keys
     ]
@@ -1890,7 +2062,11 @@ def get_analytics_series(
     )
 
 
-@router.get("/analytics/sales-performance", response_model=SalesPerformanceResponse)
+@router.get(
+    "/analytics/sales-performance",
+    response_model=SalesPerformanceResponse,
+    operation_id="admin_management_get_sales_performance",
+)
 def get_sales_performance(
     days: int = Query(7, ge=1, le=90),
     current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
@@ -1899,7 +2075,7 @@ def get_sales_performance(
     """Get sales performance over specified number of days."""
     end_date = datetime.utcnow().date()
     start_date = end_date - timedelta(days=days)
-    
+
     orders = db.scalars(
         select(Order).where(
             func.date(Order.ordered_at) >= start_date,
@@ -1929,24 +2105,24 @@ def get_sales_performance(
         for item in order.items:
             quantity_sold += item.quantity
             vendas_por_dia_dict[date_key]["quantity_sold"] += item.quantity
-    
+
     # Build sorted list of daily sales
     vendas_por_dia = [
-        VendaPeriodicaResponse(
+        PeriodicSalesResponse(
             period=date_str,
             total_sales=stats["total_sales"],
             quantity_sold=stats["quantity_sold"],
-            order_numbers=stats["order_numbers"]
+            order_count=stats["order_numbers"]
         )
         for date_str, stats in sorted(vendas_por_dia_dict.items())
     ]
-    
+
     period = f"{start_date} a {end_date}"
-    
+
     return SalesPerformanceResponse(
         total_sales=total_sales,
         quantity_sold=quantity_sold,
-        order_numbers=order_numbers,
+        order_count=order_numbers,
         period=period,
-        vendas_por_dia=vendas_por_dia
+        sales_by_day=vendas_por_dia
     )

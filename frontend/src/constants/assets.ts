@@ -108,7 +108,7 @@ export const ASSETS: AssetsType = {
     // Icon images
     icons: {
       hamburgerMenu: '/assets/images/hamburger-menu.png',
-      glutenFree: '/assets/images/gluten_free.png',
+      glutenFree: '/assets/images/glutenFree.png',
     },
 
     // Hero section images

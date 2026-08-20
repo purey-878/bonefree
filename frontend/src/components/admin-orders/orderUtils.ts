@@ -1,23 +1,23 @@
 import type { AdminOrder, AdminOrderItem } from "../../types/admin";
 
 export const ORDER_STATUS_LABELS: Record<string, string> = {
-  pendente: "Pendente",
-  confirmada: "Na fila",
-  em_preparacao: "Em preparação",
-  pronta: "Pronto",
-  entregue: "Concluído",
-  cancelada: "Cancelado",
-  reembolsada: "Reembolsado",
+  pending: "Pendente",
+  confirmed: "Na fila",
+  in_preparation: "Em preparação",
+  ready: "Pronto",
+  delivered: "Concluído",
+  cancelled: "Cancelado",
+  refunded: "Reembolsado",
 };
 
 export const ORDER_STATUS_TONES: Record<string, string> = {
-  pendente: "pending",
-  confirmada: "queued",
-  em_preparacao: "preparing",
-  pronta: "ready",
-  entregue: "completed",
-  cancelada: "cancelled",
-  reembolsada: "cancelled",
+  pending: "pending",
+  confirmed: "queued",
+  in_preparation: "preparing",
+  ready: "ready",
+  delivered: "completed",
+  cancelled: "cancelled",
+  refunded: "cancelled",
 };
 
 export function formatOrderStatus(status: string): string {
@@ -25,15 +25,15 @@ export function formatOrderStatus(status: string): string {
 }
 
 export function fulfillmentLabel(order: AdminOrder): string {
-  if (order.fulfillment_method === "dine_in") return "No restaurante";
-  if (order.fulfillment_method === "takeaway") return "Para levar";
-  if (order.fulfillment_method === "pickup") return "Recolha";
-  return order.fulfillment_method?.replace(/_/g, " ") || "Recolha";
+  if (order.fulfillmentMethod === "dine_in") return "No restaurante";
+  if (order.fulfillmentMethod === "takeaway") return "Para levar";
+  if (order.fulfillmentMethod === "pickup") return "Recolha";
+  return order.fulfillmentMethod?.replace(/_/g, " ") || "Recolha";
 }
 
 export function handoffLabel(order: AdminOrder): string {
-  if (order.fulfillment_method === "takeaway") return "Balcão para levar";
-  if (order.table_number) return `Mesa ${order.table_number}`;
+  if (order.fulfillmentMethod === "takeaway") return "Balcão para levar";
+  if (order.tableNumber) return `Mesa ${order.tableNumber}`;
   return "Entrega ao balcão";
 }
 
@@ -46,15 +46,15 @@ export function parseOrderTimestamp(value?: string | null): number {
 }
 
 export function orderTimingTimestamp(order: AdminOrder): number {
-  const shouldUseUpdatedAt = ["confirmada", "em_preparacao"].includes(order.estado);
-  const preferred = shouldUseUpdatedAt ? order.data_atualizacao : order.data_criacao;
+  const shouldUseUpdatedAt = ["confirmed", "in_preparation"].includes(order.state);
+  const preferred = shouldUseUpdatedAt ? order.updatedAt : order.createdAt;
   const timestamp = parseOrderTimestamp(preferred);
   if (!Number.isNaN(timestamp)) return timestamp;
-  return parseOrderTimestamp(order.data_criacao);
+  return parseOrderTimestamp(order.createdAt);
 }
 
 export function shouldShowOrderAge(order: AdminOrder): boolean {
-  return ["pendente", "confirmada", "em_preparacao"].includes(order.estado);
+  return ["pending", "confirmed", "in_preparation"].includes(order.state);
 }
 
 export function orderAgeMinutes(order: AdminOrder): number {
@@ -87,7 +87,7 @@ export function visibleCustomizationLines(lines?: string[]): string[] {
 }
 
 export function hasCustomization(order: AdminOrder): boolean {
-  return order.items.some((item) => visibleCustomizationLines(item.customizacao_resumo).length > 0 || Boolean(item.customizacao));
+  return order.items.some((item) => visibleCustomizationLines(item.customizationSummary).length > 0 || Boolean(item.customization));
 }
 
 export function customizationTone(line: string): string {
@@ -120,7 +120,7 @@ function customizationLabel(label: string): string {
 
 export function orderCustomizations(order: AdminOrder): Array<{ item: AdminOrderItem; lines: string[] }> {
   return order.items
-    .map((item) => ({ item, lines: visibleCustomizationLines(item.customizacao_resumo) }))
+    .map((item) => ({ item, lines: visibleCustomizationLines(item.customizationSummary) }))
     .filter(({ lines }) => lines.length > 0);
 }
 
@@ -135,16 +135,16 @@ export function isToday(value?: string | null): boolean {
 }
 
 export function paymentLabel(order: AdminOrder): string {
-  if (order.metodo_pagamento === "balcao" && order.estado_pagamento === "nao_pago") {
+  if (order.paymentMethod === "counter" && order.paymentStatus === "unpaid") {
     return "Pagamento: a aguardar pagamento ao balcão";
   }
-  const method = order.metodo_pagamento === "balcao"
+  const method = order.paymentMethod === "counter"
     ? "Balcão"
-    : order.metodo_pagamento === "cartao" || order.metodo_pagamento === "digital"
+    : order.paymentMethod === "card"
       ? "Cartão"
-      : order.metodo_pagamento === "mbway"
+      : order.paymentMethod === "mbway"
         ? "MB Way"
-        : order.metodo_pagamento ?? "-";
-  const status = order.estado_pagamento === "pago" ? "Pago" : order.estado_pagamento === "reembolsado" ? "Reembolsado" : order.estado_pagamento ? order.estado_pagamento.replace(/_/g, " ") : "-";
+        : order.paymentMethod ?? "-";
+  const status = order.paymentStatus === "paid" ? "Pago" : order.paymentStatus === "refunded" ? "Reembolsado" : order.paymentStatus ? order.paymentStatus.replace(/_/g, " ") : "-";
   return `${method} / ${status}`;
 }

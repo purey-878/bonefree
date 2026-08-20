@@ -60,12 +60,12 @@ export interface ThemeConfig {
 }
 
 export interface SiteThemeSettings {
-  theme_id: SiteThemeId;
+  themeId: SiteThemeId;
   colors: Partial<ThemeColors>;
-  decoration_enabled: boolean;
-  decoration_intensity: number;
-  custom_decorations: unknown[];
-  custom_name?: string | null;
+  decorationEnabled: boolean;
+  decorationIntensity: number;
+  customDecorations: unknown[];
+  customName?: string | null;
 }
 
 export interface SiteThemeResponse extends SiteThemeSettings {
@@ -73,20 +73,20 @@ export interface SiteThemeResponse extends SiteThemeSettings {
 }
 
 export interface ChefSpecialSettings {
-  product_id?: number | null;
+  productId?: number | null;
 }
 
 export interface LoyaltyCouponSettings {
   enabled: boolean;
-  qualifying_order_count: number;
-  qualifying_order_minimum: number | string;
-  discount_type: "VALOR_FIXO" | "PERCENTAGEM";
-  discount_value: number | string;
-  coupon_minimum_order: number | string;
+  qualifyingOrderCount: number;
+  qualifyingOrderMinimum: number | string;
+  discountType: "fixed_value" | "percentage";
+  discountValue: number | string;
+  couponMinimumOrder: number | string;
 }
 
 export interface CompanyDetailsSettings {
-  brand_name: string;
+  brandName: string;
   description: string;
   address: string;
   phone: string;
@@ -112,9 +112,9 @@ export interface EventItemSettings {
   kicker: string;
   description: string;
   date: string;
-  start_time: string;
-  end_time: string;
-  image_url: string;
+  startTime: string;
+  endTime: string;
+  imageUrl: string;
   enabled: boolean;
 }
 

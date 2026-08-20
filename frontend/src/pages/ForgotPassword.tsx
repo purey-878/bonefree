@@ -59,7 +59,7 @@ function ForgotPassword() {
 
     try {
       const result = await authService.verifyPasswordOtp(email, code)
-      setResetToken(result.reset_token)
+      setResetToken(result.resetToken)
       setMessage(result.message)
       setStep("password")
     } catch (err) {
@@ -101,7 +101,7 @@ function ForgotPassword() {
     <>
     <div className="auth-container">
       <Navbar />
-  
+
       <div className="auth-card-stack">
         <button type="button" className="auth-back-button py-3 fw-semibold" onClick={() => navigate(-1)}>
           <ArrowLeft size={15} aria-hidden="true" />
@@ -238,7 +238,7 @@ function ForgotPassword() {
       </div>
       </div>
 
-      
+
     </div>
     <Footer />
     </>

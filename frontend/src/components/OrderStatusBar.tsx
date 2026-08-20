@@ -7,21 +7,20 @@ import { useAuth } from "../hooks"
 import { ACTIVE_ORDER_KEY } from "./orderStatusStorage"
 import "./OrderStatusBar.css"
 
-const SERVED_STATUSES = new Set(["entregue", "servido"])
-const TERMINAL_STATUSES = new Set(["entregue", "servido", "cancelada", "reembolsada"])
-const DISMISSIBLE_STATUSES = new Set(["pronta", "entregue", "servido", "cancelada", "reembolsada"])
-const STATUS_STEPS = ["confirmada", "em_preparacao", "pronta", "entregue"]
+const SERVED_STATUSES = new Set(["delivered"])
+const TERMINAL_STATUSES = new Set(["delivered", "cancelled", "refunded"])
+const DISMISSIBLE_STATUSES = new Set(["ready", "delivered", "cancelled", "refunded"])
+const STATUS_STEPS = ["confirmed", "in_preparation", "ready", "delivered"]
 
 function statusLabel(status: string) {
   const labels: Record<string, string> = {
-    pendente: "A aguardar confirmação",
-    confirmada: "Recebida",
-    em_preparacao: "Em preparação",
-    pronta: "Pronta",
-    entregue: "Servido",
-    servido: "Servido",
-    cancelada: "Cancelada",
-    reembolsada: "Reembolsada",
+    pending: "A aguardar confirmação",
+    confirmed: "Recebida",
+    in_preparation: "Em preparação",
+    ready: "Pronta",
+    delivered: "Servido",
+    cancelled: "Cancelada",
+    refunded: "Reembolsada",
   }
 
   return labels[status] ?? status.replace(/_/g, " ")
@@ -29,31 +28,31 @@ function statusLabel(status: string) {
 
 function statusIndex(status: string) {
   if (SERVED_STATUSES.has(status)) return STATUS_STEPS.length - 1
-  if (status === "pendente") return 0
+  if (status === "pending") return 0
   const index = STATUS_STEPS.indexOf(status)
   return index >= 0 ? index : 0
 }
 
 function statusProgress(status: string) {
-  if (SERVED_STATUSES.has(status) || status === "cancelada" || status === "reembolsada") return 100
+  if (SERVED_STATUSES.has(status) || status === "cancelled" || status === "refunded") return 100
 
   const currentStep = statusIndex(status)
   return Math.min(100, Math.max(12, (currentStep / (STATUS_STEPS.length - 1)) * 100))
 }
 
 function orderCreatedAt(order: OrderResponse) {
-  const timestamp = new Date(order.data_criacao).getTime()
-  return Number.isNaN(timestamp) ? order.id_pedido : timestamp
+  const timestamp = new Date(order.createdAt).getTime()
+  return Number.isNaN(timestamp) ? order.orderId : timestamp
 }
 
 function findActiveOrder(orders: OrderResponse[]) {
   const storedId = Number(localStorage.getItem(ACTIVE_ORDER_KEY))
   const ongoingOrders = orders
     .filter((order) => !TERMINAL_STATUSES.has(order.status))
-    .sort((first, second) => orderCreatedAt(first) - orderCreatedAt(second) || first.id_pedido - second.id_pedido)
+    .sort((first, second) => orderCreatedAt(first) - orderCreatedAt(second) || first.orderId - second.orderId)
 
   if (storedId) {
-    const storedOrder = orders.find((order) => order.id_pedido === storedId)
+    const storedOrder = orders.find((order) => order.orderId === storedId)
     if (storedOrder) {
       return {
         order: storedOrder,
@@ -70,14 +69,14 @@ function findActiveOrder(orders: OrderResponse[]) {
 }
 
 function isPaymentConfirmed(order: OrderResponse) {
-  return order.estado_pagamento === "pago" && !order.can_cancel && !TERMINAL_STATUSES.has(order.status)
+  return order.paymentStatus === "paid" && !order.canCancel && !TERMINAL_STATUSES.has(order.status)
 }
 
 function statusMessage(order: OrderResponse, cancelError: string | null, ongoingCount: number) {
   if (cancelError) return cancelError
   if (SERVED_STATUSES.has(order.status)) return "Servido. Bom apetite."
-  if (order.status === "cancelada") return "Este pedido foi cancelado."
-  if (order.status === "reembolsada") return "Este pedido foi reembolsado."
+  if (order.status === "cancelled") return "Este pedido foi cancelado."
+  if (order.status === "refunded") return "Este pedido foi reembolsado."
   if (ongoingCount > 1) {
     return "A barra mostra o pedido mais antigo em curso. Veja todos os pedidos em Perfil > Pedidos."
   }
@@ -115,15 +114,15 @@ export default function OrderStatusBar() {
   }, [clearAutoDismissTimer])
 
   const handleCancelOrder = async () => {
-    if (!order?.can_cancel) return
+    if (!order?.canCancel) return
 
     try {
       setIsCancelling(true)
       setCancelError(null)
-      const cancelledOrder = await checkoutService.cancelOrder(order.id_pedido)
+      const cancelledOrder = await checkoutService.cancelOrder(order.orderId)
       setOrder(cancelledOrder)
       setOngoingCount(0)
-      localStorage.setItem(ACTIVE_ORDER_KEY, String(cancelledOrder.id_pedido))
+      localStorage.setItem(ACTIVE_ORDER_KEY, String(cancelledOrder.orderId))
     } catch (error) {
       setCancelError(error instanceof Error ? error.message : "Não foi possível cancelar este pedido.")
     } finally {
@@ -146,11 +145,11 @@ export default function OrderStatusBar() {
       clearAutoDismissTimer()
       setOrder(activeOrder)
       setOngoingCount(nextOngoingCount)
-      localStorage.setItem(ACTIVE_ORDER_KEY, String(activeOrder.id_pedido))
+      localStorage.setItem(ACTIVE_ORDER_KEY, String(activeOrder.orderId))
 
       if (SERVED_STATUSES.has(activeOrder.status)) {
         autoDismissTimer.current = window.setTimeout(() => {
-          if (Number(localStorage.getItem(ACTIVE_ORDER_KEY)) === activeOrder.id_pedido) {
+          if (Number(localStorage.getItem(ACTIVE_ORDER_KEY)) === activeOrder.orderId) {
             clearOrder()
           }
         }, 20000)
@@ -213,7 +212,7 @@ export default function OrderStatusBar() {
   if (isCollapsed) {
     return (
       <div className={`order-status-mini ${statusClass}`}>
-        <span>{order.numero_pedido}</span>
+        <span>{order.orderNumber}</span>
         <strong>{statusLabel(order.status)}</strong>
         <button type="button" onClick={() => setIsCollapsed(false)} aria-label="Mostrar estado do pedido">
           <Eye size={14} />
@@ -227,11 +226,11 @@ export default function OrderStatusBar() {
     <aside className={`order-status-bar ${statusClass} ${isTerminal ? "terminal" : ""} ${isHighlighted ? "highlighted" : ""}`} role="status" aria-live="polite">
       <div className="order-status-bar-main">
         <div className="order-status-icon" aria-hidden="true">
-          {order.status === "pronta" || SERVED_STATUSES.has(order.status) ? <PackageCheck size={20} /> : order.status === "em_preparacao" ? <ChefHat size={20} /> : <Clock size={20} />}
+          {order.status === "ready" || SERVED_STATUSES.has(order.status) ? <PackageCheck size={20} /> : order.status === "in_preparation" ? <ChefHat size={20} /> : <Clock size={20} />}
         </div>
         <div className="order-status-copy">
           <div className="order-status-heading">
-            <strong className="fw-bold">{order.numero_pedido}</strong>
+            <strong className="fw-bold">{order.orderNumber}</strong>
             <span>{statusLabel(order.status)}</span>
           </div>
           <p className={paymentConfirmed || ongoingCount > 1 || isTerminal ? "order-status-help" : ""}>{statusMessage(order, cancelError, ongoingCount)}</p>
@@ -245,7 +244,7 @@ export default function OrderStatusBar() {
 
         <div className="order-status-actions">
           <Link to="/profile?tab=orders">Detalhes</Link>
-          {order.can_cancel && (
+          {order.canCancel && (
             <button
               type="button"
               className="order-status-cancel"

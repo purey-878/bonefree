@@ -20,9 +20,9 @@ function Register() {
     email: '',
     password: '',
     confirmPassword: '',
-    nome: '',
-    apelido: '',
-    telefone: '',
+    name: '',
+    lastName: '',
+    phone: '',
   })
   const [fieldErrors, setFieldErrors] = useState<FieldErrors<keyof typeof formData>>({})
   const [error, setError] = useState('')
@@ -41,7 +41,7 @@ function Register() {
     setFieldErrors((prev) => ({ ...prev, [name]: undefined }))
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "telefone" ? normalizePhone(value) : value,
+      [name]: name === "phone" ? normalizePhone(value) : value,
     }))
   }
 
@@ -50,16 +50,16 @@ function Register() {
     setError('')
 
     const errors: FieldErrors<keyof typeof formData> = {}
-    const nomeError = validateName(formData.nome)
-    const apelidoError = validateName(formData.apelido)
+    const nomeError = validateName(formData.name)
+    const apelidoError = validateName(formData.lastName)
     const emailError = validateEmail(formData.email)
     const passwordError = validatePassword(formData.password)
-    const phoneError = validatePhone(formData.telefone, false)
-    if (nomeError) errors.nome = nomeError
-    if (apelidoError) errors.apelido = apelidoError
+    const phoneError = validatePhone(formData.phone, false)
+    if (nomeError) errors.name = nomeError
+    if (apelidoError) errors.lastName = apelidoError
     if (emailError) errors.email = emailError
     if (passwordError) errors.password = passwordError
-    if (phoneError) errors.telefone = phoneError
+    if (phoneError) errors.phone = phoneError
     if (formData.password !== formData.confirmPassword) {
       errors.confirmPassword = 'As palavras-passe não coincidem'
     }
@@ -76,9 +76,9 @@ function Register() {
       await register({
         email: formData.email.trim(),
         password: formData.password,
-        nome: formData.nome.trim(),
-        apelido: formData.apelido.trim(),
-        telefone: formData.telefone.trim() || undefined,
+        name: formData.name.trim(),
+        lastName: formData.lastName.trim(),
+        phone: formData.phone.trim() || undefined,
       })
       navigate(redirectAfterRegister(from, hadGuestCart), { replace: true })
     } catch (err) {
@@ -92,17 +92,17 @@ function Register() {
 
 
     <>
- 
+
       <div className="auth-container auth-page">
         <Navbar />
-        
+
         <div className="auth-floating-food-bg" aria-hidden="true">
           <span className="auth-food-float auth-food-float-salad"><Salad /></span>
           <span className="auth-food-float auth-food-float-soup"><Soup /></span>
           <span className="auth-food-float auth-food-float-sandwich"><Sandwich /></span>
           <span className="auth-food-float auth-food-float-drink"><CupSoda /></span>
           <span className="auth-food-float auth-food-float-cake"><CakeSlice /></span>
-          
+
         </div>
 
         <div className="auth-card-stack auth-register-stack">
@@ -110,16 +110,16 @@ function Register() {
             <ArrowLeft size={15} aria-hidden="true" />
             Voltar
           </button>
-        
-        
+
+
         <div className="auth-card glass-panel auth-flow-card auth-register-card">
-       
-        
+
+
           <div className="auth-mode-switch" aria-label="Modo de autenticação">
             <Link to="/login" state={{ from }}>Entrar</Link>
             <Link className="active" to="/register" aria-current="page">Criar conta</Link>
           </div>
-   
+
           <h1 className="auth-title">
             Criar conta.
           </h1>
@@ -147,55 +147,55 @@ function Register() {
 
             <div className="form-row">
               <div className="form-group">
-                <label htmlFor="nome" className="form-label">
+                <label htmlFor="name" className="form-label">
                   Nome <span className="required">*</span>
                 </label>
                 <input
-                  id="nome"
+                  id="name"
                   type="text"
-                  name="nome"
-                  className={`form-input ${fieldErrors.nome ? 'is-invalid' : ''}`}
+                  name="name"
+                  className={`form-input ${fieldErrors.name ? 'is-invalid' : ''}`}
                   placeholder="João"
-                  value={formData.nome}
+                  value={formData.name}
                   onChange={handleChange}
                   required
                 />
-                {fieldErrors.nome && <small className="field-error">{fieldErrors.nome}</small>}
+                {fieldErrors.name && <small className="field-error">{fieldErrors.name}</small>}
               </div>
 
               <div className="form-group">
-                <label htmlFor="apelido" className="form-label">
+                <label htmlFor="lastName" className="form-label">
                   Apelido <span className="required">*</span>
                 </label>
                 <input
-                  id="apelido"
+                  id="lastName"
                   type="text"
-                  name="apelido"
-                  className={`form-input ${fieldErrors.apelido ? 'is-invalid' : ''}`}
+                  name="lastName"
+                  className={`form-input ${fieldErrors.lastName ? 'is-invalid' : ''}`}
                   placeholder="Silva"
-                  value={formData.apelido}
+                  value={formData.lastName}
                   onChange={handleChange}
                   required
                 />
-                {fieldErrors.apelido && <small className="field-error">{fieldErrors.apelido}</small>}
+                {fieldErrors.lastName && <small className="field-error">{fieldErrors.lastName}</small>}
               </div>
             </div>
 
             <div className="form-group">
-              <label htmlFor="telefone" className="form-label">
+              <label htmlFor="phone" className="form-label">
                 Telefone
               </label>
               <input
-                id="telefone"
+                id="phone"
                 type="tel"
-                name="telefone"
-                className={`form-input ${fieldErrors.telefone ? 'is-invalid' : ''}`}
+                name="phone"
+                className={`form-input ${fieldErrors.phone ? 'is-invalid' : ''}`}
                 placeholder="+351912345678"
-                value={formData.telefone}
+                value={formData.phone}
                 onChange={handleChange}
                 inputMode="tel"
               />
-              {fieldErrors.telefone && <small className="field-error">{fieldErrors.telefone}</small>}
+              {fieldErrors.phone && <small className="field-error">{fieldErrors.phone}</small>}
             </div>
 
             <div className="form-group">
@@ -245,7 +245,7 @@ function Register() {
           </p>
         </div>
 
-    
+
       </div>
 
       <Footer />
@@ -255,8 +255,8 @@ function Register() {
 
       </>
 
-     
-    
+
+
   )
 
 }

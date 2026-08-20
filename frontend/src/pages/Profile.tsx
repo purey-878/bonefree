@@ -30,7 +30,7 @@ import CustomSelect from "../components/ui/CustomSelect"
 import { useToast } from "../components/ui/toastContext"
 import { useAuth } from "../hooks"
 import { cartService, checkoutService, customizationSummary, productService } from "../services"
-import { resolveProductImageUrl, useApiImageFallback } from "../utils/imageFallback"
+import { applyApiImageFallback, resolveProductImageUrl } from "../utils/imageFallback"
 import { translateUserMessage } from "../utils/messages"
 import { authService } from "../services/authService"
 import { getPublicLoyaltyCouponSettings } from "../services/siteSettingsService"
@@ -56,21 +56,21 @@ import { formatEuro } from "../utils/money"
 import "./Profile.css"
 
 interface ProfileForm {
-  nome: string
-  apelido: string
+  name: string
+  lastName: string
   email: string
-  telefone: string
-  nif: string
-  morada: string
-  codigo_postal: string
-  cidade: string
+  phone: string
+  taxId: string
+  address: string
+  postalCode: string
+  city: string
 }
 
 interface HistoryFilters {
   status: string
   payment: string
-  date_from: string
-  date_to: string
+  dateFrom: string
+  dateTo: string
   search: string
 }
 
@@ -79,20 +79,20 @@ type ProfileTab = "overview" | "orders" | "coupons" | "personal"
 const emptyFilters: HistoryFilters = {
   status: "",
   payment: "",
-  date_from: "",
-  date_to: "",
+  dateFrom: "",
+  dateTo: "",
   search: "",
 }
 
 const statusOptions = [
   { value: "", label: "Todos os estados" },
-  { value: "pendente", label: "Pendente" },
-  { value: "confirmada", label: "Confirmada" },
-  { value: "em_preparacao", label: "Em preparação" },
-  { value: "pronta", label: "Pronta" },
-  { value: "entregue", label: "Servido" },
-  { value: "cancelada", label: "Cancelada" },
-  { value: "reembolsada", label: "Reembolsada" },
+  { value: "pending", label: "Pendente" },
+  { value: "confirmed", label: "Confirmada" },
+  { value: "in_preparation", label: "Em preparação" },
+  { value: "ready", label: "Pronta" },
+  { value: "delivered", label: "Servido" },
+  { value: "cancelled", label: "Cancelada" },
+  { value: "refunded", label: "Reembolsada" },
 ]
 
 const tabs: Array<{ id: ProfileTab; label: string; icon: typeof ReceiptText }> = [
@@ -102,7 +102,7 @@ const tabs: Array<{ id: ProfileTab; label: string; icon: typeof ReceiptText }> =
   { id: "personal", label: "Dados pessoais", icon: UserRound },
 ]
 
-const orderTerminalStatuses = new Set(["entregue", "cancelada", "reembolsada"])
+const orderTerminalStatuses = new Set(["delivered", "cancelled", "refunded"])
 
 function profileTabFromParam(value: string | null): ProfileTab | null {
   if (value === "overview" || value === "orders" || value === "coupons" || value === "personal") return value
@@ -142,13 +142,13 @@ function resolveImage(image?: string | null) {
 
 function formatStatus(value: string) {
   const labels: Record<string, string> = {
-    pendente: "Pendente",
-    confirmada: "Confirmada",
-    em_preparacao: "Em preparação",
-    pronta: "Pronta",
-    entregue: "Servido",
-    cancelada: "Cancelada",
-    reembolsada: "Reembolsada",
+    pending: "Pendente",
+    confirmed: "Confirmada",
+    in_preparation: "Em preparação",
+    ready: "Pronta",
+    delivered: "Servido",
+    cancelled: "Cancelada",
+    refunded: "Reembolsada",
   }
 
   return labels[value] ?? value
@@ -168,43 +168,43 @@ function nullableText(value: string) {
 
 function hasInvoiceAddressData(form: ProfileForm) {
   return Boolean(
-    form.morada.trim() ||
-    form.codigo_postal.trim() ||
-    form.cidade.trim(),
+    form.address.trim() ||
+    form.postalCode.trim() ||
+    form.city.trim(),
   )
 }
 
-function hasStructuredCustomization(customizacao?: ItemCustomization | null) {
+function hasStructuredCustomization(customization?: ItemCustomization | null) {
   return Boolean(
-    customizacao?.ingredientes_removidos?.length ||
-    customizacao?.extras?.length ||
-    customizacao?.substituicoes?.length,
+    customization?.removedIngredients?.length ||
+    customization?.extras?.length ||
+    customization?.substitutions?.length,
   )
 }
 
-function sanitizeLegacyCustomization(customizacao?: ItemCustomization | null): ItemCustomization | null {
-  if (!customizacao) return null
+function sanitizeLegacyCustomization(customization?: ItemCustomization | null): ItemCustomization | null {
+  if (!customization) return null
 
   return {
-    remove: customizacao.remove ?? [],
-    add: customizacao.add ?? [],
-    preferences: customizacao.preferences ?? [],
-    note: customizacao.note ?? null,
-    ingredientes_removidos: [],
+    remove: customization.remove ?? [],
+    add: customization.add ?? [],
+    preferences: customization.preferences ?? [],
+    note: customization.note ?? null,
+    removedIngredients: [],
     extras: [],
-    substituicoes: [],
-    preco_unitario_final: null,
+    substitutions: [],
+    finalUnitPrice: null,
   }
 }
 
 function customizedCartBody(item: OrderItem) {
   return {
-    id_produto: item.id_produto,
-    quantidade: item.quantidade,
-    ingredientes_removidos: item.customizacao?.ingredientes_removidos ?? [],
-    extras: item.customizacao?.extras ?? [],
-    substituicoes: item.customizacao?.substituicoes ?? [],
-    observacoes: item.customizacao?.note ?? null,
+    productId: item.productId,
+    quantity: item.quantity,
+    removedIngredients: item.customization?.removedIngredients ?? [],
+    extras: item.customization?.extras ?? [],
+    substitutions: item.customization?.substitutions ?? [],
+    notes: item.customization?.note ?? null,
   }
 }
 
@@ -216,40 +216,40 @@ function customerTier(orderCount: number, totalSpent: number) {
 }
 
 function orderItemsCount(order: OrderResponse) {
-  return order.itens.reduce((sum, item) => sum + item.quantidade, 0)
+  return order.items.reduce((sum, item) => sum + item.quantity, 0)
 }
 
 function orderMatchesSearch(order: OrderResponse, query: string) {
   const normalizedQuery = query.trim().toLowerCase()
   if (!normalizedQuery) return true
   const queryParts = normalizedQuery.split(/\s+/).filter(Boolean)
-  const orderNumberDigits = order.numero_pedido.replace(/\D/g, "")
+  const orderNumberDigits = order.orderNumber.replace(/\D/g, "")
   const orderNumberWithoutLeadingZeros = orderNumberDigits.replace(/^0+/, "") || orderNumberDigits
   const isNumericOrderSearch = /^\d+$/.test(normalizedQuery)
 
   if (isNumericOrderSearch) {
-    return String(order.id_pedido) === normalizedQuery || orderNumberWithoutLeadingZeros === normalizedQuery
+    return String(order.orderId) === normalizedQuery || orderNumberWithoutLeadingZeros === normalizedQuery
   }
 
   const haystack = [
-    order.id_pedido,
-    order.numero_pedido,
-    `#${order.id_pedido}`,
+    order.orderId,
+    order.orderNumber,
+    `#${order.orderId}`,
     orderNumberDigits,
     orderNumberWithoutLeadingZeros,
     order.status,
     formatStatus(order.status),
-    order.metodo_pagamento,
-    formatPayment(order.metodo_pagamento),
-    order.estado_pagamento,
-    order.metodo_entrega,
-    formatFulfillment(order.metodo_entrega),
-    order.data_criacao,
-    formatDate(order.data_criacao),
-    order.itens.map((item) => [
-      item.id_produto,
-      item.id_produto_display,
-      item.nome_produto,
+    order.paymentMethod,
+    formatPayment(order.paymentMethod),
+    order.paymentStatus,
+    order.deliveryMethod,
+    formatFulfillment(order.deliveryMethod),
+    order.createdAt,
+    formatDate(order.createdAt),
+    order.items.map((item) => [
+      item.productId,
+      item.productDisplayId,
+      item.productName,
     ].join(" ")).join(" "),
   ].join(" ").toLowerCase()
 
@@ -262,9 +262,9 @@ function numericSetting(value: number | string | null | undefined, fallback = 0)
 }
 
 function loyaltyProfileHeadline(settings: LoyaltyCouponSettings) {
-  const orderCount = Math.max(1, Math.round(numericSetting(settings.qualifying_order_count, 3)))
+  const orderCount = Math.max(1, Math.round(numericSetting(settings.qualifyingOrderCount, 3)))
   const orderLabel = orderCount === 1 ? "pedido" : "pedidos"
-  return `Faça ${orderCount} ${orderLabel} acima de ${formatCurrency(settings.qualifying_order_minimum)} e ganhe um cupão no próximo pedido.`
+  return `Faça ${orderCount} ${orderLabel} acima de ${formatCurrency(settings.qualifyingOrderMinimum)} e ganhe um cupão no próximo pedido.`
 }
 
 function Profile() {
@@ -275,14 +275,14 @@ function Profile() {
   const tabFromUrl = profileTabFromParam(searchParams.get("tab") ?? searchParams.get("section")) ?? "overview"
   const [activeTab, setActiveTab] = useState<ProfileTab>(tabFromUrl)
   const [form, setForm] = useState<ProfileForm>({
-    nome: "",
-    apelido: "",
+    name: "",
+    lastName: "",
     email: "",
-    telefone: "",
-    nif: "",
-    morada: "",
-    codigo_postal: "",
-    cidade: "",
+    phone: "",
+    taxId: "",
+    address: "",
+    postalCode: "",
+    city: "",
   })
   const [fieldErrors, setFieldErrors] = useState<FieldErrors<keyof ProfileForm>>({})
   const [filters, setFilters] = useState<HistoryFilters>(emptyFilters)
@@ -313,14 +313,14 @@ function Profile() {
   useEffect(() => {
     if (!user) return
     setForm({
-      nome: user.nome ?? "",
-      apelido: user.apelido ?? "",
+      name: user.name ?? "",
+      lastName: user.lastName ?? "",
       email: user.email ?? "",
-      telefone: user.telefone ?? "",
-      nif: user.nif ?? "",
-      morada: user.endereco_fatura?.morada ?? "",
-      codigo_postal: user.endereco_fatura?.codigo_postal ?? "",
-      cidade: user.endereco_fatura?.cidade ?? "",
+      phone: user.phone ?? "",
+      taxId: user.taxId ?? "",
+      address: user.billingAddress?.address ?? "",
+      postalCode: user.billingAddress?.postalCode ?? "",
+      city: user.billingAddress?.city ?? "",
     })
   }, [user])
 
@@ -342,7 +342,7 @@ function Profile() {
         setAvailableCoupons(coupons)
         setLoyaltySettings(couponSettings)
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Unable to load profile data.")
+        setError(translateUserMessage(err instanceof Error ? err.message : "Não foi possível carregar os dados do perfil."))
       } finally {
         setLoadingCoupons(false)
       }
@@ -362,7 +362,7 @@ function Profile() {
         const history = await authService.getPurchaseHistory(serverFilters)
         setOrders(history.filter((order) => orderMatchesSearch(order, search)))
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Unable to load purchase history.")
+        setError(translateUserMessage(err instanceof Error ? err.message : "Não foi possível carregar o histórico de compras."))
       } finally {
         setLoadingOrders(false)
       }
@@ -385,18 +385,18 @@ function Profile() {
   const favoriteMeals = useMemo(() => {
     const items = new Map<number, { id: number; name: string; quantity: number; total: number; item: OrderItem }>()
     allOrders.forEach((order) => {
-      order.itens.forEach((item) => {
-        const current = items.get(item.id_produto) ?? {
-          id: item.id_produto,
-          name: item.nome_produto,
+      order.items.forEach((item) => {
+        const current = items.get(item.productId) ?? {
+          id: item.productId,
+          name: item.productName,
           quantity: 0,
           total: 0,
           item,
         }
-        current.quantity += item.quantidade
+        current.quantity += item.quantity
         current.total += Number(item.subtotal)
         current.item = item
-        items.set(item.id_produto, current)
+        items.set(item.productId, current)
       })
     })
 
@@ -406,14 +406,14 @@ function Profile() {
   const favoriteItem = favoriteMeals[0]?.name ?? "Discovering"
   const latestOrder = allOrders[0]
   const activeFilterCount = Object.values(filters).filter(Boolean).length
-  const displayName = `${form.nome} ${form.apelido}`.trim() || user?.email || "Cliente BONEFREE"
+  const displayName = `${form.name} ${form.lastName}`.trim() || user?.email || "Cliente BONEFREE"
   const tier = customerTier(allOrders.length, totalSpent)
   const couponStreak = useMemo(() => {
-    const requiredOrders = Math.max(1, Math.round(numericSetting(loyaltySettings.qualifying_order_count, 3)))
-    const minimumSubtotal = Math.max(0, numericSetting(loyaltySettings.qualifying_order_minimum, 50))
+    const requiredOrders = Math.max(1, Math.round(numericSetting(loyaltySettings.qualifyingOrderCount, 3)))
+    const minimumSubtotal = Math.max(0, numericSetting(loyaltySettings.qualifyingOrderMinimum, 50))
     const progress = allOrders
       .slice()
-      .sort((a, b) => new Date(a.data_criacao).getTime() - new Date(b.data_criacao).getTime())
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
       .reduce((current, order) => {
         if (Number(order.subtotal) < minimumSubtotal) return current
         const next = current + 1
@@ -431,7 +431,7 @@ function Profile() {
   const showCouponProgress = couponStreak.current > 0 && couponStreak.current < couponStreak.required
 
   const updateForm = (field: keyof ProfileForm, value: string) => {
-    setForm((current) => ({ ...current, [field]: field === "telefone" ? normalizePhone(value) : value }))
+    setForm((current) => ({ ...current, [field]: field === "phone" ? normalizePhone(value) : value }))
     setFieldErrors((current) => ({ ...current, [field]: undefined }))
     setMessage(null)
     setError(null)
@@ -465,25 +465,25 @@ function Profile() {
   }
 
   const addHistoricalItem = async (item: OrderItem) => {
-    const product = await getProduct(item.id_produto)
+    const product = await getProduct(item.productId)
 
     if (product.stock <= 0) {
-      throw new Error(`${item.nome_produto} está esgotado.`)
+      throw new Error(`${item.productName} está esgotado.`)
     }
-    if (item.quantidade > product.stock) {
-      throw new Error(`${item.nome_produto} só tem ${product.stock} em stock.`)
+    if (item.quantity > product.stock) {
+      throw new Error(`${item.productName} só tem ${product.stock} em stock.`)
     }
 
-    if (hasStructuredCustomization(item.customizacao)) {
+    if (hasStructuredCustomization(item.customization)) {
       await cartService.addCustomizedItem(customizedCartBody(item), product.stock)
       return
     }
 
     await cartService.addItem(
-      item.id_produto,
-      item.quantidade,
+      item.productId,
+      item.quantity,
       product.stock,
-      sanitizeLegacyCustomization(item.customizacao),
+      sanitizeLegacyCustomization(item.customization),
     )
   }
 
@@ -493,7 +493,7 @@ function Profile() {
       setActionError(null)
       setSuccessMessage(null)
       await addHistoricalItem(item)
-      setSuccessMessage(`${item.quantidade}x ${item.nome_produto} adicionado ao carrinho.`)
+      setSuccessMessage(`${item.quantity}x ${item.productName} adicionado ao carrinho.`)
       toast.success("Item adicionado ao carrinho.")
     } catch (err) {
       const message = translateUserMessage(err instanceof Error ? err.message : "Unable to add this item.")
@@ -505,7 +505,7 @@ function Profile() {
   }
 
   const handleOrderAgain = async (order: OrderResponse) => {
-    const key = `order-${order.id_pedido}`
+    const key = `order-${order.orderId}`
     let addedCount = 0
     const failures: string[] = []
 
@@ -514,12 +514,12 @@ function Profile() {
       setActionError(null)
       setSuccessMessage(null)
 
-      for (const item of order.itens) {
+      for (const item of order.items) {
         try {
           await addHistoricalItem(item)
-          addedCount += item.quantidade
+          addedCount += item.quantity
         } catch (err) {
-          failures.push(translateUserMessage(err instanceof Error ? err.message : `${item.nome_produto} could not be added.`))
+          failures.push(translateUserMessage(err instanceof Error ? err.message : `Não foi possível adicionar ${item.productName}.`))
         }
       }
 
@@ -544,14 +544,14 @@ function Profile() {
   }
 
   const handleTrackOrder = (order: OrderResponse) => {
-    rememberActiveOrder(order.id_pedido)
+    rememberActiveOrder(order.orderId)
     window.dispatchEvent(new Event("order-status-highlight"))
     setActionError(null)
-    setSuccessMessage(`A acompanhar ${order.numero_pedido}.`)
+    setSuccessMessage(`A acompanhar ${order.orderNumber}.`)
   }
 
   const handleViewReceipt = async (order: OrderResponse) => {
-    const key = `receipt-${order.id_pedido}`
+    const key = `receipt-${order.orderId}`
     const receiptWindow = window.open("about:blank", "_blank")
 
     try {
@@ -559,7 +559,7 @@ function Profile() {
       setActionError(null)
       setSuccessMessage(null)
 
-      const { blob } = await checkoutService.downloadReceipt(order.id_pedido)
+      const { blob } = await checkoutService.downloadReceipt(order.orderId)
       const receiptUrl = URL.createObjectURL(blob)
 
       if (receiptWindow) {
@@ -575,7 +575,7 @@ function Profile() {
       window.setTimeout(() => URL.revokeObjectURL(receiptUrl), 60_000)
     } catch (err) {
       receiptWindow?.close()
-      const message = err instanceof Error ? err.message : "Unable to open this receipt."
+      const message = translateUserMessage(err instanceof Error ? err.message : "Não foi possível abrir este recibo.")
       setActionError(message)
       toast.error(message)
     } finally {
@@ -587,18 +587,18 @@ function Profile() {
     event.preventDefault()
     try {
       const errors: FieldErrors<keyof ProfileForm> = {}
-      const nomeError = validateName(form.nome)
-      const apelidoError = validateName(form.apelido)
+      const nomeError = validateName(form.name)
+      const apelidoError = validateName(form.lastName)
       const emailError = validateEmail(form.email)
-      const phoneError = validatePhone(form.telefone, false)
-      const nifError = validateNif(form.nif)
-      const postalCodeError = validatePostalCode(form.codigo_postal, false)
-      if (nomeError) errors.nome = nomeError
-      if (apelidoError) errors.apelido = apelidoError
+      const phoneError = validatePhone(form.phone, false)
+      const nifError = validateNif(form.taxId)
+      const postalCodeError = validatePostalCode(form.postalCode, false)
+      if (nomeError) errors.name = nomeError
+      if (apelidoError) errors.lastName = apelidoError
       if (emailError) errors.email = emailError
-      if (phoneError) errors.telefone = phoneError
-      if (nifError) errors.nif = nifError
-      if (postalCodeError) errors.codigo_postal = postalCodeError
+      if (phoneError) errors.phone = phoneError
+      if (nifError) errors.taxId = nifError
+      if (postalCodeError) errors.postalCode = postalCodeError
       setFieldErrors(errors)
       if (Object.keys(errors).length > 0) {
         setError("Please fix the highlighted fields.")
@@ -611,16 +611,16 @@ function Profile() {
       setMessage(null)
 
       const payload: ProfileUpdateRequest = {
-        nome: nullableText(form.nome),
-        apelido: nullableText(form.apelido),
+        name: nullableText(form.name),
+        lastName: nullableText(form.lastName),
         email: form.email.trim(),
-        telefone: nullableText(form.telefone),
-        nif: nullableText(form.nif),
-        endereco_fatura: hasInvoiceAddressData(form)
+        phone: nullableText(form.phone),
+        taxId: nullableText(form.taxId),
+        billingAddress: hasInvoiceAddressData(form)
           ? {
-              morada: nullableText(form.morada),
-              codigo_postal: nullableText(form.codigo_postal),
-              cidade: nullableText(form.cidade),
+              address: nullableText(form.address),
+              postalCode: nullableText(form.postalCode),
+              city: nullableText(form.city),
             }
           : null,
       }
@@ -630,7 +630,7 @@ function Profile() {
         setMessage("Perfil atualizado.")
         toast.success("Perfil guardado com sucesso.")
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Unable to save changes."
+      const message = translateUserMessage(err instanceof Error ? err.message : "Não foi possível guardar as alterações.")
       setError(message)
       toast.error(message)
     } finally {
@@ -672,7 +672,7 @@ function Profile() {
         <section className="profile-hero-panel">
           <div className="profile-identity">
             <div className="profile-avatar" aria-hidden="true">
-              {initials(form.nome, form.apelido, user?.email)}
+              {initials(form.name, form.lastName, user?.email)}
             </div>
             <div className="profile-identity-copy">
               <div className="profile-kicker-row">
@@ -730,7 +730,7 @@ function Profile() {
         {(message || error || successMessage || actionError) && (
           <div className={`profile-alert ${error || actionError ? "error" : ""}`}>
             <span>{error || actionError || successMessage || message}</span>
-          
+
           </div>
         )}
 
@@ -786,8 +786,8 @@ function Profile() {
                 <article className="profile-feature-order">
                   <div>
                     <span className={`profile-status ${latestOrder.status}`}>{formatStatus(latestOrder.status)}</span>
-                    <h3>{latestOrder.numero_pedido}</h3>
-                    <p>{formatDate(latestOrder.data_criacao)} · {orderItemsCount(latestOrder)} itens · {formatPayment(latestOrder.metodo_pagamento)}</p>
+                    <h3>{latestOrder.orderNumber}</h3>
+                    <p>{formatDate(latestOrder.createdAt)} · {orderItemsCount(latestOrder)} itens · {formatPayment(latestOrder.paymentMethod)}</p>
                   </div>
                   <div className="profile-feature-actions">
                     <strong>{formatCurrency(latestOrder.total)}</strong>
@@ -795,9 +795,9 @@ function Profile() {
                       type="button"
                       className="profile-order-again"
                       onClick={() => handleOrderAgain(latestOrder)}
-                      disabled={busyKey === `order-${latestOrder.id_pedido}`}
+                      disabled={busyKey === `order-${latestOrder.orderId}`}
                     >
-                      {busyKey === `order-${latestOrder.id_pedido}` ? "A adicionar..." : "Pedir novamente"}
+                      {busyKey === `order-${latestOrder.orderId}` ? "A adicionar..." : "Pedir novamente"}
                     </button>
                   </div>
                 </article>
@@ -835,7 +835,7 @@ function Profile() {
                 <div>
                   <Phone size={18} />
                   <span>Telefone</span>
-                  <strong>{form.telefone || "Não definido"}</strong>
+                  <strong>{form.phone || "Não definido"}</strong>
                 </div>
               </section>
             </aside>
@@ -890,11 +890,11 @@ function Profile() {
               </label>
               <label>
                 <CalendarDays size={16} />
-                <input type="date" value={filters.date_from} onChange={(e) => updateFilter("date_from", e.target.value)} />
+                <input type="date" value={filters.dateFrom} onChange={(e) => updateFilter("dateFrom", e.target.value)} />
               </label>
               <label>
                 <CalendarDays size={16} />
-                <input type="date" value={filters.date_to} onChange={(e) => updateFilter("date_to", e.target.value)} />
+                <input type="date" value={filters.dateTo} onChange={(e) => updateFilter("dateTo", e.target.value)} />
               </label>
               <button type="button" className="profile-clear-filters" onClick={() => setFilters(emptyFilters)}>
                 <Filter size={16} />
@@ -920,7 +920,7 @@ function Profile() {
               <div className="profile-order-grid">
                 {orders.map((order) => (
                   <OrderTimelineCard
-                    key={order.id_pedido}
+                    key={order.orderId}
                     busyKey={busyKey}
                     order={order}
                     productsById={productsById}
@@ -960,18 +960,18 @@ function Profile() {
               <div className="profile-loading small">A carregar cupões...</div>
             ) : availableCoupons.length === 0 ? (
               <div className="profile-empty">
-                Ainda não há cupões ativos. Fique atento a pedidos acima de {formatCurrency(loyaltySettings.qualifying_order_minimum)}.
+                Ainda não há cupões ativos. Fique atento a pedidos acima de {formatCurrency(loyaltySettings.qualifyingOrderMinimum)}.
               </div>
             ) : (
               <div className="profile-coupon-grid">
                 {availableCoupons.map((coupon) => (
-                  <article key={coupon.id_cupom} className="profile-coupon-card">
-                    <span>{coupon.tipo === "VALOR_FIXO" ? "Desconto fixo" : "Desconto percentual"}</span>
-                    <h3>{formatCurrency(coupon.valor)} off</h3>
-                    <p>Use o código <strong>{coupon.codigo}</strong></p>
+                  <article key={coupon.couponId} className="profile-coupon-card">
+                    <span>{coupon.type === "fixed_value" ? "Desconto fixo" : "Desconto percentual"}</span>
+                    <h3>{formatCurrency(coupon.value)} off</h3>
+                    <p>Use o código <strong>{coupon.code}</strong></p>
                     <small>
-                      Minimum order {formatCurrency(coupon.valor_minimo_pedido)}
-                      {coupon.expira_em ? ` · Expira ${formatDate(coupon.expira_em)}` : ""}
+                      Pedido mínimo {formatCurrency(coupon.minimumOrderValue)}
+                      {coupon.expiresAt ? ` · Expira ${formatDate(coupon.expiresAt)}` : ""}
                     </small>
                     <Link to="/checkout" className="profile-order-again">Usar cupão</Link>
                   </article>
@@ -987,23 +987,23 @@ function Profile() {
               eyebrow="Pessoal"
               icon={UserRound}
               title="Informação pessoal"
-              description="Core contact details used for checkout, receipts, and account recovery."
+              description="Dados principais de contacto usados no checkout, nos recibos e na recuperação da conta."
             >
               <FormField label="Nome">
-                <input className={fieldErrors.nome ? "is-invalid" : ""} value={form.nome} onChange={(e) => updateForm("nome", e.target.value)} autoComplete="given-name" />
-                {fieldErrors.nome && <small className="field-error">{fieldErrors.nome}</small>}
+                <input className={fieldErrors.name ? "is-invalid" : ""} value={form.name} onChange={(e) => updateForm("name", e.target.value)} autoComplete="given-name" />
+                {fieldErrors.name && <small className="field-error">{fieldErrors.name}</small>}
               </FormField>
               <FormField label="Apelido">
-                <input className={fieldErrors.apelido ? "is-invalid" : ""} value={form.apelido} onChange={(e) => updateForm("apelido", e.target.value)} autoComplete="family-name" />
-                {fieldErrors.apelido && <small className="field-error">{fieldErrors.apelido}</small>}
+                <input className={fieldErrors.lastName ? "is-invalid" : ""} value={form.lastName} onChange={(e) => updateForm("lastName", e.target.value)} autoComplete="family-name" />
+                {fieldErrors.lastName && <small className="field-error">{fieldErrors.lastName}</small>}
               </FormField>
               <FormField label="Email">
                 <input className={fieldErrors.email ? "is-invalid" : ""} type="email" value={form.email} onChange={(e) => updateForm("email", e.target.value)} autoComplete="email" />
                 {fieldErrors.email && <small className="field-error">{fieldErrors.email}</small>}
               </FormField>
               <FormField label="Telefone">
-                <input className={fieldErrors.telefone ? "is-invalid" : ""} value={form.telefone} onChange={(e) => updateForm("telefone", e.target.value)} autoComplete="tel" inputMode="tel" />
-                {fieldErrors.telefone && <small className="field-error">{fieldErrors.telefone}</small>}
+                <input className={fieldErrors.phone ? "is-invalid" : ""} value={form.phone} onChange={(e) => updateForm("phone", e.target.value)} autoComplete="tel" inputMode="tel" />
+                {fieldErrors.phone && <small className="field-error">{fieldErrors.phone}</small>}
               </FormField>
             </ProfileFormSection>
 
@@ -1014,18 +1014,18 @@ function Profile() {
               description="NIF e morada fiscal usados nos recibos e faturas dos seus pedidos."
             >
               <FormField label="NIF">
-                <input className={fieldErrors.nif ? "is-invalid" : ""} value={form.nif} onChange={(e) => updateForm("nif", e.target.value)} maxLength={9} inputMode="numeric" />
-                {fieldErrors.nif && <small className="field-error">{fieldErrors.nif}</small>}
+                <input className={fieldErrors.taxId ? "is-invalid" : ""} value={form.taxId} onChange={(e) => updateForm("taxId", e.target.value)} maxLength={9} inputMode="numeric" />
+                {fieldErrors.taxId && <small className="field-error">{fieldErrors.taxId}</small>}
               </FormField>
               <FormField label="Morada fiscal" wide>
-                <input value={form.morada} onChange={(e) => updateForm("morada", e.target.value)} autoComplete="street-address" />
+                <input value={form.address} onChange={(e) => updateForm("address", e.target.value)} autoComplete="street-address" />
               </FormField>
               <FormField label="Código postal">
-                <input className={fieldErrors.codigo_postal ? "is-invalid" : ""} value={form.codigo_postal} onChange={(e) => updateForm("codigo_postal", e.target.value)} autoComplete="postal-code" inputMode="numeric" placeholder="0000-000" />
-                {fieldErrors.codigo_postal && <small className="field-error">{fieldErrors.codigo_postal}</small>}
+                <input className={fieldErrors.postalCode ? "is-invalid" : ""} value={form.postalCode} onChange={(e) => updateForm("postalCode", e.target.value)} autoComplete="postal-code" inputMode="numeric" placeholder="0000-000" />
+                {fieldErrors.postalCode && <small className="field-error">{fieldErrors.postalCode}</small>}
               </FormField>
               <FormField label="Cidade">
-                <input value={form.cidade} onChange={(e) => updateForm("cidade", e.target.value)} autoComplete="address-level2" />
+                <input value={form.city} onChange={(e) => updateForm("city", e.target.value)} autoComplete="address-level2" />
               </FormField>
             </ProfileFormSection>
 
@@ -1038,9 +1038,9 @@ function Profile() {
         )}
 
         <div className="profile-mobile-reorder">
-          <button type="button" onClick={latestOrder ? () => handleOrderAgain(latestOrder) : jumpToOrders} disabled={Boolean(latestOrder && busyKey === `order-${latestOrder.id_pedido}`)}>
+          <button type="button" onClick={latestOrder ? () => handleOrderAgain(latestOrder) : jumpToOrders} disabled={Boolean(latestOrder && busyKey === `order-${latestOrder.orderId}`)}>
             <RefreshCw size={18} />
-            {latestOrder && busyKey === `order-${latestOrder.id_pedido}` ? "A adicionar..." : "Pedir novamente"}
+            {latestOrder && busyKey === `order-${latestOrder.orderId}` ? "A adicionar..." : "Pedir novamente"}
           </button>
         </div>
 
@@ -1067,17 +1067,17 @@ function OrderTimelineCard({
   onViewReceipt: (order: OrderResponse) => void
 }) {
   const [detailsOpen, setDetailsOpen] = useState(false)
-  const previewItems = order.itens.slice(0, 3)
-  const firstItem = order.itens[0]
-  const previewExtraCount = Math.max(order.itens.length - 1, 0)
-  const detailsTitleId = `order-details-title-${order.id_pedido}`
+  const previewItems = order.items.slice(0, 3)
+  const firstItem = order.items[0]
+  const previewExtraCount = Math.max(order.items.length - 1, 0)
+  const detailsTitleId = `order-details-title-${order.orderId}`
   const previewSummary = firstItem
     ? previewExtraCount > 0
-      ? `${firstItem.nome_produto} +${previewExtraCount} more item${previewExtraCount === 1 ? "" : "s"}`
-      : `${firstItem.quantidade}x ${firstItem.nome_produto}`
+      ? `${firstItem.productName} +${previewExtraCount} ${previewExtraCount === 1 ? "item" : "itens"}`
+      : `${firstItem.quantity}x ${firstItem.productName}`
     : "Nenhum item listado"
   const canTrack = !orderTerminalStatuses.has(order.status)
-  const canReorder = order.itens.length > 0
+  const canReorder = order.items.length > 0
 
   useEffect(() => {
     if (!detailsOpen) return
@@ -1112,7 +1112,7 @@ function OrderTimelineCard({
             <header className="profile-order-modal-head">
               <div>
                 <span>Número do pedido</span>
-                <h3 id={detailsTitleId}>{order.numero_pedido}</h3>
+                <h3 id={detailsTitleId}>{order.orderNumber}</h3>
               </div>
               <button type="button" onClick={() => setDetailsOpen(false)} aria-label="Fechar detalhes do pedido">
                 <X size={18} />
@@ -1124,13 +1124,13 @@ function OrderTimelineCard({
                 <span>Status</span>
                 <strong>{formatStatus(order.status)}</strong>
                 <span>Pagamento</span>
-                <strong>{formatPayment(order.metodo_pagamento)}</strong>
+                <strong>{formatPayment(order.paymentMethod)}</strong>
               </div>
-              {order.itens.map((item, index) => {
-                const product = productsById[item.id_produto]
-                const productImage = item.imagem ?? product?.image
-                const customizationLines = customizationSummary(item.customizacao)
-                const itemKey = `${order.id_pedido}-${item.id_produto}-${index}`
+              {order.items.map((item, index) => {
+                const product = productsById[item.productId]
+                const productImage = item.image ?? product?.image
+                const customizationLines = customizationSummary(item.customization)
+                const itemKey = `${order.orderId}-${item.productId}-${index}`
                 return (
                   <div key={itemKey} className="profile-order-detail-row">
                     <div className="profile-order-detail-item">
@@ -1140,15 +1140,15 @@ function OrderTimelineCard({
                             src={resolveImage(productImage)}
                             alt=""
                             onError={(event) => {
-                              useApiImageFallback(event.currentTarget)
+                              applyApiImageFallback(event.currentTarget)
                             }}
                           />
                         ) : (
-                          item.nome_produto.charAt(0)
+                          item.productName.charAt(0)
                         )}
                       </span>
                       <div>
-                        <strong>{item.quantidade}x {item.nome_produto}</strong>
+                        <strong>{item.quantity}x {item.productName}</strong>
                         {customizationLines.length > 0 && <span>{customizationLines.join(" | ")}</span>}
                       </div>
                     </div>
@@ -1178,15 +1178,15 @@ function OrderTimelineCard({
         <div className="profile-order-title-row">
           <div>
             <span>Número do pedido</span>
-            <h3>{order.numero_pedido}</h3>
+            <h3>{order.orderNumber}</h3>
           </div>
           <span className={`profile-status ${order.status}`}>{formatStatus(order.status)}</span>
         </div>
 
         <div className="profile-order-meta">
-          <span><CalendarDays size={15} /> {formatDate(order.data_criacao)}</span>
-          <span><PackageCheck size={15} /> {formatFulfillment(order.metodo_entrega)}</span>
-          <span><CreditCard size={15} /> {formatPayment(order.metodo_pagamento)}</span>
+          <span><CalendarDays size={15} /> {formatDate(order.createdAt)}</span>
+          <span><PackageCheck size={15} /> {formatFulfillment(order.deliveryMethod)}</span>
+          <span><CreditCard size={15} /> {formatPayment(order.paymentMethod)}</span>
         </div>
 
         <div className="profile-order-total-row">
@@ -1197,10 +1197,10 @@ function OrderTimelineCard({
         <div className="profile-item-preview">
           <div className="profile-thumb-stack" aria-hidden="true">
             {previewItems.map((item, index) => {
-              const product = productsById[item.id_produto]
+              const product = productsById[item.productId]
               return (
-                <span key={`${order.id_pedido}-${item.id_produto}-${index}`}>
-                  {product?.image ? <img src={resolveImage(product.image)} alt="" /> : item.nome_produto.charAt(0)}
+                <span key={`${order.orderId}-${item.productId}-${index}`}>
+                  {product?.image ? <img src={resolveImage(product.image)} alt="" /> : item.productName.charAt(0)}
                 </span>
               )
             })}
@@ -1224,10 +1224,10 @@ function OrderTimelineCard({
           type="button"
           className="profile-soft-action"
           onClick={() => onViewReceipt(order)}
-          disabled={busyKey === `receipt-${order.id_pedido}`}
+          disabled={busyKey === `receipt-${order.orderId}`}
         >
           <ReceiptText size={16} />
-          {busyKey === `receipt-${order.id_pedido}` ? "A abrir..." : "Ver recibo"}
+          {busyKey === `receipt-${order.orderId}` ? "A abrir..." : "Ver recibo"}
         </button>
         {canTrack && (
           <button
@@ -1244,10 +1244,10 @@ function OrderTimelineCard({
             type="button"
             className="profile-order-again p-1 fw-semibold"
             onClick={() => onOrderAgain(order)}
-            disabled={busyKey === `order-${order.id_pedido}`}
+            disabled={busyKey === `order-${order.orderId}`}
           >
             <RefreshCw size={14} />
-            {busyKey === `order-${order.id_pedido}` ? "A adicionar..." : "Repetir pedido"}
+            {busyKey === `order-${order.orderId}` ? "A adicionar..." : "Repetir pedido"}
           </button>
         )}
       </div>

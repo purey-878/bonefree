@@ -16,7 +16,7 @@ from utils.validation import (  # noqa: E402
     validate_postal_code,
 )
 from schemas.checkout import CheckoutCustomer  # noqa: E402
-from schemas.usuario import ResetPasswordRequest, UserRegister  # noqa: E402
+from schemas.user import ResetPasswordRequest, UserRegister  # noqa: E402
 
 
 class PortugueseValidationTests(unittest.TestCase):

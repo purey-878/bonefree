@@ -34,7 +34,6 @@ from utils.id_format import format_product_id, parse_product_id
 from core.errors import AppHTTPException
 
 router = APIRouter(prefix="/cart", tags=["Cart"])
-alias_router = APIRouter(prefix="/cart", tags=["Cart"])
 CUSTOMIZATION_ADD_SURCHARGE = Decimal("1.00")
 
 
@@ -79,7 +78,7 @@ def _build_item_out(item: CartProduct) -> CartItemOut:
     """Convert a CartProduct ORM row into the response schema."""
     product = item.product
     image = _product_image_path(product)
-    
+
     customization = customization_from_json(item.customization)
     price = (
         Decimal(str(customization.final_unit_price))
@@ -446,7 +445,7 @@ def _trusted_guest_customization(
 # ─────────────────────────────────────────────────────────────────────────────
 
 # GET /cart/  ── view cart
-@router.get("/", response_model=CartOut)
+@router.get("/", response_model=CartOut, operation_id="cart_get_cart")
 def get_cart(
     db: Session = Depends(get_db),
     current_user: Optional[Customer] = Depends(get_current_user_optional),
@@ -454,13 +453,13 @@ def get_cart(
     # If user is not authenticated, return empty guest cart
     if not current_user:
         return CartOut(cart_id=None, items=[], total=Decimal("0"))
-    
+
     cart = _get_or_create_cart(db, current_user.customer_id)
     return _build_cart_out(cart)
 
 
 # POST /cart/add  ── add or increment item
-@router.post("/add", response_model=CartOut)
+@router.post("/add", response_model=CartOut, operation_id="cart_add_item")
 def add_item(
     body: AddItemSchema,
     db: Session = Depends(get_db),
@@ -470,14 +469,14 @@ def add_item(
     _ensure_product_orderable(db, product)
     customization = _price_legacy_customization(db, product, body.customization)
     customization_json = customization_to_json(customization)
-    
+
     # If user is not authenticated, just validate and return empty cart response
     # Frontend will handle localStorage for guest cart
     if not current_user:
         _check_stock(product, body.quantity)
         # Return empty guest cart - frontend stores in localStorage
         return CartOut(cart_id=None, items=[], total=Decimal("0"))
-    
+
     cart = _get_or_create_cart(db, current_user.customer_id)
 
     existing = (
@@ -546,7 +545,7 @@ def _add_customized_item_impl(
                 action=row["action"],
                 quantity=row["quantity"],
                 extra_price=row["extra_price"],
-                notes=body.observacoes,
+                notes=body.notes,
             ))
 
     db.commit()
@@ -554,8 +553,7 @@ def _add_customized_item_impl(
     return _build_cart_out(cart)
 
 
-@router.post("/items/customizado", response_model=CartOut)
-@alias_router.post("/items/customizado", response_model=CartOut)
+@router.post("/items/customized", response_model=CartOut, operation_id="cart_add_customized_item")
 def add_customized_item(
     body: CustomizedCartItemRequest,
     db: Session = Depends(get_db),
@@ -565,7 +563,7 @@ def add_customized_item(
 
 
 # PUT /cart/update  ── set exact quantity for an item
-@router.put("/update", response_model=CartOut)
+@router.put("/update", response_model=CartOut, operation_id="cart_update_item")
 def update_item(
     body: UpdateItemSchema,
     db: Session = Depends(get_db),
@@ -577,7 +575,7 @@ def update_item(
         _ensure_product_orderable(db, product)
         _check_stock(product, body.quantity)
         return CartOut(cart_id=None, items=[], total=Decimal("0"))
-    
+
     cart = _get_or_create_cart(db, current_user.customer_id)
 
     if body.cart_product_id is not None:
@@ -608,7 +606,7 @@ def update_item(
 
 
 # DELETE /cart/remove/{product_id}  ── remove one item
-@router.delete("/remove/{product_id}", response_model=CartOut)
+@router.delete("/remove/{product_id}", response_model=CartOut, operation_id="cart_remove_item")
 def remove_item(
     product_id: str,
     cart_product_id: Optional[int] = Query(None),
@@ -620,7 +618,7 @@ def remove_item(
     if not current_user:
         _get_product_or_404(db, parsed_product_id)
         return CartOut(cart_id=None, items=[], total=Decimal("0"))
-    
+
     cart = _get_or_create_cart(db, current_user.customer_id)
 
     if cart_product_id is not None:
@@ -648,7 +646,7 @@ def remove_item(
 
 
 # DELETE /cart/clear  ── empty the whole cart
-@router.delete("/clear", response_model=CartOut)
+@router.delete("/clear", response_model=CartOut, operation_id="cart_clear_cart")
 def clear_cart(
     db: Session = Depends(get_db),
     current_user: Optional[Customer] = Depends(get_current_user_optional),
@@ -656,7 +654,7 @@ def clear_cart(
     # If user is not authenticated, just return empty cart
     if not current_user:
         return CartOut(cart_id=None, items=[], total=Decimal("0"))
-    
+
     cart = _get_or_create_cart(db, current_user.customer_id)
     _delete_cart_items(db, cart.cart_id)
     db.commit()
@@ -665,7 +663,7 @@ def clear_cart(
 
 
 # POST /cart/merge  ── merge guest localStorage cart after login
-@router.post("/merge", response_model=MergeResult)
+@router.post("/merge", response_model=MergeResult, operation_id="cart_merge_cart")
 def merge_cart(
     body: MergeCartSchema,
     db: Session = Depends(get_db),

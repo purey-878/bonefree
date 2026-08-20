@@ -14,7 +14,7 @@ class ProductIngredientNutrition(BaseModel):
     status: EntityStatus = EntityStatus.ACTIVE
     quantity: str | None = None
     calories_per_gram: float | None = None
-    calorias: float = 0
+    calories: float = 0
 
 
 class ProductResponse(BaseModel):
@@ -73,9 +73,9 @@ class ProductResponse(BaseModel):
 
         # Fallback: Generate image filename from product name if no image in DB
         if not image_url and p.name:
-    
+
             filename = p.name.lower().replace(' ', '').replace('ã', 'a').replace('é', 'e').replace('ç', 'c')
-      
+
             filename = ''.join(c for c in filename if c.isalnum())
             image_url = f"/menu-images/{filename}.webp"
             image_urls = [image_url]
@@ -84,9 +84,9 @@ class ProductResponse(BaseModel):
         available = stock > 0 and not unavailable_due_to_inactive_base
         saved_calories = getattr(p, "total_calories", None)
         ingredient_calories = sum(
-            item.calorias
+            item.calories
             for item in (ingredients or [])
-            if item.calorias is not None and item.calorias > 0
+            if item.calories is not None and item.calories > 0
         )
         saved_calorie_value = float(saved_calories) if saved_calories is not None else None
         total_calories = (

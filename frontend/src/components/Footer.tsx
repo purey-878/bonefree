@@ -32,7 +32,7 @@ const Footer: React.FC = () => {
         <div className="row">
           <div className="col-lg-3 col-md-6 mb-4">
             <div className="footer-brand">
-              <img src="/assets/images/bonefree-logo.webp" alt={companyDetails.brand_name} />
+              <img src="/assets/images/bonefree-logo.webp" alt={companyDetails.brandName} />
             </div>
             <p className="mt-3">{companyDetails.description}</p>
           </div>
@@ -79,7 +79,7 @@ const Footer: React.FC = () => {
 
         <div className="row">
           <div className="col text-center">
-            <p className="mb-0">&copy; {new Date().getFullYear()} {companyDetails.brand_name}. Todos os direitos reservados.</p>
+            <p className="mb-0">&copy; {new Date().getFullYear()} {companyDetails.brandName}. Todos os direitos reservados.</p>
           </div>
         </div>
       </div>

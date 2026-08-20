@@ -3635,16 +3635,16 @@
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
-.order-card-status-pendente,
-.kitchen-order-card-pendente { border-left-color: #f97316; }
-.order-card-status-confirmada,
-.kitchen-order-card-confirmada { border-left-color: #3b82f6; }
-.order-card-status-em_preparacao,
-.kitchen-order-card-em_preparacao { border-left-color: #f59e0b; }
-.order-card-status-pronta,
-.kitchen-order-card-pronta { border-left-color: #22c55e; }
-.order-card-status-entregue { border-left-color: #94a3b8; }
-.order-card-status-cancelada { border-left-color: #7f1d1d; }
+.order-card-status-pending,
+.kitchen-order-card-pending { border-left-color: #f97316; }
+.order-card-status-confirmed,
+.kitchen-order-card-confirmed { border-left-color: #3b82f6; }
+.order-card-status-in_preparation,
+.kitchen-order-card-in_preparation { border-left-color: #f59e0b; }
+.order-card-status-ready,
+.kitchen-order-card-ready { border-left-color: #22c55e; }
+.order-card-status-delivered { border-left-color: #94a3b8; }
+.order-card-status-cancelled { border-left-color: #7f1d1d; }
 
 .order-card-v2-header,
 .kitchen-order-card-header {
