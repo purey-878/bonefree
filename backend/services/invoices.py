@@ -6,6 +6,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from schemas.enums import PaymentStatus, normalize_enum
@@ -17,7 +18,7 @@ def ensure_invoice_for_order(db: Session, order: Order) -> Invoice | None:
     if normalize_enum(PaymentStatus, order.payment_status) != PaymentStatus.PAID:
         return None
 
-    existing = db.query(Invoice).filter(Invoice.order_id == order.order_id).first()
+    existing = db.scalar(select(Invoice).where(Invoice.order_id == order.order_id))
     if existing:
         return existing
 

@@ -62,7 +62,7 @@ class SubstitutionServiceTests(unittest.TestCase):
         self.assertTrue(is_product_available(item, quantity=1, stock_threshold=0))
         self.assertEqual(
             availability_reason(item, quantity=1, stock_threshold=0),
-            "O item está disponível.",
+            "The item is available.",
         )
 
     def test_item_out_of_stock_is_unavailable(self):
@@ -71,7 +71,7 @@ class SubstitutionServiceTests(unittest.TestCase):
         self.assertFalse(is_product_available(item, quantity=1, stock_threshold=0))
         self.assertEqual(
             availability_reason(item, quantity=1, stock_threshold=0),
-            "O item está esgotado.",
+            "The item is out of stock.",
         )
 
     def test_no_substitute_available(self):

@@ -1,8 +1,8 @@
 
 import re
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select, and_, or_
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import and_, exists, or_, select
+from sqlalchemy.orm import Session, selectinload
 from database import get_db
 from schemas.enums import EntityStatus, IngredientType, ProductCustomizationOptionType
 from models import Ingredient, Product, ProductIngredient, ProductCustomizationOption
@@ -78,33 +78,46 @@ def _ingredient_nutrition_response(row: ProductIngredient) -> ProductIngredientN
     )
 
 
-def _product_ingredient_nutrition(db: Session, product_id: int) -> list[ProductIngredientNutrition]:
-    rows = (
-        db.query(ProductIngredient)
+def _product_ingredient_nutrition_lookup(
+    db: Session,
+    product_ids: list[int],
+) -> dict[int, list[ProductIngredientNutrition]]:
+    if not product_ids:
+        return {}
+    rows = db.scalars(
+        select(ProductIngredient)
         .join(ProductIngredient.ingredient)
-        .filter(ProductIngredient.product_id == product_id)
-        .order_by(ProductIngredient.ingredient_id)
-        .all()
-    )
-    return [
-        item
-        for row in rows
-        if (item := _ingredient_nutrition_response(row)) is not None
-    ]
+        .where(ProductIngredient.product_id.in_(product_ids))
+        .order_by(ProductIngredient.product_id, ProductIngredient.ingredient_id)
+    ).all()
+    lookup: dict[int, list[ProductIngredientNutrition]] = {
+        product_id: [] for product_id in product_ids
+    }
+    for row in rows:
+        item = _ingredient_nutrition_response(row)
+        if item is not None:
+            lookup[row.product_id].append(item)
+    return lookup
+
+
+def _product_ingredient_nutrition(db: Session, product_id: int) -> list[ProductIngredientNutrition]:
+    return _product_ingredient_nutrition_lookup(db, [product_id]).get(product_id, [])
 
 
 @router.get('/', response_model=list[ProductResponse], operation_id="products_list_products")
 def list_products(db: Session = Depends(get_db)):
     """Get all active products with their images."""
-    query = select(Product).where(active_product_filter()).options(joinedload(Product.images))
+    query = select(Product).where(active_product_filter()).options(selectinload(Product.images))
     products = db.scalars(query).unique().all()
-    inactive_base_ids = inactive_base_product_ids(db, [product.product_id for product in products])
+    product_ids = [product.product_id for product in products]
+    inactive_base_ids = inactive_base_product_ids(db, product_ids)
+    ingredient_lookup = _product_ingredient_nutrition_lookup(db, product_ids)
     return [
         ProductResponse.from_orm_custom(
             product,
             unavailable_due_to_inactive_base=product.product_id in inactive_base_ids,
             unavailable_reason=INACTIVE_BASE_REASON,
-            ingredients=_product_ingredient_nutrition(db, product.product_id),
+            ingredients=ingredient_lookup.get(product.product_id, []),
         )
         for product in products
     ]
@@ -124,18 +137,20 @@ def get_availability_suggestions(
 ):
     parsed_product_id = parse_product_id(product_id)
     """Return stock-out substitutes and similar available dishes for a product."""
-    product = db.query(Product).filter(
-        and_(Product.product_id == parsed_product_id, active_product_filter())
-    ).first()
+    product = db.scalar(
+        select(Product).where(
+            and_(Product.product_id == parsed_product_id, active_product_filter())
+        ).limit(1)
+    )
     if not product:
         raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
 
     available = is_product_available(product, quantity, stock_threshold)
-    active_products = db.query(Product).filter(active_product_filter()).all()
 
     substitutes = []
     similar_dishes = []
     if not available:
+        active_products = db.scalars(select(Product).where(active_product_filter())).unique().all()
         substitutes = rank_substitutions(
             product,
             active_products,
@@ -175,26 +190,27 @@ def get_customization_options(
 ):
     parsed_product_id = parse_product_id(product_id)
     """Return item-level customization choices for a product."""
-    product = db.query(Product).filter(
-        and_(Product.product_id == parsed_product_id, active_product_filter())
-    ).first()
+    product = db.scalar(
+        select(Product).where(
+            and_(Product.product_id == parsed_product_id, active_product_filter())
+        ).limit(1)
+    )
     if not product:
         raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
 
     ingredient_rows = []
     if not _is_drink_product(product):
-        ingredient_rows = (
-            db.query(ProductIngredient)
+        ingredient_rows = db.scalars(
+            select(ProductIngredient)
             .join(ProductIngredient.ingredient)
-            .filter(
+            .where(
                 ProductIngredient.product_id == parsed_product_id,
                 ProductIngredient.removable == 1,
                 Ingredient.status == EntityStatus.ACTIVE,
                 Ingredient.type == IngredientType.NORMAL,
             )
             .order_by(Ingredient.name)
-            .all()
-        )
+        ).all()
     remove_options = []
     seen_remove = set()
     for row in ingredient_rows:
@@ -211,10 +227,10 @@ def get_customization_options(
         ProductCustomizationOption.type == ProductCustomizationOptionType.EXTRA,
         ProductCustomizationOption.status == EntityStatus.ACTIVE,
     )
-    has_product_extra_options = db.query(ProductCustomizationOption.option_id).filter(*extra_filters).first() is not None
-    extra_rows = (
-        db.query(ProductCustomizationOption)
-        .filter(
+    has_product_extra_options = bool(db.scalar(select(exists().where(*extra_filters))))
+    extra_rows = db.scalars(
+        select(ProductCustomizationOption)
+        .where(
             *extra_filters,
             or_(
                 ProductCustomizationOption.ingredient_id.is_(None),
@@ -222,8 +238,7 @@ def get_customization_options(
             ),
         )
         .order_by(ProductCustomizationOption.name)
-        .all()
-    )
+    ).all()
     add_options = []
     seen_add = set()
     for option in extra_rows:
@@ -251,21 +266,22 @@ def get_product_customization(
 ):
     parsed_product_id = parse_product_id(product_id)
     """Return database-backed customization options for a product."""
-    product = db.query(Product).filter(
-        and_(Product.product_id == parsed_product_id, active_product_filter())
-    ).first()
+    product = db.scalar(
+        select(Product).where(
+            and_(Product.product_id == parsed_product_id, active_product_filter())
+        ).limit(1)
+    )
     if not product:
         raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
 
     ingredient_rows = []
     if not _is_drink_product(product):
-        ingredient_rows = (
-            db.query(ProductIngredient)
+        ingredient_rows = db.scalars(
+            select(ProductIngredient)
             .join(ProductIngredient.ingredient)
-            .filter(ProductIngredient.product_id == parsed_product_id, Ingredient.type != IngredientType.DRINK)
+            .where(ProductIngredient.product_id == parsed_product_id, Ingredient.type != IngredientType.DRINK)
             .order_by(ProductIngredient.ingredient_id)
-            .all()
-        )
+        ).all()
     ingredients = [
         CustomizationIngredientResponse(
             ingredient_id=row.ingredient_id,
@@ -284,9 +300,9 @@ def get_product_customization(
         ProductCustomizationOptionType.ADD: [],
         ProductCustomizationOptionType.SUBSTITUTE_SAUCE: [],
     }
-    options = (
-        db.query(ProductCustomizationOption)
-        .filter(
+    options = db.scalars(
+        select(ProductCustomizationOption)
+        .where(
             ProductCustomizationOption.product_id == parsed_product_id,
             ProductCustomizationOption.status == EntityStatus.ACTIVE,
             ProductCustomizationOption.type.in_(tuple(grouped_options.keys())),
@@ -296,8 +312,7 @@ def get_product_customization(
             ),
         )
         .order_by(ProductCustomizationOption.type, ProductCustomizationOption.name)
-        .all()
-    )
+    ).all()
     for option in options:
         grouped_options[option.type].append(
             CustomizationOptionResponse(
@@ -327,9 +342,12 @@ def get_product_customization(
 def get_product(product_id: str, db: Session = Depends(get_db)):
     """Get a single active product by ID, including its images."""
     parsed_product_id = parse_product_id(product_id)
-    product = db.query(Product).options(joinedload(Product.images)).filter(
-        and_(Product.product_id == parsed_product_id, active_product_filter())
-    ).first()
+    product = db.scalar(
+        select(Product)
+        .options(selectinload(Product.images))
+        .where(and_(Product.product_id == parsed_product_id, active_product_filter()))
+        .limit(1)
+    )
     if not product:
         raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
     unavailable = product.product_id in inactive_base_product_ids(db, [product.product_id])

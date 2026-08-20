@@ -135,9 +135,9 @@ def is_product_available(
 ) -> bool:
     """Return True when the product has enough stock above the threshold."""
     if quantity < 1:
-        raise ValueError("A quantity deve ser pelo menos 1.")
+        raise ValueError("Quantity must be at least 1.")
     if stock_threshold < 0:
-        raise ValueError("O limite de stock não pode ser negativo.")
+        raise ValueError("The stock threshold cannot be negative.")
 
     return (
         is_active_product(product)
@@ -154,14 +154,14 @@ def availability_reason(
     """Explain why a product is or is not available for preparation."""
     stock = product_stock(product)
     if not is_active_product(product):
-        return "O item não está ativo no menu."
+        return "The item is not active on the menu."
     if stock <= 0:
-        return "O item está esgotado."
+        return "The item is out of stock."
     if stock < quantity:
-        return f"O item tem apenas {stock} em stock para um pedido de {quantity}."
+        return f"The item has only {stock} units in stock for a requested quantity of {quantity}."
     if stock <= stock_threshold:
-        return f"O stock do item ({stock}) está no limite ou abaixo do limite ({stock_threshold})."
-    return "O item está disponível."
+        return f"The item stock ({stock}) is at or below the threshold ({stock_threshold})."
+    return "The item is available."
 
 
 def extract_product_tags(product: Any) -> set[str]:
@@ -228,7 +228,7 @@ def _rank_candidates(
     mode: str,
 ) -> list[RankedSuggestion]:
     if limit < 1:
-        raise ValueError("O limite deve ser pelo menos 1.")
+        raise ValueError("The limit must be at least 1.")
 
     original_id = product_id(original)
     original_category = _category_key(original)

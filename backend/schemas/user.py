@@ -1,4 +1,4 @@
-"""User/Usuario schemas for API validation."""
+"""User schemas for API validation."""
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from typing import Optional
@@ -7,7 +7,7 @@ from utils.validation import (
     normalize_phone,
     validate_email,
     validate_name,
-    validate_nif,
+    validate_portuguese_tax_id,
     validate_password,
     validate_postal_code,
 )
@@ -55,8 +55,8 @@ class UserRegister(BaseModel):
 
     @field_validator("tax_id")
     @classmethod
-    def check_nif(cls, value: Optional[str]) -> Optional[str]:
-        return validate_nif(value)
+    def check_tax_id(cls, value: Optional[str]) -> Optional[str]:
+        return validate_portuguese_tax_id(value)
 
 
 class CustomerBillingAddressBase(BaseModel):
@@ -127,8 +127,8 @@ class UserProfileUpdate(BaseModel):
 
     @field_validator("tax_id")
     @classmethod
-    def check_nif(cls, value: Optional[str]) -> Optional[str]:
-        return validate_nif(value)
+    def check_tax_id(cls, value: Optional[str]) -> Optional[str]:
+        return validate_portuguese_tax_id(value)
 
     @field_validator("email")
     @classmethod

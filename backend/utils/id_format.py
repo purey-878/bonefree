@@ -29,14 +29,14 @@ def _format_prefixed_id(value: int | str | None, prefix: str) -> str:
 
 def _parse_prefixed_id(value: Any, prefix: str, label: str) -> int:
     if value is None:
-        raise ValueError(f"ID de {label} obrigatorio.")
+        raise ValueError(f"{label.capitalize()} ID is required.")
 
     if isinstance(value, int):
         parsed = value
     else:
         raw = str(value).strip()
         if not raw:
-            raise ValueError(f"ID de {label} obrigatorio.")
+            raise ValueError(f"{label.capitalize()} ID is required.")
         upper = raw.upper()
         prefixed = re.fullmatch(rf"{re.escape(prefix)}-?0*(\d+)", upper)
         if prefixed:
@@ -46,9 +46,9 @@ def _parse_prefixed_id(value: Any, prefix: str, label: str) -> int:
         else:
             trailing = re.search(r"(\d+)$", raw)
             if not trailing:
-                raise ValueError(f"ID de {label} invalido.")
+                raise ValueError(f"Invalid {label} ID.")
             parsed = int(trailing.group(1))
 
     if parsed < 1:
-        raise ValueError(f"ID de {label} invalido.")
+        raise ValueError(f"Invalid {label} ID.")
     return parsed

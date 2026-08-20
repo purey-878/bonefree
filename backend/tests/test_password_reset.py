@@ -49,7 +49,7 @@ class PasswordResetTests(unittest.TestCase):
             valid, message, token = verify_password_reset_code(user, "123456", now)
 
         self.assertTrue(valid)
-        self.assertEqual(message, "Código de redefinição verificado.")
+        self.assertEqual(message, "Password reset code verified.")
         self.assertEqual(token, "reset-token")
         self.assertIsNone(user.password_reset_code_hash)
         self.assertEqual(user.password_reset_token_hash, hash_secret("reset-token"))
@@ -62,7 +62,7 @@ class PasswordResetTests(unittest.TestCase):
         valid, message, token = verify_password_reset_code(user, "000000")
 
         self.assertFalse(valid)
-        self.assertEqual(message, "Código de redefinição inválido.")
+        self.assertEqual(message, "Invalid password reset code.")
         self.assertIsNone(token)
         self.assertEqual(user.password_reset_attempts, 1)
 
@@ -80,7 +80,7 @@ class PasswordResetTests(unittest.TestCase):
         )
 
         self.assertFalse(valid)
-        self.assertIn("expirou", message)
+        self.assertIn("expired", message)
         self.assertIsNone(token)
         self.assertIsNone(user.password_reset_code_hash)
 
@@ -94,7 +94,7 @@ class PasswordResetTests(unittest.TestCase):
         valid, message, _ = verify_password_reset_code(user, "000000")
 
         self.assertFalse(valid)
-        self.assertIn("Demasiadas tentativas", message)
+        self.assertIn("Too many incorrect attempts", message)
         self.assertIsNone(user.password_reset_code_hash)
 
     def test_can_reset_password_with_valid_token(self):
@@ -106,7 +106,7 @@ class PasswordResetTests(unittest.TestCase):
         allowed, message = can_reset_password(user, "reset-token", datetime(2026, 5, 13, 12, 2, 0))
 
         self.assertTrue(allowed)
-        self.assertEqual(message, "Redefinição da palavra-passe autorizada.")
+        self.assertEqual(message, "Password reset authorized.")
 
     def test_clear_password_reset_removes_state(self):
         user = FakeUser(

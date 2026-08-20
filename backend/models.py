@@ -157,7 +157,12 @@ class Product(AppBaseModel):
     customizable: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="1")
     menu_tags: Mapped[str] = mapped_column(String(255), nullable=True)
     featured: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
-    discount_percentual: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False, default=0)
+    discount_percentage: Mapped[Decimal] = mapped_column(
+        "discount_percentual",
+        Numeric(5, 2),
+        nullable=False,
+        default=0,
+    )
     gluten_free: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
     contains_alcohol: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
     deleted_at: Mapped[datetime] = mapped_column(DateTime, nullable=True, index=True)  #  soft delete
@@ -165,7 +170,7 @@ class Product(AppBaseModel):
     admin: Mapped["User"] = relationship("User")
     category: Mapped[Category] = relationship('Category', lazy='joined')
     # Parent-side 0..N: a product may exist without any uploaded images.
-    images: Mapped[List[ProductImage]] = relationship('ProductImage', back_populates='product', lazy='joined')
+    images: Mapped[List[ProductImage]] = relationship('ProductImage', back_populates='product', lazy='selectin')
     # Parent-side 0..N: a product may exist without any customer reviews.
     reviews: Mapped[List[ProductReview]] = relationship("ProductReview", back_populates="product")
 
@@ -417,10 +422,10 @@ class Order(AppBaseModel):
 
     customer: Mapped["User"] = relationship("User", foreign_keys=[customer_id], lazy='joined')
     admin: Mapped["User"] = relationship("User", foreign_keys=[admin_id])
-    items: Mapped[List["OrderProduct"]] = relationship("OrderProduct", back_populates="order", cascade="all, delete-orphan", lazy='joined')
+    items: Mapped[List["OrderProduct"]] = relationship("OrderProduct", back_populates="order", cascade="all, delete-orphan", lazy='selectin')
     payment: Mapped["Payment"] = relationship("Payment", back_populates="order", uselist=False, cascade="all, delete-orphan", lazy='joined')
     # Parent-side 0..N: an order may exist without any refunds.
-    refunds: Mapped[List["Refund"]] = relationship("Refund", back_populates="order", cascade="all, delete-orphan", lazy='joined')
+    refunds: Mapped[List["Refund"]] = relationship("Refund", back_populates="order", cascade="all, delete-orphan", lazy='selectin')
     invoice: Mapped["Invoice"] = relationship("Invoice", back_populates="order", uselist=False, cascade="all, delete-orphan")
 
 

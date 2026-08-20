@@ -10,13 +10,13 @@ from decimal import Decimal
 from io import StringIO
 from pathlib import Path
 from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response, status, Query, UploadFile, File
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func, desc, or_, select
+from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy import desc, extract, func, or_, select
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Union
 
 from database import get_db
-from dependencies import get_current_admin, require_role
+from dependencies import require_role
 from schemas.enums import ADMIN_ROLES, EntityStatus, IngredientType, OrderState, PaymentMethod, PaymentState, PaymentStatus, RefundMethod, RefundStatus, ReviewStatus, UserRole, UserStatus, normalize_admin_role
 from models import (
     Admin, Product, Cart, CartProduct as CartItem, Customer, ProductImage,
@@ -110,7 +110,7 @@ def admin_login(credentials: AdminLogin, request: Request, db: Session = Depends
 
 
 @router.get("/me", response_model=AdminResponse, operation_id="admin_management_read_current_admin")
-def read_current_admin(current_admin: Admin = Depends(get_current_admin)):
+def read_current_admin(current_admin: Admin = Depends(require_role(*ADMIN_ROLES))):
     current_admin.role = normalize_admin_role(current_admin.role)
     return current_admin
 
@@ -119,7 +119,7 @@ def _empty_sales_stats() -> SalesStats:
     return {
         "total_sales": 0.0,
         "quantity_sold": 0,
-        "order_numbers": 0,
+        "order_count": 0,
     }
 
 
@@ -147,22 +147,160 @@ def _sales_point(period: str, stats: SalesStats) -> PeriodicSalesResponse:
         period=period,
         total_sales=float(stats["total_sales"]),
         quantity_sold=int(stats["quantity_sold"]),
-        order_count=int(stats["order_numbers"]),
+        order_count=int(stats["order_count"]),
     )
 
 
-def _add_order_to_sales_bucket(
-    buckets: Dict[str, SalesStats],
-    bucket_key: str,
-    order_total: float,
-    item_quantity: int,
-) -> None:
-    if bucket_key not in buckets:
-        return
+def _period_expressions(timestamp_column, granularity: str):
+    parts = ["year"]
+    if granularity in {"month", "day", "hour"}:
+        parts.append("month")
+    if granularity in {"day", "hour"}:
+        parts.append("day")
+    if granularity == "hour":
+        parts.append("hour")
+    expressions = [extract(part, timestamp_column) for part in parts]
+    return parts, expressions
 
-    buckets[bucket_key]["total_sales"] = float(buckets[bucket_key]["total_sales"]) + order_total
-    buckets[bucket_key]["quantity_sold"] = int(buckets[bucket_key]["quantity_sold"]) + item_quantity
-    buckets[bucket_key]["order_numbers"] = int(buckets[bucket_key]["order_numbers"]) + 1
+
+def _period_key_from_mapping(row, parts: List[str], granularity: str) -> str:
+    values = {part: int(row[part]) for part in parts}
+    if granularity == "hour":
+        return f"{values['year']:04d}-{values['month']:02d}-{values['day']:02d} {values['hour']:02d}:00"
+    if granularity == "day":
+        return f"{values['year']:04d}-{values['month']:02d}-{values['day']:02d}"
+    if granularity == "month":
+        return f"{values['year']:04d}-{values['month']:02d}"
+    return f"{values['year']:04d}"
+
+
+def _sales_aggregate_rows(
+    db: Session,
+    start: datetime,
+    end: datetime,
+    granularity: str,
+) -> list[tuple[str, float, int, int]]:
+    """Aggregate sales without materializing Order and OrderProduct ORM graphs."""
+    item_totals = (
+        select(
+            OrderProduct.order_id.label("order_id"),
+            func.coalesce(func.sum(OrderProduct.quantity), 0).label("quantity_sold"),
+        )
+        .group_by(OrderProduct.order_id)
+        .subquery()
+    )
+    parts, expressions = _period_expressions(Order.ordered_at, granularity)
+    statement = (
+        select(
+            *(expression.label(part) for part, expression in zip(parts, expressions)),
+            func.coalesce(func.sum(Order.total), 0).label("total_sales"),
+            func.coalesce(func.sum(item_totals.c.quantity_sold), 0).label("quantity_sold"),
+            func.count(Order.order_id).label("order_count"),
+        )
+        .outerjoin(item_totals, item_totals.c.order_id == Order.order_id)
+        .where(Order.ordered_at >= start, Order.ordered_at <= end)
+        .group_by(*expressions)
+        .order_by(*expressions)
+    )
+    return [
+        (
+            _period_key_from_mapping(row, parts, granularity),
+            float(row["total_sales"] or 0),
+            int(row["quantity_sold"] or 0),
+            int(row["order_count"] or 0),
+        )
+        for row in db.execute(statement).mappings()
+    ]
+
+
+def _product_sales_aggregate_rows(
+    db: Session,
+    start: datetime,
+    end: datetime,
+    granularity: str,
+    product_id: int | None = None,
+) -> list[tuple[str, float, int, int, int]]:
+    """Aggregate order lines while preserving line and distinct-order counters."""
+    parts, expressions = _period_expressions(Order.ordered_at, granularity)
+    statement = (
+        select(
+            *(expression.label(part) for part, expression in zip(parts, expressions)),
+            func.coalesce(func.sum(OrderProduct.unit_price * OrderProduct.quantity), 0).label("total_sales"),
+            func.coalesce(func.sum(OrderProduct.quantity), 0).label("quantity_sold"),
+            func.count(OrderProduct.order_product_id).label("line_count"),
+            func.count(func.distinct(OrderProduct.order_id)).label("distinct_order_count"),
+        )
+        .join(Order, OrderProduct.order_id == Order.order_id)
+        .where(Order.ordered_at >= start, Order.ordered_at <= end)
+        .group_by(*expressions)
+        .order_by(*expressions)
+    )
+    if product_id is not None:
+        statement = statement.where(OrderProduct.product_id == product_id)
+    return [
+        (
+            _period_key_from_mapping(row, parts, granularity),
+            float(row["total_sales"] or 0),
+            int(row["quantity_sold"] or 0),
+            int(row["line_count"] or 0),
+            int(row["distinct_order_count"] or 0),
+        )
+        for row in db.execute(statement).mappings()
+    ]
+
+
+def _low_stock_product_rows(db: Session, limit: int) -> List[LowStockProduct]:
+    rows = db.execute(
+        select(
+            Product.product_id,
+            Product.name,
+            Product.stock,
+            Product.price,
+            Category.category_name,
+        )
+        .outerjoin(Category, Category.category_id == Product.category_id)
+        .where(Product.status == EntityStatus.ACTIVE)
+        .order_by(Product.stock.asc())
+        .limit(limit)
+    ).all()
+    return [
+        LowStockProduct(
+            product_id=row.product_id,
+            product_display_id=format_product_id(row.product_id),
+            name=row.name,
+            stock=row.stock,
+            price=float(row.price),
+            category=row.category_name or "",
+        )
+        for row in rows
+    ]
+
+
+def _popular_product_rows(db: Session, limit: int) -> List[PopularProduct]:
+    rows = db.execute(
+        select(
+            Product.product_id,
+            Product.name,
+            Product.sold,
+            Product.price,
+            Category.category_name,
+        )
+        .outerjoin(Category, Category.category_id == Product.category_id)
+        .where(Product.status == EntityStatus.ACTIVE)
+        .order_by(desc(Product.sold))
+        .limit(limit)
+    ).all()
+    return [
+        PopularProduct(
+            product_id=row.product_id,
+            product_display_id=format_product_id(row.product_id),
+            name=row.name,
+            sold=row.sold or 0,
+            price=float(row.price),
+            category=row.category_name or "",
+        )
+        for row in rows
+    ]
 
 
 def _build_dashboard_sales_graphs(db: Session) -> DashboardSalesGraphs:
@@ -184,46 +322,37 @@ def _build_dashboard_sales_graphs(db: Session) -> DashboardSalesGraphs:
     monthly_buckets = {key: _empty_sales_stats() for key in monthly_keys}
     yearly_buckets = {key: _empty_sales_stats() for key in yearly_keys}
 
-    orders = db.scalars(
-        select(Order).where(Order.ordered_at >= yearly_start)
-    ).all()
-
-    for order in orders:
-        order_date = order.ordered_at
-        if not order_date:
-            continue
-
-        order_total = float(order.total or 0)
-        item_quantity = sum(item.quantity for item in order.items)
-
-        if order_date >= hourly_start:
-            _add_order_to_sales_bucket(
-                hourly_buckets,
-                order_date.replace(minute=0, second=0, microsecond=0).strftime("%Y-%m-%d %H:00"),
-                order_total,
-                item_quantity,
-            )
-        if order_date.date() >= daily_start:
-            _add_order_to_sales_bucket(
-                daily_buckets,
-                order_date.strftime("%Y-%m-%d"),
-                order_total,
-                item_quantity,
-            )
-        if order_date >= monthly_start:
-            _add_order_to_sales_bucket(
-                monthly_buckets,
-                order_date.strftime("%Y-%m"),
-                order_total,
-                item_quantity,
-            )
-        if order_date >= yearly_start:
-            _add_order_to_sales_bucket(
-                yearly_buckets,
-                order_date.strftime("%Y"),
-                order_total,
-                item_quantity,
-            )
+    windows = (
+        (hourly_buckets, hourly_start, now + timedelta(hours=1) - timedelta(microseconds=1), "hour"),
+        (
+            daily_buckets,
+            datetime.combine(daily_start, datetime.min.time()),
+            datetime.combine(today, datetime.max.time()),
+            "day",
+        ),
+        (
+            monthly_buckets,
+            monthly_start,
+            _shift_month(datetime(today.year, today.month, 1), 1) - timedelta(microseconds=1),
+            "month",
+        ),
+        (
+            yearly_buckets,
+            yearly_start,
+            datetime(today.year + 1, 1, 1) - timedelta(microseconds=1),
+            "year",
+        ),
+    )
+    for buckets, start, end, granularity in windows:
+        for period, total_sales, quantity_sold, order_count in _sales_aggregate_rows(
+            db, start, end, granularity
+        ):
+            if period in buckets:
+                buckets[period] = {
+                    "total_sales": total_sales,
+                    "quantity_sold": quantity_sold,
+                    "order_count": order_count,
+                }
 
     return DashboardSalesGraphs(
         by_hour=[_sales_point(key, hourly_buckets[key]) for key in hourly_keys],
@@ -367,7 +496,7 @@ def _product_admin_response(
         for field_name in ProductAdminResponse.model_fields
         if field_name not in {"discount_percentage", "ingredients"}
     }
-    data["discount_percentage"] = float(product.discount_percentual or 0)
+    data["discount_percentage"] = float(product.discount_percentage or 0)
     ingredients = None if ingredient_lookup is None else ingredient_lookup.get(product.product_id)
     if ingredients is None:
         ingredients = _product_ingredient_lookup(db, [product.product_id]).get(product.product_id, [])
@@ -562,11 +691,12 @@ def _kitchen_order_response(order: Order) -> KitchenOrderResponse:
 
 
 def _get_order_or_404(db: Session, order_id: int) -> Order:
-    order = db.scalars(
+    order = db.scalar(
         select(Order)
-        .options(joinedload(Order.items).joinedload(OrderProduct.product))
+        .options(selectinload(Order.items).joinedload(OrderProduct.product))
         .where(Order.order_id == order_id)
-    ).unique().first()
+        .limit(1)
+    )
     if not order:
         raise AppHTTPException(status_code=404, error="order_not_found", message="Order not found.", details={"reason": "request_failed"})
     return order
@@ -827,12 +957,12 @@ def update_ingredient(
     if ingredient_update.name is not None:
         name = ingredient_update.name.strip()
         existing = (
-            db.scalars(
+            db.scalar(
                 select(Ingredient).where(
                     func.lower(Ingredient.name) == name.lower(),
                     Ingredient.ingredient_id != ingredient_id,
-                )
-            ).first()
+                ).limit(1)
+            )
         )
         if existing:
             raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="duplicate_ingredient_name", message="An ingredient with this name already exists.", details={"name": name})
@@ -901,7 +1031,7 @@ def create_product(
         customizable=1 if product.customizable else 0,
         menu_tags=product.menu_tags,
         featured=1 if product.featured else 0,
-        discount_percentual=product.discount_percentage,
+        discount_percentage=product.discount_percentage,
         gluten_free=1 if product.gluten_free else 0,
         contains_alcohol=1 if product.contains_alcohol else 0,
         total_calories=product.total_calories,
@@ -912,11 +1042,11 @@ def create_product(
     db.commit()
     db.refresh(new_product)
 
-    saved_product = db.scalars(
-        select(Product).options(joinedload(Product.images)).where(
+    saved_product = db.scalar(
+        select(Product).options(selectinload(Product.images)).where(
             Product.product_id == new_product.product_id
-        )
-    ).unique().first()
+        ).limit(1)
+    )
     return _product_admin_response(db, saved_product)
 
 
@@ -939,7 +1069,7 @@ def list_products(
     current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
-    stmt = select(Product).options(joinedload(Product.images))
+    stmt = select(Product).options(selectinload(Product.images))
 
     if not include_deleted:
         stmt = stmt.where(active_product_filter(), Product.deleted_at.is_(None))
@@ -981,12 +1111,12 @@ def get_product(
     db: Session = Depends(get_db)
 ):
     parsed_product_id = parse_product_id(product_id)
-    product = db.scalars(
-        select(Product).options(joinedload(Product.images)).where(
+    product = db.scalar(
+        select(Product).options(selectinload(Product.images)).where(
             Product.product_id == parsed_product_id,
             Product.status == EntityStatus.ACTIVE,
-        )
-    ).unique().first()
+        ).limit(1)
+    )
 
     if not product:
         raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
@@ -1006,8 +1136,10 @@ def get_product_analytics(
     db: Session = Depends(get_db)
 ):
     parsed_product_id = parse_product_id(product_id)
-    product = db.scalar(select(Product).where(Product.product_id == parsed_product_id))
-    if not product:
+    product_row = db.execute(
+        select(Product.price, Product.stock).where(Product.product_id == parsed_product_id)
+    ).one_or_none()
+    if not product_row:
         raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
 
     end_date = datetime.utcnow().date()
@@ -1015,32 +1147,25 @@ def get_product_analytics(
     daily_keys = [(start_date + timedelta(days=index)).strftime("%Y-%m-%d") for index in range(days)]
     daily_buckets = {key: _empty_sales_stats() for key in daily_keys}
 
-    items = db.scalars(
-        select(OrderProduct)
-        .join(Order, OrderProduct.order_id == Order.order_id)
-        .where(
-            OrderProduct.product_id == parsed_product_id,
-            func.date(Order.ordered_at) >= start_date,
-            func.date(Order.ordered_at) <= end_date,
-        )
-    ).all()
-
     total_sales = 0.0
     quantity_sold = 0
-    order_ids = set()
-
-    for item in items:
-        item_total = float(item.unit_price or 0) * item.quantity
-        total_sales += item_total
-        quantity_sold += item.quantity
-        order_ids.add(item.order_id)
-
-        if item.order and item.order.ordered_at:
-            date_key = item.order.ordered_at.strftime("%Y-%m-%d")
-            if date_key in daily_buckets:
-                daily_buckets[date_key]["total_sales"] = float(daily_buckets[date_key]["total_sales"]) + item_total
-                daily_buckets[date_key]["quantity_sold"] = int(daily_buckets[date_key]["quantity_sold"]) + item.quantity
-                daily_buckets[date_key]["order_numbers"] = int(daily_buckets[date_key]["order_numbers"]) + 1
+    order_count = 0
+    for date_key, daily_sales, daily_quantity, line_count, distinct_order_count in _product_sales_aggregate_rows(
+        db,
+        datetime.combine(start_date, datetime.min.time()),
+        datetime.combine(end_date, datetime.max.time()),
+        "day",
+        parsed_product_id,
+    ):
+        total_sales += daily_sales
+        quantity_sold += daily_quantity
+        order_count += distinct_order_count
+        if date_key in daily_buckets:
+            daily_buckets[date_key] = {
+                "total_sales": daily_sales,
+                "quantity_sold": daily_quantity,
+                "order_count": line_count,
+            }
 
     average_rating = db.scalar(
         select(func.avg(ProductReview.rating)).where(
@@ -1057,9 +1182,9 @@ def get_product_analytics(
         product_display_id=format_product_id(parsed_product_id),
         total_sales=total_sales,
         quantity_sold=quantity_sold,
-        order_count=len(order_ids),
-        current_price=float(product.price),
-        current_stock=product.stock,
+        order_count=order_count,
+        current_price=float(product_row.price),
+        current_stock=product_row.stock,
         average_rating=float(average_rating) if average_rating is not None else None,
         total_reviews=total_reviews,
         sales_by_day=[_sales_point(key, daily_buckets[key]) for key in daily_keys],
@@ -1082,7 +1207,7 @@ def update_product(
         select(Product).where(
             Product.product_id == parsed_product_id,
             Product.status == EntityStatus.ACTIVE,
-        )
+        ).limit(1)
     )
 
     if not product:
@@ -1115,7 +1240,7 @@ def update_product(
     if product_update.featured is not None:
         product.featured = 1 if product_update.featured else 0
     if product_update.discount_percentage is not None:
-        product.discount_percentual = product_update.discount_percentage
+        product.discount_percentage = product_update.discount_percentage
     if product_update.gluten_free is not None:
         product.gluten_free = 1 if product_update.gluten_free else 0
     if product_update.contains_alcohol is not None:
@@ -1141,7 +1266,9 @@ def toggle_product_status(
     db: Session = Depends(get_db)
 ):
     parsed_product_id = parse_product_id(product_id)
-    product = db.scalar(select(Product).where(Product.product_id == parsed_product_id))
+    product = db.scalar(
+        select(Product).where(Product.product_id == parsed_product_id).limit(1)
+    )
 
     if not product:
         raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
@@ -1168,7 +1295,9 @@ def delete_product(
     db: Session = Depends(get_db)
 ):
     parsed_product_id = parse_product_id(product_id)
-    product = db.scalar(select(Product).where(Product.product_id == parsed_product_id))
+    product = db.scalar(
+        select(Product).where(Product.product_id == parsed_product_id).limit(1)
+    )
     if not product:
         raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
 
@@ -1193,7 +1322,9 @@ def upload_product_image(
 ):
     parsed_product_id = parse_product_id(product_id)
     # Verify product exists
-    product = db.scalar(select(Product).where(Product.product_id == parsed_product_id))
+    product = db.scalar(
+        select(Product).where(Product.product_id == parsed_product_id).limit(1)
+    )
     if not product:
         raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
 
@@ -1266,7 +1397,7 @@ def delete_product_image(
 
     db.delete(image)
     db.commit()
-    return {"message": "Imagem removida com sucesso."}
+    return {"message": "Image removed successfully."}
 
 
 # ─────────────────────────────────────────────────────────────
@@ -1289,7 +1420,7 @@ def list_orders(
         .order_by(Order.ordered_at.desc())
         .offset(skip)
         .limit(limit)
-    ).all()
+    ).unique().all()
 
     return [_order_response(order) for order in orders]
 
@@ -1311,7 +1442,7 @@ def list_staff_orders(
         .order_by(Order.ordered_at.asc())
         .offset(skip)
         .limit(limit)
-    ).all()
+    ).unique().all()
 
     return [_order_response(order) for order in orders]
 
@@ -1342,7 +1473,7 @@ def list_kitchen_orders(
         .order_by(Order.ordered_at.asc())
         .offset(skip)
         .limit(limit)
-    ).all()
+    ).unique().all()
 
     return [_kitchen_order_response(order) for order in orders]
 
@@ -1446,7 +1577,7 @@ def pay_counter_order(
         except Exception:
             logger.exception("Failed to schedule receipt email for counter order %s.", order.order_id)
 
-    return CounterPaymentResponse(message="Pedido ao balcão marcado como pago.", order=_order_response(order))
+    return CounterPaymentResponse(message="Counter order marked as paid.", order=_order_response(order))
 
 
 @router.post(
@@ -1501,7 +1632,7 @@ def refund_order(
     except Exception:
         logger.exception("Failed to schedule refund email for order %s.", order.order_id)
 
-    return RefundOrderResponse(message="Pedido reembolsado.", order=_order_response(order))
+    return RefundOrderResponse(message="Order refunded.", order=_order_response(order))
 
 
 @router.get(
@@ -1523,9 +1654,11 @@ def list_refunds(
         joinedload(Refund.admin),
     )
     if date_from:
-        stmt = stmt.where(func.date(Refund.refunded_at) >= _parse_date_param(date_from, datetime.utcnow()).date())
+        parsed_date_from = _parse_date_param(date_from, datetime.utcnow()).date()
+        stmt = stmt.where(Refund.refunded_at >= datetime.combine(parsed_date_from, datetime.min.time()))
     if date_to:
-        stmt = stmt.where(func.date(Refund.refunded_at) <= _parse_date_param(date_to, datetime.utcnow()).date())
+        parsed_date_to = _parse_date_param(date_to, datetime.utcnow()).date()
+        stmt = stmt.where(Refund.refunded_at <= datetime.combine(parsed_date_to, datetime.max.time()))
     if staff_member:
         stmt = stmt.where(Refund.admin_id == staff_member)
     if reason:
@@ -1560,7 +1693,7 @@ def export_refunds(
     refunds = list_refunds(date_from, date_to, staff_member, reason, refund_status, current_admin, db)
     output = StringIO()
     writer = csv.writer(output)
-    writer.writerow(["ID do Refund", "ID do Pedido", "Customer", "Valor", "Motivo", "Processado Por", "Data", "Estado"])
+    writer.writerow(["Refund ID", "Order ID", "Customer", "Amount", "Reason", "Processed By", "Date", "Status"])
     for refund in refunds:
         writer.writerow([
             refund.refund_id,
@@ -1579,7 +1712,7 @@ def export_refunds(
     )
 
 
-# CLIENTES
+# CUSTOMERS
 
 def _customer_address_payload(body) -> dict:
     return {
@@ -1693,11 +1826,12 @@ def update_customer(
     current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
-    customer = db.scalars(
+    customer = db.scalar(
         select(Customer)
         .options(joinedload(Customer.billing_address))
         .where(Customer.customer_id == customer_id, Customer.role == UserRole.CLIENT)
-    ).unique().first()
+        .limit(1)
+    )
     if not customer:
         raise AppHTTPException(status_code=404, error="customer_not_found", message="Customer not found.", details={"reason": "request_failed"})
 
@@ -1734,11 +1868,12 @@ def delete_customer(
     current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
-    customer = db.scalars(
+    customer = db.scalar(
         select(Customer)
         .options(joinedload(Customer.billing_address))
         .where(Customer.customer_id == customer_id, Customer.role == UserRole.CLIENT)
-    ).unique().first()
+        .limit(1)
+    )
     if not customer:
         raise AppHTTPException(status_code=404, error="customer_not_found", message="Customer not found.", details={"reason": "request_failed"})
     customer.status = UserStatus.SUSPENDED
@@ -1864,57 +1999,28 @@ def get_dashboard_analytics(
     current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
-    # Count totals
-    total_products = db.scalar(select(func.count(Product.product_id)).where(Product.status == EntityStatus.ACTIVE)) or 0
-    total_categories = db.scalar(select(func.count(Category.category_id)).where(Category.status == EntityStatus.ACTIVE)) or 0
-    total_customers = db.scalar(
-        select(func.count(Customer.customer_id)).where(Customer.status == UserStatus.ACTIVE, Customer.role == UserRole.CLIENT)
-    ) or 0
-    total_carts = db.scalar(select(func.count(Cart.cart_id))) or 0
-
-    # Get low-stock products
-    low_stock_products = [
-        LowStockProduct(
-            product_id=p.product_id,
-            product_display_id=format_product_id(p.product_id),
-            name=p.name,
-            stock=p.stock,
-            price=float(p.price),
-            category=p.category.category_name if p.category else "",
-        )
-        for p in db.scalars(
-            select(Product)
+    total_products, total_categories, total_customers, total_carts = db.execute(
+        select(
+            select(func.count(Product.product_id))
             .where(Product.status == EntityStatus.ACTIVE)
-            .order_by(Product.stock.asc())
-            .limit(5)
-        ).all()
-    ]
-
-    # Get popular products
-    popular_products = [
-        PopularProduct(
-            product_id=p.product_id,
-            product_display_id=format_product_id(p.product_id),
-            name=p.name,
-            sold=p.sold or 0,
-            price=float(p.price),
-            category=p.category.category_name if p.category else "",
+            .scalar_subquery(),
+            select(func.count(Category.category_id))
+            .where(Category.status == EntityStatus.ACTIVE)
+            .scalar_subquery(),
+            select(func.count(Customer.customer_id))
+            .where(Customer.status == UserStatus.ACTIVE, Customer.role == UserRole.CLIENT)
+            .scalar_subquery(),
+            select(func.count(Cart.cart_id)).scalar_subquery(),
         )
-        for p in db.scalars(
-            select(Product)
-            .where(Product.status == EntityStatus.ACTIVE)
-            .order_by(desc(Product.sold))
-            .limit(5)
-        ).all()
-    ]
+    ).one()
 
     return DashboardAnalytics(
         total_products=total_products,
         total_categories=total_categories,
         total_customers=total_customers,
         total_carts=total_carts,
-        low_stock_products=low_stock_products,
-        popular_products=popular_products,
+        low_stock_products=_low_stock_product_rows(db, 5),
+        popular_products=_popular_product_rows(db, 5),
         sales_charts=_build_dashboard_sales_graphs(db),
     )
 
@@ -1928,24 +2034,7 @@ def get_low_stock_products(
     current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
-    products = db.scalars(
-        select(Product)
-        .where(Product.status == EntityStatus.ACTIVE)
-        .order_by(Product.stock.asc())
-        .limit(limit)
-    ).all()
-
-    return [
-        LowStockProduct(
-            product_id=p.product_id,
-            product_display_id=format_product_id(p.product_id),
-            name=p.name,
-            stock=p.stock,
-            price=float(p.price),
-            category=p.category.category_name if p.category else "",
-        )
-        for p in products
-    ]
+    return _low_stock_product_rows(db, limit)
 
 
 @router.get(
@@ -1958,24 +2047,7 @@ def get_popular_products(
     current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
-    products = db.scalars(
-        select(Product)
-        .where(Product.status == EntityStatus.ACTIVE)
-        .order_by(desc(Product.sold))
-        .limit(limit)
-    ).all()
-
-    return [
-        PopularProduct(
-            product_id=p.product_id,
-            product_display_id=format_product_id(p.product_id),
-            name=p.name,
-            sold=p.sold or 0,
-            price=float(p.price),
-            category=p.category.category_name if p.category else "",
-        )
-        for p in products
-    ]
+    return _popular_product_rows(db, limit)
 
 
 @router.get(
@@ -1997,43 +2069,35 @@ def get_analytics_series(
         key: {
             "value": 0.0,
             "quantity_sold": 0,
-            "order_numbers": 0,
+            "order_count": 0,
         }
         for key in keys
     }
 
     if metric in {"sales", "orders"}:
-        orders = db.scalars(
-            select(Order).where(Order.ordered_at >= start, Order.ordered_at <= end)
-        ).all()
-        for order in orders:
-            key = _analytics_key(order.ordered_at, granularity)
+        for key, total_sales, quantity_sold, order_count in _sales_aggregate_rows(
+            db, start, end, granularity
+        ):
             if key not in buckets:
                 continue
-            buckets[key]["value"] += float(order.total or 0) if metric == "sales" else 1
-            buckets[key]["order_numbers"] += 1
-            buckets[key]["quantity_sold"] += sum(item.quantity for item in order.items)
+            buckets[key]["value"] = total_sales if metric == "sales" else order_count
+            buckets[key]["order_count"] = order_count
+            buckets[key]["quantity_sold"] = quantity_sold
 
     elif metric == "products":
-        items = db.scalars(
-            select(OrderProduct)
-            .join(Order, OrderProduct.order_id == Order.order_id)
-            .where(Order.ordered_at >= start, Order.ordered_at <= end)
-        ).all()
-        for item in items:
-            if not item.order:
-                continue
-            key = _analytics_key(item.order.ordered_at, granularity)
+        for key, _total_sales, quantity_sold, line_count, _distinct_order_count in _product_sales_aggregate_rows(
+            db, start, end, granularity
+        ):
             if key not in buckets:
                 continue
-            buckets[key]["value"] += item.quantity
-            buckets[key]["quantity_sold"] += item.quantity
-            buckets[key]["order_numbers"] += 1
+            buckets[key]["value"] = quantity_sold
+            buckets[key]["quantity_sold"] = quantity_sold
+            buckets[key]["order_count"] = line_count
 
     else:
-        customers = db.scalars(select(Customer).where(Customer.role == UserRole.CLIENT)).all()
-        for customer in customers:
-            created_at = _parse_customer_created_at(customer.created_at)
+        customer_dates = db.scalars(select(Customer.created_at).where(Customer.role == UserRole.CLIENT)).all()
+        for customer_date in customer_dates:
+            created_at = _parse_customer_created_at(customer_date)
             if not created_at or created_at < start or created_at > end:
                 continue
             key = _analytics_key(created_at, granularity)
@@ -2047,7 +2111,7 @@ def get_analytics_series(
             label=_analytics_label(key, granularity),
             value=float(buckets[key]["value"]),
             quantity_sold=int(buckets[key]["quantity_sold"]),
-            order_count=int(buckets[key]["order_numbers"]),
+            order_count=int(buckets[key]["order_count"]),
         )
         for key in keys
     ]
@@ -2076,45 +2140,35 @@ def get_sales_performance(
     end_date = datetime.utcnow().date()
     start_date = end_date - timedelta(days=days)
 
-    orders = db.scalars(
-        select(Order).where(
-            func.date(Order.ordered_at) >= start_date,
-            func.date(Order.ordered_at) <= end_date,
-        )
-    ).all()
-
     total_sales = 0.0
     quantity_sold = 0
-    order_numbers = 0
-    vendas_por_dia_dict = {}
+    order_count = 0
+    sales_by_day_by_date = {}
 
-    for order in orders:
-        order_numbers += 1
-        date_key = order.ordered_at.strftime("%Y-%m-%d")
-        if date_key not in vendas_por_dia_dict:
-            vendas_por_dia_dict[date_key] = {
-                "total_sales": 0.0,
-                "quantity_sold": 0,
-                "order_numbers": 0
-            }
-
-        total_sales += float(order.total)
-        vendas_por_dia_dict[date_key]["total_sales"] += float(order.total)
-        vendas_por_dia_dict[date_key]["order_numbers"] += 1
-
-        for item in order.items:
-            quantity_sold += item.quantity
-            vendas_por_dia_dict[date_key]["quantity_sold"] += item.quantity
+    for date_key, daily_sales, daily_quantity, daily_order_count in _sales_aggregate_rows(
+        db,
+        datetime.combine(start_date, datetime.min.time()),
+        datetime.combine(end_date, datetime.max.time()),
+        "day",
+    ):
+        total_sales += daily_sales
+        quantity_sold += daily_quantity
+        order_count += daily_order_count
+        sales_by_day_by_date[date_key] = {
+            "total_sales": daily_sales,
+            "quantity_sold": daily_quantity,
+            "order_count": daily_order_count,
+        }
 
     # Build sorted list of daily sales
-    vendas_por_dia = [
+    sales_by_day = [
         PeriodicSalesResponse(
             period=date_str,
             total_sales=stats["total_sales"],
             quantity_sold=stats["quantity_sold"],
-            order_count=stats["order_numbers"]
+            order_count=stats["order_count"]
         )
-        for date_str, stats in sorted(vendas_por_dia_dict.items())
+        for date_str, stats in sorted(sales_by_day_by_date.items())
     ]
 
     period = f"{start_date} a {end_date}"
@@ -2122,7 +2176,7 @@ def get_sales_performance(
     return SalesPerformanceResponse(
         total_sales=total_sales,
         quantity_sold=quantity_sold,
-        order_count=order_numbers,
+        order_count=order_count,
         period=period,
-        sales_by_day=vendas_por_dia
+        sales_by_day=sales_by_day
     )

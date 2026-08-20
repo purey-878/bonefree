@@ -4,8 +4,8 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
 from fastapi import APIRouter, Depends, Query, status
-from sqlalchemy import String, cast, func
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import String, cast, select
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from dependencies import get_current_user
 from database import get_db
@@ -163,21 +163,22 @@ def update_profile(
     updates = body.model_dump(exclude_unset=True)
     address_was_provided = "billing_address" in body.model_fields_set
     address_update = updates.pop("billing_address", None) if address_was_provided else None
-    profile_user = (
-        db.query(Customer)
+    profile_user = db.scalar(
+        select(Customer)
         .options(joinedload(Customer.billing_address))
-        .filter(Customer.customer_id == current_user.customer_id)
-        .first()
+        .where(Customer.customer_id == current_user.customer_id)
     )
     if not profile_user:
         raise AppHTTPException(status_code=401, error="authentication_required", message="Authentication required.", details={"reason": "request_failed"})
 
     new_email = updates.get("email")
     if new_email and new_email != profile_user.email:
-        existing = db.query(Customer).filter(
-            Customer.email == new_email,
-            Customer.customer_id != profile_user.customer_id,
-        ).first()
+        existing = db.scalar(
+            select(Customer).where(
+                Customer.email == new_email,
+                Customer.customer_id != profile_user.customer_id,
+            )
+        )
         if existing:
             raise AppHTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -186,28 +187,21 @@ def update_profile(
                 details={"email": new_email},
             )
 
-    new_nif = updates.get("tax_id")
-    if new_nif and new_nif != profile_user.tax_id:
-        existing = db.query(Customer).filter(
-            Customer.tax_id == new_nif,
-            Customer.customer_id != profile_user.customer_id,
-        ).first()
+    new_tax_id = updates.get("tax_id")
+    if new_tax_id and new_tax_id != profile_user.tax_id:
+        existing = db.scalar(
+            select(Customer).where(
+                Customer.tax_id == new_tax_id,
+                Customer.customer_id != profile_user.customer_id,
+            )
+        )
         if existing:
             raise AppHTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 error="duplicate_tax_id",
                 message="This tax ID is already associated with an existing account.",
-                details={"tax_id": new_nif},
+                details={"tax_id": new_tax_id},
             )
-
-    allowed_notifications = {"email", "sms", "ambos"}
-    if "notificacao_preferida" in updates and updates["notificacao_preferida"] not in allowed_notifications:
-        raise AppHTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            error="invalid_notification_preference",
-            message="Notification preference must be one of: email, sms, ambos.",
-            details={"value": updates["notificacao_preferida"], "allowed": sorted(allowed_notifications)},
-        )
 
     for field, value in updates.items():
         if hasattr(profile_user, field):
@@ -231,28 +225,29 @@ def get_purchase_history(
     db: Session = Depends(get_db),
     current_user: Customer = Depends(get_current_user),
 ):
-    query = (
-        db.query(Order)
-        .options(joinedload(Order.items).joinedload(OrderProduct.product))
-        .filter(Order.customer_id == current_user.customer_id)
+    statement = (
+        select(Order)
+        .options(selectinload(Order.items).joinedload(OrderProduct.product))
+        .where(Order.customer_id == current_user.customer_id)
     )
 
     if status:
-        query = query.filter(Order.state == status)
+        statement = statement.where(Order.state == status)
 
     if payment:
-        query = query.filter(Order.payment_method.in_(_payment_filter_values(payment)))
+        statement = statement.where(Order.payment_method.in_(_payment_filter_values(payment)))
 
     if date_from:
-        query = query.filter(func.date(Order.ordered_at) >= date_from)
+        statement = statement.where(Order.ordered_at >= datetime.combine(date_from, datetime.min.time()))
 
     if date_to:
-        query = query.filter(func.date(Order.ordered_at) <= date_to)
+        statement = statement.where(Order.ordered_at <= datetime.combine(date_to, datetime.max.time()))
 
     if search:
         pattern = f"%{search}%"
-        query = query.join(Order.items).join(OrderProduct.product).filter(
+        statement = statement.join(Order.items).join(OrderProduct.product).where(
             cast(OrderProduct.product_id, String).ilike(pattern)
         )
 
-    return [_order_response(order) for order in query.order_by(Order.ordered_at.desc()).all()]
+    orders = db.scalars(statement.order_by(Order.ordered_at.desc())).unique().all()
+    return [_order_response(order) for order in orders]

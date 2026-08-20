@@ -4,6 +4,7 @@ import copy
 import json
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from models import SiteSetting
@@ -63,6 +64,10 @@ DEFAULT_EVENTS = EventsSettings(
         },
     ]
 )
+
+
+def _get_setting_row(db: Session, key: str) -> SiteSetting | None:
+    return db.scalar(select(SiteSetting).where(SiteSetting.key == key))
 
 
 BUILT_IN_THEMES: dict[str, dict[str, Any]] = {
@@ -215,7 +220,7 @@ def resolve_site_theme(settings: SiteThemeSettings) -> SiteThemeResponse:
 
 
 def get_site_theme_settings(db: Session) -> SiteThemeSettings:
-    row = db.query(SiteSetting).filter(SiteSetting.key == SITE_THEME_KEY).first()
+    row = _get_setting_row(db, SITE_THEME_KEY)
     if not row or not row.value:
         return DEFAULT_SITE_THEME
     try:
@@ -230,7 +235,7 @@ def get_site_theme(db: Session) -> SiteThemeResponse:
 
 
 def save_site_theme(db: Session, settings: SiteThemeSettings) -> SiteThemeResponse:
-    row = db.query(SiteSetting).filter(SiteSetting.key == SITE_THEME_KEY).first()
+    row = _get_setting_row(db, SITE_THEME_KEY)
     encoded = settings.model_dump_json()
     if row:
         row.value = encoded
@@ -242,7 +247,7 @@ def save_site_theme(db: Session, settings: SiteThemeSettings) -> SiteThemeRespon
 
 
 def get_chef_special_settings(db: Session) -> ChefSpecialSettings:
-    row = db.query(SiteSetting).filter(SiteSetting.key == CHEF_SPECIAL_KEY).first()
+    row = _get_setting_row(db, CHEF_SPECIAL_KEY)
     if not row or not row.value:
         return DEFAULT_CHEF_SPECIAL
     try:
@@ -255,7 +260,7 @@ def get_chef_special_settings(db: Session) -> ChefSpecialSettings:
 
 
 def save_chef_special_settings(db: Session, settings: ChefSpecialSettings) -> ChefSpecialSettings:
-    row = db.query(SiteSetting).filter(SiteSetting.key == CHEF_SPECIAL_KEY).first()
+    row = _get_setting_row(db, CHEF_SPECIAL_KEY)
     encoded = settings.model_dump_json()
     if row:
         row.value = encoded
@@ -267,7 +272,7 @@ def save_chef_special_settings(db: Session, settings: ChefSpecialSettings) -> Ch
 
 
 def get_loyalty_coupon_settings(db: Session) -> LoyaltyCouponSettings:
-    row = db.query(SiteSetting).filter(SiteSetting.key == LOYALTY_COUPON_KEY).first()
+    row = _get_setting_row(db, LOYALTY_COUPON_KEY)
     if not row or not row.value:
         return DEFAULT_LOYALTY_COUPON
     try:
@@ -278,7 +283,7 @@ def get_loyalty_coupon_settings(db: Session) -> LoyaltyCouponSettings:
 
 
 def save_loyalty_coupon_settings(db: Session, settings: LoyaltyCouponSettings) -> LoyaltyCouponSettings:
-    row = db.query(SiteSetting).filter(SiteSetting.key == LOYALTY_COUPON_KEY).first()
+    row = _get_setting_row(db, LOYALTY_COUPON_KEY)
     encoded = settings.model_dump_json()
     if row:
         row.value = encoded
@@ -290,7 +295,7 @@ def save_loyalty_coupon_settings(db: Session, settings: LoyaltyCouponSettings) -
 
 
 def get_company_details_settings(db: Session) -> CompanyDetailsSettings:
-    row = db.query(SiteSetting).filter(SiteSetting.key == COMPANY_DETAILS_KEY).first()
+    row = _get_setting_row(db, COMPANY_DETAILS_KEY)
     if not row or not row.value:
         return DEFAULT_COMPANY_DETAILS
     try:
@@ -301,7 +306,7 @@ def get_company_details_settings(db: Session) -> CompanyDetailsSettings:
 
 
 def save_company_details_settings(db: Session, settings: CompanyDetailsSettings) -> CompanyDetailsSettings:
-    row = db.query(SiteSetting).filter(SiteSetting.key == COMPANY_DETAILS_KEY).first()
+    row = _get_setting_row(db, COMPANY_DETAILS_KEY)
     encoded = settings.model_dump_json()
     if row:
         row.value = encoded
@@ -313,7 +318,7 @@ def save_company_details_settings(db: Session, settings: CompanyDetailsSettings)
 
 
 def get_social_media_settings(db: Session) -> SocialMediaSettings:
-    row = db.query(SiteSetting).filter(SiteSetting.key == SOCIAL_MEDIA_KEY).first()
+    row = _get_setting_row(db, SOCIAL_MEDIA_KEY)
     if not row or not row.value:
         return DEFAULT_SOCIAL_MEDIA
     try:
@@ -324,7 +329,7 @@ def get_social_media_settings(db: Session) -> SocialMediaSettings:
 
 
 def save_social_media_settings(db: Session, settings: SocialMediaSettings) -> SocialMediaSettings:
-    row = db.query(SiteSetting).filter(SiteSetting.key == SOCIAL_MEDIA_KEY).first()
+    row = _get_setting_row(db, SOCIAL_MEDIA_KEY)
     encoded = settings.model_dump_json()
     if row:
         row.value = encoded
@@ -336,7 +341,7 @@ def save_social_media_settings(db: Session, settings: SocialMediaSettings) -> So
 
 
 def get_events_settings(db: Session) -> EventsSettings:
-    row = db.query(SiteSetting).filter(SiteSetting.key == EVENTS_KEY).first()
+    row = _get_setting_row(db, EVENTS_KEY)
     if not row or not row.value:
         return DEFAULT_EVENTS
     try:
@@ -347,7 +352,7 @@ def get_events_settings(db: Session) -> EventsSettings:
 
 
 def save_events_settings(db: Session, settings: EventsSettings) -> EventsSettings:
-    row = db.query(SiteSetting).filter(SiteSetting.key == EVENTS_KEY).first()
+    row = _get_setting_row(db, EVENTS_KEY)
     encoded = settings.model_dump_json()
     if row:
         row.value = encoded

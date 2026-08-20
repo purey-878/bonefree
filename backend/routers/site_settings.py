@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy import or_
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from dependencies import require_role
@@ -139,14 +139,12 @@ def update_admin_chef_special(
     db: Session = Depends(get_db),
 ):
     if settings.product_id:
-        product = (
-            db.query(Product)
-            .filter(
+        product = db.scalar(
+            select(Product).where(
                 Product.product_id == settings.product_id,
                 or_(Product.status == EntityStatus.ACTIVE, Product.status.is_(None)),
                 Product.deleted_at.is_(None),
-            )
-            .first()
+            ).limit(1)
         )
         if not product:
             raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})

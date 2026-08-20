@@ -70,8 +70,8 @@ def register(user: UserRegister, background_tasks: BackgroundTasks, request: Req
         )
 
     if user.tax_id:
-        existing_nif = db.scalar(select(Customer).where(Customer.tax_id == user.tax_id))
-        if existing_nif:
+        existing_tax_id = db.scalar(select(Customer).where(Customer.tax_id == user.tax_id))
+        if existing_tax_id:
             raise AppHTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 error="duplicate_tax_id",
@@ -114,7 +114,7 @@ def register(user: UserRegister, background_tasks: BackgroundTasks, request: Req
 @router.post("/password/forgot", response_model=MessageResponse, operation_id="auth_forgot_password")
 def forgot_password(body: ForgotPasswordRequest, db: DBSession = Depends(get_db)):
     """Start a password reset and email a six-digit code."""
-    generic_message = "Se existir uma conta com este email, foi enviado um código de redefinição."
+    generic_message = "If an account exists for this email, a password reset code has been sent."
     db_user = db.scalar(select(Customer).where(Customer.email == body.email))
     if not db_user or db_user.status == UserStatus.SUSPENDED:
         return {"message": generic_message}
@@ -179,7 +179,7 @@ def reset_password(body: ResetPasswordRequest, db: DBSession = Depends(get_db)):
     clear_password_reset(db_user)
     db.commit()
 
-    return {"message": "A palavra-passe foi redefinida."}
+    return {"message": "Password reset successfully."}
 
 
 @router.post("/login", response_model=TokenResponse, operation_id="auth_login")

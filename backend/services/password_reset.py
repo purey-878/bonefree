@@ -50,17 +50,17 @@ def verify_password_reset_code(user: Any, code: str, now: datetime | None = None
     current_time = now or datetime.utcnow()
 
     if not user.password_reset_code_hash or not user.password_reset_expires_at:
-        return False, "Nenhum código de redefinição foi solicitado.", None
+        return False, "No password reset code has been requested.", None
     if user.password_reset_expires_at < current_time:
         clear_password_reset(user)
-        return False, "O código de redefinição expirou. Solicite um novo código.", None
+        return False, "The password reset code has expired. Request a new code.", None
     if (user.password_reset_attempts or 0) >= MAX_OTP_ATTEMPTS:
         clear_password_reset(user)
-        return False, "Demasiadas tentativas incorretas. Solicite um novo código.", None
+        return False, "Too many incorrect attempts. Request a new code.", None
 
     if not verify_secret(code, user.password_reset_code_hash):
         user.password_reset_attempts = (user.password_reset_attempts or 0) + 1
-        return False, "Código de redefinição inválido.", None
+        return False, "Invalid password reset code.", None
 
     token = generate_reset_token()
     user.password_reset_verified_until = current_time + timedelta(minutes=RESET_TOKEN_TTL_MINUTES)
@@ -68,21 +68,21 @@ def verify_password_reset_code(user: Any, code: str, now: datetime | None = None
     user.password_reset_code_hash = None
     user.password_reset_expires_at = None
     user.password_reset_attempts = 0
-    return True, "Código de redefinição verificado.", token
+    return True, "Password reset code verified.", token
 
 
 def can_reset_password(user: Any, token: str, now: datetime | None = None) -> tuple[bool, str]:
     current_time = now or datetime.utcnow()
 
     if not user.password_reset_token_hash or not user.password_reset_verified_until:
-        return False, "O código de redefinição ainda não foi verificado."
+        return False, "The password reset code has not been verified yet."
     if user.password_reset_verified_until < current_time:
         clear_password_reset(user)
-        return False, "A sessão de redefinição expirou. Solicite um novo código."
+        return False, "The password reset session has expired. Request a new code."
     if not verify_secret(token, user.password_reset_token_hash):
-        return False, "Sessão de redefinição inválida."
+        return False, "Invalid password reset session."
 
-    return True, "Redefinição da palavra-passe autorizada."
+    return True, "Password reset authorized."
 
 
 def clear_password_reset(user: Any) -> None:

@@ -75,7 +75,7 @@ class ItemCustomization(BaseModel):
         if value is None:
             return []
         if not isinstance(value, list):
-            raise ValueError("As escolhas de customização devem ser uma lista.")
+            raise ValueError("Customization choices must be a list.")
 
         normalized = []
         seen = set()

@@ -8,9 +8,10 @@ from uuid import uuid4
 from urllib.parse import quote
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Response, status
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import delete, exists, select
+from sqlalchemy.orm import Session, joinedload, selectinload
 
-from dependencies import get_current_user_optional
+from dependencies import get_current_user
 from services.auth_service import hash_password
 from database import get_db
 from schemas.enums import CancellationOrigin, CheckoutPaymentMethod, CouponType, EntityStatus, OrderState, PaymentMethod, PaymentState, PaymentStatus, UserRole, UserStatus, normalize_enum
@@ -30,7 +31,7 @@ from schemas.checkout import CouponResponse, CouponValidationRequest, CouponVali
 from services.invoices import ensure_invoice_for_order
 from services.receipt_email import build_order_receipt_payload, build_saved_order_receipt_payload, send_purchase_receipt
 from services.order_customization import customization_from_json, customization_to_json
-from services.product_availability import unavailable_due_to_inactive_base
+from services.product_availability import inactive_base_product_ids
 from services.product_pricing import discounted_product_price
 from services.site_settings import get_loyalty_coupon_settings
 from utils.id_format import format_product_id
@@ -48,7 +49,7 @@ router = APIRouter(prefix="/checkout", tags=["Checkout"])
 logger = logging.getLogger(__name__)
 
 SERVICE_FEE = Decimal("0")
-IVA_PERCENTUAL = Decimal("13.00")
+VAT_PERCENTAGE = Decimal("13.00")
 ONLINE_PAYMENT_METHODS = {PaymentMethod.CARD, PaymentMethod.MBWAY}
 
 
@@ -84,23 +85,11 @@ def _is_online_payment(method: PaymentMethod | None) -> bool:
     return method in ONLINE_PAYMENT_METHODS
 
 
-def _included_iva(total: Decimal, vat_percentage: Decimal = IVA_PERCENTUAL) -> Decimal:
+def _included_vat(total: Decimal, vat_percentage: Decimal = VAT_PERCENTAGE) -> Decimal:
     if total <= 0:
         return Decimal("0.00")
     multiplier = Decimal("1") + (vat_percentage / Decimal("100"))
     return (total - (total / multiplier)).quantize(Decimal("0.01"))
-
-
-def _format_money_pt(value: Decimal) -> str:
-    amount = Decimal(str(value)).quantize(Decimal("0.01"))
-    sign = "-" if amount < 0 else ""
-    amount = abs(amount)
-    whole, cents = f"{amount:.2f}".split(".")
-    groups = []
-    while whole:
-        groups.insert(0, whole[-3:])
-        whole = whole[:-3]
-    return f"{sign}{'.'.join(groups)},{cents} €"
 
 
 def _response_payment_method(order: Order) -> str:
@@ -117,7 +106,7 @@ def _response_payment_method(order: Order) -> str:
 
 
 def _cart_items_for_user(db: Session, current_user: Customer) -> list[CheckoutItem]:
-    cart = db.query(Cart).filter(Cart.customer_id == current_user.customer_id).first()
+    cart = db.scalar(select(Cart).where(Cart.customer_id == current_user.customer_id))
     if not cart:
         return []
 
@@ -135,61 +124,64 @@ def _clear_user_cart(db: Session, current_user: Optional[Customer]) -> None:
     if not current_user:
         return
 
-    cart = db.query(Cart).filter(Cart.customer_id == current_user.customer_id).first()
+    cart = db.scalar(select(Cart).where(Cart.customer_id == current_user.customer_id))
     if not cart:
         return
 
-    cart_item_ids = [
-        cart_product_id
-        for (cart_product_id,) in db.query(CartProduct.cart_product_id)
-        .filter(CartProduct.cart_id == cart.cart_id)
-        .all()
-    ]
+    cart_item_ids = db.scalars(
+        select(CartProduct.cart_product_id).where(CartProduct.cart_id == cart.cart_id)
+    ).all()
     if not cart_item_ids:
         return
 
-    db.query(CartProductCustomization).filter(
-        CartProductCustomization.cart_product_id.in_(cart_item_ids)
-    ).delete(synchronize_session=False)
-    db.query(CartProduct).filter(
-        CartProduct.cart_product_id.in_(cart_item_ids)
-    ).delete(synchronize_session=False)
+    db.execute(
+        delete(CartProductCustomization).where(
+            CartProductCustomization.cart_product_id.in_(cart_item_ids)
+        )
+    )
+    db.execute(delete(CartProduct).where(CartProduct.cart_product_id.in_(cart_item_ids)))
 
 
 def _get_or_create_checkout_customer(db: Session, body: CheckoutRequest, current_user: Optional[Customer]) -> Customer:
-    nif_provided = "tax_id" in body.customer.model_fields_set
-    checkout_nif = (body.customer.tax_id or "").strip() or None
+    tax_id_provided = "tax_id" in body.customer.model_fields_set
+    checkout_tax_id = (body.customer.tax_id or "").strip() or None
 
     if current_user:
-        customer = db.query(Customer).filter(Customer.customer_id == current_user.customer_id).first() or current_user
-        should_save_checkout_nif = nif_provided and checkout_nif and not customer.tax_id
-        if should_save_checkout_nif:
-            existing = db.query(Customer).filter(
-                Customer.tax_id == checkout_nif,
-                Customer.customer_id != customer.customer_id,
-            ).first()
+        customer = db.scalar(
+            select(Customer).where(Customer.customer_id == current_user.customer_id)
+        ) or current_user
+        should_save_checkout_tax_id = tax_id_provided and checkout_tax_id and not customer.tax_id
+        if should_save_checkout_tax_id:
+            existing = db.scalar(
+                select(Customer).where(
+                    Customer.tax_id == checkout_tax_id,
+                    Customer.customer_id != customer.customer_id,
+                )
+            )
             if existing:
-                raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="duplicate_tax_id", message="This tax ID is already associated with an existing account.", details={"tax_id": checkout_nif})
-        if should_save_checkout_nif:
-            customer.tax_id = checkout_nif
+                raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="duplicate_tax_id", message="This tax ID is already associated with an existing account.", details={"tax_id": checkout_tax_id})
+        if should_save_checkout_tax_id:
+            customer.tax_id = checkout_tax_id
         customer.name = body.customer.first_name
         customer.last_name = body.customer.last_name
         if body.customer.phone:
             customer.phone = body.customer.phone
         return customer
 
-    customer = db.query(Customer).filter(Customer.email == body.customer.email).first()
+    customer = db.scalar(select(Customer).where(Customer.email == body.customer.email))
     if customer:
-        should_save_checkout_nif = nif_provided and checkout_nif and not customer.tax_id
-        if should_save_checkout_nif:
-            existing = db.query(Customer).filter(
-                Customer.tax_id == checkout_nif,
-                Customer.customer_id != customer.customer_id,
-            ).first()
+        should_save_checkout_tax_id = tax_id_provided and checkout_tax_id and not customer.tax_id
+        if should_save_checkout_tax_id:
+            existing = db.scalar(
+                select(Customer).where(
+                    Customer.tax_id == checkout_tax_id,
+                    Customer.customer_id != customer.customer_id,
+                )
+            )
             if existing:
-                raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="duplicate_tax_id", message="This tax ID is already associated with an existing account.", details={"tax_id": checkout_nif})
-        if should_save_checkout_nif:
-            customer.tax_id = checkout_nif
+                raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="duplicate_tax_id", message="This tax ID is already associated with an existing account.", details={"tax_id": checkout_tax_id})
+        if should_save_checkout_tax_id:
+            customer.tax_id = checkout_tax_id
         customer.name = body.customer.first_name
         customer.last_name = body.customer.last_name
         if body.customer.phone:
@@ -201,7 +193,7 @@ def _get_or_create_checkout_customer(db: Session, body: CheckoutRequest, current
         last_name=body.customer.last_name,
         email=body.customer.email,
         phone=body.customer.phone,
-        tax_id=checkout_nif,
+        tax_id=checkout_tax_id,
         password=hash_password(uuid4().hex),
         status=UserStatus.ACTIVE,
         role=UserRole.CLIENT,
@@ -267,9 +259,9 @@ def _normalize_coupon_code(value: str | None) -> str | None:
     return code or None
 
 
-def _available_coupon_query(db: Session, current_user: Customer):
+def _available_coupon_statement(current_user: Customer):
     now = datetime.utcnow()
-    return db.query(Coupon).filter(
+    return select(Coupon).where(
         Coupon.customer_id == current_user.customer_id,
         Coupon.used.is_(False),
         ((Coupon.expires_at.is_(None)) | (Coupon.expires_at > now)),
@@ -293,7 +285,9 @@ def _get_valid_coupon(db: Session, current_user: Customer, code: str | None, sub
     if not normalized_code:
         return None, Decimal("0")
 
-    coupon = _available_coupon_query(db, current_user).filter(Coupon.code == normalized_code).first()
+    coupon = db.scalar(
+        _available_coupon_statement(current_user).where(Coupon.code == normalized_code)
+    )
     if not coupon:
         raise AppHTTPException(status_code=status.HTTP_404_NOT_FOUND, error="coupon_not_found", message="Coupon not found or unavailable.", details={"code": normalized_code})
 
@@ -301,7 +295,9 @@ def _get_valid_coupon(db: Session, current_user: Customer, code: str | None, sub
 
 
 def _get_or_create_loyalty(db: Session, current_user: Customer) -> CustomerLoyalty:
-    loyalty = db.query(CustomerLoyalty).filter(CustomerLoyalty.customer_id == current_user.customer_id).first()
+    loyalty = db.scalar(
+        select(CustomerLoyalty).where(CustomerLoyalty.customer_id == current_user.customer_id)
+    )
     if not loyalty:
         loyalty = CustomerLoyalty(customer_id=current_user.customer_id, orders_above_50=0, total_coupons_earned=0)
         db.add(loyalty)
@@ -323,8 +319,8 @@ def _new_coupon_code(db: Session, current_user: Customer, discount_type: str, di
     prefix = _coupon_code_prefix(discount_type, discount_value)
     for _ in range(10):
         code = f"{prefix}-{current_user.customer_id}-{uuid4().hex[:6].upper()}"
-        exists = db.query(Coupon).filter(Coupon.code == code).first()
-        if not exists:
+        coupon_exists = db.scalar(select(exists().where(Coupon.code == code)))
+        if not coupon_exists:
             return code
     return f"{prefix}-{uuid4().hex[:12].upper()}"
 
@@ -337,7 +333,9 @@ def _award_loyalty_coupon_if_eligible(db: Session, current_user: Customer, quali
     if qualifying_subtotal < qualifying_minimum:
         return None
 
-    loyalty = db.query(CustomerLoyalty).filter(CustomerLoyalty.customer_id == current_user.customer_id).first()
+    loyalty = db.scalar(
+        select(CustomerLoyalty).where(CustomerLoyalty.customer_id == current_user.customer_id)
+    )
     if not settings.enabled and (not loyalty or loyalty.orders_above_50 <= 0):
         return None
 
@@ -431,12 +429,11 @@ def _can_customer_cancel(order: Order) -> bool:
 @router.get("/coupons", response_model=list[CouponResponse], operation_id="checkout_list_available_coupons")
 def list_available_coupons(
     db: Session = Depends(get_db),
-    current_user: Optional[Customer] = Depends(get_current_user_optional),
+    current_user: Customer = Depends(get_current_user),
 ):
-    if not current_user:
-        raise AppHTTPException(status_code=401, error="authentication_required", message="Authentication required.", details={"reason": "request_failed"})
-
-    coupons = _available_coupon_query(db, current_user).order_by(Coupon.created_at.desc()).all()
+    coupons = db.scalars(
+        _available_coupon_statement(current_user).order_by(Coupon.created_at.desc())
+    ).all()
     return [
         CouponResponse(
             coupon_id=coupon.coupon_id,
@@ -458,11 +455,8 @@ def list_available_coupons(
 def validate_coupon(
     body: CouponValidationRequest,
     db: Session = Depends(get_db),
-    current_user: Optional[Customer] = Depends(get_current_user_optional),
+    current_user: Customer = Depends(get_current_user),
 ):
-    if not current_user:
-        raise AppHTTPException(status_code=401, error="authentication_required", message="Authentication required.", details={"reason": "request_failed"})
-
     coupon, discount = _get_valid_coupon(db, current_user, body.code, body.subtotal)
     if not coupon:
         raise AppHTTPException(status_code=status.HTTP_404_NOT_FOUND, error="coupon_not_found", message="Coupon not found or unavailable.", details={"code": body.code})
@@ -486,12 +480,9 @@ def create_order(
     body: CheckoutRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_user: Optional[Customer] = Depends(get_current_user_optional),
+    current_user: Customer = Depends(get_current_user),
 ):
-    if not current_user:
-        raise AppHTTPException(status_code=401, error="authentication_required", message="Authentication required.", details={"reason": "request_failed"})
-
-    items = _cart_items_for_user(db, current_user) if current_user else body.items
+    items = _cart_items_for_user(db, current_user)
     if not items:
         items = body.items
 
@@ -499,13 +490,13 @@ def create_order(
         raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="empty_cart", message="Cart must contain at least one item.", details={"customer_id": current_user.customer_id})
 
     product_ids = [item.product_id for item in items]
-    products = (
-        db.query(Product)
-        .options(joinedload(Product.images))
-        .filter(Product.product_id.in_(product_ids))
-        .all()
-    )
+    products = db.scalars(
+        select(Product)
+        .options(selectinload(Product.images))
+        .where(Product.product_id.in_(product_ids))
+    ).unique().all()
     product_map = {product.product_id: product for product in products}
+    inactive_base_ids = inactive_base_product_ids(db, product_ids)
 
     subtotal = Decimal("0")
     order_items: list[dict] = []
@@ -515,7 +506,7 @@ def create_order(
         if not product or product.status == EntityStatus.INACTIVE or product.deleted_at is not None:
             raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
 
-        if unavailable_due_to_inactive_base(db, product):
+        if product.product_id in inactive_base_ids:
             raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="product_unavailable", message="Product is unavailable.", details={"product_id": product.product_id})
 
         if product.stock < item.quantity:
@@ -534,7 +525,7 @@ def create_order(
         order_items.append({
             "product_id": product.product_id,
             "product_name_snapshot": product.name,
-            "discount_percentage_snapshot": Decimal(str(product.discount_percentual or 0)),
+            "discount_percentage_snapshot": Decimal(str(product.discount_percentage or 0)),
             "unit_price": unit_price,
             "quantity": item.quantity,
             "customization": customization_to_json(item.customization),
@@ -546,7 +537,7 @@ def create_order(
     delivery_fee = Decimal("0")
     coupon, coupon_discount = _get_valid_coupon(db, current_user, body.promo_code, subtotal)
     total = subtotal - coupon_discount + delivery_fee + SERVICE_FEE
-    vat_amount = _included_iva(total)
+    vat_amount = _included_vat(total)
     generated_coupon_code = _award_loyalty_coupon_if_eligible(db, current_user, subtotal)
     note_parts: list[str] = []
     if coupon:
@@ -564,7 +555,7 @@ def create_order(
         payment_method=db_method,
         payment_status=PaymentStatus.PAID if online_payment else PaymentStatus.UNPAID,
         subtotal=subtotal,
-        vat_percentage=IVA_PERCENTUAL,
+        vat_percentage=VAT_PERCENTAGE,
         vat_amount=vat_amount,
         total_discount=coupon_discount,
         total=total,
@@ -576,7 +567,7 @@ def create_order(
                 unit_price=item["unit_price"],
                 product_name_snapshot=item["product_name_snapshot"],
                 discount_percentage_snapshot=item["discount_percentage_snapshot"],
-                vat_percentage_snapshot=IVA_PERCENTUAL,
+                vat_percentage_snapshot=VAT_PERCENTAGE,
                 customization=item["customization"],
             )
             for item in order_items
@@ -601,11 +592,11 @@ def create_order(
     _clear_user_cart(db, current_user)
     db.commit()
 
-    saved = (
-        db.query(Order)
-        .options(joinedload(Order.items).joinedload(OrderProduct.product))
-        .filter(Order.order_id == order.order_id)
-        .first()
+    saved = db.scalar(
+        select(Order)
+        .options(selectinload(Order.items).joinedload(OrderProduct.product))
+        .where(Order.order_id == order.order_id)
+        .limit(1)
     )
     response = _order_response(saved)
 
@@ -627,19 +618,16 @@ def create_order(
 def cancel_order(
     order_id: int,
     db: Session = Depends(get_db),
-    current_user: Optional[Customer] = Depends(get_current_user_optional),
+    current_user: Customer = Depends(get_current_user),
 ):
-    if not current_user:
-        raise AppHTTPException(status_code=401, error="authentication_required", message="Authentication required.", details={"reason": "request_failed"})
-
-    order = (
-        db.query(Order)
-        .options(joinedload(Order.items).joinedload(OrderProduct.product))
-        .filter(
+    order = db.scalar(
+        select(Order)
+        .options(selectinload(Order.items).joinedload(OrderProduct.product))
+        .where(
             Order.order_id == order_id,
             Order.customer_id == current_user.customer_id,
         )
-        .first()
+        .limit(1)
     )
     if not order:
         raise AppHTTPException(status_code=404, error="order_not_found", message="Order not found.", details={"reason": "request_failed"})
@@ -671,25 +659,22 @@ def cancel_order(
 def download_order_receipt_pdf(
     order_id: int,
     db: Session = Depends(get_db),
-    current_user: Optional[Customer] = Depends(get_current_user_optional),
+    current_user: Customer = Depends(get_current_user),
 ):
-    if not current_user:
-        raise AppHTTPException(status_code=401, error="authentication_required", message="Authentication required.", details={"reason": "request_failed"})
-
     if not render_receipt_pdf or not receipt_pdf_filename:
         raise AppHTTPException(status_code=503, error="service_unavailable", message="Service unavailable.", details={"reason": "request_failed"})
 
-    order = (
-        db.query(Order)
+    order = db.scalar(
+        select(Order)
         .options(
             joinedload(Order.customer),
-            joinedload(Order.items).joinedload(OrderProduct.product),
+            selectinload(Order.items).joinedload(OrderProduct.product),
         )
-        .filter(
+        .where(
             Order.order_id == order_id,
             Order.customer_id == current_user.customer_id,
         )
-        .first()
+        .limit(1)
     )
     if not order:
         raise AppHTTPException(status_code=404, error="order_not_found", message="Order not found.", details={"reason": "request_failed"})
@@ -715,16 +700,12 @@ def download_order_receipt_pdf(
 )
 def list_order_history(
     db: Session = Depends(get_db),
-    current_user: Optional[Customer] = Depends(get_current_user_optional),
+    current_user: Customer = Depends(get_current_user),
 ):
-    if not current_user:
-        raise AppHTTPException(status_code=401, error="authentication_required", message="Authentication required.", details={"reason": "request_failed"})
-
-    orders = (
-        db.query(Order)
-        .options(joinedload(Order.items).joinedload(OrderProduct.product))
-        .filter(Order.customer_id == current_user.customer_id)
+    orders = db.scalars(
+        select(Order)
+        .options(selectinload(Order.items).joinedload(OrderProduct.product))
+        .where(Order.customer_id == current_user.customer_id)
         .order_by(Order.ordered_at.desc())
-        .all()
-    )
+    ).unique().all()
     return [_order_response(order) for order in orders]

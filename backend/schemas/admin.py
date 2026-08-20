@@ -68,7 +68,7 @@ class StaffAdminCreate(BaseModel):
     def validate_role(cls, value: str | UserRole) -> UserRole:
         normalized = normalize_admin_role(value)
         if normalized not in ADMIN_ROLES:
-            raise ValueError("A função deve ser owner, manager, waiter ou chef.")
+            raise ValueError("Role must be owner, manager, waiter, or chef.")
         return normalized
 
 
@@ -86,7 +86,7 @@ class StaffAdminUpdate(BaseModel):
             return value
         normalized = normalize_admin_role(value)
         if normalized not in ADMIN_ROLES:
-            raise ValueError("A função deve ser owner, manager, waiter ou chef.")
+            raise ValueError("Role must be owner, manager, waiter, or chef.")
         return normalized
 
 
@@ -151,7 +151,7 @@ class ProductIngredientPayload(BaseModel):
             return value
         normalized = value.strip().upper()
         if normalized not in INGREDIENT_TYPES:
-            raise ValueError("Tipo de ingredient inválido.")
+            raise ValueError("Invalid ingredient type.")
         return IngredientType(normalized)
 
 
@@ -168,7 +168,7 @@ class IngredientCreate(BaseModel):
             return value
         normalized = value.strip().upper()
         if normalized not in INGREDIENT_TYPES:
-            raise ValueError("Tipo de ingredient inválido.")
+            raise ValueError("Invalid ingredient type.")
         return IngredientType(normalized)
 
 
@@ -185,7 +185,7 @@ class IngredientUpdate(BaseModel):
             return value
         normalized = value.strip().upper()
         if normalized not in INGREDIENT_TYPES:
-            raise ValueError("Tipo de ingredient inválido.")
+            raise ValueError("Invalid ingredient type.")
         return IngredientType(normalized)
 
 
@@ -373,11 +373,11 @@ class OrderStatusUpdate(BaseModel):
 
     @field_validator("state")
     @classmethod
-    def validate_estado(cls, value: str | OrderState) -> OrderState:
+    def validate_state(cls, value: str | OrderState) -> OrderState:
         if isinstance(value, OrderState):
             return value
         if value not in ORDER_STATES:
-            raise ValueError("Estado do pedido inválido.")
+            raise ValueError("Invalid order state.")
         return OrderState(value)
 
 

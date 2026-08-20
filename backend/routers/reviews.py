@@ -3,9 +3,9 @@
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, Response, status
-from sqlalchemy import func
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from dependencies import get_current_user, get_current_user_optional, require_role
 from services.auth_service import SUPER_ADMIN_ROLE
@@ -56,35 +56,39 @@ def _review_response(review: ProductReview, current_user: Customer | None = None
 
 
 def _get_review_or_404(db: Session, review_id: int) -> ProductReview:
-    review = db.query(ProductReview).filter(ProductReview.review_id == review_id).first()
+    review = db.scalar(select(ProductReview).where(ProductReview.review_id == review_id))
     if not review:
         raise AppHTTPException(status_code=404, error="review_not_found", message="Review not found.", details={"reason": "request_failed"})
     return review
 
 
 def _get_reply_or_404(db: Session, review_id: int, reply_id: int) -> ReviewReply:
-    reply = db.query(ReviewReply).filter(
-        ReviewReply.review_id == review_id,
-        ReviewReply.reply_id == reply_id,
-    ).first()
+    reply = db.scalar(
+        select(ReviewReply).where(
+            ReviewReply.review_id == review_id,
+            ReviewReply.reply_id == reply_id,
+        )
+    )
     if not reply:
         raise AppHTTPException(status_code=404, error="review_not_found", message="Review not found.", details={"reason": "request_failed"})
     return reply
 
 
 def _get_active_product(db: Session, product_id: int) -> Product:
-    product = db.query(Product).filter(
-        Product.product_id == product_id,
-        ((Product.status == EntityStatus.ACTIVE) | (Product.status.is_(None))),
-        Product.deleted_at.is_(None),
-    ).first()
+    product = db.scalar(
+        select(Product).where(
+            Product.product_id == product_id,
+            ((Product.status == EntityStatus.ACTIVE) | (Product.status.is_(None))),
+            Product.deleted_at.is_(None),
+        ).limit(1)
+    )
     if not product:
         raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
     return product
 
 
 def _get_review_for_owner(db: Session, review_id: int, current_user: Customer) -> ProductReview:
-    review = db.query(ProductReview).filter(ProductReview.review_id == review_id).first()
+    review = db.scalar(select(ProductReview).where(ProductReview.review_id == review_id))
     if not review:
         raise AppHTTPException(status_code=404, error="review_not_found", message="Review not found.", details={"reason": "request_failed"})
     if review.customer_id != current_user.customer_id:
@@ -93,17 +97,17 @@ def _get_review_for_owner(db: Session, review_id: int, current_user: Customer) -
 
 
 def _purchased_order_item(db: Session, current_user: Customer, product_id: int, order_product_id: int) -> OrderProduct:
-    item = (
-        db.query(OrderProduct)
+    item = db.scalar(
+        select(OrderProduct)
         .options(joinedload(OrderProduct.order), joinedload(OrderProduct.product))
         .join(Order)
-        .filter(
+        .where(
             OrderProduct.order_product_id == order_product_id,
             OrderProduct.product_id == product_id,
             Order.customer_id == current_user.customer_id,
             Order.state != OrderState.CANCELLED,
         )
-        .first()
+        .limit(1)
     )
     if not item:
         raise AppHTTPException(status_code=403, error="permission_denied", message="Permission denied.", details={"reason": "request_failed"})
@@ -111,10 +115,12 @@ def _purchased_order_item(db: Session, current_user: Customer, product_id: int, 
 
 
 def _existing_product_review(db: Session, current_user: Customer, product_id: int) -> ProductReview | None:
-    return db.query(ProductReview).filter(
-        ProductReview.customer_id == current_user.customer_id,
-        ProductReview.product_id == product_id,
-    ).first()
+    return db.scalar(
+        select(ProductReview).where(
+            ProductReview.customer_id == current_user.customer_id,
+            ProductReview.product_id == product_id,
+        )
+    )
 
 
 @router.get(
@@ -129,13 +135,16 @@ def list_product_reviews(
 ):
     parsed_product_id = parse_product_id(product_id)
     _get_active_product(db, parsed_product_id)
-    reviews = (
-        db.query(ProductReview)
-        .options(joinedload(ProductReview.customer))
-        .filter(ProductReview.product_id == parsed_product_id, ProductReview.status == ReviewStatus.APPROVED)
+    reviews = db.scalars(
+        select(ProductReview)
+        .options(
+            joinedload(ProductReview.customer),
+            selectinload(ProductReview.replies),
+            selectinload(ProductReview.reactions),
+        )
+        .where(ProductReview.product_id == parsed_product_id, ProductReview.status == ReviewStatus.APPROVED)
         .order_by(ProductReview.created_at.desc())
-        .all()
-    )
+    ).all()
     return [_review_response(review, current_user) for review in reviews]
 
 
@@ -147,11 +156,12 @@ def list_product_reviews(
 def get_product_review_stats(product_id: str, db: Session = Depends(get_db)):
     parsed_product_id = parse_product_id(product_id)
     _get_active_product(db, parsed_product_id)
-    average_rating, total_reviews = (
-        db.query(func.avg(ProductReview.rating), func.count(ProductReview.review_id))
-        .filter(ProductReview.product_id == parsed_product_id, ProductReview.status == ReviewStatus.APPROVED)
-        .one()
-    )
+    average_rating, total_reviews = db.execute(
+        select(func.avg(ProductReview.rating), func.count(ProductReview.review_id)).where(
+            ProductReview.product_id == parsed_product_id,
+            ProductReview.status == ReviewStatus.APPROVED,
+        )
+    ).one()
     return ProductReviewStatsResponse(
         product_id=parsed_product_id,
         product_display_id=format_product_id(parsed_product_id),
@@ -180,22 +190,23 @@ def get_product_review_eligibility(
         )
 
     existing_product_review = _existing_product_review(db, current_user, parsed_product_id)
-    order_items = (
-        db.query(OrderProduct)
+    order_items = db.scalars(
+        select(OrderProduct)
         .options(
             joinedload(OrderProduct.order),
             joinedload(OrderProduct.product),
             joinedload(OrderProduct.review).joinedload(ProductReview.customer),
+            joinedload(OrderProduct.review).selectinload(ProductReview.replies),
+            joinedload(OrderProduct.review).selectinload(ProductReview.reactions),
         )
         .join(Order)
-        .filter(
+        .where(
             OrderProduct.product_id == parsed_product_id,
             Order.customer_id == current_user.customer_id,
             Order.state != OrderState.CANCELLED,
         )
         .order_by(Order.ordered_at.desc(), OrderProduct.order_product_id.desc())
-        .all()
-    )
+    ).unique().all()
 
     items = [
         ProductReviewEligibilityItem(
@@ -210,9 +221,9 @@ def get_product_review_eligibility(
         for item in order_items
     ]
     eligible = bool(items and existing_product_review is None)
-    message = "Escolha um item comprado para avaliar." if eligible else "Já avaliou este product. Edite a sua avaliação existente."
+    message = "Choose a purchased item to review." if eligible else "You have already reviewed this product. Edit your existing review."
     if not items:
-        message = "Compre este product antes de deixar uma avaliação."
+        message = "Purchase this product before leaving a review."
 
     return ProductReviewEligibilityResponse(
         eligible=eligible,
@@ -248,9 +259,9 @@ def create_product_review(
             details={"product_id": parsed_product_id, "review_id": existing_product_review.review_id},
         )
 
-    existing = db.query(ProductReview).filter(
-        ProductReview.order_product_id == body.order_product_id
-    ).first()
+    existing = db.scalar(
+        select(ProductReview).where(ProductReview.order_product_id == body.order_product_id)
+    )
     if existing:
         raise AppHTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -404,10 +415,12 @@ def upsert_review_reaction(
     current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
 ):
     _get_review_or_404(db, review_id)
-    reaction = db.query(ReviewReaction).filter(
-        ReviewReaction.review_id == review_id,
-        ReviewReaction.admin_id == current_admin.admin_id,
-    ).first()
+    reaction = db.scalar(
+        select(ReviewReaction).where(
+            ReviewReaction.review_id == review_id,
+            ReviewReaction.admin_id == current_admin.admin_id,
+        )
+    )
     if reaction:
         reaction.type = body.type
     else:
@@ -428,10 +441,12 @@ def delete_review_reaction(
     db: Session = Depends(get_db),
     current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
 ):
-    reaction = db.query(ReviewReaction).filter(
-        ReviewReaction.review_id == review_id,
-        ReviewReaction.admin_id == current_admin.admin_id,
-    ).first()
+    reaction = db.scalar(
+        select(ReviewReaction).where(
+            ReviewReaction.review_id == review_id,
+            ReviewReaction.admin_id == current_admin.admin_id,
+        )
+    )
     if reaction:
         db.delete(reaction)
         db.commit()

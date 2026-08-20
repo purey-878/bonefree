@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, delete, or_, select
 from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional
@@ -28,7 +28,7 @@ from schemas import (
 )
 from dependencies import get_current_user, get_current_user_optional
 from services.order_customization import customization_from_json, customization_to_json
-from services.product_availability import unavailable_due_to_inactive_base
+from services.product_availability import inactive_base_product_ids, unavailable_due_to_inactive_base
 from services.product_pricing import discounted_product_price
 from utils.id_format import format_product_id, parse_product_id
 from core.errors import AppHTTPException
@@ -65,7 +65,7 @@ def _product_image_path(product: Product) -> str | None:
 
 def _get_or_create_cart(db: Session, customer_id: int) -> Cart:
     """Return the customer's cart, creating one if it doesn't exist yet."""
-    cart = db.query(Cart).filter(Cart.customer_id == customer_id).first()
+    cart = db.scalar(select(Cart).where(Cart.customer_id == customer_id))
     if not cart:
         cart = Cart(customer_id=customer_id, created_at=datetime.utcnow().date())
         db.add(cart)
@@ -108,9 +108,11 @@ def _build_cart_out(cart: Cart) -> CartOut:
 
 
 def _get_product_or_404(db: Session, product_id: int) -> Product:
-    product = db.query(Product).filter(
-        and_(Product.product_id == product_id, Product.status == EntityStatus.ACTIVE, Product.deleted_at.is_(None))
-    ).first()
+    product = db.scalar(
+        select(Product).where(
+            and_(Product.product_id == product_id, Product.status == EntityStatus.ACTIVE, Product.deleted_at.is_(None))
+        ).limit(1)
+    )
     if not product:
         raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
     return product
@@ -122,21 +124,20 @@ def _ensure_product_orderable(db: Session, product: Product) -> None:
 
 
 def _delete_cart_items(db: Session, cart_id: int) -> None:
-    cart_item_ids = [
-        cart_product_id
-        for (cart_product_id,) in db.query(CartProduct.cart_product_id)
-        .filter(CartProduct.cart_id == cart_id)
-        .all()
-    ]
+    cart_item_ids = db.scalars(
+        select(CartProduct.cart_product_id).where(CartProduct.cart_id == cart_id)
+    ).all()
     if not cart_item_ids:
         return
 
-    db.query(CartProductCustomization).filter(
-        CartProductCustomization.cart_product_id.in_(cart_item_ids)
-    ).delete(synchronize_session=False)
-    db.query(CartProduct).filter(
-        CartProduct.cart_product_id.in_(cart_item_ids)
-    ).delete(synchronize_session=False)
+    db.execute(
+        delete(CartProductCustomization).where(
+            CartProductCustomization.cart_product_id.in_(cart_item_ids)
+        )
+    )
+    db.execute(
+        delete(CartProduct).where(CartProduct.cart_product_id.in_(cart_item_ids))
+    )
 
 
 def _check_stock(product: Product, requested_quantity: int, quantity_already_in_cart: int = 0):
@@ -195,16 +196,15 @@ def _price_legacy_customization(
         return None
 
     if customization.remove:
-        rows = (
-            db.query(ProductIngredient)
+        rows = db.scalars(
+            select(ProductIngredient)
             .join(ProductIngredient.ingredient)
-            .filter(
+            .where(
                 ProductIngredient.product_id == product.product_id,
                 ProductIngredient.removable == 1,
                 ProductIngredient.ingredient.has(type=IngredientType.NORMAL, status=EntityStatus.ACTIVE),
             )
-            .all()
-        )
+        ).all()
         removable_names = {
             row.ingredient.name.strip().casefold(): row.ingredient.name.strip()
             for row in rows
@@ -237,12 +237,11 @@ def _validate_and_build_customization(
     if not bool(getattr(product, "customizable", 0)):
         raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="product_not_customizable", message="Product cannot be customized.", details={"product_id": product.product_id})
 
-    ingredient_rows = (
-        db.query(ProductIngredient)
+    ingredient_rows = db.scalars(
+        select(ProductIngredient)
         .join(ProductIngredient.ingredient)
-        .filter(ProductIngredient.product_id == product.product_id)
-        .all()
-    )
+        .where(ProductIngredient.product_id == product.product_id)
+    ).all()
     ingredients = {row.ingredient_id: row for row in ingredient_rows}
 
     remove_names: list[str] = []
@@ -264,35 +263,35 @@ def _validate_and_build_customization(
             "extra_price": Decimal("0"),
         })
 
-    option_ids = [extra.option_id for extra in body.extras]
-    option_ids.extend(
-        option.option_id
-        for substitution in body.substitutions
-        for option in db.query(ProductCustomizationOption).filter(
-            ProductCustomizationOption.product_id == product.product_id,
-            ProductCustomizationOption.ingredient_id == substitution.new_ingredient_id,
-            ProductCustomizationOption.status == EntityStatus.ACTIVE,
-            ProductCustomizationOption.type.in_(
-                (
-                    ProductCustomizationOptionType.SUBSTITUTE_SAUCE,
-                    ProductCustomizationOptionType.SUBSTITUTE_SIDE,
-                )
-            ),
-            ProductCustomizationOption.ingredient.has(status=EntityStatus.ACTIVE),
-        ).all()
-    )
     options = {}
-    if option_ids:
+    extra_option_ids = {extra.option_id for extra in body.extras}
+    substitution_ingredient_ids = {
+        substitution.new_ingredient_id for substitution in body.substitutions
+    }
+    if extra_option_ids or substitution_ingredient_ids:
         options = {
             option.option_id: option
-            for option in db.query(ProductCustomizationOption).filter(
-                ProductCustomizationOption.option_id.in_(option_ids),
-                ProductCustomizationOption.product_id == product.product_id,
-                ProductCustomizationOption.status == EntityStatus.ACTIVE,
-                or_(
-                    ProductCustomizationOption.ingredient_id.is_(None),
-                    ProductCustomizationOption.ingredient.has(status=EntityStatus.ACTIVE),
-                ),
+            for option in db.scalars(
+                select(ProductCustomizationOption).where(
+                    ProductCustomizationOption.product_id == product.product_id,
+                    ProductCustomizationOption.status == EntityStatus.ACTIVE,
+                    or_(
+                        ProductCustomizationOption.ingredient_id.is_(None),
+                        ProductCustomizationOption.ingredient.has(status=EntityStatus.ACTIVE),
+                    ),
+                    or_(
+                        ProductCustomizationOption.option_id.in_(extra_option_ids),
+                        and_(
+                            ProductCustomizationOption.ingredient_id.in_(substitution_ingredient_ids),
+                            ProductCustomizationOption.type.in_(
+                                (
+                                    ProductCustomizationOptionType.SUBSTITUTE_SAUCE,
+                                    ProductCustomizationOptionType.SUBSTITUTE_SIDE,
+                                )
+                            ),
+                        ),
+                    ),
+                )
             ).all()
         }
 
@@ -357,7 +356,7 @@ def _validate_and_build_customization(
         remove=remove_names,
         add=add_names,
         preferences=substitution_names,
-        note=body.observacoes,
+        note=body.notes,
         removed_ingredients=sorted(set(body.removed_ingredients)),
         extras=body.extras,
         substitutions=body.substitutions,
@@ -372,17 +371,17 @@ def _find_cart_line(
     product_id: int,
     customization_json: str | None,
 ) -> CartProduct | None:
-    query = db.query(CartProduct).filter(
+    statement = select(CartProduct).where(
         CartProduct.cart_id == cart_id,
         CartProduct.product_id == product_id,
     )
 
     if customization_json is None:
-        query = query.filter(CartProduct.customization.is_(None))
+        statement = statement.where(CartProduct.customization.is_(None))
     else:
-        query = query.filter(CartProduct.customization == customization_json)
+        statement = statement.where(CartProduct.customization == customization_json)
 
-    return query.first()
+    return db.scalar(statement.limit(1))
 
 
 def _cart_item_out_from_product(
@@ -427,7 +426,7 @@ def _trusted_guest_customization(
             removed_ingredients=customization.removed_ingredients,
             extras=customization.extras,
             substitutions=customization.substitutions,
-            observacoes=customization.note,
+            notes=customization.note,
         )
         trusted, _, customization_rows = _validate_and_build_customization(db, product, body)
         return trusted, customization_rows
@@ -579,18 +578,18 @@ def update_item(
     cart = _get_or_create_cart(db, current_user.customer_id)
 
     if body.cart_product_id is not None:
-        item = db.query(CartProduct).filter(
-            CartProduct.cart_id == cart.cart_id,
-            CartProduct.cart_product_id == body.cart_product_id,
-        ).first()
+        item = db.scalar(
+            select(CartProduct).where(
+                CartProduct.cart_id == cart.cart_id,
+                CartProduct.cart_product_id == body.cart_product_id,
+            ).limit(1)
+        )
     else:
-        item = (
-            db.query(CartProduct)
-            .filter(
+        item = db.scalar(
+            select(CartProduct).where(
                 CartProduct.cart_id == cart.cart_id,
                 CartProduct.product_id == body.product_id,
-            )
-            .first()
+            ).limit(1)
         )
 
     if not item:
@@ -622,18 +621,18 @@ def remove_item(
     cart = _get_or_create_cart(db, current_user.customer_id)
 
     if cart_product_id is not None:
-        item = db.query(CartProduct).filter(
-            CartProduct.cart_id == cart.cart_id,
-            CartProduct.cart_product_id == cart_product_id,
-        ).first()
+        item = db.scalar(
+            select(CartProduct).where(
+                CartProduct.cart_id == cart.cart_id,
+                CartProduct.cart_product_id == cart_product_id,
+            ).limit(1)
+        )
     else:
-        item = (
-            db.query(CartProduct)
-            .filter(
+        item = db.scalar(
+            select(CartProduct).where(
                 CartProduct.cart_id == cart.cart_id,
                 CartProduct.product_id == parsed_product_id,
-            )
-            .first()
+            ).limit(1)
         )
 
     if not item:
@@ -685,13 +684,20 @@ def merge_cart(
     capped: List[int] = []
     skipped: List[int] = []
 
-    for guest_item in body.items:
-        product = db.query(Product).filter(
-            Product.product_id == guest_item.product_id,
+    product_ids = {item.product_id for item in body.items}
+    products = db.scalars(
+        select(Product).where(
+            Product.product_id.in_(product_ids),
             Product.status == EntityStatus.ACTIVE,
             Product.deleted_at.is_(None),
-        ).first()
-        if not product or product.stock <= 0 or unavailable_due_to_inactive_base(db, product):
+        )
+    ).unique().all()
+    product_map = {product.product_id: product for product in products}
+    inactive_base_ids = inactive_base_product_ids(db, list(product_ids))
+
+    for guest_item in body.items:
+        product = product_map.get(guest_item.product_id)
+        if not product or product.stock <= 0 or product.product_id in inactive_base_ids:
             skipped.append(guest_item.product_id)
             continue
         try:

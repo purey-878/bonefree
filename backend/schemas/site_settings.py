@@ -122,7 +122,7 @@ class SiteThemeSettings(BaseModel):
     def validate_theme_id(cls, value: str | ThemeId) -> ThemeId:
         normalized = value.value if isinstance(value, ThemeId) else value.strip().lower()
         if normalized not in THEME_IDS:
-            raise ValueError("Tema inválido.")
+            raise ValueError("Invalid theme.")
         return ThemeId(normalized)
 
     @field_validator("colors")
@@ -164,7 +164,7 @@ class LoyaltyCouponSettings(BaseModel):
     def validate_discount_value(cls, value: Decimal, info):
         discount_type = info.data.get("discount_type")
         if discount_type == CouponDiscountType.PERCENTAGE and value > Decimal("100"):
-            raise ValueError("O discount percentual não pode exceder 100.")
+            raise ValueError("Discount percentage cannot exceed 100.")
         return value
 
 

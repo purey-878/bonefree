@@ -18,7 +18,7 @@ from schemas.enums import (
 )
 from .customization import ItemCustomization
 from .id_types import ProductId
-from utils.validation import normalize_phone, validate_email, validate_name, validate_nif
+from utils.validation import normalize_phone, validate_email, validate_name, validate_portuguese_tax_id
 
 
 class CheckoutCustomer(BaseModel):
@@ -34,7 +34,7 @@ class CheckoutCustomer(BaseModel):
     def check_name(cls, value: str) -> str:
         name = validate_name(value)
         if not name:
-            raise ValueError("Introduza um name completo valido.")
+            raise ValueError("Enter a valid full name.")
         return name
 
     @field_validator("email")
@@ -50,8 +50,8 @@ class CheckoutCustomer(BaseModel):
 
     @field_validator("tax_id")
     @classmethod
-    def check_nif(cls, value: Optional[str]) -> Optional[str]:
-        return validate_nif(value)
+    def check_tax_id(cls, value: Optional[str]) -> Optional[str]:
+        return validate_portuguese_tax_id(value)
 
 
 class CheckoutItem(BaseModel):
