@@ -1,7 +1,9 @@
 """Checkout routes backed by the bonefree_resturante order schema."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
+import hashlib
+import secrets
 from typing import Optional
 from uuid import uuid4
 from urllib.parse import quote
@@ -10,10 +12,16 @@ from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy import delete, exists, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
-from dependencies import get_current_user
-from services.auth_service import hash_password
+from dependencies import (
+    get_current_user,
+    get_current_user_optional,
+    get_order_access_token_optional,
+    rate_limit_order,
+)
+from core.config import settings
+from core.rate_limit import RATE_LIMIT_OPENAPI_RESPONSES
 from database import get_db
-from schemas.enums import CancellationOrigin, CouponType, EntityStatus, OrderState, PaymentMethod, PaymentState, PaymentStatus, UserRole, UserStatus, normalize_enum
+from schemas.enums import CancellationOrigin, CouponType, EntityStatus, OrderState, PaymentMethod, PaymentState, PaymentStatus, normalize_enum
 from models import (
     Cart,
     CartProduct,
@@ -21,14 +29,21 @@ from models import (
     Customer,
     CustomerLoyalty,
     Coupon,
-    Ingredient,
     Order,
     OrderProduct,
     Payment,
     Product,
-    ProductCustomizationOption,
 )
-from schemas.checkout import CouponResponse, CouponValidationRequest, CouponValidationResponse, CheckoutItem, CheckoutRequest, OrderResponse
+from schemas.checkout import (
+    CouponResponse,
+    CouponValidationRequest,
+    CouponValidationResponse,
+    CheckoutItem,
+    CheckoutRequest,
+    OrderCreateResponse,
+    OrderResponse,
+)
+from routers.cart import trusted_guest_customization
 from services.receipt_email import build_saved_order_receipt_payload
 from services.order_customization import customization_from_json, customization_to_json
 from services.product_availability import (
@@ -122,66 +137,127 @@ def _clear_user_cart(db: Session, current_user: Optional[Customer]) -> None:
     db.execute(delete(CartProduct).where(CartProduct.cart_product_id.in_(cart_item_ids)))
 
 
-def _get_or_create_checkout_customer(db: Session, body: CheckoutRequest, current_user: Optional[Customer]) -> Customer:
+def _update_authenticated_checkout_customer(
+    db: Session,
+    body: CheckoutRequest,
+    current_user: Customer,
+) -> Customer:
     tax_id_provided = "tax_id" in body.customer.model_fields_set
     checkout_tax_id = (body.customer.tax_id or "").strip() or None
-
-    if current_user:
-        customer = db.scalar(
-            select(Customer).where(Customer.customer_id == current_user.customer_id)
-        ) or current_user
-        should_save_checkout_tax_id = tax_id_provided and checkout_tax_id and not customer.tax_id
-        if should_save_checkout_tax_id:
-            existing = db.scalar(
-                select(Customer).where(
-                    Customer.tax_id == checkout_tax_id,
-                    Customer.customer_id != customer.customer_id,
-                )
+    customer = db.scalar(
+        select(Customer).where(Customer.customer_id == current_user.customer_id)
+    ) or current_user
+    should_save_checkout_tax_id = tax_id_provided and checkout_tax_id and not customer.tax_id
+    if should_save_checkout_tax_id:
+        existing = db.scalar(
+            select(Customer).where(
+                Customer.tax_id == checkout_tax_id,
+                Customer.customer_id != customer.customer_id,
             )
-            if existing:
-                raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="duplicate_tax_id", message="This tax ID is already associated with an existing account.", details={"tax_id": checkout_tax_id})
-        if should_save_checkout_tax_id:
-            customer.tax_id = checkout_tax_id
-        customer.name = body.customer.first_name
-        customer.last_name = body.customer.last_name
-        if body.customer.phone:
-            customer.phone = body.customer.phone
-        return customer
-
-    customer = db.scalar(select(Customer).where(Customer.email == body.customer.email))
-    if customer:
-        should_save_checkout_tax_id = tax_id_provided and checkout_tax_id and not customer.tax_id
-        if should_save_checkout_tax_id:
-            existing = db.scalar(
-                select(Customer).where(
-                    Customer.tax_id == checkout_tax_id,
-                    Customer.customer_id != customer.customer_id,
-                )
+        )
+        if existing:
+            raise AppHTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                error="duplicate_tax_id",
+                message="This tax ID is already associated with an existing account.",
+                details={"tax_id": checkout_tax_id},
             )
-            if existing:
-                raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="duplicate_tax_id", message="This tax ID is already associated with an existing account.", details={"tax_id": checkout_tax_id})
-        if should_save_checkout_tax_id:
-            customer.tax_id = checkout_tax_id
-        customer.name = body.customer.first_name
-        customer.last_name = body.customer.last_name
-        if body.customer.phone:
-            customer.phone = body.customer.phone
-        return customer
+        customer.tax_id = checkout_tax_id
 
-    customer = Customer(
-        name=body.customer.first_name,
-        last_name=body.customer.last_name,
-        email=body.customer.email,
-        phone=body.customer.phone,
-        tax_id=checkout_tax_id,
-        password=hash_password(uuid4().hex),
-        status=UserStatus.ACTIVE,
-        role=UserRole.CLIENT,
-        created_at=datetime.utcnow(),
-    )
-    db.add(customer)
-    db.flush()
+    customer.name = body.customer.first_name
+    customer.last_name = body.customer.last_name
+    if body.customer.phone:
+        customer.phone = body.customer.phone
     return customer
+
+
+def _hash_order_access_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def _new_guest_order_access() -> tuple[str, str, datetime]:
+    token = secrets.token_urlsafe(32)
+    expires_at = datetime.utcnow() + timedelta(
+        hours=settings.order_access_token_expiration_hours
+    )
+    return token, _hash_order_access_token(token), expires_at
+
+
+def _authorize_order_access(
+    order: Order,
+    current_user: Customer | None,
+    access_token: str | None,
+) -> None:
+    if current_user and order.customer_id == current_user.customer_id:
+        return
+
+    if access_token and order.order_access_token_hash:
+        token_matches = secrets.compare_digest(
+            _hash_order_access_token(access_token),
+            order.order_access_token_hash,
+        )
+        if token_matches:
+            if (
+                order.order_access_expires_at is None
+                or order.order_access_expires_at <= datetime.utcnow()
+            ):
+                raise AppHTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    error="order_access_expired",
+                    message="Order access has expired.",
+                    details={"order_id": order.order_id},
+                )
+            return
+
+    if current_user is None and not access_token:
+        raise AppHTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            error="order_access_required",
+            message="Order access credentials are required.",
+            details={"order_id": order.order_id},
+        )
+
+    raise AppHTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        error="order_not_found",
+        message="Order not found.",
+        details={"reason": "request_failed"},
+    )
+
+
+def _load_order_for_customer_or_guest(
+    db: Session,
+    order_id: int,
+    current_user: Customer | None,
+    access_token: str | None,
+) -> Order:
+    if current_user is None and not access_token:
+        raise AppHTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            error="order_access_required",
+            message="Order access credentials are required.",
+            details={"order_id": order_id},
+        )
+
+    order = db.scalar(
+        select(Order)
+        .options(
+            joinedload(Order.customer),
+            selectinload(Order.items).joinedload(OrderProduct.product),
+        )
+        .where(Order.order_id == order_id)
+        .limit(1)
+    )
+    if not order:
+        raise AppHTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            error="order_not_found",
+            message="Order not found.",
+            details={"reason": "request_failed"},
+        )
+
+    _authorize_order_access(order, current_user, access_token)
+    return order
 
 
 def _checkout_notes(body: CheckoutRequest, extra_parts: Optional[list[str]] = None) -> str:
@@ -441,21 +517,36 @@ def validate_coupon(
 
 @router.post(
     "/orders",
-    response_model=OrderResponse,
+    response_model=OrderCreateResponse,
     status_code=status.HTTP_201_CREATED,
     operation_id="checkout_create_order",
+    responses=RATE_LIMIT_OPENAPI_RESPONSES,
 )
 def create_order(
     body: CheckoutRequest,
     db: Session = Depends(get_db),
-    current_user: Customer = Depends(get_current_user),
+    current_user: Customer | None = Depends(get_current_user_optional),
+    _rate_limit: None = Depends(rate_limit_order),
 ):
-    items = _cart_items_for_user(db, current_user)
-    if not items:
+    items = _cart_items_for_user(db, current_user) if current_user else body.items
+    if current_user and not items:
         items = body.items
 
     if not items:
-        raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="empty_cart", message="Cart must contain at least one item.", details={"customer_id": current_user.customer_id})
+        raise AppHTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            error="empty_cart",
+            message="Cart must contain at least one item.",
+            details={},
+        )
+
+    if not current_user and _normalize_coupon_code(body.promo_code):
+        raise AppHTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            error="authentication_required",
+            message="Authentication is required to use a coupon.",
+            details={},
+        )
 
     product_ids = [item.product_id for item in items]
     products = db.scalars(
@@ -465,47 +556,6 @@ def create_order(
     ).unique().all()
     product_map = {product.product_id: product for product in products}
     unavailable_base_ids = unavailable_base_product_ids(db, product_ids)
-
-    selected_ingredient_ids: set[int] = set()
-    selected_option_ids: set[int] = set()
-    for item in items:
-        if not item.customization:
-            continue
-        selected_ingredient_ids.update(item.customization.removed_ingredients)
-        selected_ingredient_ids.update(
-            substitution.new_ingredient_id
-            for substitution in item.customization.substitutions
-        )
-        selected_option_ids.update(extra.option_id for extra in item.customization.extras)
-
-    unavailable_customization_ingredients = set(db.scalars(
-        select(Ingredient.ingredient_id).where(
-            Ingredient.ingredient_id.in_(selected_ingredient_ids),
-            (
-                (Ingredient.status == EntityStatus.INACTIVE)
-                | Ingredient.available.is_(False)
-            ),
-        )
-    ).all()) if selected_ingredient_ids else set()
-    if selected_option_ids:
-        unavailable_customization_ingredients.update(db.scalars(
-            select(ProductCustomizationOption.ingredient_id)
-            .join(Ingredient, Ingredient.ingredient_id == ProductCustomizationOption.ingredient_id)
-            .where(
-                ProductCustomizationOption.option_id.in_(selected_option_ids),
-                (
-                    (Ingredient.status == EntityStatus.INACTIVE)
-                    | Ingredient.available.is_(False)
-                ),
-            )
-        ).all())
-    if unavailable_customization_ingredients:
-        raise AppHTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            error="customization_ingredient_unavailable",
-            message="A selected customization ingredient is currently unavailable.",
-            details={"ingredient_ids": sorted(unavailable_customization_ingredients)},
-        )
 
     subtotal = Decimal("0")
     order_items: list[dict] = []
@@ -526,9 +576,15 @@ def create_order(
                 },
             )
 
+        trusted_customization, _ = trusted_guest_customization(
+            db,
+            product,
+            item.quantity,
+            item.customization,
+        )
         unit_price = (
-            Decimal(str(item.customization.final_unit_price))
-            if item.customization and item.customization.final_unit_price is not None
+            Decimal(str(trusted_customization.final_unit_price))
+            if trusted_customization and trusted_customization.final_unit_price is not None
             else discounted_product_price(product)
         )
         line_total = unit_price * item.quantity
@@ -541,16 +597,37 @@ def create_order(
             "discount_percentage_snapshot": Decimal(str(product.discount_percentage or 0)),
             "unit_price": unit_price,
             "quantity": item.quantity,
-            "customization": customization_to_json(item.customization),
+            "customization": customization_to_json(trusted_customization),
         })
 
-    customer = _get_or_create_checkout_customer(db, body, current_user)
+    if current_user:
+        customer = _update_authenticated_checkout_customer(db, body, current_user)
+        customer_id = customer.customer_id
+        order_access_token = None
+        order_access_token_hash = None
+        order_access_expires_at = None
+    else:
+        customer_id = None
+        (
+            order_access_token,
+            order_access_token_hash,
+            order_access_expires_at,
+        ) = _new_guest_order_access()
+
     db_method = PaymentMethod.COUNTER
     delivery_fee = Decimal("0")
-    coupon, coupon_discount = _get_valid_coupon(db, current_user, body.promo_code, subtotal)
+    coupon, coupon_discount = (
+        _get_valid_coupon(db, current_user, body.promo_code, subtotal)
+        if current_user
+        else (None, Decimal("0"))
+    )
     total = subtotal - coupon_discount + delivery_fee + SERVICE_FEE
     vat_amount = _included_vat(total)
-    generated_coupon_code = _award_loyalty_coupon_if_eligible(db, current_user, subtotal)
+    generated_coupon_code = (
+        _award_loyalty_coupon_if_eligible(db, current_user, subtotal)
+        if current_user
+        else None
+    )
     note_parts: list[str] = []
     if coupon:
         note_parts.extend([f"coupon={coupon.code}", f"coupon_discount={coupon_discount:.2f}"])
@@ -561,8 +638,15 @@ def create_order(
     order_notes = _checkout_notes(body, note_parts)
 
     order = Order(
-        customer_id=customer.customer_id,
+        customer_id=customer_id,
         admin_id=None,
+        customer_first_name=body.customer.first_name,
+        customer_last_name=body.customer.last_name,
+        customer_email=str(body.customer.email),
+        customer_phone=body.customer.phone,
+        customer_tax_id=(body.customer.tax_id or "").strip() or None,
+        order_access_token_hash=order_access_token_hash,
+        order_access_expires_at=order_access_expires_at,
         state=OrderState.PENDING,
         payment_method=db_method,
         payment_status=PaymentStatus.UNPAID,
@@ -609,6 +693,10 @@ def create_order(
         .limit(1)
     )
     response = _order_response(saved)
+    response.update({
+        "order_access_token": order_access_token,
+        "order_access_expires_at": order_access_expires_at,
+    })
 
     return response
 
@@ -621,19 +709,15 @@ def create_order(
 def cancel_order(
     order_id: int,
     db: Session = Depends(get_db),
-    current_user: Customer = Depends(get_current_user),
+    current_user: Customer | None = Depends(get_current_user_optional),
+    access_token: str | None = Depends(get_order_access_token_optional),
 ):
-    order = db.scalar(
-        select(Order)
-        .options(selectinload(Order.items).joinedload(OrderProduct.product))
-        .where(
-            Order.order_id == order_id,
-            Order.customer_id == current_user.customer_id,
-        )
-        .limit(1)
+    order = _load_order_for_customer_or_guest(
+        db,
+        order_id,
+        current_user,
+        access_token,
     )
-    if not order:
-        raise AppHTTPException(status_code=404, error="order_not_found", message="Order not found.", details={"reason": "request_failed"})
     if not _can_customer_cancel(order):
         raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="order_cannot_be_cancelled", message="Order cannot be cancelled.", details={"order_id": order.order_id, "state": str(order.state), "payment_status": str(order.payment_status)})
 
@@ -662,25 +746,18 @@ def cancel_order(
 def download_order_receipt_pdf(
     order_id: int,
     db: Session = Depends(get_db),
-    current_user: Customer = Depends(get_current_user),
+    current_user: Customer | None = Depends(get_current_user_optional),
+    access_token: str | None = Depends(get_order_access_token_optional),
 ):
     if not render_receipt_pdf or not receipt_pdf_filename:
         raise AppHTTPException(status_code=503, error="service_unavailable", message="Service unavailable.", details={"reason": "request_failed"})
 
-    order = db.scalar(
-        select(Order)
-        .options(
-            joinedload(Order.customer),
-            selectinload(Order.items).joinedload(OrderProduct.product),
-        )
-        .where(
-            Order.order_id == order_id,
-            Order.customer_id == current_user.customer_id,
-        )
-        .limit(1)
+    order = _load_order_for_customer_or_guest(
+        db,
+        order_id,
+        current_user,
+        access_token,
     )
-    if not order:
-        raise AppHTTPException(status_code=404, error="order_not_found", message="Order not found.", details={"reason": "request_failed"})
     if order.payment_status != PaymentStatus.PAID:
         raise AppHTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -719,3 +796,23 @@ def list_order_history(
         .order_by(Order.ordered_at.desc())
     ).unique().all()
     return [_order_response(order) for order in orders]
+
+
+@router.get(
+    "/orders/{order_id}",
+    response_model=OrderResponse,
+    operation_id="checkout_get_order",
+)
+def get_order(
+    order_id: int,
+    db: Session = Depends(get_db),
+    current_user: Customer | None = Depends(get_current_user_optional),
+    access_token: str | None = Depends(get_order_access_token_optional),
+):
+    order = _load_order_for_customer_or_guest(
+        db,
+        order_id,
+        current_user,
+        access_token,
+    )
+    return _order_response(order)

@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 from fastapi import Depends, FastAPI
 from fastapi.params import Depends as DependsParameter
+from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 from starlette.requests import Request
 
@@ -289,6 +290,21 @@ class RateLimitDependencyTests(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(AppHTTPException):
                 await rate_limit_order(request)
 
+    async def test_order_limit_allows_ten_requests_then_blocks_for_sixty_seconds(self):
+        request = build_request(redis_client=InMemoryRedis())
+        with (
+            patch.object(settings, "rate_limit_order_requests", 10),
+            patch.object(settings, "rate_limit_order_window_seconds", 60),
+        ):
+            for _ in range(10):
+                await rate_limit_order(request)
+            with self.assertRaises(AppHTTPException) as context:
+                await rate_limit_order(request)
+
+        self.assertEqual(context.exception.status_code, 429)
+        self.assertGreaterEqual(int(context.exception.headers["Retry-After"]), 1)
+        self.assertLessEqual(int(context.exception.headers["Retry-After"]), 60)
+
     def test_require_role_centralizes_admin_rate_limit(self):
         checker = require_role(UserRole.OWNER)
         dependency = inspect.signature(checker).parameters["_rate_limit"].default
@@ -317,11 +333,35 @@ class RateLimitDependencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code, 429)
         self.assertEqual(response.json()["error"], RATE_LIMIT_ERROR)
 
-    def test_order_limit_is_prepared_but_not_wired_to_checkout(self):
-        checkout_source = (
-            Path(__file__).resolve().parents[1] / "routers" / "checkout.py"
-        ).read_text(encoding="utf-8")
-        self.assertNotIn("rate_limit_order", checkout_source)
+    def test_order_limit_is_wired_only_to_checkout_creation(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            application = create_app(
+                run_startup_tasks=False,
+                public_assets_dir=root / "assets",
+                uploads_dir=root / "uploads",
+            )
+
+        checkout_routes = [
+            route
+            for route in application.routes
+            if isinstance(route, APIRoute) and route.path.startswith("/checkout/orders")
+        ]
+        creation_route = next(
+            route for route in checkout_routes if route.operation_id == "checkout_create_order"
+        )
+        self.assertIn(
+            rate_limit_order,
+            [dependency.call for dependency in creation_route.dependant.dependencies],
+        )
+        for route in checkout_routes:
+            if route is creation_route:
+                continue
+            self.assertNotIn(
+                rate_limit_order,
+                [dependency.call for dependency in route.dependant.dependencies],
+                route.operation_id,
+            )
 
     def test_http_429_payload_and_header(self):
         app = FastAPI()

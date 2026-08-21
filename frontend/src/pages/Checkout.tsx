@@ -26,7 +26,7 @@ import type { CartItem, GuestCartItem } from "../types/cart"
 import type { Coupon, CouponValidation, FulfillmentMethod, PaymentMethod } from "../types/checkout"
 import type { Product } from "../types/product"
 import { applyApiImageFallback, resolveProductImageUrl } from "../utils/imageFallback"
-import { validateEmail, validateName, validateNif } from "../utils/validation"
+import { validateEmail, validateName, validateNif, validatePhone } from "../utils/validation"
 import type { FieldErrors } from "../utils/validation"
 import { formatEuro } from "../utils/money"
 import "./Checkout.css"
@@ -35,6 +35,7 @@ interface CheckoutForm {
   firstName: string
   lastName: string
   email: string
+  phone: string
   taxId: string
   tableNumber: string
   promoCode: string
@@ -49,12 +50,14 @@ interface ConfirmedOrderSnapshot {
   customer: CheckoutForm
   createdAt: string
   orderId: number
+  isGuest: boolean
 }
 
 const initialForm: CheckoutForm = {
   firstName: "",
   lastName: "",
   email: "",
+  phone: "",
   taxId: "",
   tableNumber: "",
   promoCode: "",
@@ -158,19 +161,13 @@ function Checkout() {
   const [upsellBusyId, setUpsellBusyId] = useState<number | null>(null)
 
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      navigate("/login", { replace: true, state: { from: "/checkout" } })
-    }
-  }, [authLoading, isAuthenticated, navigate])
-
-  useEffect(() => {
     if (!user) return
     setForm((current) => ({
       ...current,
       firstName: user.name ?? "",
       lastName: user.lastName ?? "",
       email: user.email ?? "",
-
+      phone: user.phone ?? "",
       taxId: user.taxId ?? "",
     }))
   }, [user])
@@ -224,12 +221,10 @@ function Checkout() {
   }, [isAuthenticated])
 
   useEffect(() => {
-    if (!isAuthenticated) return
-
     productService.getAll()
       .then(setUpsellProducts)
       .catch((err) => console.error("Não foi possível carregar extras do checkout.", err))
-  }, [isAuthenticated])
+  }, [])
 
   const updateForm = (field: keyof CheckoutForm, value: string) => {
     const nextValue = value
@@ -239,6 +234,7 @@ function Checkout() {
       firstName: validateName,
       lastName: validateName,
       email: validateEmail,
+      phone: (input) => validatePhone(input),
       taxId: (input) => validateNif(input),
     }
     const nextError = validators[field]?.(nextValue) ?? ""
@@ -251,10 +247,12 @@ function Checkout() {
     const firstNameError = validateName(form.firstName)
     const lastNameError = validateName(form.lastName)
     const emailError = validateEmail(form.email)
+    const phoneError = validatePhone(form.phone)
     const nifError = validateNif(form.taxId)
     if (firstNameError) errors.firstName = firstNameError
     if (lastNameError) errors.lastName = lastNameError
     if (emailError) errors.email = emailError
+    if (phoneError) errors.phone = phoneError
     if (nifError) errors.taxId = nifError
 
     const tableValue = form.tableNumber.trim()
@@ -364,6 +362,7 @@ function Checkout() {
           firstName: form.firstName.trim(),
           lastName: form.lastName.trim(),
           email: form.email.trim(),
+          phone: form.phone.trim(),
           taxId: form.taxId.trim() || null,
           tableNumber: fulfillment === "dine_in" && form.tableNumber.trim() ? parseInt(form.tableNumber, 10) : null,
         },
@@ -385,21 +384,30 @@ function Checkout() {
         customer: { ...form },
         createdAt: new Date().toISOString(),
         orderId: order.orderId,
+        isGuest: !isAuthenticated,
       })
       setOrderNumber(order.orderNumber)
       setEarnedCoupon(order.generatedCoupon ?? null)
       setShowStatusPopup(true)
-      rememberActiveOrder(order.orderId)
-      checkoutService.getHistory()
-        .then((history) => {
-          setActiveOrderCount(history.filter((historyOrder) => !TERMINAL_ORDER_STATUSES.has(historyOrder.status)).length)
-        })
-        .catch((historyError) => {
-          console.error("Nao foi possivel verificar pedidos em curso.", historyError)
-          setActiveOrderCount(null)
-        })
+      rememberActiveOrder(
+        order.orderId,
+        order.orderAccessToken,
+        order.orderAccessExpiresAt,
+      )
+      if (isAuthenticated) {
+        checkoutService.getHistory()
+          .then((history) => {
+            setActiveOrderCount(history.filter((historyOrder) => !TERMINAL_ORDER_STATUSES.has(historyOrder.status)).length)
+          })
+          .catch((historyError) => {
+            console.error("Nao foi possivel verificar pedidos em curso.", historyError)
+            setActiveOrderCount(null)
+          })
+      } else {
+        setActiveOrderCount(1)
+      }
       cartService.finishCheckout()
-      if (!user?.taxId && form.taxId.trim()) {
+      if (isAuthenticated && !user?.taxId && form.taxId.trim()) {
         await refreshUser()
       }
       toast.success("Pedido efetuado com sucesso.")
@@ -412,11 +420,11 @@ function Checkout() {
     }
   }
 
-  if (authLoading || !isAuthenticated) {
+  if (authLoading) {
     return (
       <section className="checkout-page site-page">
         <main className="checkout-shell checkout-confirmation-shell">
-          <div className="checkout-loading">A redirecionar para o login...</div>
+          <div className="checkout-loading">A validar a sessão...</div>
         </main>
       </section>
     )
@@ -430,6 +438,7 @@ function Checkout() {
     const confirmationCustomer = confirmedOrder?.customer ?? form
     const confirmationFulfillment = confirmedOrder?.fulfillmentMethod ?? fulfillment
     const confirmationPayment = confirmedOrder?.paymentMethod ?? payment
+    const confirmationIsGuest = confirmedOrder?.isGuest ?? !isAuthenticated
     const purchaseDate = new Date(confirmedOrder?.createdAt ?? Date.now())
     const purchaseDateLabel = purchaseDate.toLocaleString("pt-PT", { dateStyle: "medium", timeStyle: "short" })
     const estimatedTimeLabel = new Date(purchaseDate.getTime() + 18 * 60 * 1000).toLocaleTimeString("pt-PT", {
@@ -457,8 +466,12 @@ function Checkout() {
       return resolveProductImageUrl(src)
     }
     const paymentNote = "Pague ao balcão para a cozinha começar a preparar o pedido."
-    const confirmationMessage = "O pedido foi recebido e aguarda pagamento ao balcão."
-    const nextStepMessage = "Após o pagamento, a preparação começa e o recibo fica disponível."
+    const confirmationMessage = confirmationIsGuest
+      ? "O pedido foi recebido sem necessidade de criar conta e aguarda pagamento ao balcão."
+      : "O pedido foi recebido, ficou associado à sua conta e aguarda pagamento ao balcão."
+    const nextStepMessage = confirmationIsGuest
+      ? "Pode acompanhar este pedido neste navegador durante 24 horas. Ele não será associado automaticamente a uma conta."
+      : "Após o pagamento, a preparação começa, o recibo fica disponível e o pedido permanece no histórico."
     const hasMultipleActiveOrders = activeOrderCount !== null && activeOrderCount > 1
     const highlightOrderStatus = () => {
       window.dispatchEvent(new Event("order-status-highlight"))
@@ -733,9 +746,14 @@ function Checkout() {
                   <button type="button" className="bonefree-button confirmation-primary-action" onClick={highlightOrderStatus}>
                     Acompanhar pedido
                   </button>
-                  <Link to="/profile?tab=orders" className="confirmation-secondary-action">
+                  <Link to={`/orders/${confirmedOrder?.orderId ?? ""}`} className="confirmation-secondary-action">
                     Ver detalhes do pedido
                   </Link>
+                  {confirmationIsGuest && (
+                    <Link to="/login" state={{ from: "/menu" }} className="confirmation-secondary-action">
+                      Entrar para ter histórico e cupões em pedidos futuros
+                    </Link>
+                  )}
                   <button type="button" className="confirmation-secondary-action" onClick={goBack}>
                     <ArrowLeft size={16} strokeWidth={2.4} />
                     Voltar
@@ -889,6 +907,24 @@ function Checkout() {
                   </label>
 
                   <label>
+                    Telefone
+                    <input
+                      value={form.phone}
+                      onChange={(e) => updateForm("phone", e.target.value)}
+                      className={fieldErrors.phone ? "is-invalid" : ""}
+                      autoComplete="tel"
+                      inputMode="tel"
+                      placeholder="+351 912 345 678"
+                      aria-invalid={Boolean(fieldErrors.phone)}
+                    />
+                    {fieldErrors.phone && (
+                      <small className="field-error">{fieldErrors.phone}</small>
+                    )}
+                  </label>
+                </div>
+
+                <div className="checkout-fields two-columns">
+                  <label>
                     NIF (opcional)
                     <input
                       value={form.taxId}
@@ -906,13 +942,24 @@ function Checkout() {
                   </label>
                 </div>
 
-                <div className="checkout-fiscal-note">
-                  <ReceiptText size={17} strokeWidth={2.4} aria-hidden="true" />
-                  <p>
-                    Quer que a morada apareça na fatura/recibo? Adicione ou atualize a morada de faturação no{" "}
-                    <Link to="/profile?tab=personal">perfil</Link> antes de finalizar o pedido.
-                  </p>
-                </div>
+                {isAuthenticated ? (
+                  <div className="checkout-fiscal-note">
+                    <ReceiptText size={17} strokeWidth={2.4} aria-hidden="true" />
+                    <p>
+                      Quer que a morada apareça na fatura/recibo? Adicione ou atualize a morada de faturação no{" "}
+                      <Link to="/profile?tab=personal">perfil</Link> antes de finalizar o pedido.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="checkout-fiscal-note">
+                    <Sparkles size={17} strokeWidth={2.4} aria-hidden="true" />
+                    <p>
+                      Pode finalizar sem conta. Se quiser histórico, cupões e fidelização em pedidos futuros,{" "}
+                      <Link to="/login" state={{ from: "/checkout" }}>entre</Link> ou{" "}
+                      <Link to="/register" state={{ from: "/checkout" }}>crie uma conta</Link>.
+                    </p>
+                  </div>
+                )}
 
 
                 <div className="checkout-table-number">
@@ -1050,6 +1097,7 @@ function Checkout() {
                   </div>
                 </div>
 
+                {isAuthenticated && (
                 <div className={`checkout-coupon-card ${showCouponEntry || appliedCoupon ? "open" : ""}`}>
                   <button
                     type="button"
@@ -1091,6 +1139,7 @@ function Checkout() {
                     </div>
                   )}
                 </div>
+                )}
 
                 {formError && <p className="checkout-form-error">{formError}</p>}
 

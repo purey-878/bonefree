@@ -342,7 +342,8 @@ class CartItemResponse(BaseModel):
 class OrderResponse(BaseModel):
     """Response model for order."""
     order_id: int
-    customer_id: int
+    customer_id: Optional[int] = None
+    is_guest: bool = False
     customer_email: str
     customer_name: Optional[str]
     customer_phone: Optional[str] = None

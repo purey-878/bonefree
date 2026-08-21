@@ -1312,6 +1312,77 @@ export type MessageResponse = {
 };
 
 /**
+ * OrderCreateResponse
+ */
+export type OrderCreateResponse = {
+    /**
+     * Can Cancel
+     */
+    can_cancel?: boolean;
+    cancellation_source?: CancellationOrigin | null;
+    /**
+     * Cancelled At
+     */
+    cancelled_at?: string | null;
+    /**
+     * Coupon Code
+     */
+    coupon_code?: string | null;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Delivery Fee
+     */
+    delivery_fee: string;
+    delivery_method: FulfillmentMethod;
+    /**
+     * Discount
+     */
+    discount?: string;
+    /**
+     * Generated Coupon
+     */
+    generated_coupon?: string | null;
+    /**
+     * Items
+     */
+    items: Array<OrderItemResponse>;
+    /**
+     * Order Access Expires At
+     */
+    order_access_expires_at?: string | null;
+    /**
+     * Order Access Token
+     */
+    order_access_token?: string | null;
+    /**
+     * Order Id
+     */
+    order_id: number;
+    /**
+     * Order Number
+     */
+    order_number: string;
+    payment_method: PaymentMethod;
+    payment_status: PaymentStatus;
+    /**
+     * Service Fee
+     */
+    service_fee: string;
+    status: OrderState;
+    /**
+     * Subtotal
+     */
+    subtotal: string;
+    /**
+     * Total
+     */
+    total: string;
+};
+
+/**
  * OrderItemResponse
  */
 export type OrderItemResponse = {
@@ -2888,7 +2959,7 @@ export type SchemasAdminOrderResponse = {
     /**
      * Customer Id
      */
-    customer_id: number;
+    customer_id?: number | null;
     /**
      * Customer Name
      */
@@ -2898,6 +2969,10 @@ export type SchemasAdminOrderResponse = {
      */
     customer_phone?: string | null;
     fulfillment_method?: FulfillmentMethod;
+    /**
+     * Is Guest
+     */
+    is_guest?: boolean;
     /**
      * Items
      */
@@ -6793,6 +6868,10 @@ export type CheckoutCreateOrderErrors = {
      */
     422: ApiErrorResponse;
     /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
      * Internal server error
      */
     500: ApiErrorResponse;
@@ -6804,7 +6883,7 @@ export type CheckoutCreateOrderResponses = {
     /**
      * Successful Response
      */
-    201: SchemasCheckoutOrderResponse;
+    201: OrderCreateResponse;
 };
 
 export type CheckoutCreateOrderResponse = CheckoutCreateOrderResponses[keyof CheckoutCreateOrderResponses];
@@ -6859,6 +6938,60 @@ export type CheckoutListOrderHistoryResponses = {
 };
 
 export type CheckoutListOrderHistoryResponse = CheckoutListOrderHistoryResponses[keyof CheckoutListOrderHistoryResponses];
+
+export type CheckoutGetOrderData = {
+    body?: never;
+    path: {
+        /**
+         * Order Id
+         */
+        order_id: number;
+    };
+    query?: never;
+    url: '/checkout/orders/{order_id}';
+};
+
+export type CheckoutGetOrderErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type CheckoutGetOrderError = CheckoutGetOrderErrors[keyof CheckoutGetOrderErrors];
+
+export type CheckoutGetOrderResponses = {
+    /**
+     * Successful Response
+     */
+    200: SchemasCheckoutOrderResponse;
+};
+
+export type CheckoutGetOrderResponse = CheckoutGetOrderResponses[keyof CheckoutGetOrderResponses];
 
 export type CheckoutCancelOrderData = {
     body?: never;

@@ -112,6 +112,39 @@ def _unsafe_migration_error(reason: str) -> RuntimeError:
     )
 
 
+def _upgrade_database(connection: Connection, alembic_config: Config) -> None:
+    """Upgrade a database while allowing legacy SQLite FK remapping.
+
+    The application SQLite engine enables foreign-key enforcement on connect.
+    Schema inspection starts SQLAlchemy's implicit transaction before Alembic
+    runs, which makes a later ``PRAGMA foreign_keys=OFF`` inside a migration a
+    no-op.  Some historical migrations must remap foreign-key values before
+    rebuilding or removing their legacy parent tables, so suspend enforcement
+    before Alembic starts and restore it on every exit path.
+    """
+    is_sqlite = connection.dialect.name == "sqlite"
+
+    if is_sqlite:
+        if connection.in_transaction():
+            connection.commit()
+        connection.exec_driver_sql("PRAGMA foreign_keys=OFF")
+        connection.commit()
+
+    try:
+        alembic_command.upgrade(alembic_config, "head")
+        connection.commit()
+    except BaseException:
+        if connection.in_transaction():
+            connection.rollback()
+        raise
+    finally:
+        if is_sqlite:
+            if connection.in_transaction():
+                connection.rollback()
+            connection.exec_driver_sql("PRAGMA foreign_keys=ON")
+            connection.commit()
+
+
 def run_or_stamp_migrations() -> None:
     """Apply Alembic migrations safely.
 
@@ -148,8 +181,7 @@ def run_or_stamp_migrations() -> None:
                     )
 
                 alembic_command.stamp(alembic_config, LEGACY_PORTUGUESE_BASELINE_REVISION)
-                alembic_command.upgrade(alembic_config, "head")
-                conn.commit()
+                _upgrade_database(conn, alembic_config)
                 return
 
             missing_schema_objects = _missing_required_schema_objects(conn)
@@ -172,7 +204,6 @@ def run_or_stamp_migrations() -> None:
                 return
 
         try:
-            alembic_command.upgrade(alembic_config, "head")
-            conn.commit()
+            _upgrade_database(conn, alembic_config)
         except CommandError as exc:
             raise _unsafe_migration_error(str(exc)) from exc

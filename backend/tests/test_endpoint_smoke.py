@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from decimal import Decimal
+import hashlib
 from pathlib import Path
 import re
 import tempfile
@@ -15,8 +16,10 @@ from sqlalchemy.orm import Session as DBSession, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app import create_app
+from core.config import settings
+from core.redis import InMemoryRedis
 from database import Base, get_db
-from models import Category, Ingredient, Invoice, Order, OrderProduct, Payment, Product, ProductCustomizationOption, ProductImage, ProductIngredient, ProductReview, Session, User
+from models import Category, Coupon, CustomerLoyalty, Ingredient, Invoice, Order, OrderProduct, Payment, Product, ProductCustomizationOption, ProductImage, ProductIngredient, ProductReview, Session, User
 from schemas.enums import EntityStatus, IngredientType, PaymentState, ProductCustomizationOptionType, UserRole, UserStatus
 from services.auth_service import hash_password, hash_session_token
 
@@ -239,7 +242,12 @@ class EndpointSmokeTests(unittest.TestCase):
         self.assertEqual(created["status"], "pending")
         self.assertEqual(created["payment_status"], "unpaid")
         self.assertEqual(created["payment_method"], "counter")
+        self.assertIsNone(created["order_access_token"])
+        self.assertIsNone(created["order_access_expires_at"])
         with self.Session() as db:
+            saved_order = db.get(Order, order_id)
+            self.assertEqual(saved_order.customer_id, self.customer_id)
+            self.assertEqual(saved_order.customer_email, "customer@bonefree.test")
             product = db.get(Product, self.product_id)
             self.assertEqual(product.sold, sold_before + 1)
             self.assertEqual(product.available, available_before)
@@ -461,6 +469,166 @@ class EndpointSmokeTests(unittest.TestCase):
             headers=self.admin_headers,
         )
         self.assertEqual(pay_cancelled.status_code, 409, pay_cancelled.text)
+
+    def test_guest_checkout_uses_snapshots_hashed_access_and_server_prices(self):
+        with self.Session() as db:
+            users_before = db.scalar(select(func.count()).select_from(User))
+            coupons_before = db.scalar(select(func.count()).select_from(Coupon))
+            loyalty_before = db.scalar(select(func.count()).select_from(CustomerLoyalty))
+
+        payload = self._checkout_payload()
+        payload["items"][0]["customization"] = {
+            "remove": [],
+            "add": [],
+            "preferences": [],
+            "final_unit_price": "0.01",
+        }
+        created = self.client.post("/checkout/orders", json=payload)
+        self.assertEqual(created.status_code, 201, created.text)
+        body = created.json()
+        self.assertEqual(Decimal(body["total"]), Decimal("12.50"))
+        self.assertTrue(body["order_access_token"])
+        self.assertTrue(body["order_access_expires_at"])
+
+        order_id = body["order_id"]
+        access_token = body["order_access_token"]
+        with self.Session() as db:
+            order = db.get(Order, order_id)
+            self.assertIsNone(order.customer_id)
+            self.assertEqual(order.customer_first_name, "Smoke")
+            self.assertEqual(order.customer_last_name, "Customer")
+            self.assertEqual(order.customer_email, "customer@bonefree.test")
+            self.assertEqual(order.customer_phone, "912345678")
+            self.assertEqual(
+                order.order_access_token_hash,
+                hashlib.sha256(access_token.encode("utf-8")).hexdigest(),
+            )
+            self.assertNotEqual(order.order_access_token_hash, access_token)
+            self.assertEqual(db.scalar(select(func.count()).select_from(User)), users_before)
+            self.assertEqual(db.scalar(select(func.count()).select_from(Coupon)), coupons_before)
+            self.assertEqual(db.scalar(select(func.count()).select_from(CustomerLoyalty)), loyalty_before)
+
+        missing = self.client.get(f"/checkout/orders/{order_id}")
+        wrong = self.client.get(
+            f"/checkout/orders/{order_id}",
+            headers={"X-Order-Token": "wrong-token"},
+        )
+        non_owner = self.client.get(
+            f"/checkout/orders/{order_id}",
+            headers=self.customer_headers,
+        )
+        allowed = self.client.get(
+            f"/checkout/orders/{order_id}",
+            headers={"X-Order-Token": access_token},
+        )
+        self.assertEqual(missing.status_code, 401, missing.text)
+        self.assertEqual(missing.json()["error"], "order_access_required")
+        self.assertEqual(wrong.status_code, 404, wrong.text)
+        self.assertEqual(non_owner.status_code, 404, non_owner.text)
+        self.assertEqual(allowed.status_code, 200, allowed.text)
+        self.assertEqual(self.client.get("/checkout/orders/history").status_code, 401)
+        self.assertEqual(self.client.get("/profile").status_code, 401)
+
+        admin_order = self.client.get(
+            f"/admin/orders/{order_id}",
+            headers=self.admin_headers,
+        )
+        customer_admin_attempt = self.client.get(
+            f"/admin/orders/{order_id}",
+            headers=self.customer_headers,
+        )
+        self.assertEqual(admin_order.status_code, 200, admin_order.text)
+        self.assertEqual(customer_admin_attempt.status_code, 403, customer_admin_attempt.text)
+        self.assertIsNone(admin_order.json()["customer_id"])
+        self.assertTrue(admin_order.json()["is_guest"])
+        self.assertEqual(admin_order.json()["customer_email"], "customer@bonefree.test")
+        self.assertEqual(admin_order.json()["customer_name"], "Smoke Customer")
+        self.assertEqual(admin_order.json()["customer_phone"], "912345678")
+
+        cancelled = self.client.post(
+            f"/checkout/orders/{order_id}/cancel",
+            headers={"X-Order-Token": access_token},
+        )
+        self.assertEqual(cancelled.status_code, 200, cancelled.text)
+        self.assertEqual(cancelled.json()["status"], "cancelled")
+
+    def test_guest_coupon_is_rejected_without_partial_order(self):
+        with self.Session() as db:
+            orders_before = db.scalar(select(func.count()).select_from(Order))
+        payload = self._checkout_payload()
+        payload["promo_code"] = "NOT-FOR-GUESTS"
+
+        response = self.client.post("/checkout/orders", json=payload)
+        self.assertEqual(response.status_code, 401, response.text)
+        self.assertEqual(response.json()["error"], "authentication_required")
+        with self.Session() as db:
+            self.assertEqual(
+                db.scalar(select(func.count()).select_from(Order)),
+                orders_before,
+            )
+
+    def test_guest_access_rejects_crossed_and_expired_tokens(self):
+        first = self.client.post("/checkout/orders", json=self._checkout_payload()).json()
+        second = self.client.post("/checkout/orders", json=self._checkout_payload()).json()
+
+        crossed = self.client.get(
+            f"/checkout/orders/{first['order_id']}",
+            headers={"X-Order-Token": second["order_access_token"]},
+        )
+        self.assertEqual(crossed.status_code, 404, crossed.text)
+
+        with self.Session() as db:
+            order = db.get(Order, first["order_id"])
+            order.order_access_expires_at = datetime.utcnow() - timedelta(seconds=1)
+            db.commit()
+
+        expired = self.client.get(
+            f"/checkout/orders/{first['order_id']}",
+            headers={"X-Order-Token": first["order_access_token"]},
+        )
+        self.assertEqual(expired.status_code, 401, expired.text)
+        self.assertEqual(expired.json()["error"], "order_access_expired")
+
+    def test_paid_guest_can_download_receipt_with_order_token(self):
+        created = self.client.post("/checkout/orders", json=self._checkout_payload()).json()
+        with patch("routers.admin.send_purchase_receipt", return_value=True):
+            paid = self.client.post(
+                f"/admin/orders/{created['order_id']}/pay-counter",
+                headers=self.admin_headers,
+            )
+        self.assertEqual(paid.status_code, 200, paid.text)
+        with self.Session() as db:
+            invoice = db.scalar(
+                select(Invoice).where(Invoice.order_id == created["order_id"])
+            )
+            self.assertEqual(invoice.customer_name, "Smoke Customer")
+
+        receipt = self.client.get(
+            f"/checkout/orders/{created['order_id']}/receipt.pdf",
+            headers={"X-Order-Token": created["order_access_token"]},
+        )
+        self.assertEqual(receipt.status_code, 200, receipt.text)
+        self.assertEqual(receipt.headers["content-type"], "application/pdf")
+
+    def test_guest_order_creation_is_rate_limited_after_ten_requests(self):
+        previous_redis = getattr(self.app.state, "redis", None)
+        self.app.state.redis = InMemoryRedis()
+        try:
+            with patch.object(settings, "rate_limit_order_requests", 10):
+                responses = [
+                    self.client.post("/checkout/orders", json=self._checkout_payload())
+                    for _ in range(11)
+                ]
+        finally:
+            if previous_redis is None:
+                del self.app.state.redis
+            else:
+                self.app.state.redis = previous_redis
+
+        self.assertTrue(all(response.status_code == 201 for response in responses[:10]))
+        self.assertEqual(responses[10].status_code, 429, responses[10].text)
+        self.assertEqual(responses[10].json()["error"], "rate_limit_exceeded")
+        self.assertGreaterEqual(int(responses[10].headers["Retry-After"]), 1)
 
     def test_multipart_upload_and_review_workflow_serialize_successfully(self):
         upload = self.client.post(

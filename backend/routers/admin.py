@@ -628,15 +628,28 @@ def _order_fulfillment_method(notes: str | None) -> str:
 
 
 def _order_response(order: Order) -> OrderResponse:
+    snapshot_name = (
+        f"{order.customer_first_name or ''} {order.customer_last_name or ''}".strip()
+    )
+    related_customer_name = (
+        f"{order.customer.name or ''} {order.customer.last_name or ''}".strip()
+        if order.customer
+        else None
+    )
     return OrderResponse(
         order_id=order.order_id,
         customer_id=order.customer_id,
-        customer_email=order.customer.email if order.customer else "Unknown",
-        customer_name=(
-            f"{order.customer.name or ''} {order.customer.last_name or ''}".strip()
-            if order.customer else None
+        is_guest=order.customer_id is None,
+        customer_email=(
+            order.customer_email
+            or (order.customer.email if order.customer else None)
+            or "Unknown"
         ),
-        customer_phone=order.customer.phone if order.customer else None,
+        customer_name=snapshot_name or related_customer_name,
+        customer_phone=(
+            order.customer_phone
+            or (order.customer.phone if order.customer else None)
+        ),
         created_at=order.ordered_at,
         state=order.state,
         payment_method=order.payment_method,

@@ -2,6 +2,7 @@ import {
   checkoutCancelOrder,
   checkoutCreateOrder,
   checkoutDownloadOrderReceiptPdf,
+  checkoutGetOrder,
   checkoutListAvailableCoupons,
   checkoutListOrderHistory,
   checkoutValidateCoupon,
@@ -9,7 +10,11 @@ import {
 import type { CheckoutRequest } from '../api/generated';
 import { apiData, customerApiClient } from '../api/clients';
 import { toDomain, toDto } from '../api/mappers';
-import type { CheckoutPayload, Coupon, CouponValidation, OrderResponse } from '../types/checkout';
+import type { CheckoutPayload, Coupon, CouponValidation, OrderCreateResponse, OrderResponse } from '../types/checkout';
+
+function orderAccessHeaders(accessToken?: string | null) {
+  return accessToken ? { 'X-Order-Token': accessToken } : undefined;
+}
 
 export function contentDispositionFilename(response: Response, fallback: string): string {
   const disposition = response.headers.get('Content-Disposition');
@@ -26,18 +31,19 @@ export function contentDispositionFilename(response: Response, fallback: string)
 }
 
 export const checkoutService = {
-  async createOrder(payload: CheckoutPayload): Promise<OrderResponse> {
+  async createOrder(payload: CheckoutPayload): Promise<OrderCreateResponse> {
     const body = toDto<CheckoutRequest>({ ...payload, paymentMethod: 'counter' });
-    return toDomain<OrderResponse>(await apiData(checkoutCreateOrder({
+    return toDomain<OrderCreateResponse>(await apiData(checkoutCreateOrder({
       body,
       client: customerApiClient,
       throwOnError: true,
     })));
   },
 
-  async downloadReceipt(orderId: number): Promise<{ blob: Blob; filename: string }> {
+  async downloadReceipt(orderId: number, accessToken?: string | null): Promise<{ blob: Blob; filename: string }> {
     const result = await checkoutDownloadOrderReceiptPdf({
       path: { order_id: orderId },
+      headers: orderAccessHeaders(accessToken),
       client: customerApiClient,
       throwOnError: true,
     });
@@ -54,9 +60,19 @@ export const checkoutService = {
     })));
   },
 
-  async cancelOrder(orderId: number): Promise<OrderResponse> {
+  async getOrder(orderId: number, accessToken?: string | null): Promise<OrderResponse> {
+    return toDomain<OrderResponse>(await apiData(checkoutGetOrder({
+      path: { order_id: orderId },
+      headers: orderAccessHeaders(accessToken),
+      client: customerApiClient,
+      throwOnError: true,
+    })));
+  },
+
+  async cancelOrder(orderId: number, accessToken?: string | null): Promise<OrderResponse> {
     return toDomain<OrderResponse>(await apiData(checkoutCancelOrder({
       path: { order_id: orderId },
+      headers: orderAccessHeaders(accessToken),
       client: customerApiClient,
       throwOnError: true,
     })));

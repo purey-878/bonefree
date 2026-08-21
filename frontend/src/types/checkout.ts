@@ -57,3 +57,8 @@ export interface OrderResponse {
   createdAt: string;
   items: OrderItem[];
 }
+
+export interface OrderCreateResponse extends OrderResponse {
+  orderAccessToken?: string | null;
+  orderAccessExpiresAt?: string | null;
+}

@@ -46,7 +46,7 @@ from schemas.enums import (
 
 BACKEND = Path(__file__).resolve().parents[1]
 RESET_REVISION = "c4a8f2e1d9b7"
-HEAD_REVISION = "d7e3a1b9c5f2"
+HEAD_REVISION = "e8b4c2d6f901"
 PRE_RESET_REVISION = "9b2f4d1a7c8e"
 CLEARED_TABLES = (
     "review_reactions",
@@ -489,6 +489,88 @@ class ProductionResetMigrationTests(unittest.TestCase):
         with engine.connect() as connection:
             self.assertEqual(connection.scalar(text("SELECT version_num FROM alembic_version")), HEAD_REVISION)
             self.assertNotIn("refund", inspect(connection).get_table_names())
+        engine.dispose()
+
+    def test_guest_order_revision_backfills_snapshots_and_is_idempotent(self):
+        engine = create_engine(self.database_url)
+        with engine.begin() as connection:
+            connection.execute(text(
+                'CREATE TABLE "user" ('
+                "id INTEGER PRIMARY KEY, name VARCHAR(100), last_name VARCHAR(100), "
+                "email VARCHAR(150), phone VARCHAR(20), tax_id VARCHAR(20))"
+            ))
+            connection.execute(text(
+                "CREATE TABLE customer_order ("
+                "id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL, "
+                'FOREIGN KEY(customer_id) REFERENCES "user" (id))'
+            ))
+            connection.execute(text(
+                "CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL PRIMARY KEY)"
+            ))
+            connection.execute(
+                text("INSERT INTO alembic_version (version_num) VALUES (:revision)"),
+                {"revision": "d7e3a1b9c5f2"},
+            )
+            connection.execute(text(
+                'INSERT INTO "user" (id, name, last_name, email, phone, tax_id) '
+                "VALUES (1, 'Legacy', 'Customer', 'legacy@example.com', "+
+                "'+351912345678', '245716534')"
+            ))
+            connection.execute(text(
+                "INSERT INTO customer_order (id, customer_id) VALUES (7, 1)"
+            ))
+        engine.dispose()
+
+        self._upgrade("head")
+        self._upgrade("head")
+
+        engine = create_engine(self.database_url)
+        with engine.begin() as connection:
+            columns = {
+                column["name"]: column
+                for column in inspect(connection).get_columns("customer_order")
+            }
+            self.assertTrue(columns["customer_id"]["nullable"])
+            for column_name in (
+                "customer_first_name",
+                "customer_last_name",
+                "customer_email",
+                "customer_phone",
+                "customer_tax_id",
+                "order_access_token_hash",
+                "order_access_expires_at",
+            ):
+                self.assertIn(column_name, columns)
+
+            snapshot = connection.execute(text(
+                "SELECT customer_first_name, customer_last_name, customer_email, "
+                "customer_phone, customer_tax_id FROM customer_order WHERE id = 7"
+            )).one()
+            self.assertEqual(
+                snapshot,
+                (
+                    "Legacy",
+                    "Customer",
+                    "legacy@example.com",
+                    "+351912345678",
+                    "245716534",
+                ),
+            )
+            connection.execute(text(
+                "INSERT INTO customer_order (id, customer_id, customer_first_name, "
+                "customer_last_name, customer_email, customer_phone, "
+                "order_access_token_hash) VALUES "
+                "(8, NULL, 'Guest', 'Customer', 'guest@example.com', "+
+                "'+351911111111', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')"
+            ))
+            self.assertEqual(
+                connection.scalar(text("SELECT COUNT(*) FROM customer_order")),
+                2,
+            )
+            self.assertEqual(
+                connection.scalar(text("SELECT version_num FROM alembic_version")),
+                HEAD_REVISION,
+            )
         engine.dispose()
 
     @unittest.skipUnless(

@@ -123,3 +123,8 @@ class OrderResponse(BaseModel):
     items: List[OrderItemResponse]
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class OrderCreateResponse(OrderResponse):
+    order_access_token: Optional[str] = None
+    order_access_expires_at: Optional[datetime] = None

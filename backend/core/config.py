@@ -120,6 +120,11 @@ class Settings(BaseSettings):
         default=60,
         validation_alias="RATE_LIMIT_ORDER_WINDOW_SECONDS",
     )
+    order_access_token_expiration_hours: int = Field(
+        default=24,
+        gt=0,
+        validation_alias="ORDER_ACCESS_TOKEN_EXPIRATION_HOURS",
+    )
     rate_limit_redis_failure_mode: Literal["allow", "block"] = Field(
         default="allow",
         validation_alias="RATE_LIMIT_REDIS_FAILURE_MODE",

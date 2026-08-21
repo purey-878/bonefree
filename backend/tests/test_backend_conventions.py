@@ -15,6 +15,10 @@ OPTIONAL_CUSTOMER_AUTH_OPERATION_IDS = {
     "cart_clear_cart",
     "reviews_list_product_reviews",
     "reviews_get_product_review_eligibility",
+    "checkout_create_order",
+    "checkout_get_order",
+    "checkout_cancel_order",
+    "checkout_download_order_receipt_pdf",
 }
 FORBIDDEN_IDENTIFIER_PARTS = {
     "observacoes",

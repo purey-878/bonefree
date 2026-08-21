@@ -2,9 +2,15 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { ChefHat, Clock, Eye, EyeOff, PackageCheck, X } from "lucide-react"
 import { Link, useLocation } from "react-router-dom"
 import { checkoutService } from "../services"
+import { ApiError } from "../api/errors"
 import type { OrderResponse } from "../types/checkout"
 import { useAuth } from "../hooks"
-import { ACTIVE_ORDER_KEY } from "./orderStatusStorage"
+import {
+  ACTIVE_ORDER_KEY,
+  clearActiveOrder,
+  readActiveOrder,
+  rememberActiveOrder,
+} from "./orderStatusStorage"
 import "./OrderStatusBar.css"
 
 const SERVED_STATUSES = new Set(["delivered"])
@@ -85,7 +91,7 @@ function statusMessage(order: OrderResponse, cancelError: string | null, ongoing
 }
 
 export default function OrderStatusBar() {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, loading: authLoading } = useAuth()
   const location = useLocation()
   const [order, setOrder] = useState<OrderResponse | null>(null)
   const [isCollapsed, setIsCollapsed] = useState(false)
@@ -105,7 +111,7 @@ export default function OrderStatusBar() {
 
   const clearOrder = useCallback(() => {
     clearAutoDismissTimer()
-    localStorage.removeItem(ACTIVE_ORDER_KEY)
+    clearActiveOrder(false)
     setOrder(null)
     setOngoingCount(0)
     setCancelError(null)
@@ -117,10 +123,19 @@ export default function OrderStatusBar() {
     try {
       setIsCancelling(true)
       setCancelError(null)
-      const cancelledOrder = await checkoutService.cancelOrder(order.orderId)
+      const activeAccess = readActiveOrder()
+      const accessToken = activeAccess?.orderId === order.orderId
+        ? activeAccess.accessToken
+        : null
+      const cancelledOrder = await checkoutService.cancelOrder(order.orderId, accessToken)
       setOrder(cancelledOrder)
       setOngoingCount(0)
-      localStorage.setItem(ACTIVE_ORDER_KEY, String(cancelledOrder.orderId))
+      rememberActiveOrder(
+        cancelledOrder.orderId,
+        accessToken,
+        activeAccess?.accessExpiresAt,
+        false,
+      )
     } catch (error) {
       setCancelError(error instanceof Error ? error.message : "Não foi possível cancelar este pedido.")
     } finally {
@@ -129,9 +144,31 @@ export default function OrderStatusBar() {
   }
 
   const loadOrder = useCallback(async () => {
-    if (!isAuthenticated || isAdminRoute) return
+    if (isAdminRoute) return
 
     try {
+      const activeAccess = readActiveOrder()
+      if (activeAccess?.accessToken) {
+        const guestOrder = await checkoutService.getOrder(
+          activeAccess.orderId,
+          activeAccess.accessToken,
+        )
+        clearAutoDismissTimer()
+        setOrder(guestOrder)
+        setOngoingCount(TERMINAL_STATUSES.has(guestOrder.status) ? 0 : 1)
+
+        if (SERVED_STATUSES.has(guestOrder.status)) {
+          autoDismissTimer.current = window.setTimeout(() => clearOrder(), 20000)
+        }
+        return
+      }
+
+      if (authLoading) return
+      if (!isAuthenticated) {
+        clearOrder()
+        return
+      }
+
       const orders = await checkoutService.getHistory()
       const { order: activeOrder, ongoingCount: nextOngoingCount } = findActiveOrder(orders)
 
@@ -143,7 +180,7 @@ export default function OrderStatusBar() {
       clearAutoDismissTimer()
       setOrder(activeOrder)
       setOngoingCount(nextOngoingCount)
-      localStorage.setItem(ACTIVE_ORDER_KEY, String(activeOrder.orderId))
+      rememberActiveOrder(activeOrder.orderId, null, null, false)
 
       if (SERVED_STATUSES.has(activeOrder.status)) {
         autoDismissTimer.current = window.setTimeout(() => {
@@ -153,24 +190,27 @@ export default function OrderStatusBar() {
         }, 20000)
       }
     } catch (error) {
+      const activeAccess = readActiveOrder()
+      if (
+        activeAccess?.accessToken
+        && error instanceof ApiError
+        && (error.status === 401 || error.status === 404)
+      ) {
+        clearOrder()
+        return
+      }
       console.error("Não foi possível atualizar o estado do pedido ativo.", error)
     }
-  }, [clearAutoDismissTimer, clearOrder, isAdminRoute, isAuthenticated])
+  }, [authLoading, clearAutoDismissTimer, clearOrder, isAdminRoute, isAuthenticated])
 
   const dismissOrder = useCallback(() => {
     clearAutoDismissTimer()
-    localStorage.removeItem(ACTIVE_ORDER_KEY)
+    clearActiveOrder(false)
     setOrder(null)
     setOngoingCount(0)
     setCancelError(null)
     window.setTimeout(() => void loadOrder(), 0)
   }, [clearAutoDismissTimer, loadOrder])
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      clearOrder()
-    }
-  }, [clearOrder, isAuthenticated])
 
   useEffect(() => {
     void loadOrder()
@@ -241,7 +281,7 @@ export default function OrderStatusBar() {
         </div>
 
         <div className="order-status-actions">
-          <Link to="/profile?tab=orders">Detalhes</Link>
+          <Link to={`/orders/${order.orderId}`}>Detalhes</Link>
           {order.canCancel && (
             <button
               type="button"

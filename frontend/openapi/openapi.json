@@ -2359,6 +2359,156 @@
         "title": "MessageResponse",
         "type": "object"
       },
+      "OrderCreateResponse": {
+        "properties": {
+          "can_cancel": {
+            "default": false,
+            "title": "Can Cancel",
+            "type": "boolean"
+          },
+          "cancellation_source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CancellationOrigin"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cancelled_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancelled At"
+          },
+          "coupon_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coupon Code"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "delivery_fee": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Delivery Fee",
+            "type": "string"
+          },
+          "delivery_method": {
+            "$ref": "#/components/schemas/FulfillmentMethod"
+          },
+          "discount": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Discount",
+            "type": "string"
+          },
+          "generated_coupon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated Coupon"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/OrderItemResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "order_access_expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Order Access Expires At"
+          },
+          "order_access_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Order Access Token"
+          },
+          "order_id": {
+            "title": "Order Id",
+            "type": "integer"
+          },
+          "order_number": {
+            "title": "Order Number",
+            "type": "string"
+          },
+          "payment_method": {
+            "$ref": "#/components/schemas/PaymentMethod"
+          },
+          "payment_status": {
+            "$ref": "#/components/schemas/PaymentStatus"
+          },
+          "service_fee": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Service Fee",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OrderState"
+          },
+          "subtotal": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Subtotal",
+            "type": "string"
+          },
+          "total": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total",
+            "type": "string"
+          }
+        },
+        "required": [
+          "order_id",
+          "order_number",
+          "status",
+          "payment_status",
+          "delivery_method",
+          "payment_method",
+          "subtotal",
+          "delivery_fee",
+          "service_fee",
+          "total",
+          "created_at",
+          "items"
+        ],
+        "title": "OrderCreateResponse",
+        "type": "object"
+      },
       "OrderItemResponse": {
         "properties": {
           "calories": {
@@ -5132,8 +5282,15 @@
             "type": "string"
           },
           "customer_id": {
-            "title": "Customer Id",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Id"
           },
           "customer_name": {
             "anyOf": [
@@ -5160,6 +5317,11 @@
           "fulfillment_method": {
             "$ref": "#/components/schemas/FulfillmentMethod",
             "default": "pickup"
+          },
+          "is_guest": {
+            "default": false,
+            "title": "Is Guest",
+            "type": "boolean"
           },
           "items": {
             "items": {
@@ -5226,7 +5388,6 @@
         },
         "required": [
           "order_id",
-          "customer_id",
           "customer_email",
           "customer_name",
           "created_at",
@@ -5374,6 +5535,12 @@
         "description": "Session token returned by a customer or administrator login.",
         "scheme": "bearer",
         "type": "http"
+      },
+      "OrderAccessToken": {
+        "description": "Secret token returned once when a guest order is created.",
+        "in": "header",
+        "name": "X-Order-Token",
+        "type": "apiKey"
       }
     }
   },
@@ -13782,7 +13949,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/schemas__checkout__OrderResponse"
+                  "$ref": "#/components/schemas/OrderCreateResponse"
                 }
               }
             },
@@ -13847,6 +14014,25 @@
               }
             },
             "description": "Validation error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limit exceeded",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds until another request may be attempted.",
+                "schema": {
+                  "minimum": 1.0,
+                  "type": "integer"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -13970,6 +14156,116 @@
         ]
       }
     },
+    "/checkout/orders/{order_id}": {
+      "get": {
+        "operationId": "checkout_get_order",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "title": "Order Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/schemas__checkout__OrderResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "OrderAccessToken": []
+          }
+        ],
+        "summary": "Get Order",
+        "tags": [
+          "Checkout"
+        ]
+      }
+    },
     "/checkout/orders/{order_id}/cancel": {
       "post": {
         "operationId": "checkout_cancel_order",
@@ -14069,6 +14365,9 @@
         "security": [
           {
             "BearerAuth": []
+          },
+          {
+            "OrderAccessToken": []
           }
         ],
         "summary": "Cancel Order",
@@ -14177,6 +14476,9 @@
         "security": [
           {
             "BearerAuth": []
+          },
+          {
+            "OrderAccessToken": []
           }
         ],
         "summary": "Download Order Receipt Pdf",

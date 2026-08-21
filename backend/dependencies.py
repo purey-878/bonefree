@@ -3,7 +3,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 
-from fastapi import Depends, Request, status
+from fastapi import Depends, Request, Security, status
+from fastapi.security import APIKeyHeader
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.orm import Session as DBSession
@@ -27,11 +28,24 @@ bearer_security = HTTPBearer(
     description="Session token returned by a customer or administrator login.",
 )
 
+order_access_security = APIKeyHeader(
+    name="X-Order-Token",
+    auto_error=False,
+    scheme_name="OrderAccessToken",
+    description="Secret token returned once when a guest order is created.",
+)
+
 
 def get_session_token_optional(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_security),
 ) -> str | None:
     return credentials.credentials if credentials is not None else None
+
+
+def get_order_access_token_optional(
+    token: str | None = Security(order_access_security),
+) -> str | None:
+    return token.strip() if token and token.strip() else None
 
 
 def _current_naive_utc() -> datetime:
@@ -53,6 +67,7 @@ def get_current_user(
         or session.customer is None
         or session.revoked is True
         or session.expires_at <= now
+        or normalize_user_role(session.customer.role) != UserRole.CLIENT
     ):
         raise AppHTTPException(status_code=status.HTTP_401_UNAUTHORIZED, error="authentication_required", message="Authentication required.", details={"reason": "request_failed"})
 
@@ -79,6 +94,7 @@ def get_current_user_optional(
         or session.revoked is True
         or session.expires_at <= now
         or session.customer.status != UserStatus.ACTIVE
+        or normalize_user_role(session.customer.role) != UserRole.CLIENT
     ):
         return None
 
@@ -198,7 +214,7 @@ async def rate_limit_admin(request: Request) -> None:
 
 
 async def rate_limit_order(request: Request) -> None:
-    """Prepared for future guest checkout protection; not wired to a route yet."""
+    """Limit order creation by source IP."""
     await enforce_rate_limit(
         request,
         bucket="order:ip",

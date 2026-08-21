@@ -26,8 +26,11 @@ def ensure_invoice_for_order(db: Session, order: Order) -> Invoice | None:
     invoice = Invoice(
         order_id=order.order_id,
         invoice_number=_invoice_number(order),
-        customer_tax_id=_clean(getattr(customer, "tax_id", None)),
-        customer_name=_customer_name(customer),
+        customer_tax_id=(
+            _clean(order.customer_tax_id)
+            or _clean(getattr(customer, "tax_id", None))
+        ),
+        customer_name=_order_customer_name(order, customer),
         customer_address=_invoice_address(customer),
         subtotal=Decimal(str(getattr(order, "subtotal", 0) or 0)),
         vat_percentage=Decimal(str(getattr(order, "vat_percentage", 13) or 13)),
@@ -49,6 +52,13 @@ def _customer_name(customer: Any) -> str | None:
     if not customer:
         return None
     return _clean(f"{getattr(customer, 'name', '') or ''} {getattr(customer, 'last_name', '') or ''}")
+
+
+def _order_customer_name(order: Order, customer: Any) -> str | None:
+    snapshot_name = _clean(
+        f"{order.customer_first_name or ''} {order.customer_last_name or ''}"
+    )
+    return snapshot_name or _customer_name(customer)
 
 
 def _invoice_address(customer: Any) -> str | None:

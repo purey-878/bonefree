@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from enum import StrEnum
 from decimal import Decimal
-from typing import List, Optional
+from typing import List
 
 from sqlalchemy import Boolean, DateTime, Enum as SAEnum, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship, synonym
@@ -389,8 +389,20 @@ class Order(AppBaseModel):
 
     order_id = synonym("id")
 
-    customer_id: Mapped[int] = mapped_column(Integer, ForeignKey('user.id'), nullable=False)
+    customer_id: Mapped[int] = mapped_column(Integer, ForeignKey('user.id'), nullable=True)
     admin_id: Mapped[int] = mapped_column(Integer, ForeignKey('user.id'), nullable=True)
+    customer_first_name: Mapped[str] = mapped_column(String(100), nullable=True)
+    customer_last_name: Mapped[str] = mapped_column(String(100), nullable=True)
+    customer_email: Mapped[str] = mapped_column(String(150), nullable=True)
+    customer_phone: Mapped[str] = mapped_column(String(20), nullable=True)
+    customer_tax_id: Mapped[str] = mapped_column(String(20), nullable=True)
+    order_access_token_hash: Mapped[str] = mapped_column(
+        String(64),
+        nullable=True,
+        unique=True,
+        index=True,
+    )
+    order_access_expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     ordered_at: Mapped[datetime] = mapped_column(DateTime, default=naive_utc_now, nullable=False)
     state: Mapped[OrderState] = mapped_column(
         SAEnum(OrderState, values_callable=enum_values),

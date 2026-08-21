@@ -434,7 +434,7 @@ def _cart_item_out_from_product(
     )
 
 
-def _trusted_guest_customization(
+def trusted_guest_customization(
     db: Session,
     product: Product,
     quantity: int,
@@ -466,6 +466,10 @@ def _trusted_guest_customization(
         preferences=customization.preferences,
         note=customization.note,
     )), []
+
+
+# Compatibility alias for internal callers that imported the former private name.
+_trusted_guest_customization = trusted_guest_customization
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -726,7 +730,7 @@ def merge_cart(
             skipped.append(guest_item.product_id)
             continue
         try:
-            trusted_customization, customization_rows = _trusted_guest_customization(
+            trusted_customization, customization_rows = trusted_guest_customization(
                 db,
                 product,
                 guest_item.quantity,

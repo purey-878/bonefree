@@ -70,6 +70,41 @@ PAYMENT_LABELS = {
 }
 
 
+def _order_customer_value(
+    order: Order,
+    snapshot_attribute: str,
+    customer_attribute: str,
+) -> str:
+    snapshot = str(getattr(order, snapshot_attribute, None) or "").strip()
+    if snapshot:
+        return snapshot
+    customer = getattr(order, "customer", None)
+    return str(getattr(customer, customer_attribute, None) or "").strip()
+
+
+def _order_customer_name(order: Order) -> str:
+    snapshot_name = " ".join(
+        part
+        for part in (
+            str(getattr(order, "customer_first_name", None) or "").strip(),
+            str(getattr(order, "customer_last_name", None) or "").strip(),
+        )
+        if part
+    )
+    if snapshot_name:
+        return snapshot_name
+
+    customer = getattr(order, "customer", None)
+    return " ".join(
+        part
+        for part in (
+            str(getattr(customer, "name", None) or "").strip(),
+            str(getattr(customer, "last_name", None) or "").strip(),
+        )
+        if part
+    )
+
+
 def build_order_receipt_payload(
     order: Order,
     checkout: CheckoutRequest,
@@ -77,8 +112,12 @@ def build_order_receipt_payload(
     service_fee: Decimal,
 ) -> dict[str, Any]:
     """Map a saved order into the receipt template contract."""
-    customer_name = f"{checkout.customer.first_name} {checkout.customer.last_name}".strip()
-    customer_email = checkout.customer.email or order.customer.email
+    customer_name = _order_customer_name(order) or (
+        f"{checkout.customer.first_name} {checkout.customer.last_name}".strip()
+    )
+    customer_email = _order_customer_value(order, "customer_email", "email") or str(
+        checkout.customer.email
+    )
     coupon_discount = _order_discount(order)
     service_fee_amount = Decimal(str(service_fee))
     subtotal = _order_subtotal(order)
@@ -96,9 +135,9 @@ def build_order_receipt_payload(
         "company_email": os.getenv("RECEIPT_COMPANY_EMAIL", "carambolarubra@gmail.com"),
         "company_phone": os.getenv("RECEIPT_COMPANY_PHONE", "+351 968 107 703"),
         "customer_name": customer_name,
-        "customer_nif": _customer_field(customer, "tax_id"),
+        "customer_nif": _order_customer_value(order, "customer_tax_id", "tax_id"),
         "customer_email": customer_email,
-        "customer_phone": checkout.customer.phone or _customer_field(customer, "phone"),
+        "customer_phone": _order_customer_value(order, "customer_phone", "phone") or checkout.customer.phone,
         "customer_address": _invoice_address(customer),
         "order_id": f"ENC-{order.order_id:06d}",
         "document_number": _document_number(order),
@@ -137,11 +176,8 @@ def build_saved_order_receipt_payload(order: Order) -> dict[str, Any]:
     original checkout request object is no longer available.
     """
     customer = order.customer
-    customer_name = (
-        f"{customer.name or ''} {customer.last_name or ''}".strip()
-        if customer else "Customer"
-    ) or "Customer"
-    customer_email = customer.email if customer else ""
+    customer_name = _order_customer_name(order) or "Customer"
+    customer_email = _order_customer_value(order, "customer_email", "email")
     subtotal = _order_subtotal(order)
     coupon_discount = _order_discount(order)
     service_fee = Decimal(str(order.total)) + coupon_discount - subtotal
@@ -158,9 +194,9 @@ def build_saved_order_receipt_payload(order: Order) -> dict[str, Any]:
         "company_email": os.getenv("RECEIPT_COMPANY_EMAIL", "carambolarubra@gmail.com"),
         "company_phone": os.getenv("RECEIPT_COMPANY_PHONE", "+351 968 107 703"),
         "customer_name": customer_name,
-        "customer_nif": _customer_field(customer, "tax_id"),
+        "customer_nif": _order_customer_value(order, "customer_tax_id", "tax_id"),
         "customer_email": customer_email,
-        "customer_phone": _customer_field(customer, "phone"),
+        "customer_phone": _order_customer_value(order, "customer_phone", "phone"),
         "customer_address": _invoice_address(customer),
         "order_id": f"ENC-{order.order_id:06d}",
         "document_number": _document_number(order),

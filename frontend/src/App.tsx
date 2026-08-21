@@ -20,11 +20,14 @@ import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
 import Cart from './pages/Cart'
 import Checkout from './pages/Checkout'
+import OrderDetails from './pages/OrderDetails'
 import Profile from './pages/Profile'
 import {ProductDetail} from './pages/ProductDetail'
 import AdminLogin from './pages/AdminLogin'
 import AdminDashboard from './pages/AdminDashboard'
 import type { AdminRole } from './types/admin'
+import { useAuth } from './hooks'
+import { readActiveOrder } from './components/orderStatusStorage'
 
 type CartRouteState = {
   backgroundLocation?: Location
@@ -57,6 +60,28 @@ function ProtectedAdminRoute({
     return <Navigate to="/admin/staff" replace />
   }
   return <>{children}</>
+}
+
+function ProtectedCustomerRoute({ children }: { children: ReactNode }) {
+  const { isAuthenticated, loading } = useAuth()
+  const location = useLocation()
+
+  if (loading) return null
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}` }} />
+  }
+  return <>{children}</>
+}
+
+function OrdersIndexRedirect() {
+  const { isAuthenticated, loading } = useAuth()
+  const activeOrder = readActiveOrder()
+
+  if (activeOrder?.accessToken) {
+    return <Navigate to={`/orders/${activeOrder.orderId}`} replace />
+  }
+  if (loading) return null
+  return <Navigate to={isAuthenticated ? "/profile?tab=orders" : "/menu"} replace />
 }
 
 function App() {
@@ -96,8 +121,9 @@ function App() {
         <Route path="/menu" element={<Menu />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/checkout" element={<Checkout />} />
-        <Route path="/orders" element={<Navigate to="/profile?tab=orders" replace />} />
-        <Route path="/profile" element={<Profile />} />
+        <Route path="/orders" element={<OrdersIndexRedirect />} />
+        <Route path="/orders/:orderId" element={<OrderDetails />} />
+        <Route path="/profile" element={<ProtectedCustomerRoute><Profile /></ProtectedCustomerRoute>} />
         <Route path="/about" element={<About />} />
         <Route path="/events" element={<Events />} />
         <Route path="/contact" element={<Contact />} />

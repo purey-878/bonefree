@@ -118,7 +118,7 @@ class OpenApiContractTests(unittest.TestCase):
         pdf_schema = self.schema["paths"]["/checkout/orders/{order_id}/receipt.pdf"]["get"]["responses"]["200"]["content"]["application/pdf"]["schema"]
         self.assertEqual(pdf_schema, {"type": "string", "format": "binary"})
 
-    def test_rate_limited_auth_bodies_and_responses_are_explicit(self):
+    def test_rate_limited_bodies_and_responses_are_explicit(self):
         expected_bodies = {
             "/login": "#/components/schemas/UserAuth",
             "/register": "#/components/schemas/UserRegister",
@@ -135,10 +135,31 @@ class OpenApiContractTests(unittest.TestCase):
             )
             self.assertIn("Retry-After", rate_limit_response["headers"])
 
-        self.assertNotIn(
-            "429",
-            self.schema["paths"]["/checkout/orders"]["post"]["responses"],
+        checkout_operation = self.schema["paths"]["/checkout/orders"]["post"]
+        self.assertEqual(
+            checkout_operation["responses"]["201"]["content"]["application/json"]["schema"],
+            {"$ref": "#/components/schemas/OrderCreateResponse"},
         )
+        self.assertIn("Retry-After", checkout_operation["responses"]["429"]["headers"])
+
+    def test_guest_order_access_header_is_an_openapi_security_scheme(self):
+        self.assertEqual(
+            self.schema["components"]["securitySchemes"]["OrderAccessToken"],
+            {
+                "type": "apiKey",
+                "description": "Secret token returned once when a guest order is created.",
+                "in": "header",
+                "name": "X-Order-Token",
+            },
+        )
+        for path, method in (
+            ("/checkout/orders/{order_id}", "get"),
+            ("/checkout/orders/{order_id}/cancel", "post"),
+            ("/checkout/orders/{order_id}/receipt.pdf", "get"),
+        ):
+            security = self.schema["paths"][path][method]["security"]
+            self.assertIn({"BearerAuth": []}, security)
+            self.assertIn({"OrderAccessToken": []}, security)
 
     def test_contract_contains_no_refund_feature(self):
         serialized_schema = json.dumps(self.schema).casefold()

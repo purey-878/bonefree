@@ -74,8 +74,9 @@ export interface AdminOrderItem {
 
 export interface AdminOrder {
   orderId: number;
-  customerId?: number;
-  customerEmail?: string;
+  customerId?: number | null;
+  isGuest: boolean;
+  customerEmail: string;
   customerName?: string | null;
   customerPhone?: string | null;
   createdAt: string;

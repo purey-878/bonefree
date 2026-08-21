@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { adminManagementReadCurrentAdmin, authGetMe } from './generated';
+import { adminManagementReadCurrentAdmin, authGetMe, checkoutGetOrder } from './generated';
 import { adminApiClient, customerApiClient, publicApiClient } from './clients';
 
 class MemoryStorage implements Storage {
@@ -42,5 +42,27 @@ describe('generated API clients', () => {
     expect(requests[0].headers.get('Authorization')).toBeNull();
     expect(requests[1].headers.get('Authorization')).toBe('Bearer customer-secret');
     expect(requests[2].headers.get('Authorization')).toBe('Bearer admin-secret');
+  });
+
+  it('sends a guest order token alongside a later customer session without putting it in the URL', async () => {
+    localStorage.setItem('token', 'later-customer-session');
+    let capturedRequest: Request | undefined;
+    const fetchMock = vi.fn(async (request: Request) => {
+      capturedRequest = request;
+      return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }) as unknown as typeof fetch;
+    customerApiClient.setConfig({ baseUrl: 'https://api.example.test', fetch: fetchMock });
+
+    await checkoutGetOrder({
+      path: { order_id: 42 },
+      headers: { 'X-Order-Token': 'guest-order-secret' },
+      client: customerApiClient,
+      throwOnError: true,
+    });
+
+    expect(capturedRequest?.headers.get('Authorization')).toBe('Bearer later-customer-session');
+    expect(capturedRequest?.headers.get('X-Order-Token')).toBe('guest-order-secret');
+    expect(capturedRequest?.url).toBe('https://api.example.test/checkout/orders/42');
+    expect(capturedRequest?.url).not.toContain('guest-order-secret');
   });
 });
