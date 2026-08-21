@@ -5,7 +5,13 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response, stat
 from sqlalchemy import select
 from sqlalchemy.orm import Session as DBSession
 
-from dependencies import get_current_user, get_db, get_session_token_optional
+from dependencies import (
+    get_current_user,
+    get_db,
+    get_session_token_optional,
+    rate_limit_login,
+    rate_limit_register,
+)
 from schemas.enums import UserRole, UserStatus
 from models import Customer, Session
 from schemas.user import (
@@ -23,25 +29,12 @@ from services.email_service import send_password_reset_email, send_welcome_email
 from services.auth_service import authenticate_customer, create_customer_session, get_client_ip, hash_password, hash_session_token
 from services.password_reset import can_reset_password, clear_password_reset, start_password_reset, verify_password_reset_code
 from core.errors import AppHTTPException
+from core.rate_limit import RATE_LIMIT_OPENAPI_RESPONSES
 
 router = APIRouter(tags=["Auth"])
 logger = logging.getLogger(__name__)
 
-RATE_LIMIT_WINDOW_SECONDS = 15 * 60
-RATE_LIMIT_MAX_ATTEMPTS = 10
 LOGOUT_DESC = "Revokes the current session token when provided."
-_auth_attempts: dict[str, list[float]] = {}
-
-
-def _rate_limit_auth(request: Request, action: str) -> None:
-    now = datetime.utcnow().timestamp()
-    client = request.client.host if request.client else "unknown"
-    key = f"{action}:{client}"
-    attempts = [timestamp for timestamp in _auth_attempts.get(key, []) if now - timestamp < RATE_LIMIT_WINDOW_SECONDS]
-    if len(attempts) >= RATE_LIMIT_MAX_ATTEMPTS:
-        raise AppHTTPException(status_code=429, error="rate_limit_exceeded", message="Too many attempts. Please try again later.", details={"reason": "request_failed"})
-    attempts.append(now)
-    _auth_attempts[key] = attempts
 
 
 def _send_welcome_email_background(email: str, name: str | None = None) -> None:
@@ -55,10 +48,19 @@ def _send_welcome_email_background(email: str, name: str | None = None) -> None:
         logger.error("Welcome email background task failed for %s. Check auth email service logs for details.", email)
 
 
-@router.post("/register", response_model=TokenResponse, operation_id="auth_register")
-def register(user: UserRegister, background_tasks: BackgroundTasks, request: Request, db: DBSession = Depends(get_db)):
+@router.post(
+    "/register",
+    response_model=TokenResponse,
+    responses=RATE_LIMIT_OPENAPI_RESPONSES,
+    operation_id="auth_register",
+)
+def register(
+    background_tasks: BackgroundTasks,
+    request: Request,
+    user: UserRegister = Depends(rate_limit_register),
+    db: DBSession = Depends(get_db),
+):
     """Register a new user"""
-    _rate_limit_auth(request, "register")
 
     existing = db.scalar(select(Customer).where(Customer.email == user.email))
     if existing:
@@ -182,10 +184,18 @@ def reset_password(body: ResetPasswordRequest, db: DBSession = Depends(get_db)):
     return {"message": "Password reset successfully."}
 
 
-@router.post("/login", response_model=TokenResponse, operation_id="auth_login")
-def login(user: UserAuth, request: Request, db: DBSession = Depends(get_db)):
+@router.post(
+    "/login",
+    response_model=TokenResponse,
+    responses=RATE_LIMIT_OPENAPI_RESPONSES,
+    operation_id="auth_login",
+)
+def login(
+    request: Request,
+    user: UserAuth = Depends(rate_limit_login),
+    db: DBSession = Depends(get_db),
+):
     """Login user"""
-    _rate_limit_auth(request, "login")
     db_user = db.scalar(select(Customer).where(Customer.email == user.email))
     db_user, access_token = authenticate_customer(db, db_user, user.password, request)
 

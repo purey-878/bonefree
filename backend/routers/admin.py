@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Union
 
 from database import get_db
-from dependencies import require_role
+from dependencies import rate_limit_admin_login, require_role
 from schemas.enums import ADMIN_ROLES, EntityStatus, IngredientType, OrderState, PaymentMethod, PaymentState, PaymentStatus, ReviewStatus, UserRole, UserStatus, normalize_admin_role
 from models import (
     Admin, Product, Cart, CartProduct as CartItem, Customer, ProductImage,
@@ -55,8 +55,13 @@ from services.product_availability import (
 from services.receipt_email import build_saved_order_receipt_payload, send_purchase_receipt
 from utils.id_format import format_category_id, format_product_id, parse_category_id, parse_product_id
 from core.errors import AppHTTPException
+from core.rate_limit import RATE_LIMIT_OPENAPI_RESPONSES
 
-router = APIRouter(prefix="/admin", tags=["Admin Management"])
+router = APIRouter(
+    prefix="/admin",
+    tags=["Admin Management"],
+    responses=RATE_LIMIT_OPENAPI_RESPONSES,
+)
 logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -95,7 +100,11 @@ SalesStats = Dict[str, Union[float, int]]
 
 
 @router.post("/login", response_model=AdminTokenResponse, operation_id="admin_management_admin_login")
-def admin_login(credentials: AdminLogin, request: Request, db: Session = Depends(get_db)):
+def admin_login(
+    request: Request,
+    credentials: AdminLogin = Depends(rate_limit_admin_login),
+    db: Session = Depends(get_db),
+):
     admin = db.scalar(select(Admin).where(Admin.email == credentials.email))
     admin, access_token = authenticate_admin(db, admin, credentials.password, request)
     return {

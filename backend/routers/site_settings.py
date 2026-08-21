@@ -7,6 +7,7 @@ from services.auth_service import SUPER_ADMIN_ROLE
 from database import get_db
 from schemas.enums import EntityStatus
 from models import Admin, Product
+from core.rate_limit import RATE_LIMIT_OPENAPI_RESPONSES
 from core.errors import AppHTTPException
 from schemas.site_settings import (
     ChefSpecialSettings,
@@ -34,7 +35,11 @@ from services.site_settings import (
 
 
 public_router = APIRouter(prefix="/site-settings", tags=["Site Settings"])
-admin_router = APIRouter(prefix="/admin/site-settings", tags=["Site Settings"])
+admin_router = APIRouter(
+    prefix="/admin/site-settings",
+    tags=["Site Settings"],
+    responses=RATE_LIMIT_OPENAPI_RESPONSES,
+)
 
 
 @public_router.get(

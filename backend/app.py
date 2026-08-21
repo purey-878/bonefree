@@ -31,6 +31,7 @@ from routers.site_settings import admin_router as site_settings_admin_router
 from routers.site_settings import public_router as site_settings_public_router
 from seeds import seed_test_users
 from core.email_provider import validate_email_config
+from core.redis import create_redis_client
 from schemas.errors import ApiErrorResponse, HealthResponse
 
 logger = logging.getLogger(__name__)
@@ -57,19 +58,32 @@ def create_app(
     """Build an application instance without forcing database startup work at import time."""
 
     @asynccontextmanager
-    async def lifespan(_: FastAPI):
-        if run_startup_tasks:
-            run_or_stamp_migrations()
-            if settings.environment == "development":
-                seed_test_users()
+    async def lifespan(application: FastAPI):
+        redis_client = create_redis_client(settings.environment, settings.redis_url)
+        application.state.redis = redis_client
+        try:
+            await redis_client.ping()
+        except Exception as exc:
+            await redis_client.aclose()
+            raise RuntimeError(
+                f"Failed to connect to Redis at {settings.redis_url}: {exc}"
+            ) from exc
 
-            missing_email_config = validate_email_config()
-            if missing_email_config:
-                logger.warning(
-                    "Email provider configuration is missing or empty: %s",
-                    ", ".join(missing_email_config),
-                )
-        yield
+        try:
+            if run_startup_tasks:
+                run_or_stamp_migrations()
+                if settings.environment == "development":
+                    seed_test_users()
+
+                missing_email_config = validate_email_config()
+                if missing_email_config:
+                    logger.warning(
+                        "Email provider configuration is missing or empty: %s",
+                        ", ".join(missing_email_config),
+                    )
+            yield
+        finally:
+            await redis_client.aclose()
 
     application = FastAPI(
         title=settings.app_name,
@@ -108,7 +122,7 @@ def create_app(
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
-        expose_headers=["Content-Disposition"],
+        expose_headers=["Content-Disposition", "Retry-After"],
     )
 
     @application.get(

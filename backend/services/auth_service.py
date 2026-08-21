@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session as DBSession
 
 from core.config import settings
 from core.errors import AppHTTPException
+from core.rate_limit import get_client_ip
 from schemas.enums import UserRole, UserStatus, is_admin_role, normalize_user_role
 from models import Admin, Customer, Session
 from utils.datetime_utils import to_naive_utc
@@ -55,21 +56,6 @@ def verify_password(password: str, encoded_password: str) -> bool:
 
 def hash_session_token(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
-
-
-def get_client_ip(request: Request) -> str | None:
-    forwarded_for = request.headers.get("x-forwarded-for")
-    if forwarded_for:
-        return forwarded_for.split(",")[0].strip()
-
-    real_ip = request.headers.get("x-real-ip")
-    if real_ip:
-        return real_ip
-
-    if request.client:
-        return request.client.host
-
-    return None
 
 
 def create_customer_session(

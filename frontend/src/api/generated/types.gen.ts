@@ -3027,6 +3027,10 @@ export type AdminManagementGetDashboardAnalyticsErrors = {
      */
     422: ApiErrorResponse;
     /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
      * Internal server error
      */
     500: ApiErrorResponse;
@@ -3080,6 +3084,10 @@ export type AdminManagementGetPopularProductsErrors = {
      * Validation error
      */
     422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
     /**
      * Internal server error
      */
@@ -3136,6 +3144,10 @@ export type AdminManagementGetSalesPerformanceErrors = {
      * Validation error
      */
     422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
     /**
      * Internal server error
      */
@@ -3203,6 +3215,10 @@ export type AdminManagementGetAnalyticsSeriesErrors = {
      */
     422: ApiErrorResponse;
     /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
      * Internal server error
      */
     500: ApiErrorResponse;
@@ -3257,6 +3273,10 @@ export type AdminManagementListCategoriesErrors = {
      */
     422: ApiErrorResponse;
     /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
      * Internal server error
      */
     500: ApiErrorResponse;
@@ -3307,6 +3327,10 @@ export type AdminManagementCreateCategoryErrors = {
      * Validation error
      */
     422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
     /**
      * Internal server error
      */
@@ -3362,6 +3386,10 @@ export type AdminManagementDeleteCategoryErrors = {
      */
     422: ApiErrorResponse;
     /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
      * Internal server error
      */
     500: ApiErrorResponse;
@@ -3415,6 +3443,10 @@ export type AdminManagementUpdateCategoryErrors = {
      * Validation error
      */
     422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
     /**
      * Internal server error
      */
@@ -3478,6 +3510,10 @@ export type AdminManagementListCustomersErrors = {
      */
     422: ApiErrorResponse;
     /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
      * Internal server error
      */
     500: ApiErrorResponse;
@@ -3528,6 +3564,10 @@ export type AdminManagementCreateCustomerErrors = {
      * Validation error
      */
     422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
     /**
      * Internal server error
      */
@@ -3583,6 +3623,10 @@ export type AdminManagementDeleteCustomerErrors = {
      */
     422: ApiErrorResponse;
     /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
      * Internal server error
      */
     500: ApiErrorResponse;
@@ -3636,6 +3680,10 @@ export type AdminManagementUpdateCustomerErrors = {
      * Validation error
      */
     422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
     /**
      * Internal server error
      */
@@ -3695,6 +3743,10 @@ export type AdminManagementListIngredientsErrors = {
      */
     422: ApiErrorResponse;
     /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
      * Internal server error
      */
     500: ApiErrorResponse;
@@ -3745,6 +3797,10 @@ export type AdminManagementCreateIngredientErrors = {
      * Validation error
      */
     422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
     /**
      * Internal server error
      */
@@ -3800,6 +3856,10 @@ export type AdminManagementDeleteIngredientErrors = {
      */
     422: ApiErrorResponse;
     /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
      * Internal server error
      */
     500: ApiErrorResponse;
@@ -3854,6 +3914,10 @@ export type AdminManagementUpdateIngredientErrors = {
      */
     422: ApiErrorResponse;
     /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
      * Internal server error
      */
     500: ApiErrorResponse;
@@ -3907,6 +3971,10 @@ export type AdminManagementSetIngredientAvailabilityErrors = {
      * Validation error
      */
     422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
     /**
      * Internal server error
      */
@@ -3966,6 +4034,10 @@ export type AdminManagementListKitchenOrdersErrors = {
      */
     422: ApiErrorResponse;
     /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
      * Internal server error
      */
     500: ApiErrorResponse;
@@ -4022,6 +4094,10 @@ export type AdminManagementGetKitchenOrderErrors = {
      */
     422: ApiErrorResponse;
     /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
      * Internal server error
      */
     500: ApiErrorResponse;
@@ -4071,6 +4147,10 @@ export type AdminManagementAdminLoginErrors = {
      */
     422: ApiErrorResponse;
     /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
      * Internal server error
      */
     500: ApiErrorResponse;
@@ -4119,6 +4199,10 @@ export type AdminManagementReadCurrentAdminErrors = {
      * Validation error
      */
     422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
     /**
      * Internal server error
      */
@@ -4178,6 +4262,10 @@ export type AdminManagementListOrdersErrors = {
      */
     422: ApiErrorResponse;
     /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
      * Internal server error
      */
     500: ApiErrorResponse;
@@ -4234,6 +4322,10 @@ export type AdminManagementGetOrderErrors = {
      */
     422: ApiErrorResponse;
     /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
      * Internal server error
      */
     500: ApiErrorResponse;
@@ -4288,6 +4380,10 @@ export type AdminManagementPayCounterOrderErrors = {
      */
     422: ApiErrorResponse;
     /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
      * Internal server error
      */
     500: ApiErrorResponse;
@@ -4341,6 +4437,10 @@ export type AdminManagementUpdateOrderStatusErrors = {
      * Validation error
      */
     422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
     /**
      * Internal server error
      */
@@ -4432,6 +4532,10 @@ export type AdminManagementListProductsErrors = {
      */
     422: ApiErrorResponse;
     /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
      * Internal server error
      */
     500: ApiErrorResponse;
@@ -4482,6 +4586,10 @@ export type AdminManagementCreateProductErrors = {
      * Validation error
      */
     422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
     /**
      * Internal server error
      */
@@ -4537,6 +4645,10 @@ export type AdminManagementDeleteProductErrors = {
      */
     422: ApiErrorResponse;
     /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
      * Internal server error
      */
     500: ApiErrorResponse;
@@ -4591,6 +4703,10 @@ export type AdminManagementGetProductErrors = {
      */
     422: ApiErrorResponse;
     /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
      * Internal server error
      */
     500: ApiErrorResponse;
@@ -4644,6 +4760,10 @@ export type AdminManagementUpdateProductErrors = {
      * Validation error
      */
     422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
     /**
      * Internal server error
      */
@@ -4704,6 +4824,10 @@ export type AdminManagementGetProductAnalyticsErrors = {
      */
     422: ApiErrorResponse;
     /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
      * Internal server error
      */
     500: ApiErrorResponse;
@@ -4757,6 +4881,10 @@ export type AdminManagementSetProductAvailabilityErrors = {
      * Validation error
      */
     422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
     /**
      * Internal server error
      */
@@ -4817,6 +4945,10 @@ export type AdminManagementUploadProductImageErrors = {
      */
     422: ApiErrorResponse;
     /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
      * Internal server error
      */
     500: ApiErrorResponse;
@@ -4875,6 +5007,10 @@ export type AdminManagementDeleteProductImageErrors = {
      */
     422: ApiErrorResponse;
     /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
      * Internal server error
      */
     500: ApiErrorResponse;
@@ -4928,6 +5064,10 @@ export type AdminManagementToggleProductStatusErrors = {
      * Validation error
      */
     422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
     /**
      * Internal server error
      */
@@ -4983,6 +5123,10 @@ export type ReviewsDeleteReviewReactionErrors = {
      */
     422: ApiErrorResponse;
     /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
      * Internal server error
      */
     500: ApiErrorResponse;
@@ -5037,6 +5181,10 @@ export type ReviewsUpsertReviewReactionErrors = {
      */
     422: ApiErrorResponse;
     /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
      * Internal server error
      */
     500: ApiErrorResponse;
@@ -5090,6 +5238,10 @@ export type ReviewsCreateReviewReplyErrors = {
      * Validation error
      */
     422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
     /**
      * Internal server error
      */
@@ -5149,6 +5301,10 @@ export type ReviewsDeleteReviewReplyErrors = {
      */
     422: ApiErrorResponse;
     /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
      * Internal server error
      */
     500: ApiErrorResponse;
@@ -5207,6 +5363,10 @@ export type ReviewsUpdateReviewReplyErrors = {
      */
     422: ApiErrorResponse;
     /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
      * Internal server error
      */
     500: ApiErrorResponse;
@@ -5255,6 +5415,10 @@ export type SiteSettingsReadAdminChefSpecialErrors = {
      * Validation error
      */
     422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
     /**
      * Internal server error
      */
@@ -5305,6 +5469,10 @@ export type SiteSettingsUpdateAdminChefSpecialErrors = {
      */
     422: ApiErrorResponse;
     /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
      * Internal server error
      */
     500: ApiErrorResponse;
@@ -5353,6 +5521,10 @@ export type SiteSettingsReadAdminCompanyDetailsErrors = {
      * Validation error
      */
     422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
     /**
      * Internal server error
      */
@@ -5403,6 +5575,10 @@ export type SiteSettingsUpdateAdminCompanyDetailsErrors = {
      */
     422: ApiErrorResponse;
     /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
      * Internal server error
      */
     500: ApiErrorResponse;
@@ -5451,6 +5627,10 @@ export type SiteSettingsReadAdminEventsErrors = {
      * Validation error
      */
     422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
     /**
      * Internal server error
      */
@@ -5501,6 +5681,10 @@ export type SiteSettingsUpdateAdminEventsErrors = {
      */
     422: ApiErrorResponse;
     /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
      * Internal server error
      */
     500: ApiErrorResponse;
@@ -5549,6 +5733,10 @@ export type SiteSettingsReadAdminLoyaltyCouponSettingsErrors = {
      * Validation error
      */
     422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
     /**
      * Internal server error
      */
@@ -5599,6 +5787,10 @@ export type SiteSettingsUpdateAdminLoyaltyCouponSettingsErrors = {
      */
     422: ApiErrorResponse;
     /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
      * Internal server error
      */
     500: ApiErrorResponse;
@@ -5647,6 +5839,10 @@ export type SiteSettingsReadAdminSocialMediaErrors = {
      * Validation error
      */
     422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
     /**
      * Internal server error
      */
@@ -5697,6 +5893,10 @@ export type SiteSettingsUpdateAdminSocialMediaErrors = {
      */
     422: ApiErrorResponse;
     /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
      * Internal server error
      */
     500: ApiErrorResponse;
@@ -5745,6 +5945,10 @@ export type SiteSettingsReadAdminSiteThemeErrors = {
      * Validation error
      */
     422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
     /**
      * Internal server error
      */
@@ -5795,6 +5999,10 @@ export type SiteSettingsUpdateAdminSiteThemeErrors = {
      */
     422: ApiErrorResponse;
     /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
      * Internal server error
      */
     500: ApiErrorResponse;
@@ -5843,6 +6051,10 @@ export type AdminManagementListStaffAdminsErrors = {
      * Validation error
      */
     422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
     /**
      * Internal server error
      */
@@ -5894,6 +6106,10 @@ export type AdminManagementCreateStaffAdminErrors = {
      * Validation error
      */
     422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
     /**
      * Internal server error
      */
@@ -5953,6 +6169,10 @@ export type AdminManagementListStaffOrdersErrors = {
      */
     422: ApiErrorResponse;
     /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
      * Internal server error
      */
     500: ApiErrorResponse;
@@ -6009,6 +6229,10 @@ export type AdminManagementDeleteStaffAdminErrors = {
      */
     422: ApiErrorResponse;
     /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
      * Internal server error
      */
     500: ApiErrorResponse;
@@ -6062,6 +6286,10 @@ export type AdminManagementUpdateStaffAdminErrors = {
      * Validation error
      */
     422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
     /**
      * Internal server error
      */
@@ -6821,6 +7049,10 @@ export type AuthLoginErrors = {
      * Validation error
      */
     422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
     /**
      * Internal server error
      */
@@ -7775,6 +8007,10 @@ export type AuthRegisterErrors = {
      * Validation error
      */
     422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
     /**
      * Internal server error
      */

@@ -70,6 +70,69 @@ class Settings(BaseSettings):
         validation_alias="DEV_STAMP_EXISTING_DATABASE_WITHOUT_ALEMBIC",
     )
 
+    redis_url_raw: str | None = Field(default=None, validation_alias="REDIS_URL")
+    rate_limit_enabled: bool = Field(default=True, validation_alias="RATE_LIMIT_ENABLED")
+    rate_limit_auth_ip_requests: int = Field(
+        default=30,
+        validation_alias="RATE_LIMIT_AUTH_IP_REQUESTS",
+    )
+    rate_limit_auth_ip_window_seconds: int = Field(
+        default=300,
+        validation_alias="RATE_LIMIT_AUTH_IP_WINDOW_SECONDS",
+    )
+    rate_limit_login_identifier_requests: int = Field(
+        default=10,
+        validation_alias="RATE_LIMIT_LOGIN_IDENTIFIER_REQUESTS",
+    )
+    rate_limit_login_identifier_window_seconds: int = Field(
+        default=300,
+        validation_alias="RATE_LIMIT_LOGIN_IDENTIFIER_WINDOW_SECONDS",
+    )
+    rate_limit_register_email_requests: int = Field(
+        default=10,
+        validation_alias="RATE_LIMIT_REGISTER_EMAIL_REQUESTS",
+    )
+    rate_limit_register_email_window_seconds: int = Field(
+        default=300,
+        validation_alias="RATE_LIMIT_REGISTER_EMAIL_WINDOW_SECONDS",
+    )
+    rate_limit_admin_requests: int = Field(
+        default=100,
+        validation_alias="RATE_LIMIT_ADMIN_REQUESTS",
+    )
+    rate_limit_admin_window_seconds: int = Field(
+        default=60,
+        validation_alias="RATE_LIMIT_ADMIN_WINDOW_SECONDS",
+    )
+    rate_limit_admin_login_requests: int = Field(
+        default=5,
+        validation_alias="RATE_LIMIT_ADMIN_LOGIN_REQUESTS",
+    )
+    rate_limit_admin_login_window_seconds: int = Field(
+        default=300,
+        validation_alias="RATE_LIMIT_ADMIN_LOGIN_WINDOW_SECONDS",
+    )
+    rate_limit_order_requests: int = Field(
+        default=10,
+        validation_alias="RATE_LIMIT_ORDER_REQUESTS",
+    )
+    rate_limit_order_window_seconds: int = Field(
+        default=60,
+        validation_alias="RATE_LIMIT_ORDER_WINDOW_SECONDS",
+    )
+    rate_limit_redis_failure_mode: Literal["allow", "block"] = Field(
+        default="allow",
+        validation_alias="RATE_LIMIT_REDIS_FAILURE_MODE",
+    )
+
+    @property
+    def redis_url(self) -> str:
+        if self.redis_url_raw:
+            return self.redis_url_raw
+        if self.environment in {"development", "test"}:
+            return "redis://localhost:6379/0"
+        raise RuntimeError("REDIS_URL is required in production")
+
     cors_origins_raw: str = Field(
         default=(
             "http://127.0.0.1:8000,"

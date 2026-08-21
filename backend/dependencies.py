@@ -3,15 +3,18 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 
-from fastapi import Depends, status
+from fastapi import Depends, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.orm import Session as DBSession
 
 from core.config import settings
 from core.errors import AppHTTPException
+from core.rate_limit import enforce_rate_limit, get_client_ip
 from database import get_db
+from schemas.admin import AdminLogin
 from schemas.enums import UserRole, UserStatus, is_admin_role, normalize_admin_role, normalize_user_role
+from schemas.user import UserAuth, UserRegister
 from models import Admin, Customer, Session
 from services.auth_service import hash_session_token
 from utils.datetime_utils import to_naive_utc
@@ -123,10 +126,95 @@ def get_current_admin(
     return current_admin
 
 
+async def _enforce_auth_ip_and_credential_rate_limits(
+    request: Request,
+    *,
+    action: str,
+    credential_bucket: str,
+    credential: str,
+    credential_max_requests: int,
+    credential_window_seconds: int,
+) -> None:
+    await enforce_rate_limit(
+        request,
+        bucket=f"auth:{action}:ip",
+        identity=get_client_ip(request),
+        max_requests=settings.rate_limit_auth_ip_requests,
+        window_seconds=settings.rate_limit_auth_ip_window_seconds,
+    )
+    await enforce_rate_limit(
+        request,
+        bucket=f"auth:{action}:{credential_bucket}",
+        identity=credential,
+        max_requests=credential_max_requests,
+        window_seconds=credential_window_seconds,
+    )
+
+
+async def rate_limit_login(payload: UserAuth, request: Request) -> UserAuth:
+    await _enforce_auth_ip_and_credential_rate_limits(
+        request,
+        action="login",
+        credential_bucket="identifier",
+        credential=payload.email,
+        credential_max_requests=settings.rate_limit_login_identifier_requests,
+        credential_window_seconds=settings.rate_limit_login_identifier_window_seconds,
+    )
+    return payload
+
+
+async def rate_limit_register(payload: UserRegister, request: Request) -> UserRegister:
+    await _enforce_auth_ip_and_credential_rate_limits(
+        request,
+        action="register",
+        credential_bucket="email",
+        credential=payload.email,
+        credential_max_requests=settings.rate_limit_register_email_requests,
+        credential_window_seconds=settings.rate_limit_register_email_window_seconds,
+    )
+    return payload
+
+
+async def rate_limit_admin_login(payload: AdminLogin, request: Request) -> AdminLogin:
+    await _enforce_auth_ip_and_credential_rate_limits(
+        request,
+        action="admin:login",
+        credential_bucket="identifier",
+        credential=payload.email,
+        credential_max_requests=settings.rate_limit_admin_login_requests,
+        credential_window_seconds=settings.rate_limit_admin_login_window_seconds,
+    )
+    return payload
+
+
+async def rate_limit_admin(request: Request) -> None:
+    await enforce_rate_limit(
+        request,
+        bucket="admin:ip",
+        identity=get_client_ip(request),
+        max_requests=settings.rate_limit_admin_requests,
+        window_seconds=settings.rate_limit_admin_window_seconds,
+    )
+
+
+async def rate_limit_order(request: Request) -> None:
+    """Prepared for future guest checkout protection; not wired to a route yet."""
+    await enforce_rate_limit(
+        request,
+        bucket="order:ip",
+        identity=get_client_ip(request),
+        max_requests=settings.rate_limit_order_requests,
+        window_seconds=settings.rate_limit_order_window_seconds,
+    )
+
+
 def require_role(*allowed_roles: str | UserRole) -> Callable:
     normalized_allowed_roles = tuple(normalize_admin_role(role) for role in allowed_roles)
 
-    def role_checker(current_admin: Admin = Depends(get_current_admin)) -> Admin:
+    def role_checker(
+        _rate_limit: None = Depends(rate_limit_admin),
+        current_admin: Admin = Depends(get_current_admin),
+    ) -> Admin:
         current_admin.role = normalize_user_role(current_admin.role)
         if current_admin.role not in normalized_allowed_roles:
             raise AppHTTPException(status_code=status.HTTP_403_FORBIDDEN, error="permission_denied", message="Permission denied.", details={"reason": "request_failed"})

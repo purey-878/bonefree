@@ -26,6 +26,7 @@ from schemas.review import (
 )
 from utils.id_format import format_product_id, parse_product_id
 from core.errors import AppHTTPException
+from core.rate_limit import RATE_LIMIT_OPENAPI_RESPONSES
 
 router = APIRouter(tags=["Reviews"])
 
@@ -348,6 +349,7 @@ def delete_product_review(
     "/admin/reviews/{review_id}/reply",
     response_model=ReviewReplyResponse,
     status_code=status.HTTP_201_CREATED,
+    responses=RATE_LIMIT_OPENAPI_RESPONSES,
     operation_id="reviews_create_review_reply",
 )
 def create_review_reply(
@@ -367,6 +369,7 @@ def create_review_reply(
 @router.put(
     "/admin/reviews/{review_id}/reply/{reply_id}",
     response_model=ReviewReplyResponse,
+    responses=RATE_LIMIT_OPENAPI_RESPONSES,
     operation_id="reviews_update_review_reply",
 )
 def update_review_reply(
@@ -388,6 +391,7 @@ def update_review_reply(
 @router.delete(
     "/admin/reviews/{review_id}/reply/{reply_id}",
     status_code=status.HTTP_204_NO_CONTENT,
+    responses=RATE_LIMIT_OPENAPI_RESPONSES,
     operation_id="reviews_delete_review_reply",
 )
 def delete_review_reply(
@@ -406,6 +410,7 @@ def delete_review_reply(
 @router.post(
     "/admin/reviews/{review_id}/reaction",
     response_model=ReviewReactionResponse,
+    responses=RATE_LIMIT_OPENAPI_RESPONSES,
     operation_id="reviews_upsert_review_reaction",
 )
 def upsert_review_reaction(
@@ -434,6 +439,7 @@ def upsert_review_reaction(
 @router.delete(
     "/admin/reviews/{review_id}/reaction",
     status_code=status.HTTP_204_NO_CONTENT,
+    responses=RATE_LIMIT_OPENAPI_RESPONSES,
     operation_id="reviews_delete_review_reaction",
 )
 def delete_review_reaction(

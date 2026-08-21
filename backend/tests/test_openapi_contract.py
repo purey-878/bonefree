@@ -118,6 +118,28 @@ class OpenApiContractTests(unittest.TestCase):
         pdf_schema = self.schema["paths"]["/checkout/orders/{order_id}/receipt.pdf"]["get"]["responses"]["200"]["content"]["application/pdf"]["schema"]
         self.assertEqual(pdf_schema, {"type": "string", "format": "binary"})
 
+    def test_rate_limited_auth_bodies_and_responses_are_explicit(self):
+        expected_bodies = {
+            "/login": "#/components/schemas/UserAuth",
+            "/register": "#/components/schemas/UserRegister",
+            "/admin/login": "#/components/schemas/AdminLogin",
+        }
+        for path, expected_ref in expected_bodies.items():
+            operation = self.schema["paths"][path]["post"]
+            body_schema = operation["requestBody"]["content"]["application/json"]["schema"]
+            self.assertEqual(body_schema, {"$ref": expected_ref})
+            rate_limit_response = operation["responses"]["429"]
+            self.assertEqual(
+                rate_limit_response["content"]["application/json"]["schema"]["$ref"],
+                "#/components/schemas/ApiErrorResponse",
+            )
+            self.assertIn("Retry-After", rate_limit_response["headers"])
+
+        self.assertNotIn(
+            "429",
+            self.schema["paths"]["/checkout/orders"]["post"]["responses"],
+        )
+
     def test_contract_contains_no_refund_feature(self):
         serialized_schema = json.dumps(self.schema).casefold()
         self.assertNotIn("refund", serialized_schema)
