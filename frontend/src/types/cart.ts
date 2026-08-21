@@ -67,7 +67,8 @@ export interface CartItem {
   name: string;
   price: number;
   quantity: number;
-  stock: number;
+  available: boolean;
+  unavailableReason?: string | null;
   imagePath?: string | null;
   customization?: ItemCustomization | null;
   subtotal: number;

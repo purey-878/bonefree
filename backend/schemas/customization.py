@@ -20,7 +20,7 @@ class CustomizationSubstitutionSelection(BaseModel):
 
 class CustomizedCartItemRequest(BaseModel):
     product_id: ProductId
-    quantity: int = Field(1, ge=1)
+    quantity: int = Field(1, ge=1, le=99)
     removed_ingredients: List[int] = Field(default_factory=list)
     extras: List[CustomizationExtraSelection] = Field(default_factory=list)
     substitutions: List[CustomizationSubstitutionSelection] = Field(default_factory=list)

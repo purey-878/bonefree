@@ -26,7 +26,7 @@ class FakeProduct:
     name: str
     product_description: str
     price: Decimal
-    stock: int
+    available: bool
     category: FakeCategory
     status: int = 1
     deleted_at: object = None
@@ -39,7 +39,7 @@ def product(
     description: str,
     category: str,
     price: str,
-    stock: int,
+    available: bool,
     status: int = 1,
     nutrition: dict | None = None,
 ) -> FakeProduct:
@@ -48,7 +48,7 @@ def product(
         name=name,
         product_description=description,
         price=Decimal(price),
-        stock=stock,
+        available=available,
         category=FakeCategory(category),
         status=status,
         nutrition=nutrition,
@@ -56,22 +56,22 @@ def product(
 
 
 class SubstitutionServiceTests(unittest.TestCase):
-    def test_item_in_stock_is_available(self):
-        item = product("P1", "Kick Burger", "smoky bbq burger", "Burgers", "10.00", 3)
+    def test_manually_available_item_is_available(self):
+        item = product("P1", "Kick Burger", "smoky bbq burger", "Burgers", "10.00", True)
 
-        self.assertTrue(is_product_available(item, quantity=1, stock_threshold=0))
+        self.assertTrue(is_product_available(item))
         self.assertEqual(
-            availability_reason(item, quantity=1, stock_threshold=0),
+            availability_reason(item),
             "The item is available.",
         )
 
-    def test_item_out_of_stock_is_unavailable(self):
-        item = product("P1", "Kick Burger", "smoky bbq burger", "Burgers", "10.00", 0)
+    def test_manually_unavailable_item_is_unavailable(self):
+        item = product("P1", "Kick Burger", "smoky bbq burger", "Burgers", "10.00", False)
 
-        self.assertFalse(is_product_available(item, quantity=1, stock_threshold=0))
+        self.assertFalse(is_product_available(item))
         self.assertEqual(
-            availability_reason(item, quantity=1, stock_threshold=0),
-            "The item is out of stock.",
+            availability_reason(item),
+            "The item is currently unavailable.",
         )
 
     def test_no_substitute_available(self):

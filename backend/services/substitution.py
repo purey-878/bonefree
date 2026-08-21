@@ -1,4 +1,4 @@
-"""Stock-out substitution and similar dish ranking helpers."""
+"""Unavailable-product substitution and similar dish ranking helpers."""
 
 from __future__ import annotations
 
@@ -9,7 +9,6 @@ from decimal import Decimal, InvalidOperation
 from typing import Any, Iterable
 
 
-DEFAULT_STOCK_THRESHOLD = 0
 NUTRITION_FIELDS = (
     "calories",
     "kcal",
@@ -101,13 +100,6 @@ def product_category(product: Any) -> str:
     )
 
 
-def product_stock(product: Any) -> int:
-    try:
-        return int(getattr(product, "stock", 0) or 0)
-    except (TypeError, ValueError):
-        return 0
-
-
 def product_price(product: Any) -> float | None:
     price = getattr(product, "price", getattr(product, "price", None))
     if price is None:
@@ -124,43 +116,21 @@ def product_price(product: Any) -> float | None:
 def is_active_product(product: Any) -> bool:
     """Return True when a product can be shown as an active menu item."""
     status_value = getattr(product, "status", None)
+    status_value = getattr(status_value, "value", status_value)
     deleted_at = getattr(product, "deleted_at", None)
-    return status_value != 0 and deleted_at is None
+    return status_value in {None, "active", 1, True} and deleted_at is None
+
+def is_product_available(product: Any) -> bool:
+    """Return True when the product is active and manually available."""
+    return is_active_product(product) and bool(getattr(product, "available", False))
 
 
-def is_product_available(
-    product: Any,
-    quantity: int = 1,
-    stock_threshold: int = DEFAULT_STOCK_THRESHOLD,
-) -> bool:
-    """Return True when the product has enough stock above the threshold."""
-    if quantity < 1:
-        raise ValueError("Quantity must be at least 1.")
-    if stock_threshold < 0:
-        raise ValueError("The stock threshold cannot be negative.")
-
-    return (
-        is_active_product(product)
-        and product_stock(product) >= quantity
-        and product_stock(product) > stock_threshold
-    )
-
-
-def availability_reason(
-    product: Any,
-    quantity: int = 1,
-    stock_threshold: int = DEFAULT_STOCK_THRESHOLD,
-) -> str:
+def availability_reason(product: Any) -> str:
     """Explain why a product is or is not available for preparation."""
-    stock = product_stock(product)
     if not is_active_product(product):
         return "The item is not active on the menu."
-    if stock <= 0:
-        return "The item is out of stock."
-    if stock < quantity:
-        return f"The item has only {stock} units in stock for a requested quantity of {quantity}."
-    if stock <= stock_threshold:
-        return f"The item stock ({stock}) is at or below the threshold ({stock_threshold})."
+    if not bool(getattr(product, "available", False)):
+        return "The item is currently unavailable."
     return "The item is available."
 
 
@@ -186,16 +156,12 @@ def extract_product_tags(product: Any) -> set[str]:
 def rank_substitutions(
     original: Any,
     candidates: Iterable[Any],
-    quantity: int = 1,
-    stock_threshold: int = DEFAULT_STOCK_THRESHOLD,
     limit: int = 5,
 ) -> list[RankedSuggestion]:
-    """Rank stock-available products that can substitute the original item."""
+    """Rank available products that can substitute the original item."""
     return _rank_candidates(
         original,
         candidates,
-        quantity=quantity,
-        stock_threshold=stock_threshold,
         limit=limit,
         mode="substitution",
     )
@@ -204,16 +170,12 @@ def rank_substitutions(
 def suggest_similar_dishes(
     original: Any,
     candidates: Iterable[Any],
-    quantity: int = 1,
-    stock_threshold: int = DEFAULT_STOCK_THRESHOLD,
     limit: int = 5,
 ) -> list[RankedSuggestion]:
     """Rank available dishes similar to the unavailable original dish."""
     return _rank_candidates(
         original,
         candidates,
-        quantity=quantity,
-        stock_threshold=stock_threshold,
         limit=limit,
         mode="dish",
     )
@@ -222,8 +184,6 @@ def suggest_similar_dishes(
 def _rank_candidates(
     original: Any,
     candidates: Iterable[Any],
-    quantity: int,
-    stock_threshold: int,
     limit: int,
     mode: str,
 ) -> list[RankedSuggestion]:
@@ -241,7 +201,7 @@ def _rank_candidates(
     for candidate in candidates:
         if product_id(candidate) == original_id:
             continue
-        if not is_product_available(candidate, quantity, stock_threshold):
+        if not is_product_available(candidate):
             continue
 
         candidate_category = _category_key(candidate)
@@ -261,8 +221,6 @@ def _rank_candidates(
             candidate_tags=candidate_tags,
             original_price=original_price,
             original_nutrition=original_nutrition,
-            stock_threshold=stock_threshold,
-            quantity=quantity,
         )
         ranked.append(
             RankedSuggestion(
@@ -286,8 +244,6 @@ def _score_candidate(
     candidate_tags: set[str],
     original_price: float | None,
     original_nutrition: dict[str, float],
-    stock_threshold: int,
-    quantity: int,
 ) -> tuple[float, list[str]]:
     score = 0.0
     factors: list[str] = []
@@ -312,11 +268,6 @@ def _score_candidate(
         score += 15.0 * nutrition_similarity
         if nutrition_similarity >= 0.75:
             factors.append("its nutrition profile is similar")
-
-    stock_score = _stock_score(candidate, stock_threshold, quantity)
-    score += 10.0 * stock_score
-    if stock_score >= 0.6:
-        factors.append("tem stock suficiente")
 
     compatibility_score = _compatibility_score(same_category, tag_similarity)
     score += 10.0 * compatibility_score
@@ -350,11 +301,6 @@ def _is_compatible(same_category: bool, shared_tags: set[str], mode: str) -> boo
     if mode == "substitution":
         return len(shared_tags) >= 2
     return len(shared_tags) >= 1
-
-
-def _stock_score(product: Any, stock_threshold: int, quantity: int) -> float:
-    usable_stock = max(0, product_stock(product) - stock_threshold)
-    return min(1.0, usable_stock / max(quantity * 5, 1))
 
 
 def _compatibility_score(same_category: bool, tag_similarity: float) -> float:

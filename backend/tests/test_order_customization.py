@@ -124,7 +124,7 @@ class OrderCustomizationTests(unittest.TestCase):
 
     def test_customized_cart_item_persists_notes(self):
         db = FakeSession()
-        product = SimpleNamespace(product_id=1, customizable=True, price=Decimal("10"), discount_percentage=0, stock=10)
+        product = SimpleNamespace(product_id=1, customizable=True, price=Decimal("10"), discount_percentage=0, available=True)
         customer = SimpleNamespace(customer_id=7)
         cart = SimpleNamespace(cart_id=9)
         body = CustomizedCartItemRequest(product_id=1, notes="no sesame")
@@ -140,7 +140,7 @@ class OrderCustomizationTests(unittest.TestCase):
         with (
             patch("routers.cart._get_product_or_404", return_value=product),
             patch("routers.cart._ensure_product_orderable"),
-            patch("routers.cart._check_stock"),
+            patch("routers.cart._ensure_quantity_limit"),
             patch(
                 "routers.cart._validate_and_build_customization",
                 return_value=(customization, Decimal("10"), customization_rows),

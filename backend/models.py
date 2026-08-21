@@ -140,7 +140,7 @@ class Product(AppBaseModel):
     name: Mapped[str] = mapped_column(String(150), nullable=False)
     product_description: Mapped[str] = mapped_column(String(255), nullable=True)
     price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
-    stock: Mapped[int] = mapped_column(Integer, nullable=False)
+    available: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="1")
     category_id: Mapped[int] = mapped_column(Integer, ForeignKey('category.id'), nullable=False)
     admin_id: Mapped[int] = mapped_column(Integer, ForeignKey('user.id'), nullable=False, index=True)
     sold: Mapped[int] = mapped_column(Integer, nullable=True)
@@ -315,6 +315,7 @@ class Ingredient(AppBaseModel):
         nullable=False,
         index=True,
     )
+    available: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="1")
     calories_per_gram: Mapped[Decimal] = mapped_column(Numeric(8, 4), nullable=True)
 
 

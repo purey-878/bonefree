@@ -46,6 +46,7 @@ from schemas.enums import (
 
 BACKEND = Path(__file__).resolve().parents[1]
 RESET_REVISION = "c4a8f2e1d9b7"
+HEAD_REVISION = "d7e3a1b9c5f2"
 PRE_RESET_REVISION = "9b2f4d1a7c8e"
 CLEARED_TABLES = (
     "review_reactions",
@@ -94,6 +95,15 @@ class ProductionResetMigrationTests(unittest.TestCase):
     def _create_pre_reset_database(self, *, email_collision: bool = False) -> None:
         self._upgrade(PRE_RESET_REVISION)
         engine = create_engine(self.database_url)
+        with engine.begin() as connection:
+            product_columns = {column["name"] for column in inspect(connection).get_columns("product")}
+            if "available" in product_columns:
+                connection.execute(text("ALTER TABLE product DROP COLUMN available"))
+            if "stock" not in product_columns:
+                connection.execute(text("ALTER TABLE product ADD COLUMN stock INTEGER NOT NULL DEFAULT 0"))
+            ingredient_columns = {column["name"] for column in inspect(connection).get_columns("ingredient")}
+            if "available" in ingredient_columns:
+                connection.execute(text("ALTER TABLE ingredient DROP COLUMN available"))
         now = datetime.utcnow()
         with Session(engine) as db:
             admin_roles = [
@@ -144,23 +154,46 @@ class ProductionResetMigrationTests(unittest.TestCase):
             )
             db.add(category)
             db.flush()
-            product = Product(
-                name="Preserved product",
-                product_description="Not transactional",
-                price=Decimal("10.00"),
-                stock=42,
-                sold=17,
-                category_id=category.id,
-                admin_id=admins[0].id,
-                status=EntityStatus.ACTIVE,
-                discount_percentage=Decimal("0"),
-                customizable=True,
-                featured=False,
-                gluten_free=False,
-                contains_alcohol=False,
-            )
-            db.add(product)
-            db.flush()
+            product_result = db.execute(text(
+                "INSERT INTO product "
+                "(name, product_description, price, stock, sold, category_id, admin_id, status, "
+                "discount_percentual, customizable, featured, gluten_free, contains_alcohol, created_at, updated_at) "
+                "VALUES (:name, :description, :price, :stock, :sold, :category_id, :admin_id, :status, "
+                ":discount, :customizable, :featured, :gluten_free, :contains_alcohol, :now, :now)"
+            ), {
+                "name": "Preserved product",
+                "description": "Not transactional",
+                "price": 10.0,
+                "stock": 42,
+                "sold": 17,
+                "category_id": category.id,
+                "admin_id": admins[0].id,
+                "status": EntityStatus.ACTIVE.value,
+                "discount": 0.0,
+                "customizable": True,
+                "featured": False,
+                "gluten_free": False,
+                "contains_alcohol": False,
+                "now": now,
+            })
+            product_id = product_result.lastrowid
+            db.execute(text(
+                "INSERT INTO product "
+                "(name, product_description, price, stock, sold, category_id, admin_id, status, "
+                "discount_percentual, customizable, featured, gluten_free, contains_alcohol, created_at, updated_at) "
+                "VALUES ('Unavailable legacy product', 'Not transactional', 8, 0, 3, :category_id, :admin_id, "
+                ":status, 0, 1, 0, 0, 0, :now, :now)"
+            ), {
+                "category_id": category.id,
+                "admin_id": admins[0].id,
+                "status": EntityStatus.ACTIVE.value,
+                "now": now,
+            })
+            db.execute(text(
+                "INSERT INTO ingredient (name, type, status, created_at, updated_at) VALUES "
+                "('Active ingredient', 'normal', 'active', :now, :now), "
+                "('Inactive ingredient', 'normal', 'inactive', :now, :now)"
+            ), {"now": now})
             db.add(Cart(customer_id=customer.id))
             db.add(SiteSetting(
                 key=SiteSettingKey.COMPANY_DETAILS,
@@ -190,10 +223,10 @@ class ProductionResetMigrationTests(unittest.TestCase):
             db.flush()
             order_item = OrderProduct(
                 order_id=order.id,
-                product_id=product.id,
+                product_id=product_id,
                 quantity=1,
                 unit_price=Decimal("10.00"),
-                product_name_snapshot=product.name,
+                product_name_snapshot="Preserved product",
                 discount_percentage_snapshot=Decimal("0"),
                 vat_percentage_snapshot=Decimal("13.00"),
             )
@@ -220,7 +253,7 @@ class ProductionResetMigrationTests(unittest.TestCase):
                 issued_at=now,
             ))
             review = ProductReview(
-                product_id=product.id,
+                product_id=product_id,
                 customer_id=customer.id,
                 order_product_id=order_item.id,
                 rating=5,
@@ -272,7 +305,7 @@ class ProductionResetMigrationTests(unittest.TestCase):
             )
         engine.dispose()
 
-    def test_reset_preserves_catalog_and_stock_while_removing_simulations(self):
+    def test_reset_preserves_catalog_and_maps_legacy_availability(self):
         self._create_pre_reset_database()
         engine = create_engine(self.database_url)
         with engine.connect() as connection:
@@ -288,7 +321,7 @@ class ProductionResetMigrationTests(unittest.TestCase):
         self._upgrade("head")
         engine = create_engine(self.database_url)
         with engine.connect() as connection:
-            self.assertEqual(connection.scalar(text("SELECT version_num FROM alembic_version")), RESET_REVISION)
+            self.assertEqual(connection.scalar(text("SELECT version_num FROM alembic_version")), HEAD_REVISION)
             tables = set(inspect(connection).get_table_names())
             self.assertNotIn("refund", tables)
             for table_name in CLEARED_TABLES:
@@ -302,7 +335,15 @@ class ProductionResetMigrationTests(unittest.TestCase):
             self.assertEqual(connection.scalar(text("SELECT COUNT(*) FROM category")), before["categories"])
             self.assertEqual(connection.scalar(text("SELECT COUNT(*) FROM product")), before["products"])
             self.assertEqual(connection.scalar(text("SELECT COUNT(*) FROM cart")), before["carts"])
-            self.assertEqual(connection.scalar(text("SELECT stock FROM product WHERE id = 1")), before["stock"])
+            product_columns = {column["name"] for column in inspect(connection).get_columns("product")}
+            self.assertNotIn("stock", product_columns)
+            self.assertIn("available", product_columns)
+            self.assertTrue(connection.scalar(text("SELECT available FROM product WHERE id = 1")))
+            self.assertFalse(connection.scalar(text("SELECT available FROM product WHERE id = 2")))
+            ingredient_availability = connection.execute(text(
+                "SELECT name, available FROM ingredient ORDER BY name"
+            )).all()
+            self.assertEqual(ingredient_availability, [("Active ingredient", 1), ("Inactive ingredient", 0)])
             self.assertEqual(connection.scalar(text("SELECT sold FROM product WHERE id = 1")), 0)
 
             details = json.loads(connection.scalar(text(
@@ -320,7 +361,7 @@ class ProductionResetMigrationTests(unittest.TestCase):
 
             snapshot = {
                 "version": connection.scalar(text("SELECT version_num FROM alembic_version")),
-                "stock": connection.scalar(text("SELECT stock FROM product WHERE id = 1")),
+                "available": connection.scalar(text("SELECT available FROM product WHERE id = 1")),
                 "sold": connection.scalar(text("SELECT sold FROM product WHERE id = 1")),
                 "company": connection.scalar(text(
                     "SELECT value FROM site_setting WHERE CAST(key AS VARCHAR) = 'company_details'"
@@ -333,7 +374,7 @@ class ProductionResetMigrationTests(unittest.TestCase):
         with Session(engine) as db:
             after = {
                 "version": db.scalar(text("SELECT version_num FROM alembic_version")),
-                "stock": db.scalar(select(Product.stock).where(Product.id == 1)),
+                "available": db.scalar(select(Product.available).where(Product.id == 1)),
                 "sold": db.scalar(select(Product.sold).where(Product.id == 1)),
                 "company": db.scalar(text(
                     "SELECT value FROM site_setting WHERE CAST(key AS VARCHAR) = 'company_details'"
@@ -403,12 +444,50 @@ class ProductionResetMigrationTests(unittest.TestCase):
             self.assertEqual(email, "admin1@prey.pt")
         engine.dispose()
 
+    def test_availability_revision_preserves_sold_values(self):
+        self._create_pre_reset_database()
+        self._upgrade(RESET_REVISION)
+        engine = create_engine(self.database_url)
+        with engine.begin() as connection:
+            connection.execute(text("UPDATE product SET sold = 23 WHERE id = 1"))
+        engine.dispose()
+
+        self._upgrade("head")
+        engine = create_engine(self.database_url)
+        with engine.connect() as connection:
+            self.assertEqual(connection.scalar(text("SELECT sold FROM product WHERE id = 1")), 23)
+            self.assertTrue(connection.scalar(text("SELECT available FROM product WHERE id = 1")))
+        engine.dispose()
+
+    def test_availability_revision_repairs_a_partial_legacy_schema(self):
+        self._create_pre_reset_database()
+        self._upgrade(RESET_REVISION)
+        engine = create_engine(self.database_url)
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE product ADD COLUMN available BOOLEAN"))
+            connection.execute(text("ALTER TABLE ingredient ADD COLUMN available BOOLEAN"))
+        engine.dispose()
+
+        self._upgrade("head")
+        engine = create_engine(self.database_url)
+        with engine.connect() as connection:
+            product_columns = {column["name"]: column for column in inspect(connection).get_columns("product")}
+            ingredient_columns = {column["name"]: column for column in inspect(connection).get_columns("ingredient")}
+            self.assertNotIn("stock", product_columns)
+            self.assertFalse(product_columns["available"]["nullable"])
+            self.assertFalse(ingredient_columns["available"]["nullable"])
+            self.assertEqual(
+                connection.execute(text("SELECT id, available FROM product ORDER BY id")).all(),
+                [(1, 1), (2, 0)],
+            )
+        engine.dispose()
+
     def test_clean_sqlite_install_reaches_head_without_refund_table(self):
         self._upgrade("head")
         self._upgrade("head")
         engine = create_engine(self.database_url)
         with engine.connect() as connection:
-            self.assertEqual(connection.scalar(text("SELECT version_num FROM alembic_version")), RESET_REVISION)
+            self.assertEqual(connection.scalar(text("SELECT version_num FROM alembic_version")), HEAD_REVISION)
             self.assertNotIn("refund", inspect(connection).get_table_names())
         engine.dispose()
 
@@ -436,7 +515,7 @@ class ProductionResetMigrationTests(unittest.TestCase):
         with engine.connect() as connection:
             self.assertEqual(
                 connection.scalar(text("SELECT version_num FROM alembic_version")),
-                RESET_REVISION,
+                HEAD_REVISION,
             )
             self.assertNotIn("refund", inspect(connection).get_table_names())
 

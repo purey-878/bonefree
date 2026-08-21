@@ -16,8 +16,8 @@ from sqlalchemy.pool import StaticPool
 
 from app import create_app
 from database import Base, get_db
-from models import Category, Invoice, Order, OrderProduct, Payment, Product, ProductImage, ProductReview, Session, User
-from schemas.enums import EntityStatus, PaymentState, UserRole, UserStatus
+from models import Category, Ingredient, Invoice, Order, OrderProduct, Payment, Product, ProductCustomizationOption, ProductImage, ProductIngredient, ProductReview, Session, User
+from schemas.enums import EntityStatus, IngredientType, PaymentState, ProductCustomizationOptionType, UserRole, UserStatus
 from services.auth_service import hash_password, hash_session_token
 
 
@@ -51,6 +51,9 @@ class EndpointSmokeTests(unittest.TestCase):
         cls.client = TestClient(cls.app, raise_server_exceptions=False)
         cls.customer_token = "customer-smoke-token"
         cls.admin_token = "admin-smoke-token"
+        cls.manager_token = "manager-smoke-token"
+        cls.chef_token = "chef-smoke-token"
+        cls.waiter_token = "waiter-smoke-token"
 
         with cls.Session() as db:
             admin = User(
@@ -70,7 +73,10 @@ class EndpointSmokeTests(unittest.TestCase):
                 status=UserStatus.ACTIVE,
                 role=UserRole.CLIENT,
             )
-            db.add_all([admin, customer])
+            manager = User(name="Smoke", last_name="Manager", email="manager@bonefree.test", password="hash", status=UserStatus.ACTIVE, role=UserRole.MANAGER)
+            chef = User(name="Smoke", last_name="Chef", email="chef@bonefree.test", password="hash", status=UserStatus.ACTIVE, role=UserRole.CHEF)
+            waiter = User(name="Smoke", last_name="Waiter", email="waiter@bonefree.test", password="hash", status=UserStatus.ACTIVE, role=UserRole.WAITER)
+            db.add_all([admin, customer, manager, chef, waiter])
             db.flush()
             cls.admin_id = admin.id
             cls.customer_id = customer.id
@@ -91,6 +97,9 @@ class EndpointSmokeTests(unittest.TestCase):
                     last_seen_at=datetime.utcnow(),
                     revoked=False,
                 ),
+                Session(user_id=manager.id, token_hash=hash_session_token(cls.manager_token), expires_at=expires_at, last_seen_at=datetime.utcnow(), revoked=False),
+                Session(user_id=chef.id, token_hash=hash_session_token(cls.chef_token), expires_at=expires_at, last_seen_at=datetime.utcnow(), revoked=False),
+                Session(user_id=waiter.id, token_hash=hash_session_token(cls.waiter_token), expires_at=expires_at, last_seen_at=datetime.utcnow(), revoked=False),
             ])
             category = Category(
                 category_name="Smoke category",
@@ -104,7 +113,7 @@ class EndpointSmokeTests(unittest.TestCase):
                 name="Smoke product",
                 product_description="Endpoint smoke fixture",
                 price=Decimal("12.50"),
-                stock=100,
+                available=True,
                 sold=0,
                 category_id=category.id,
                 admin_id=admin.id,
@@ -147,6 +156,9 @@ class EndpointSmokeTests(unittest.TestCase):
     @property
     def admin_headers(self):
         return {"Authorization": f"Bearer {self.admin_token}"}
+
+    def role_headers(self, token: str):
+        return {"Authorization": f"Bearer {token}"}
 
     def _checkout_payload(self, payment_method: str = "counter") -> dict:
         return {
@@ -208,6 +220,11 @@ class EndpointSmokeTests(unittest.TestCase):
                 self.assertEqual(response.status_code, 200, response.text)
 
     def test_counter_checkout_payment_receipt_and_idempotency_workflow(self):
+        with self.Session() as db:
+            before_product = db.get(Product, self.product_id)
+            sold_before = before_product.sold or 0
+            available_before = before_product.available
+
         for unsupported_method in ("cash", "card", "mbway", "qr_pay"):
             with self.subTest(unsupported_method=unsupported_method):
                 response = self.client.post(
@@ -222,6 +239,10 @@ class EndpointSmokeTests(unittest.TestCase):
         self.assertEqual(created["status"], "pending")
         self.assertEqual(created["payment_status"], "unpaid")
         self.assertEqual(created["payment_method"], "counter")
+        with self.Session() as db:
+            product = db.get(Product, self.product_id)
+            self.assertEqual(product.sold, sold_before + 1)
+            self.assertEqual(product.available, available_before)
 
         receipt_before_payment = self.client.get(
             f"/checkout/orders/{order_id}/receipt.pdf",
@@ -274,6 +295,156 @@ class EndpointSmokeTests(unittest.TestCase):
             headers=self.customer_headers,
         )
         self.assertEqual(cancel_paid.status_code, 409, cancel_paid.text)
+
+    def test_availability_quick_actions_are_idempotent_and_role_protected(self):
+        product_path = f"/admin/products/{self.product_id}/availability"
+        for available in (False, False):
+            response = self.client.put(product_path, json={"available": available}, headers=self.admin_headers)
+            self.assertEqual(response.status_code, 200, response.text)
+            self.assertEqual(response.json()["available"], available)
+
+        manager_response = self.client.put(
+            product_path,
+            json={"available": True},
+            headers=self.role_headers(self.manager_token),
+        )
+        self.assertEqual(manager_response.status_code, 200, manager_response.text)
+        for token in (self.chef_token, self.waiter_token):
+            forbidden = self.client.put(
+                product_path,
+                json={"available": False},
+                headers=self.role_headers(token),
+            )
+            self.assertEqual(forbidden.status_code, 403, forbidden.text)
+
+        created = self.client.post(
+            "/admin/ingredients",
+            json={"name": "Availability smoke ingredient", "type": "normal", "available": True},
+            headers=self.admin_headers,
+        )
+        self.assertEqual(created.status_code, 201, created.text)
+        ingredient_id = created.json()["ingredient_id"]
+        ingredient_path = f"/admin/ingredients/{ingredient_id}/availability"
+        for available in (False, False, True):
+            response = self.client.put(
+                ingredient_path,
+                json={"available": available},
+                headers=self.role_headers(self.manager_token),
+            )
+            self.assertEqual(response.status_code, 200, response.text)
+            self.assertEqual(response.json()["available"], available)
+        for token in (self.chef_token, self.waiter_token):
+            forbidden = self.client.put(
+                ingredient_path,
+                json={"available": False},
+                headers=self.role_headers(token),
+            )
+            self.assertEqual(forbidden.status_code, 403, forbidden.text)
+
+    def test_unavailable_cart_items_remain_visible_and_block_checkout(self):
+        self.client.delete("/cart/clear", headers=self.customer_headers)
+        product_path = f"/admin/products/{self.product_id}/availability"
+        self.client.put(product_path, json={"available": True}, headers=self.admin_headers)
+
+        lower = self.client.post(
+            "/cart/add",
+            json={"product_id": self.product_id, "quantity": 1},
+            headers=self.customer_headers,
+        )
+        upper = self.client.put(
+            "/cart/update",
+            json={"product_id": self.product_id, "quantity": 99},
+            headers=self.customer_headers,
+        )
+        self.assertEqual(lower.status_code, 200, lower.text)
+        self.assertEqual(upper.status_code, 200, upper.text)
+        overflow = self.client.post(
+            "/cart/add",
+            json={"product_id": self.product_id, "quantity": 1},
+            headers=self.customer_headers,
+        )
+        self.assertEqual(overflow.status_code, 422, overflow.text)
+
+        self.client.put(product_path, json={"available": False}, headers=self.admin_headers)
+        cart = self.client.get("/cart", headers=self.customer_headers)
+        self.assertEqual(cart.status_code, 200, cart.text)
+        self.assertEqual(cart.json()["items"][0]["quantity"], 99)
+        self.assertFalse(cart.json()["items"][0]["available"])
+        blocked = self.client.post(
+            "/checkout/orders",
+            json=self._checkout_payload(),
+            headers=self.customer_headers,
+        )
+        self.assertEqual(blocked.status_code, 409, blocked.text)
+
+        self.client.delete("/cart/clear", headers=self.customer_headers)
+        merged = self.client.post(
+            "/cart/merge",
+            json={"items": [{"product_id": self.product_id, "quantity": 99}]},
+            headers=self.customer_headers,
+        )
+        self.assertEqual(merged.status_code, 200, merged.text)
+        self.assertIn(self.product_id, merged.json()["skipped"])
+        self.client.put(product_path, json={"available": True}, headers=self.admin_headers)
+
+    def test_base_and_customization_ingredient_availability_propagates(self):
+        with self.Session() as db:
+            base = Ingredient(name="Smoke base", type=IngredientType.BASE, status=EntityStatus.ACTIVE, available=True)
+            extra = Ingredient(name="Smoke extra", type=IngredientType.EXTRA, status=EntityStatus.ACTIVE, available=True)
+            db.add_all([base, extra])
+            db.flush()
+            db.add(ProductIngredient(
+                product_id=self.product_id,
+                ingredient_id=base.id,
+                included_by_default=True,
+                removable=False,
+                substitutable=False,
+            ))
+            option = ProductCustomizationOption(
+                product_id=self.product_id,
+                ingredient_id=extra.id,
+                name=extra.name,
+                type=ProductCustomizationOptionType.EXTRA,
+                extra_price=Decimal("1.00"),
+                max_quantity=2,
+                status=EntityStatus.ACTIVE,
+            )
+            db.add(option)
+            db.commit()
+            base_id = base.id
+            extra_id = extra.id
+            option_id = option.id
+
+        base_path = f"/admin/ingredients/{base_id}/availability"
+        self.client.put(base_path, json={"available": False}, headers=self.admin_headers)
+        public_product = self.client.get(f"/products/{self.product_id}")
+        self.assertEqual(public_product.status_code, 200, public_product.text)
+        self.assertFalse(public_product.json()["available"])
+        self.assertTrue(public_product.json()["unavailable_due_to_unavailable_base"])
+        self.client.put(base_path, json={"available": True}, headers=self.admin_headers)
+
+        extra_path = f"/admin/ingredients/{extra_id}/availability"
+        self.client.put(extra_path, json={"available": False}, headers=self.admin_headers)
+        choices = self.client.get(f"/products/{self.product_id}/customization")
+        self.assertEqual(choices.status_code, 200, choices.text)
+        exposed_option_ids = {
+            option["option_id"]
+            for options in choices.json()["options"].values()
+            for option in options
+        }
+        self.assertNotIn(option_id, exposed_option_ids)
+        stale = self.client.post(
+            "/cart/items/customized",
+            json={
+                "product_id": self.product_id,
+                "quantity": 1,
+                "removed_ingredients": [],
+                "extras": [{"option_id": option_id, "quantity": 1}],
+                "substitutions": [],
+            },
+        )
+        self.assertEqual(stale.status_code, 409, stale.text)
+        self.client.put(extra_path, json={"available": True}, headers=self.admin_headers)
 
     def test_unpaid_order_can_be_cancelled_but_not_paid_afterwards(self):
         created = self._create_order()

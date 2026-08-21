@@ -22,7 +22,7 @@ from models import (
 )
 from routers.admin import (
     _build_dashboard_sales_graphs,
-    _low_stock_product_rows,
+    _unavailable_product_rows,
     _popular_product_rows,
     _product_sales_aggregate_rows,
     _sales_aggregate_rows,
@@ -42,7 +42,7 @@ from schemas.enums import (
     UserRole,
     UserStatus,
 )
-from services.product_availability import inactive_base_product_ids
+from services.product_availability import unavailable_base_product_ids
 from services.site_settings import get_site_theme_settings, save_site_theme
 from schemas.site_settings import SiteThemeSettings
 
@@ -92,7 +92,7 @@ class SqlAlchemy2BehaviorTests(unittest.TestCase):
             name="Test product",
             product_description="Test description",
             price=Decimal("12.00"),
-            stock=10,
+            available=True,
             category_id=category.id,
             admin_id=self.admin.id,
             status=EntityStatus.ACTIVE,
@@ -160,7 +160,7 @@ class SqlAlchemy2BehaviorTests(unittest.TestCase):
         self.assertIsNotNone(cart_item)
 
         self.assertEqual(
-            inactive_base_product_ids(self.db, [self.product.id]),
+            unavailable_base_product_ids(self.db, [self.product.id]),
             {self.product.id},
         )
 
@@ -207,7 +207,7 @@ class SqlAlchemy2BehaviorTests(unittest.TestCase):
             name="Second product",
             product_description="Another description",
             price=Decimal("8.00"),
-            stock=5,
+            available=False,
             category_id=self.product.category_id,
             admin_id=self.admin.id,
             status=EntityStatus.ACTIVE,
@@ -233,7 +233,7 @@ class SqlAlchemy2BehaviorTests(unittest.TestCase):
 
         self.assertEqual(len(response), 2)
         self.assertLessEqual(len(statements), 4)
-        self.assertEqual(len(_low_stock_product_rows(self.db, 2)), 2)
+        self.assertEqual(len(_unavailable_product_rows(self.db, 2)), 2)
         self.assertEqual(len(_popular_product_rows(self.db, 2)), 2)
 
     def test_sales_aggregates_preserve_totals_without_loading_orm_graphs(self):

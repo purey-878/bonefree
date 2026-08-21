@@ -304,7 +304,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
 
 export type AddToCartButtonProps = Omit<ButtonProps, 'variant'> & {
   currencySymbol?: string
-  outOfStock?: boolean
+  unavailable?: boolean
   price?: number | null
   quantity?: number
 }
@@ -319,7 +319,7 @@ export const AddToCartButton = forwardRef<
     disabled,
     isLoading = false,
     onClick,
-    outOfStock = false,
+    unavailable = false,
     price,
     quantity = 1,
     ...props
@@ -333,13 +333,13 @@ export const AddToCartButton = forwardRef<
     children ??
     (isLoading
       ? 'A adicionar...'
-      : outOfStock
-        ? 'Esgotado'
+      : unavailable
+        ? 'Indisponível'
         : total === null
           ? 'Adicionar ao carrinho'
           : `Adicionar ao carrinho - ${formatEuro(total)}`)
   const handleClick: ButtonProps['onClick'] = (event) => {
-    if (!disabled && !outOfStock && !isLoading) {
+    if (!disabled && !unavailable && !isLoading) {
       setPopperKey((current) => current + 1)
     }
 
@@ -349,7 +349,7 @@ export const AddToCartButton = forwardRef<
   return (
     <Button
       ref={ref}
-      disabled={disabled || outOfStock || isLoading}
+      disabled={disabled || unavailable || isLoading}
       onClick={handleClick}
       variant="primary"
       {...props}

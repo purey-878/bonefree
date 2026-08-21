@@ -29,7 +29,7 @@ import {
 import "./ProductDetail.css"
 import "../theme.css"
 import Navbar from "../components/Navbar"
-import { AddToCartButton, Badge, ProductCard, Skeleton, StockBadge, Textarea } from "../components/ui"
+import { AddToCartButton, AvailabilityBadge, Badge, ProductCard, Skeleton, Textarea } from "../components/ui"
 import ConfirmDialog from "../components/ui/ConfirmDialog"
 import { useToast } from "../components/ui/toastContext"
 import { useAuth } from "../hooks/useAuth"
@@ -230,7 +230,7 @@ export const ProductDetail = () => {
           JSON.stringify([data.id, ...readRecentlyViewed().filter(recentId => recentId !== data.id)].slice(0, 8)),
         )
 
-        if (data.stock <= 0 || data.available === false) {
+        if (!data.available) {
           try {
             setAvailabilitySuggestions(await productService.getAvailabilitySuggestions(productId))
           } catch (suggestionError) {
@@ -291,9 +291,9 @@ export const ProductDetail = () => {
 
   const handleAddToCart = async (goToCheckout = false) => {
     if (!product) return
-    if (Number(product.stock ?? 0) <= 0 || product.available === false) {
+    if (!product.available) {
       setToastError(true)
-      setToastMessage(Number(product.stock ?? 0) <= 0 ? "Este item está esgotado." : "Este item está indisponível.")
+      setToastMessage(product.unavailableReason || "Este item está atualmente indisponível.")
       setTimeout(() => setToastMessage(null), 3000)
       return
     }
@@ -309,7 +309,6 @@ export const ProductDetail = () => {
       await cartService.addItem(
         product.id,
         quantity,
-        product.stock,
         pricedCustomization,
       )
       window.dispatchEvent(new Event("cartUpdated"))
@@ -498,7 +497,7 @@ export const ProductDetail = () => {
       description: suggestion.reason,
       image: suggestionProduct?.image ?? null,
       price,
-      stock: suggestion.stock,
+      available: true,
       customizable: suggestionProduct?.customizable ?? false,
     }
 
@@ -546,11 +545,10 @@ export const ProductDetail = () => {
 
   if (!product) return null
 
-  const inStock = product.stock > 0
-  const canPurchase = inStock && product.available !== false
-  const unavailableLabel = inStock ? "Indisponível" : "Esgotado"
-  const addToCartBlockedLabel = inStock ? "Adicionar ao carrinho" : "Esgotado"
-  const buyNowBlockedLabel = inStock ? "Comprar agora" : "Esgotado"
+  const canPurchase = product.available
+  const unavailableLabel = "Atualmente indisponível"
+  const addToCartBlockedLabel = canPurchase ? "Adicionar ao carrinho" : unavailableLabel
+  const buyNowBlockedLabel = canPurchase ? "Comprar agora" : unavailableLabel
   const ingredientBreakdown = product.ingredients ?? []
   const inactiveNonBaseIngredients = ingredientBreakdown.filter(
     ingredient => ingredient.status === "inactive" && ingredient.type !== "base",
@@ -756,7 +754,7 @@ export const ProductDetail = () => {
 
           <aside className="pd-buy-panel" aria-label="Opções de compra">
             <div className="pd-badge-row">
-              <StockBadge stock={product.stock} inStock={inStock} />
+              <AvailabilityBadge available={canPurchase} />
               <Badge variant="glass" size="sm">Vegetal</Badge>
               <Badge variant="neutral" size="sm">Pedido à mesa</Badge>
             </div>
@@ -804,7 +802,7 @@ export const ProductDetail = () => {
               </div>
             )}
 
-            {inStock && product.customizable && (
+            {canPurchase && product.customizable && (
               <details className="pd-customizer" open>
                 <summary>
                   <span>Personalizar pedido</span>
@@ -873,8 +871,8 @@ export const ProductDetail = () => {
                 <button
                   className="pd-qty-btn"
                   type="button"
-                  onClick={() => setQuantity(q => Math.min(product.stock, q + 1))}
-                  disabled={!canPurchase || quantity >= product.stock}
+                  onClick={() => setQuantity(q => Math.min(99, q + 1))}
+                  disabled={!canPurchase || quantity >= 99}
                   aria-label="Aumentar quantidade"
                 >
                   <Plus size={18} />
@@ -886,7 +884,7 @@ export const ProductDetail = () => {
                 onClick={() => handleAddToCart(false)}
                 disabled={!canPurchase || addingToCart}
                 isLoading={addingToCart}
-                outOfStock={!inStock}
+                unavailable={!canPurchase}
                 price={customizedUnitPrice}
                 quantity={quantity}
               >
@@ -968,7 +966,7 @@ export const ProductDetail = () => {
               <h3>Especificações</h3>
               <dl>
                 <div><dt>Categoria</dt><dd>{product.category}</dd></div>
-                <div><dt>Disponibilidade</dt><dd>{canPurchase ? `${product.stock} disponíveis` : unavailableLabel}</dd></div>
+                <div><dt>Disponibilidade</dt><dd>{canPurchase ? "Disponível" : unavailableLabel}</dd></div>
                 <div><dt>Calorias</dt><dd>{productCalories ? `${productCalories} kcal` : "Não indicado"}</dd></div>
                 <div><dt>Personalização</dt><dd>{product.customizable ? "Disponível" : "Preparação padrão"}</dd></div>
                 <div><dt>Dieta</dt><dd>100% vegan</dd></div>

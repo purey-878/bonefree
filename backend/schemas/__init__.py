@@ -28,7 +28,7 @@ from .review import (
     ProductReviewStatsResponse,
     ProductReviewUpdate,
 )
-from .substitution import AvailabilitySuggestionResponse, StockSuggestion
+from .substitution import AvailabilitySuggestionResponse, ProductSuggestion
 from .user import (
     CustomerBillingAddressBase,
     CustomerBillingAddressResponse,
@@ -71,9 +71,9 @@ __all__ = [
     "ProductReviewResponse",
     "ProductReviewStatsResponse",
     "ProductReviewUpdate",
-    # Stock-out substitution schemas
+    # Availability substitution schemas
     "AvailabilitySuggestionResponse",
-    "StockSuggestion",
+    "ProductSuggestion",
     # User schemas
     "UserAuth",
     "CustomerBillingAddressBase",

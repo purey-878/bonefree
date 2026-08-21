@@ -33,6 +33,7 @@ FORBIDDEN_IDENTIFIER_PARTS = {
     "existing_nif",
     "new_nif",
     "nif_provided",
+    "stock",
 }
 
 

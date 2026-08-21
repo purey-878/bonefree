@@ -21,15 +21,21 @@ from models import (
     Customer,
     CustomerLoyalty,
     Coupon,
+    Ingredient,
     Order,
     OrderProduct,
     Payment,
     Product,
+    ProductCustomizationOption,
 )
 from schemas.checkout import CouponResponse, CouponValidationRequest, CouponValidationResponse, CheckoutItem, CheckoutRequest, OrderResponse
 from services.receipt_email import build_saved_order_receipt_payload
 from services.order_customization import customization_from_json, customization_to_json
-from services.product_availability import inactive_base_product_ids
+from services.product_availability import (
+    effective_product_available,
+    product_unavailable_reason,
+    unavailable_base_product_ids,
+)
 from services.product_pricing import discounted_product_price
 from services.site_settings import get_loyalty_coupon_settings
 from utils.id_format import format_product_id
@@ -458,7 +464,48 @@ def create_order(
         .where(Product.product_id.in_(product_ids))
     ).unique().all()
     product_map = {product.product_id: product for product in products}
-    inactive_base_ids = inactive_base_product_ids(db, product_ids)
+    unavailable_base_ids = unavailable_base_product_ids(db, product_ids)
+
+    selected_ingredient_ids: set[int] = set()
+    selected_option_ids: set[int] = set()
+    for item in items:
+        if not item.customization:
+            continue
+        selected_ingredient_ids.update(item.customization.removed_ingredients)
+        selected_ingredient_ids.update(
+            substitution.new_ingredient_id
+            for substitution in item.customization.substitutions
+        )
+        selected_option_ids.update(extra.option_id for extra in item.customization.extras)
+
+    unavailable_customization_ingredients = set(db.scalars(
+        select(Ingredient.ingredient_id).where(
+            Ingredient.ingredient_id.in_(selected_ingredient_ids),
+            (
+                (Ingredient.status == EntityStatus.INACTIVE)
+                | Ingredient.available.is_(False)
+            ),
+        )
+    ).all()) if selected_ingredient_ids else set()
+    if selected_option_ids:
+        unavailable_customization_ingredients.update(db.scalars(
+            select(ProductCustomizationOption.ingredient_id)
+            .join(Ingredient, Ingredient.ingredient_id == ProductCustomizationOption.ingredient_id)
+            .where(
+                ProductCustomizationOption.option_id.in_(selected_option_ids),
+                (
+                    (Ingredient.status == EntityStatus.INACTIVE)
+                    | Ingredient.available.is_(False)
+                ),
+            )
+        ).all())
+    if unavailable_customization_ingredients:
+        raise AppHTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            error="customization_ingredient_unavailable",
+            message="A selected customization ingredient is currently unavailable.",
+            details={"ingredient_ids": sorted(unavailable_customization_ingredients)},
+        )
 
     subtotal = Decimal("0")
     order_items: list[dict] = []
@@ -468,11 +515,16 @@ def create_order(
         if not product or product.status == EntityStatus.INACTIVE or product.deleted_at is not None:
             raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
 
-        if product.product_id in inactive_base_ids:
-            raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="product_unavailable", message="Product is unavailable.", details={"product_id": product.product_id})
-
-        if product.stock < item.quantity:
-            raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="insufficient_stock", message="Insufficient product stock.", details={"product_id": product.product_id, "requested_quantity": item.quantity, "stock": product.stock})
+        if not effective_product_available(product, unavailable_base_ids):
+            raise AppHTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                error="product_unavailable",
+                message="Product is currently unavailable.",
+                details={
+                    "product_id": product.product_id,
+                    "reason": product_unavailable_reason(product, unavailable_base_ids),
+                },
+            )
 
         unit_price = (
             Decimal(str(item.customization.final_unit_price))
@@ -481,7 +533,6 @@ def create_order(
         )
         line_total = unit_price * item.quantity
         subtotal += line_total
-        product.stock -= item.quantity
         product.sold = (product.sold or 0) + item.quantity
 
         order_items.append({

@@ -28,11 +28,13 @@ import {
   createIngredient,
   updateIngredient,
   deleteIngredient,
+  setIngredientAvailability,
   getAnalyticsSeries,
   createProduct,
   updateProduct,
   deleteProduct,
   restoreProduct,
+  setProductAvailability,
   uploadProductImage,
   deleteProductImage,
   updateOrderStatus,
@@ -117,6 +119,7 @@ import { formatCategoryId, formatProductId } from "../utils/ids"
 import { applyApiImageFallback, resolveProductImageUrl } from "../utils/imageFallback"
 import { formatEuro } from "../utils/money"
 import { translateUserMessage } from "../utils/messages"
+import { persistOptimisticUpdate } from "../utils/optimisticUpdate"
 
 function getImageUrl(imagePath: string): string {
   return resolveProductImageUrl(imagePath)
@@ -682,7 +685,7 @@ function ProductAnalyticsDrawer({
               <div><span>Pedidos</span><strong>{analytics.orderCount}</strong></div>
               <div><span>Avaliação</span><strong>{rating}</strong></div>
               <div><span>Preço</span><strong>{EURO_FORMATTER.format(analytics.currentPrice)}</strong></div>
-              <div><span>Stock</span><strong>{analytics.currentStock}</strong></div>
+              <div><span>Disponibilidade</span><strong>{analytics.effectiveAvailable ? "Disponível" : "Indisponível"}</strong></div>
             </div>
 
             <div className="ad-product-chart-card">
@@ -959,7 +962,7 @@ function SiteSettingsPanel({
                 )}
                 <div>
                   <strong>{selectedChefSpecial.name}</strong>
-                  <small>{EURO_FORMATTER.format(selectedChefSpecial.price)} | {selectedChefSpecial.stock} em stock</small>
+                  <small>{EURO_FORMATTER.format(selectedChefSpecial.price)} | {selectedChefSpecial.effectiveAvailable ? "disponível" : "indisponível"}</small>
                 </div>
               </div>
             ) : (
@@ -1397,6 +1400,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
     name: "",
     type: "normal",
     status: "active",
+    available: true,
     caloriesPerGram: null,
   })
   const [ingredientFilters, setIngredientFilters] = useState<{
@@ -1411,6 +1415,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
   const [clientes, setClientes] = useState<AdminCustomer[]>([])
   const [staffAdmins, setStaffAdmins] = useState<CurrentAdmin[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [availabilityBusyKey, setAvailabilityBusyKey] = useState<string | null>(null)
 
   // Form state
   const [showProductForm, setShowProductForm] = useState(false)
@@ -1421,7 +1426,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
     name: "",
     productDescription: "",
     price: 0,
-    stock: 0,
+    available: true,
     categoryId: 0,
     customizable: true,
     menuTags: "",
@@ -1934,7 +1939,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
       name: "",
       productDescription: "",
       price: 0,
-      stock: 0,
+      available: true,
       categoryId: activeCategories[0]?.categoryId ?? 0,
       customizable: true,
       menuTags: "",
@@ -1992,7 +1997,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
       name: product.name,
       productDescription: product.productDescription,
       price: product.price,
-      stock: product.stock,
+      available: product.available,
       categoryId: product.categoryId,
       customizable: product.customizable,
       menuTags: product.menuTags ?? "",
@@ -2059,7 +2064,6 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
 
     if (step === 1) {
       if (!Number.isFinite(formData.price) || formData.price <= 0) return "Introduza um preço superior a 0."
-      if (!Number.isInteger(formData.stock) || formData.stock < 0) return "O stock deve ser um número inteiro igual ou superior a 0."
       if (
         !Number.isFinite(formData.discountPercentage) ||
         formData.discountPercentage < 0 ||
@@ -2380,6 +2384,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
           name: name,
           type: newProductIngredientType,
           status: "active",
+          available: true,
           caloriesPerGram: caloriesPerGram,
         })
         setIngredients((current) => (
@@ -2624,7 +2629,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
 
   const openNewIngredientForm = () => {
     setEditingIngredient(null)
-    setIngredientForm({ name: "", type: "normal", status: "active", caloriesPerGram: null })
+    setIngredientForm({ name: "", type: "normal", status: "active", available: true, caloriesPerGram: null })
     setShowIngredientForm(true)
   }
 
@@ -2634,6 +2639,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
       name: ingredient.name,
       type: ingredient.type,
       status: ingredient.status,
+      available: ingredient.available,
       caloriesPerGram: ingredient.caloriesPerGram ?? null,
     })
     setShowIngredientForm(true)
@@ -2642,7 +2648,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
   const closeIngredientForm = () => {
     setShowIngredientForm(false)
     setEditingIngredient(null)
-    setIngredientForm({ name: "", type: "normal", status: "active", caloriesPerGram: null })
+    setIngredientForm({ name: "", type: "normal", status: "active", available: true, caloriesPerGram: null })
   }
 
   const handleIngredientSubmit = async (event: FormEvent) => {
@@ -2694,6 +2700,56 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
       const message = getErrorMessage(err, "Failed to restore ingredient")
       setError(message)
       toast.error("Unable to activate ingredient.")
+    }
+  }
+
+  const handleSetIngredientAvailability = async (ingredient: AdminIngredient, available: boolean) => {
+    const key = `ingredient-${ingredient.ingredientId}`
+    const optimistic = { ...ingredient, available }
+    const apply = (next: AdminIngredient) => setIngredients((current) => current.map((item) => (
+      item.ingredientId === ingredient.ingredientId ? next : item
+    )))
+    setAvailabilityBusyKey(key)
+    try {
+      await persistOptimisticUpdate(
+        ingredient,
+        optimistic,
+        apply,
+        () => setIngredientAvailability(ingredient.ingredientId, available),
+      )
+      await handleLoadProducts()
+      toast.success(available ? "Ingrediente disponível." : "Ingrediente indisponível.")
+    } catch (err) {
+      const message = getErrorMessage(err, "Não foi possível alterar a disponibilidade do ingrediente")
+      setError(message)
+      toast.error(message)
+    } finally {
+      setAvailabilityBusyKey(null)
+    }
+  }
+
+  const handleSetProductAvailability = async (product: AdminProduct, available: boolean) => {
+    const key = `product-${product.productId}`
+    const optimistic = { ...product, available, effectiveAvailable: available && product.unavailableBaseIngredients.length === 0 }
+    const apply = (next: AdminProduct) => {
+      setProducts((current) => current.map((item) => item.productId === product.productId ? next : item))
+      setDeletedProducts((current) => current.map((item) => item.productId === product.productId ? next : item))
+    }
+    setAvailabilityBusyKey(key)
+    try {
+      await persistOptimisticUpdate(
+        product,
+        optimistic,
+        apply,
+        () => setProductAvailability(product.productId, available),
+      )
+      toast.success(available ? "Produto disponível." : "Produto indisponível.")
+    } catch (err) {
+      const message = getErrorMessage(err, "Não foi possível alterar a disponibilidade do produto")
+      setError(message)
+      toast.error(message)
+    } finally {
+      setAvailabilityBusyKey(null)
     }
   }
 
@@ -3112,38 +3168,16 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
     ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
     : 0
   const allAdminProducts = useMemo(() => [...products, ...deletedProducts], [products, deletedProducts])
-  const inactiveBaseIngredientIds = useMemo(() => new Set(
-    ingredients
-      .filter((ingredient) => ingredient.status === "inactive" && ingredient.type === "base")
-      .map((ingredient) => ingredient.ingredientId),
-  ), [ingredients])
-  const inactiveBaseIngredientsById = useMemo(() => new Map(
-    ingredients
-      .filter((ingredient) => ingredient.status === "inactive" && ingredient.type === "base")
-      .map((ingredient) => [ingredient.ingredientId, ingredient]),
-  ), [ingredients])
-  const getInactiveBaseIngredientNames = useCallback((product: AdminProduct) => (
-    (product.ingredients ?? [])
-      .filter((ingredient) => (
-        ingredient.type === "base" &&
-        typeof ingredient.ingredientId === "number" &&
-        inactiveBaseIngredientIds.has(ingredient.ingredientId)
-      ))
-      .map((ingredient) => (
-        inactiveBaseIngredientsById.get(ingredient.ingredientId ?? -1)?.name ??
-        ingredient.name ??
-        "ingrediente base"
-      ))
-  ), [inactiveBaseIngredientIds, inactiveBaseIngredientsById])
   const getBaseUnavailableReason = useCallback((product: AdminProduct) => {
-    const names = getInactiveBaseIngredientNames(product)
+    if (!product.available) return "Indisponível por decisão operacional."
+    const names = product.unavailableBaseIngredients ?? []
     if (names.length === 0) return null
     if (names.length === 1) return `Indisponível: o ingrediente base ${names[0]} não está disponível.`
 
     const shownNames = names.slice(0, 2).join(", ")
     const remainingCount = names.length - 2
     return `Indisponível: ${remainingCount > 0 ? `${shownNames} e mais ${remainingCount}` : shownNames}.`
-  }, [getInactiveBaseIngredientNames])
+  }, [])
   const filteredIngredients = ingredients.filter((ingredient) => {
     const query = ingredientFilters.search.trim().toLowerCase()
     const matchesSearch = !query || [
@@ -3377,7 +3411,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
               <div>
                 <p className="ad-dashboard-kicker">Consola de administração</p>
                 <h2>Visão geral</h2>
-                <span>Resumo em tempo real do estado do menu, atividade de vendas, alertas de stock e procura dos clientes.</span>
+                <span>Resumo em tempo real do estado do menu, atividade de vendas, disponibilidade e procura dos clientes.</span>
               </div>
               <button className="ad-btn ad-btn-ghost" onClick={loadDashboard}>
                 Atualizar visão geral
@@ -3421,17 +3455,17 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
 
             <div className="ad-two-col">
               <div className="ad-card">
-                <h2 className="ad-card-title">Stock baixo</h2>
-                {dashboardData.lowStockProducts.length > 0 ? (
+                <h2 className="ad-card-title">Produtos indisponíveis</h2>
+                {dashboardData.unavailableProducts.length > 0 ? (
                   <table className="ad-table">
                     <thead>
-                      <tr><th>Nome</th><th>Stock</th><th>Ação</th></tr>
+                      <tr><th>Nome</th><th>Motivo</th><th>Ação</th></tr>
                     </thead>
                     <tbody>
-                      {dashboardData.lowStockProducts.map((p) => (
+                      {dashboardData.unavailableProducts.map((p) => (
                         <tr key={p.productId}>
                           <td data-label="Nome">{p.name}</td>
-                          <td data-label="Stock"><span className="ad-pill ad-pill-red">{p.stock}</span></td>
+                          <td data-label="Motivo"><span className="ad-pill ad-pill-red">{p.unavailableReason}</span></td>
                           <td data-label="Ação">
                             <button
                               className="ad-btn ad-btn-primary ad-btn-sm"
@@ -3460,7 +3494,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                       ))}
                     </tbody>
                   </table>
-                ) : <p className="ad-empty">Sem produtos com stock baixo</p>}
+                ) : <p className="ad-empty">Todos os produtos ativos estão disponíveis</p>}
               </div>
 
               <div className="ad-card">
@@ -3690,6 +3724,19 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                             placeholder="Opcional"
                           />
                         </div>
+                        <div className="ad-form-group">
+                          <label>Disponibilidade operacional</label>
+                          <CustomSelect
+                            className="ad-select"
+                            value={ingredientForm.available ? "available" : "unavailable"}
+                            onChange={(nextValue) => setIngredientForm({ ...ingredientForm, available: nextValue === "available" })}
+                            options={[
+                              { value: "available", label: "Disponível" },
+                              { value: "unavailable", label: "Indisponível" },
+                            ]}
+                          />
+                          <small>Independente do estado ativo ou arquivado.</small>
+                        </div>
                       </div>
                       <div className="ad-form-actions">
                         <button type="submit" className="ad-btn ad-btn-primary">
@@ -3764,7 +3811,10 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                         <span className="ad-category-code">#{ingredient.ingredientId}</span>
                         <h3>{ingredient.name}</h3>
                       </div>
-                      <span className={`ad-pill ${isActive ? "ad-pill-green" : "ad-pill-gray"}`}>{isActive ? "ativo" : "inativo"}</span>
+                      <div>
+                        <span className={`ad-pill ${isActive ? "ad-pill-green" : "ad-pill-gray"}`}>{isActive ? "ativo" : "inativo"}</span>
+                        <span className={`ad-pill ${ingredient.available ? "ad-pill-green" : "ad-pill-red"}`}>{ingredient.available ? "disponível" : "indisponível"}</span>
+                      </div>
                     </div>
                     <div className="ad-ingredient-meta">
                       <span>{ingredientTypeLabel(ingredient.type)}</span>
@@ -3804,6 +3854,16 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                       </div>
                     )}
                     <div className="ad-category-actions">
+                      <button
+                        className={`ad-btn ad-btn-sm ${ingredient.available ? "ad-btn-ghost" : "ad-btn-primary"}`}
+                        disabled={availabilityBusyKey === `ingredient-${ingredient.ingredientId}`}
+                        onClick={() => void handleSetIngredientAvailability(ingredient, !ingredient.available)}
+                        type="button"
+                      >
+                        {availabilityBusyKey === `ingredient-${ingredient.ingredientId}`
+                          ? "A guardar..."
+                          : ingredient.available ? "Marcar indisponível" : "Marcar disponível"}
+                      </button>
                       <button className="ad-btn ad-btn-sm ad-btn-ghost" onClick={() => openEditIngredientForm(ingredient)}>Editar</button>
                       {isActive ? (
                         <button className="ad-btn ad-btn-sm ad-btn-danger" onClick={() => handleDeactivateIngredient(ingredient.ingredientId)}>Desativar</button>
@@ -4073,7 +4133,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                         <div className="ad-product-section-head">
                           <div>
                             <h4>Preço e disponibilidade</h4>
-                            <p>Defina o preço, o stock e a promoção ativa.</p>
+                            <p>Defina o preço, a disponibilidade operacional e a promoção ativa.</p>
                           </div>
                           <span className="ad-product-section-step">02</span>
                         </div>
@@ -4107,13 +4167,15 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                             </div>
                           </label>
                           <label className="ad-field">
-                            <span>Stock <em aria-hidden="true">*</em></span>
-                            <input
-                              type="number"
-                              min="0"
-                              value={formData.stock === 0 ? "" : formData.stock}
-                              onChange={e => setFormData({ ...formData, stock: Number.parseInt(e.target.value || "0", 10) })}
-                              required
+                            <span>Disponibilidade operacional</span>
+                            <CustomSelect
+                              className="ad-select"
+                              value={formData.available ? "available" : "unavailable"}
+                              onChange={(nextValue) => setFormData({ ...formData, available: nextValue === "available" })}
+                              options={[
+                                { value: "available", label: "Disponível" },
+                                { value: "unavailable", label: "Indisponível" },
+                              ]}
                             />
                           </label>
                         </div>
@@ -4633,12 +4695,15 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                           />
                         </div>
                         <div className="ad-form-group">
-                          <label>Stock</label>
-                          <input
-                            type="number" min="0"
-                            value={formData.stock === 0 ? "" : formData.stock}
-                            onChange={e => setFormData({ ...formData, stock: Number.parseInt(e.target.value || "0", 10) })}
-                            required
+                          <label>Disponibilidade operacional</label>
+                          <CustomSelect
+                            className="ad-select"
+                            value={formData.available ? "available" : "unavailable"}
+                            onChange={(nextValue) => setFormData({ ...formData, available: nextValue === "available" })}
+                            options={[
+                              { value: "available", label: "Disponível" },
+                              { value: "unavailable", label: "Indisponível" },
+                            ]}
                           />
                         </div>
                         <div className="ad-form-group">
@@ -4900,7 +4965,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                 <div className="ad-product-card-list">
                   {products.map((p) => {
                     const unavailableReason = getBaseUnavailableReason(p)
-                    const isUnavailable = Boolean(unavailableReason)
+                    const isUnavailable = !p.effectiveAvailable
                     const image = p.images?.[0]?.imagePath
                     const promoText = p.discountPercentage > 0
                       ? `${p.discountPercentage}% desconto`
@@ -4943,7 +5008,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                           </div>
 
                           <div className="ad-admin-product-card-lines">
-                            <div><span>Stock</span><strong>{isUnavailable ? "Indisponível" : `${p.stock} unid.`}</strong></div>
+                            <div><span>Disponibilidade</span><strong>{isUnavailable ? "Indisponível" : "Disponível"}</strong></div>
                             <div><span>Promo</span><strong>{promoText}</strong></div>
                             {(p.glutenFree || p.containsAlcohol || p.menuTags || unavailableReason) && (
                               <div className="ad-admin-product-card-tags">
@@ -4955,6 +5020,16 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                             )}
                           </div>
 
+                          <button
+                            className="ad-admin-product-card-edit"
+                            disabled={availabilityBusyKey === `product-${p.productId}`}
+                            onClick={() => void handleSetProductAvailability(p, !p.available)}
+                            type="button"
+                          >
+                            {availabilityBusyKey === `product-${p.productId}`
+                              ? "A guardar..."
+                              : p.available ? "Marcar indisponível" : "Marcar disponível"}
+                          </button>
                           <button className="ad-admin-product-card-edit" onClick={() => handleEditProduct(p)}>
                             Editar produto
                           </button>
@@ -4985,13 +5060,13 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                   <table className="ad-table" style={{ marginTop: "1rem", opacity: 0.7 }}>
                     <thead>
                       <tr>
-                        <th>Imagem</th><th>ID</th><th>Nome</th><th>Preço</th><th>Calorias</th><th>Stock</th><th>Vendido</th><th>Ações</th>
+                        <th>Imagem</th><th>ID</th><th>Nome</th><th>Preço</th><th>Calorias</th><th>Disponibilidade</th><th>Vendido</th><th>Ações</th>
                       </tr>
                     </thead>
                     <tbody>
                       {deletedProducts.map(p => {
                         const unavailableReason = getBaseUnavailableReason(p)
-                        const isUnavailable = Boolean(unavailableReason)
+                        const isUnavailable = !p.effectiveAvailable
                         return (
                         <tr key={p.productId} className={isUnavailable ? "ad-product-unavailable" : ""}>
                           <td data-label="Imagem">
@@ -5020,7 +5095,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                           </td>
                           <td data-label="Preço">{formatEuro(p.price)}</td>
                           <td data-label="Calories">{p.totalCalories == null ? "-" : `${formatCalories(p.totalCalories)} kcal`}</td>
-                          <td data-label="Stock"><span className="ad-pill ad-pill-gray">{p.stock}</span></td>
+                          <td data-label="Disponibilidade"><span className="ad-pill ad-pill-gray">{p.effectiveAvailable ? "Disponível" : "Indisponível"}</span></td>
                           <td data-label="Vendidos">{p.sold || 0}</td>
                           <td data-label="Actions">
                             <div className="ad-actions ad-product-row-actions" onClick={(event) => event.stopPropagation()}>

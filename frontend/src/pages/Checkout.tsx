@@ -20,7 +20,7 @@ import { Link, useNavigate } from "react-router-dom"
 import Navbar from "../components/Navbar"
 import { useToast } from "../components/ui/toastContext"
 import { useAuth, useCart } from "../hooks"
-import { cartService, checkoutService, customizationSummary, productService } from "../services"
+import { cartService, checkoutService, customizationSummary, hasUnavailableCartItems, productService } from "../services"
 import { rememberActiveOrder } from "../components/orderStatusStorage"
 import type { CartItem, GuestCartItem } from "../types/cart"
 import type { Coupon, CouponValidation, FulfillmentMethod, PaymentMethod } from "../types/checkout"
@@ -186,6 +186,7 @@ function Checkout() {
     [cart],
   )
   const subtotal = Number(cart?.total ?? 0)
+  const hasUnavailableItems = hasUnavailableCartItems(items)
   const discount = Math.min(subtotal, Number(appliedCoupon?.discount ?? 0))
   const total = Math.max(0, subtotal - discount)
   const vatAmount = total - total / (1 + VAT_RATE)
@@ -195,8 +196,7 @@ function Checkout() {
     const candidates = upsellProducts
       .map((product) => ({ product, label: getUpsellLabel(product) }))
       .filter(({ product, label }) => {
-        const hasStock = product.stock > 0 && product.available !== false && !product.unavailableDueToInactiveBase
-        return hasStock && !cartProductIds.has(product.id) && Boolean(label)
+        return product.available && !cartProductIds.has(product.id) && Boolean(label)
       })
       .sort((a, b) => {
         const aGroup = upsellGroups.findIndex((group) => group.label === a.label)
@@ -266,6 +266,9 @@ function Checkout() {
     if (items.length === 0) {
       return "O carrinho está vazio."
     }
+    if (hasUnavailableItems) {
+      return "Remova os itens atualmente indisponíveis antes de fazer o pedido."
+    }
 
     setFieldErrors(errors)
     if (Object.keys(errors).length > 0) return "Corrija os campos assinalados."
@@ -277,7 +280,7 @@ function Checkout() {
     try {
       setCartBusyKey(key)
       setFormError(null)
-      await updateQuantity(item.productId, quantity, item.stock, item.cartProductId, item.customization)
+      await updateQuantity(item.productId, quantity, item.cartProductId, item.customization)
       if (appliedCoupon) setAppliedCoupon(null)
     } catch (err) {
       const message = err instanceof Error ? err.message : "Não foi possível atualizar este artigo."
@@ -308,7 +311,7 @@ function Checkout() {
     try {
       setUpsellBusyId(product.id)
       setFormError(null)
-      await addItem(product.id, 1, product.stock)
+      await addItem(product.id, 1)
       if (appliedCoupon) setAppliedCoupon(null)
       toast.success(`${product.name} adicionado ao pedido.`)
     } catch (err) {
@@ -1003,12 +1006,15 @@ function Checkout() {
                             {customizationLines.length > 0 && (
                               <small>{customizationLines.join(" | ")}</small>
                             )}
+                            {!item.available && (
+                              <small className="checkout-form-error">{item.unavailableReason || "Atualmente indisponível"}</small>
+                            )}
                           </span>
                           <div className="checkout-mini-cart-actions">
                             <div className="checkout-qty-control" aria-label={`Quantidade de ${item.name}`}>
                               <button type="button" onClick={() => handleQuantityChange(item, item.quantity - 1)} disabled={busy} aria-label={`Diminuir ${item.name}`}>-</button>
                               <strong>{busy ? <LoaderCircle className="checkout-item-spinner" size={15} aria-hidden="true" /> : item.quantity}</strong>
-                              <button type="button" onClick={() => handleQuantityChange(item, item.quantity + 1)} disabled={busy} aria-label={`Aumentar ${item.name}`}>+</button>
+                              <button type="button" onClick={() => handleQuantityChange(item, item.quantity + 1)} disabled={busy || item.quantity >= 99} aria-label={`Aumentar ${item.name}`}>+</button>
                             </div>
                             <strong>{formatEuro(item.subtotal)}</strong>
                             <button type="button" className="checkout-remove-item" onClick={() => handleRemoveItem(item)} disabled={busy} aria-label={`Remover ${item.name}`}>
@@ -1088,7 +1094,10 @@ function Checkout() {
 
                 {formError && <p className="checkout-form-error">{formError}</p>}
 
-                <button type="submit" className="checkout-submit bonefree-button" disabled={isSubmitting || items.length === 0}>
+                {hasUnavailableItems && (
+                  <p className="checkout-form-error">Remova os itens atualmente indisponíveis antes de continuar.</p>
+                )}
+                <button type="submit" className="checkout-submit bonefree-button" disabled={isSubmitting || items.length === 0 || hasUnavailableItems}>
                   {isSubmitting ? "A efetuar pedido..." : `Fazer pedido - ${formatEuro(total)}`}
                 </button>
               </div>

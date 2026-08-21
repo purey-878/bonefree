@@ -205,7 +205,7 @@ export function CustomizeProductModal({
         extras: selectedExtras,
         substitutions: selectedSubstitutions,
         notes: notes.trim() || null,
-      }, product.stock);
+      });
       onAdded(product.name);
       onClose();
     } catch (error) {
@@ -339,7 +339,7 @@ export function CustomizeProductModal({
                   <Minus size={15} />
                 </button>
                 <span>{quantity}</span>
-                <button type="button" onClick={() => setQuantity((value) => Math.min(product.stock, value + 1))} disabled={quantity >= product.stock} aria-label="Aumentar quantidade">
+                <button type="button" onClick={() => setQuantity((value) => Math.min(99, value + 1))} disabled={quantity >= 99} aria-label="Aumentar quantidade">
                   <Plus size={15} />
                 </button>
               </div>

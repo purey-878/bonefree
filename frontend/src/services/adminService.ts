@@ -13,7 +13,6 @@ import {
   adminManagementDeleteStaffAdmin,
   adminManagementGetAnalyticsSeries,
   adminManagementGetDashboardAnalytics,
-  adminManagementGetLowStockProducts,
   adminManagementGetOrder,
   adminManagementGetPopularProducts,
   adminManagementGetProduct,
@@ -29,6 +28,8 @@ import {
   adminManagementListStaffOrders,
   adminManagementPayCounterOrder,
   adminManagementReadCurrentAdmin,
+  adminManagementSetIngredientAvailability,
+  adminManagementSetProductAvailability,
   adminManagementToggleProductStatus,
   adminManagementUpdateCategory,
   adminManagementUpdateCustomer,
@@ -96,7 +97,7 @@ export async function getDashboardAnalytics(): Promise<DashboardData> {
   const value = toDomain<DashboardData>(await apiData(adminManagementGetDashboardAnalytics({ client: adminApiClient, throwOnError: true })));
   return {
     ...value,
-    lowStockProducts: value.lowStockProducts ?? [],
+    unavailableProducts: value.unavailableProducts ?? [],
     popularProducts: value.popularProducts ?? [],
     salesCharts: value.salesCharts ?? { byHour: [], byDay: [], byMonth: [], byYear: [] },
   };
@@ -167,6 +168,12 @@ export async function deleteIngredient(ingredientId: number): Promise<AdminIngre
   })));
 }
 
+export async function setIngredientAvailability(ingredientId: number, available: boolean): Promise<AdminIngredient> {
+  return toDomain(await apiData(adminManagementSetIngredientAvailability({
+    path: { ingredient_id: ingredientId }, body: { available }, client: adminApiClient, throwOnError: true,
+  })));
+}
+
 export async function updateProduct(productId: string | number, product: Partial<AdminProductPayload>): Promise<AdminProduct> {
   return toDomain(await apiData(adminManagementUpdateProduct({
     path: { product_id: pathId(productId) }, body: toDto<ProductUpdate>(product), client: adminApiClient, throwOnError: true,
@@ -182,6 +189,12 @@ export async function deleteProduct(productId: string | number): Promise<AdminPr
 export async function restoreProduct(productId: string | number): Promise<AdminProduct> {
   return toDomain(await apiData(adminManagementToggleProductStatus({
     path: { product_id: pathId(productId) }, client: adminApiClient, throwOnError: true,
+  })));
+}
+
+export async function setProductAvailability(productId: string | number, available: boolean): Promise<AdminProduct> {
+  return toDomain(await apiData(adminManagementSetProductAvailability({
+    path: { product_id: pathId(productId) }, body: { available }, client: adminApiClient, throwOnError: true,
   })));
 }
 
@@ -283,10 +296,6 @@ export async function deleteProductImage(productId: string | number, imageId: nu
   });
 }
 
-export async function getLowStockProducts(threshold = 5, limit = 10): Promise<DashboardData['lowStockProducts']> {
-  void threshold;
-  return toDomain(await apiData(adminManagementGetLowStockProducts({ query: { limit }, client: adminApiClient, throwOnError: true })));
-}
 export async function getPopularProducts(limit = 5): Promise<DashboardData['popularProducts']> {
   return toDomain(await apiData(adminManagementGetPopularProducts({ query: { limit }, client: adminApiClient, throwOnError: true })));
 }

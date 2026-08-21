@@ -20,6 +20,8 @@
           },
           "quantity": {
             "default": 1,
+            "maximum": 99.0,
+            "minimum": 1.0,
             "title": "Quantity",
             "type": "integer"
           }
@@ -247,24 +249,16 @@
             "title": "Product Id",
             "type": "integer"
           },
-          "requested_quantity": {
-            "title": "Requested Quantity",
-            "type": "integer"
-          },
           "similar_dishes": {
             "items": {
-              "$ref": "#/components/schemas/StockSuggestion"
+              "$ref": "#/components/schemas/ProductSuggestion"
             },
             "title": "Similar Dishes",
             "type": "array"
           },
-          "stock_threshold": {
-            "title": "Stock Threshold",
-            "type": "integer"
-          },
           "substitutes": {
             "items": {
-              "$ref": "#/components/schemas/StockSuggestion"
+              "$ref": "#/components/schemas/ProductSuggestion"
             },
             "title": "Substitutes",
             "type": "array"
@@ -274,14 +268,25 @@
           "product_id",
           "product_display_id",
           "name",
-          "requested_quantity",
-          "stock_threshold",
           "available",
           "availability_reason",
           "substitutes",
           "similar_dishes"
         ],
         "title": "AvailabilitySuggestionResponse",
+        "type": "object"
+      },
+      "AvailabilityUpdate": {
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "available"
+        ],
+        "title": "AvailabilityUpdate",
         "type": "object"
       },
       "Body_admin_management_upload_product_image": {
@@ -310,6 +315,10 @@
       "CartItemOut": {
         "description": "Response model for a cart item.",
         "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
           "cart_product_id": {
             "title": "Cart Product Id",
             "type": "integer"
@@ -353,17 +362,26 @@
             "type": "integer"
           },
           "quantity": {
+            "maximum": 99.0,
+            "minimum": 1.0,
             "title": "Quantity",
-            "type": "integer"
-          },
-          "stock": {
-            "title": "Stock",
             "type": "integer"
           },
           "subtotal": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Subtotal",
             "type": "string"
+          },
+          "unavailable_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unavailable Reason"
           }
         },
         "required": [
@@ -373,7 +391,7 @@
           "name",
           "price",
           "quantity",
-          "stock",
+          "available",
           "subtotal"
         ],
         "title": "CartItemOut",
@@ -668,6 +686,7 @@
             "type": "integer"
           },
           "quantity": {
+            "maximum": 99.0,
             "minimum": 1.0,
             "title": "Quantity",
             "type": "integer"
@@ -1511,6 +1530,7 @@
           },
           "quantity": {
             "default": 1,
+            "maximum": 99.0,
             "minimum": 1.0,
             "title": "Quantity",
             "type": "integer"
@@ -1539,13 +1559,6 @@
       "DashboardAnalytics": {
         "description": "Dashboard analytics response.",
         "properties": {
-          "low_stock_products": {
-            "items": {
-              "$ref": "#/components/schemas/LowStockProduct"
-            },
-            "title": "Low Stock Products",
-            "type": "array"
-          },
           "popular_products": {
             "items": {
               "$ref": "#/components/schemas/PopularProduct"
@@ -1571,6 +1584,13 @@
           "total_products": {
             "title": "Total Products",
             "type": "integer"
+          },
+          "unavailable_products": {
+            "items": {
+              "$ref": "#/components/schemas/UnavailableProduct"
+            },
+            "title": "Unavailable Products",
+            "type": "array"
           }
         },
         "required": [
@@ -1578,7 +1598,7 @@
           "total_categories",
           "total_customers",
           "total_carts",
-          "low_stock_products",
+          "unavailable_products",
           "popular_products",
           "sales_charts"
         ],
@@ -1750,6 +1770,8 @@
             "type": "integer"
           },
           "quantity": {
+            "maximum": 99.0,
+            "minimum": 1.0,
             "title": "Quantity",
             "type": "integer"
           }
@@ -1776,6 +1798,11 @@
       },
       "IngredientCreate": {
         "properties": {
+          "available": {
+            "default": true,
+            "title": "Available",
+            "type": "boolean"
+          },
           "calories_per_gram": {
             "anyOf": [
               {
@@ -1811,6 +1838,10 @@
       },
       "IngredientResponse": {
         "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
           "calories_per_gram": {
             "anyOf": [
               {
@@ -1841,7 +1872,8 @@
           "ingredient_id",
           "name",
           "type",
-          "status"
+          "status",
+          "available"
         ],
         "title": "IngredientResponse",
         "type": "object"
@@ -1860,6 +1892,17 @@
       },
       "IngredientUpdate": {
         "properties": {
+          "available": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available"
+          },
           "calories_per_gram": {
             "anyOf": [
               {
@@ -2143,45 +2186,6 @@
           "items"
         ],
         "title": "KitchenOrderResponse",
-        "type": "object"
-      },
-      "LowStockProduct": {
-        "description": "Response for low stock product.",
-        "properties": {
-          "category": {
-            "title": "Category",
-            "type": "string"
-          },
-          "name": {
-            "title": "Name",
-            "type": "string"
-          },
-          "price": {
-            "title": "Price",
-            "type": "number"
-          },
-          "product_display_id": {
-            "title": "Product Display Id",
-            "type": "string"
-          },
-          "product_id": {
-            "title": "Product Id",
-            "type": "integer"
-          },
-          "stock": {
-            "title": "Stock",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "product_id",
-          "product_display_id",
-          "name",
-          "stock",
-          "price",
-          "category"
-        ],
-        "title": "LowStockProduct",
         "type": "object"
       },
       "LoyaltyCouponSettings-Input": {
@@ -2540,6 +2544,10 @@
       "ProductAdminResponse": {
         "description": "Response model for product in admin context.",
         "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
           "category_display_id": {
             "title": "Category Display Id",
             "type": "string"
@@ -2574,6 +2582,10 @@
             "default": 0,
             "title": "Discount Percentage",
             "type": "number"
+          },
+          "effective_available": {
+            "title": "Effective Available",
+            "type": "boolean"
           },
           "featured": {
             "default": false,
@@ -2666,10 +2678,6 @@
               }
             ]
           },
-          "stock": {
-            "title": "Stock",
-            "type": "integer"
-          },
           "total_calories": {
             "anyOf": [
               {
@@ -2680,6 +2688,13 @@
               }
             ],
             "title": "Total Calories"
+          },
+          "unavailable_base_ingredients": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unavailable Base Ingredients",
+            "type": "array"
           }
         },
         "required": [
@@ -2688,7 +2703,8 @@
           "name",
           "product_description",
           "price",
-          "stock",
+          "available",
+          "effective_available",
           "category_id",
           "category_display_id",
           "sold",
@@ -2716,9 +2732,9 @@
             "title": "Current Price",
             "type": "number"
           },
-          "current_stock": {
-            "title": "Current Stock",
-            "type": "integer"
+          "effective_available": {
+            "title": "Effective Available",
+            "type": "boolean"
           },
           "order_count": {
             "title": "Order Count",
@@ -2759,7 +2775,7 @@
           "quantity_sold",
           "order_count",
           "current_price",
-          "current_stock",
+          "effective_available",
           "total_reviews",
           "sales_by_day"
         ],
@@ -2769,6 +2785,11 @@
       "ProductCreate": {
         "description": "Schema for creating a product.",
         "properties": {
+          "available": {
+            "default": true,
+            "title": "Available",
+            "type": "boolean"
+          },
           "category_id": {
             "title": "Category Id",
             "type": "integer"
@@ -2837,10 +2858,6 @@
             ],
             "title": "Product Description"
           },
-          "stock": {
-            "title": "Stock",
-            "type": "integer"
-          },
           "total_calories": {
             "anyOf": [
               {
@@ -2857,7 +2874,6 @@
         "required": [
           "name",
           "price",
-          "stock",
           "category_id"
         ],
         "title": "ProductCreate",
@@ -3028,6 +3044,11 @@
       },
       "ProductIngredientNutrition": {
         "properties": {
+          "available": {
+            "default": true,
+            "title": "Available",
+            "type": "boolean"
+          },
           "calories": {
             "default": 0,
             "title": "Calories",
@@ -3155,6 +3176,11 @@
       },
       "ProductIngredientResponse": {
         "properties": {
+          "available": {
+            "default": true,
+            "title": "Available",
+            "type": "boolean"
+          },
           "calories_per_gram": {
             "anyOf": [
               {
@@ -3324,10 +3350,6 @@
             "title": "Sold",
             "type": "integer"
           },
-          "stock": {
-            "title": "Stock",
-            "type": "integer"
-          },
           "tags": {
             "items": {
               "type": "string"
@@ -3346,9 +3368,9 @@
             ],
             "title": "Total Calories"
           },
-          "unavailable_due_to_inactive_base": {
+          "unavailable_due_to_unavailable_base": {
             "default": false,
-            "title": "Unavailable Due To Inactive Base",
+            "title": "Unavailable Due To Unavailable Base",
             "type": "boolean"
           },
           "unavailable_reason": {
@@ -3370,8 +3392,7 @@
           "name",
           "description",
           "image",
-          "price",
-          "stock"
+          "price"
         ],
         "title": "ProductResponse",
         "type": "object"
@@ -3712,9 +3733,71 @@
         "title": "ProductReviewUpdate",
         "type": "object"
       },
+      "ProductSuggestion": {
+        "description": "Ranked product suggestion returned when an item is unavailable.",
+        "properties": {
+          "category": {
+            "title": "Category",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price"
+          },
+          "product_display_id": {
+            "title": "Product Display Id",
+            "type": "string"
+          },
+          "product_id": {
+            "title": "Product Id",
+            "type": "integer"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          }
+        },
+        "required": [
+          "product_id",
+          "product_display_id",
+          "name",
+          "category",
+          "price",
+          "score",
+          "reason"
+        ],
+        "title": "ProductSuggestion",
+        "type": "object"
+      },
       "ProductUpdate": {
         "description": "Schema for updating a product.",
         "properties": {
+          "available": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available"
+          },
           "category_id": {
             "anyOf": [
               {
@@ -3850,17 +3933,6 @@
                 "type": "null"
               }
             ]
-          },
-          "stock": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Stock"
           },
           "total_calories": {
             "anyOf": [
@@ -4314,62 +4386,6 @@
         "title": "StaffAdminUpdate",
         "type": "object"
       },
-      "StockSuggestion": {
-        "description": "Ranked product suggestion returned when an item is unavailable.",
-        "properties": {
-          "category": {
-            "title": "Category",
-            "type": "string"
-          },
-          "name": {
-            "title": "Name",
-            "type": "string"
-          },
-          "price": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Price"
-          },
-          "product_display_id": {
-            "title": "Product Display Id",
-            "type": "string"
-          },
-          "product_id": {
-            "title": "Product Id",
-            "type": "integer"
-          },
-          "reason": {
-            "title": "Reason",
-            "type": "string"
-          },
-          "score": {
-            "title": "Score",
-            "type": "number"
-          },
-          "stock": {
-            "title": "Stock",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "product_id",
-          "product_display_id",
-          "name",
-          "category",
-          "price",
-          "stock",
-          "score",
-          "reason"
-        ],
-        "title": "StockSuggestion",
-        "type": "object"
-      },
       "ThemeBackground": {
         "properties": {
           "overlay": {
@@ -4723,6 +4739,45 @@
         "title": "TokenResponse",
         "type": "object"
       },
+      "UnavailableProduct": {
+        "description": "Summary of a product that cannot currently be ordered.",
+        "properties": {
+          "category": {
+            "title": "Category",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "price": {
+            "title": "Price",
+            "type": "number"
+          },
+          "product_display_id": {
+            "title": "Product Display Id",
+            "type": "string"
+          },
+          "product_id": {
+            "title": "Product Id",
+            "type": "integer"
+          },
+          "unavailable_reason": {
+            "title": "Unavailable Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "product_id",
+          "product_display_id",
+          "name",
+          "price",
+          "category",
+          "unavailable_reason"
+        ],
+        "title": "UnavailableProduct",
+        "type": "object"
+      },
       "UpdateItemSchema": {
         "description": "Request model for updating cart item quantity.",
         "properties": {
@@ -4742,6 +4797,8 @@
             "type": "integer"
           },
           "quantity": {
+            "maximum": 99.0,
+            "minimum": 1.0,
             "title": "Quantity",
             "type": "integer"
           }
@@ -5418,120 +5475,6 @@
           }
         ],
         "summary": "Get Dashboard Analytics",
-        "tags": [
-          "Admin Management"
-        ]
-      }
-    },
-    "/admin/analytics/low-stock": {
-      "get": {
-        "operationId": "admin_management_get_low_stock_products",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 5,
-              "maximum": 100,
-              "minimum": 1,
-              "title": "Limit",
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/LowStockProduct"
-                  },
-                  "title": "Response Admin Management Get Low Stock Products",
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            },
-            "description": "Invalid request"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            },
-            "description": "Authentication required"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            },
-            "description": "Permission denied"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            },
-            "description": "Resource not found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            },
-            "description": "Request conflict"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            },
-            "description": "Validation error"
-          },
-          "500": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            },
-            "description": "Internal server error"
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "summary": "Get Low Stock Products",
         "tags": [
           "Admin Management"
         ]
@@ -7259,6 +7202,123 @@
         ]
       }
     },
+    "/admin/ingredients/{ingredient_id}/availability": {
+      "put": {
+        "operationId": "admin_management_set_ingredient_availability",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ingredient_id",
+            "required": true,
+            "schema": {
+              "title": "Ingredient Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvailabilityUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngredientResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Set Ingredient Availability",
+        "tags": [
+          "Admin Management"
+        ]
+      }
+    },
     "/admin/kitchen/orders": {
       "get": {
         "operationId": "admin_management_list_kitchen_orders",
@@ -8887,6 +8947,123 @@
           }
         ],
         "summary": "Get Product Analytics",
+        "tags": [
+          "Admin Management"
+        ]
+      }
+    },
+    "/admin/products/{product_id}/availability": {
+      "put": {
+        "operationId": "admin_management_set_product_availability",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "product_id",
+            "required": true,
+            "schema": {
+              "title": "Product Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvailabilityUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductAdminResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Set Product Availability",
         "tags": [
           "Admin Management"
         ]
@@ -11964,7 +12141,7 @@
     },
     "/cart/merge": {
       "post": {
-        "description": "Called immediately after login.\nFrontend sends the items it had in localStorage.\nRules:\n  - If item already in DB cart → add quantities, capped at stock.\n  - If item not in DB cart → add it, capped at stock.\n  - If stock = 0 → skip entirely.\nReturns lists of merged / capped / skipped product ids so the\nfrontend can show the user what happened.",
+        "description": "Called immediately after login.\nFrontend sends the items it had in localStorage.\nRules:\n  - If item already exists in the DB cart, add quantities up to 99.\n  - If item is new, add it up to the same technical limit.\n  - If the product is unavailable, skip it.\nReturns lists of merged / capped / skipped product ids so the\nfrontend can show the user what happened.",
         "operationId": "cart_merge_cart",
         "requestBody": {
           "content": {
@@ -13821,28 +13998,6 @@
             "schema": {
               "title": "Product Id",
               "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "quantity",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "title": "Quantity",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "query",
-            "name": "stock_threshold",
-            "required": false,
-            "schema": {
-              "default": 0,
-              "minimum": 0,
-              "title": "Stock Threshold",
-              "type": "integer"
             }
           },
           {

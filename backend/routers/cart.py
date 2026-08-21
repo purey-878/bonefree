@@ -12,6 +12,7 @@ from models import (
     CartProduct,
     CartProductCustomization,
     Customer,
+    Ingredient,
     Product,
     ProductIngredient,
     ProductCustomizationOption,
@@ -28,7 +29,11 @@ from schemas import (
 )
 from dependencies import get_current_user, get_current_user_optional
 from services.order_customization import customization_from_json, customization_to_json
-from services.product_availability import inactive_base_product_ids, unavailable_due_to_inactive_base
+from services.product_availability import (
+    effective_product_available,
+    product_unavailable_reason,
+    unavailable_base_product_ids,
+)
 from services.product_pricing import discounted_product_price
 from utils.id_format import format_product_id, parse_product_id
 from core.errors import AppHTTPException
@@ -74,7 +79,7 @@ def _get_or_create_cart(db: Session, customer_id: int) -> Cart:
     return cart
 
 
-def _build_item_out(item: CartProduct) -> CartItemOut:
+def _build_item_out(item: CartProduct, unavailable_base_ids: set[int]) -> CartItemOut:
     """Convert a CartProduct ORM row into the response schema."""
     product = item.product
     image = _product_image_path(product)
@@ -86,6 +91,7 @@ def _build_item_out(item: CartProduct) -> CartItemOut:
         else discounted_product_price(product)
     )
     quantity = item.quantity
+    available = effective_product_available(product, unavailable_base_ids)
     return CartItemOut(
         cart_product_id=item.cart_product_id,
         product_id=product.product_id,
@@ -93,16 +99,21 @@ def _build_item_out(item: CartProduct) -> CartItemOut:
         name=product.name,
         price=price,
         quantity=quantity,
-        stock=product.stock,
+        available=available,
+        unavailable_reason=product_unavailable_reason(product, unavailable_base_ids),
         image_path=image,
         customization=customization,
         subtotal=price * quantity,
     )
 
 
-def _build_cart_out(cart: Cart) -> CartOut:
+def _build_cart_out(db: Session, cart: Cart) -> CartOut:
     """Convert a Cart ORM object into the full response schema."""
-    items = [_build_item_out(i) for i in cart.items]
+    unavailable_base_ids = unavailable_base_product_ids(
+        db,
+        [item.product_id for item in cart.items],
+    )
+    items = [_build_item_out(item, unavailable_base_ids) for item in cart.items]
     total = sum((i.subtotal for i in items), Decimal("0"))
     return CartOut(cart_id=cart.cart_id, items=items, total=total)
 
@@ -119,8 +130,17 @@ def _get_product_or_404(db: Session, product_id: int) -> Product:
 
 
 def _ensure_product_orderable(db: Session, product: Product) -> None:
-    if unavailable_due_to_inactive_base(db, product):
-        raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="product_unavailable", message="Product is unavailable.", details={"product_id": product.product_id})
+    unavailable_base_ids = unavailable_base_product_ids(db, [product.product_id])
+    if not effective_product_available(product, unavailable_base_ids):
+        raise AppHTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            error="product_unavailable",
+            message="Product is currently unavailable.",
+            details={
+                "product_id": product.product_id,
+                "reason": product_unavailable_reason(product, unavailable_base_ids),
+            },
+        )
 
 
 def _delete_cart_items(db: Session, cart_id: int) -> None:
@@ -140,27 +160,13 @@ def _delete_cart_items(db: Session, cart_id: int) -> None:
     )
 
 
-def _check_stock(product: Product, requested_quantity: int, quantity_already_in_cart: int = 0):
-    """
-    Raises 400 if the requested quantity exceeds available stock.
-    quantity_already_in_cart: how many units are already in the cart (for updates).
-    """
-    if product.stock <= 0:
-        raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="product_out_of_stock", message="Product is out of stock.", details={"product_id": product.product_id, "stock": product.stock})
-    if requested_quantity < 1:
-        raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="invalid_quantity", message="Quantity must be at least 1.", details={"product_id": product.product_id, "quantity": requested_quantity})
-    if requested_quantity > product.stock:
+def _ensure_quantity_limit(product: Product, requested_quantity: int) -> None:
+    if not 1 <= requested_quantity <= 99:
         raise AppHTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            error="insufficient_stock",
-            message="Insufficient product stock.",
-            details={
-                "product_id": product.product_id,
-                "product_name": product.name,
-                "requested_quantity": requested_quantity,
-                "stock": product.stock,
-                "quantity_already_in_cart": quantity_already_in_cart,
-            },
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            error="invalid_quantity",
+            message="Quantity must be between 1 and 99.",
+            details={"product_id": product.product_id, "quantity": requested_quantity},
         )
 
 
@@ -202,7 +208,11 @@ def _price_legacy_customization(
             .where(
                 ProductIngredient.product_id == product.product_id,
                 ProductIngredient.removable == 1,
-                ProductIngredient.ingredient.has(type=IngredientType.NORMAL, status=EntityStatus.ACTIVE),
+                ProductIngredient.ingredient.has(
+                    (Ingredient.type == IngredientType.NORMAL)
+                    & (Ingredient.status == EntityStatus.ACTIVE)
+                    & Ingredient.available.is_(True)
+                ),
             )
         ).all()
         removable_names = {
@@ -253,6 +263,8 @@ def _validate_and_build_customization(
         ingredient_name = ingredient_row.ingredient.name if ingredient_row.ingredient else str(ingredient_id)
         if not ingredient_row.ingredient or ingredient_row.ingredient.type != IngredientType.NORMAL or not bool(ingredient_row.removable):
             raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="ingredient_not_removable", message="Ingredient cannot be removed from this product.", details={"product_id": product.product_id, "ingredient_id": ingredient_id})
+        if ingredient_row.ingredient.status != EntityStatus.ACTIVE or not ingredient_row.ingredient.available:
+            raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="customization_ingredient_unavailable", message="A selected customization ingredient is currently unavailable.", details={"product_id": product.product_id, "ingredient_id": ingredient_id})
 
         remove_names.append(ingredient_name)
         customization_rows.append({
@@ -269,31 +281,47 @@ def _validate_and_build_customization(
         substitution.new_ingredient_id for substitution in body.substitutions
     }
     if extra_option_ids or substitution_ingredient_ids:
-        options = {
-            option.option_id: option
-            for option in db.scalars(
-                select(ProductCustomizationOption).where(
-                    ProductCustomizationOption.product_id == product.product_id,
-                    ProductCustomizationOption.status == EntityStatus.ACTIVE,
-                    or_(
-                        ProductCustomizationOption.ingredient_id.is_(None),
-                        ProductCustomizationOption.ingredient.has(status=EntityStatus.ACTIVE),
-                    ),
-                    or_(
-                        ProductCustomizationOption.option_id.in_(extra_option_ids),
-                        and_(
-                            ProductCustomizationOption.ingredient_id.in_(substitution_ingredient_ids),
-                            ProductCustomizationOption.type.in_(
-                                (
-                                    ProductCustomizationOptionType.SUBSTITUTE_SAUCE,
-                                    ProductCustomizationOptionType.SUBSTITUTE_SIDE,
-                                )
-                            ),
+        requested_options = db.scalars(
+            select(ProductCustomizationOption).where(
+                ProductCustomizationOption.product_id == product.product_id,
+                ProductCustomizationOption.status == EntityStatus.ACTIVE,
+                or_(
+                    ProductCustomizationOption.option_id.in_(extra_option_ids),
+                    and_(
+                        ProductCustomizationOption.ingredient_id.in_(substitution_ingredient_ids),
+                        ProductCustomizationOption.type.in_(
+                            (
+                                ProductCustomizationOptionType.SUBSTITUTE_SAUCE,
+                                ProductCustomizationOptionType.SUBSTITUTE_SIDE,
+                            )
                         ),
                     ),
+                ),
+            )
+        ).all()
+        unavailable_option = next(
+            (
+                option
+                for option in requested_options
+                if option.ingredient
+                and (
+                    option.ingredient.status != EntityStatus.ACTIVE
+                    or not option.ingredient.available
                 )
-            ).all()
-        }
+            ),
+            None,
+        )
+        if unavailable_option:
+            raise AppHTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                error="customization_ingredient_unavailable",
+                message="A selected customization ingredient is currently unavailable.",
+                details={
+                    "product_id": product.product_id,
+                    "ingredient_id": unavailable_option.ingredient_id,
+                },
+            )
+        options = {option.option_id: option for option in requested_options}
 
     add_names: list[str] = []
     final_unit_price = discounted_product_price(product)
@@ -398,7 +426,8 @@ def _cart_item_out_from_product(
         name=product.name,
         price=unit_price,
         quantity=quantity,
-        stock=product.stock,
+        available=True,
+        unavailable_reason=None,
         image_path=image,
         customization=customization,
         subtotal=unit_price * quantity,
@@ -454,7 +483,7 @@ def get_cart(
         return CartOut(cart_id=None, items=[], total=Decimal("0"))
 
     cart = _get_or_create_cart(db, current_user.customer_id)
-    return _build_cart_out(cart)
+    return _build_cart_out(db, cart)
 
 
 # POST /cart/add  ── add or increment item
@@ -472,7 +501,6 @@ def add_item(
     # If user is not authenticated, just validate and return empty cart response
     # Frontend will handle localStorage for guest cart
     if not current_user:
-        _check_stock(product, body.quantity)
         # Return empty guest cart - frontend stores in localStorage
         return CartOut(cart_id=None, items=[], total=Decimal("0"))
 
@@ -483,7 +511,7 @@ def add_item(
     )
 
     new_quantity = (existing.quantity if existing else 0) + body.quantity
-    _check_stock(product, new_quantity)
+    _ensure_quantity_limit(product, new_quantity)
 
     if existing:
         existing.quantity = new_quantity
@@ -499,7 +527,7 @@ def add_item(
 
     db.commit()
     db.refresh(cart)
-    return _build_cart_out(cart)
+    return _build_cart_out(db, cart)
 
 
 def _add_customized_item_impl(
@@ -509,7 +537,6 @@ def _add_customized_item_impl(
 ) -> CartOut:
     product = _get_product_or_404(db, body.product_id)
     _ensure_product_orderable(db, product)
-    _check_stock(product, body.quantity)
     customization, unit_price, customization_rows = _validate_and_build_customization(db, product, body)
     customization_json = customization_to_json(customization)
 
@@ -523,7 +550,7 @@ def _add_customized_item_impl(
     cart = _get_or_create_cart(db, current_user.customer_id)
     existing = _find_cart_line(db, cart.cart_id, body.product_id, customization_json)
     new_quantity = (existing.quantity if existing else 0) + body.quantity
-    _check_stock(product, new_quantity)
+    _ensure_quantity_limit(product, new_quantity)
 
     if existing:
         existing.quantity = new_quantity
@@ -549,7 +576,7 @@ def _add_customized_item_impl(
 
     db.commit()
     db.refresh(cart)
-    return _build_cart_out(cart)
+    return _build_cart_out(db, cart)
 
 
 @router.post("/items/customized", response_model=CartOut, operation_id="cart_add_customized_item")
@@ -572,7 +599,6 @@ def update_item(
     if not current_user:
         product = _get_product_or_404(db, body.product_id)
         _ensure_product_orderable(db, product)
-        _check_stock(product, body.quantity)
         return CartOut(cart_id=None, items=[], total=Decimal("0"))
 
     cart = _get_or_create_cart(db, current_user.customer_id)
@@ -596,12 +622,11 @@ def update_item(
         raise AppHTTPException(status_code=404, error="cart_item_not_found", message="Cart item not found.", details={"reason": "request_failed"})
 
     product = _get_product_or_404(db, item.product_id)
-    _ensure_product_orderable(db, product)
-    _check_stock(product, body.quantity)
+    _ensure_quantity_limit(product, body.quantity)
     item.quantity = body.quantity
     db.commit()
     db.refresh(cart)
-    return _build_cart_out(cart)
+    return _build_cart_out(db, cart)
 
 
 # DELETE /cart/remove/{product_id}  ── remove one item
@@ -641,7 +666,7 @@ def remove_item(
     db.delete(item)
     db.commit()
     db.refresh(cart)
-    return _build_cart_out(cart)
+    return _build_cart_out(db, cart)
 
 
 # DELETE /cart/clear  ── empty the whole cart
@@ -658,7 +683,7 @@ def clear_cart(
     _delete_cart_items(db, cart.cart_id)
     db.commit()
     db.refresh(cart)
-    return _build_cart_out(cart)
+    return _build_cart_out(db, cart)
 
 
 # POST /cart/merge  ── merge guest localStorage cart after login
@@ -672,9 +697,9 @@ def merge_cart(
     Called immediately after login.
     Frontend sends the items it had in localStorage.
     Rules:
-      - If item already in DB cart → add quantities, capped at stock.
-      - If item not in DB cart → add it, capped at stock.
-      - If stock = 0 → skip entirely.
+      - If item already exists in the DB cart, add quantities up to 99.
+      - If item is new, add it up to the same technical limit.
+      - If the product is unavailable, skip it.
     Returns lists of merged / capped / skipped product ids so the
     frontend can show the user what happened.
     """
@@ -693,11 +718,11 @@ def merge_cart(
         )
     ).unique().all()
     product_map = {product.product_id: product for product in products}
-    inactive_base_ids = inactive_base_product_ids(db, list(product_ids))
+    unavailable_base_ids = unavailable_base_product_ids(db, list(product_ids))
 
     for guest_item in body.items:
         product = product_map.get(guest_item.product_id)
-        if not product or product.stock <= 0 or product.product_id in inactive_base_ids:
+        if not product or not effective_product_available(product, unavailable_base_ids):
             skipped.append(guest_item.product_id)
             continue
         try:
@@ -713,7 +738,6 @@ def merge_cart(
 
         customization_json = customization_to_json(trusted_customization)
 
-        # Product not found or out of stock → skip
         existing = (
             _find_cart_line(db, cart.cart_id, guest_item.product_id, customization_json)
         )
@@ -721,9 +745,8 @@ def merge_cart(
         current_quantity = existing.quantity if existing else 0
         intended_quantity = current_quantity + guest_item.quantity
 
-        # Cap to available stock
-        if intended_quantity > product.stock:
-            final_quantity = product.stock
+        if intended_quantity > 99:
+            final_quantity = 99
             capped.append(guest_item.product_id)
         else:
             final_quantity = intended_quantity
@@ -758,5 +781,5 @@ def merge_cart(
         merged=merged,
         capped=capped,
         skipped=skipped,
-        cart=_build_cart_out(cart),
+        cart=_build_cart_out(db, cart),
     )

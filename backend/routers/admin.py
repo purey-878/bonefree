@@ -9,7 +9,7 @@ from decimal import Decimal
 from pathlib import Path
 from fastapi import APIRouter, BackgroundTasks, Depends, Request, status, Query, UploadFile, File
 from sqlalchemy.orm import Session, joinedload, selectinload
-from sqlalchemy import desc, extract, func, or_, select
+from sqlalchemy import and_, desc, exists, extract, func, or_, select
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Union
 
@@ -33,7 +33,7 @@ from schemas.admin import (
     ProductCreate, ProductUpdate, ProductAdminResponse, ProductImageUploadResponse,
     IngredientCreate, IngredientResponse, IngredientUpdate, ProductIngredientPayload,
     ProductIngredientResponse,
-    OrderResponse, CartItemResponse, LowStockProduct,
+    OrderResponse, CartItemResponse, UnavailableProduct,
     PopularProduct, PeriodicSalesResponse, DashboardAnalytics,
     DashboardSalesGraphs,
     ProductAnalyticsResponse,
@@ -42,10 +42,16 @@ from schemas.admin import (
     CustomerAdminCreate, CustomerAdminResponse, CustomerAdminUpdate,
     CounterPaymentResponse, KitchenOrderResponse, OrderStatusUpdate,
     StaffAdminCreate, StaffAdminUpdate, AdminResponse,
+    AvailabilityUpdate,
 )
 from schemas.user import MessageResponse
 from services.invoices import ensure_invoice_for_order
 from services.order_customization import customization_lines
+from services.product_availability import (
+    effective_product_available,
+    unavailable_base_ingredients,
+    unavailable_base_product_ids,
+)
 from services.receipt_email import build_saved_order_receipt_payload, send_purchase_receipt
 from utils.id_format import format_category_id, format_product_id, parse_category_id, parse_product_id
 from core.errors import AppHTTPException
@@ -227,28 +233,49 @@ def _product_sales_aggregate_rows(
     ]
 
 
-def _low_stock_product_rows(db: Session, limit: int) -> List[LowStockProduct]:
+def _unavailable_product_rows(db: Session, limit: int) -> List[UnavailableProduct]:
+    has_unavailable_base = exists(
+        select(ProductIngredient.product_id)
+        .join(Ingredient, Ingredient.ingredient_id == ProductIngredient.ingredient_id)
+        .where(
+            ProductIngredient.product_id == Product.product_id,
+            Ingredient.type == IngredientType.BASE,
+            or_(
+                Ingredient.status == EntityStatus.INACTIVE,
+                Ingredient.available.is_(False),
+            ),
+        )
+    )
     rows = db.execute(
         select(
             Product.product_id,
             Product.name,
-            Product.stock,
+            Product.available,
             Product.price,
             Category.category_name,
+            has_unavailable_base.label("has_unavailable_base"),
         )
         .outerjoin(Category, Category.category_id == Product.category_id)
-        .where(Product.status == EntityStatus.ACTIVE)
-        .order_by(Product.stock.asc())
+        .where(
+            Product.status == EntityStatus.ACTIVE,
+            Product.deleted_at.is_(None),
+            or_(Product.available.is_(False), has_unavailable_base),
+        )
+        .order_by(Product.name.asc())
         .limit(limit)
     ).all()
     return [
-        LowStockProduct(
+        UnavailableProduct(
             product_id=row.product_id,
             product_display_id=format_product_id(row.product_id),
             name=row.name,
-            stock=row.stock,
             price=float(row.price),
             category=row.category_name or "",
+            unavailable_reason=(
+                "A required base ingredient is currently unavailable."
+                if row.has_unavailable_base
+                else "This item is currently unavailable."
+            ),
         )
         for row in rows
     ]
@@ -441,6 +468,7 @@ def _ingredient_response(row: ProductIngredient) -> ProductIngredientResponse:
         ingredient_id=row.ingredient_id,
         name=ingredient.name if ingredient else "",
         type=ingredient.type if ingredient else IngredientType.NORMAL,
+        available=bool(ingredient and ingredient.available),
         included_by_default=bool(row.included_by_default),
         removable=bool(row.removable) and bool(ingredient and ingredient.type == IngredientType.NORMAL),
         substitutable=bool(row.substitutable),
@@ -468,17 +496,31 @@ def _product_admin_response(
     db: Session,
     product: Product,
     ingredient_lookup: Optional[Dict[int, List[ProductIngredientResponse]]] = None,
+    unavailable_base_lookup: Optional[Dict[int, List[str]]] = None,
 ) -> ProductAdminResponse:
     data = {
         field_name: getattr(product, field_name)
         for field_name in ProductAdminResponse.model_fields
-        if field_name not in {"discount_percentage", "ingredients"}
+        if field_name not in {
+            "discount_percentage",
+            "effective_available",
+            "ingredients",
+            "unavailable_base_ingredients",
+        }
     }
     data["discount_percentage"] = float(product.discount_percentage or 0)
     ingredients = None if ingredient_lookup is None else ingredient_lookup.get(product.product_id)
     if ingredients is None:
         ingredients = _product_ingredient_lookup(db, [product.product_id]).get(product.product_id, [])
     data["ingredients"] = [ingredient.model_dump() for ingredient in ingredients]
+    if unavailable_base_lookup is None:
+        unavailable_base_lookup = unavailable_base_ingredients(db, [product.product_id])
+    unavailable_names = unavailable_base_lookup.get(product.product_id, [])
+    data["unavailable_base_ingredients"] = unavailable_names
+    data["effective_available"] = effective_product_available(
+        product,
+        {product.product_id} if unavailable_names else set(),
+    )
     return ProductAdminResponse(**data)
 
 
@@ -509,6 +551,7 @@ def _find_or_create_ingredient(db: Session, payload: ProductIngredientPayload) -
         name=name,
         type=payload.type,
         status=EntityStatus.ACTIVE,
+        available=True,
         calories_per_gram=payload.calories_per_gram,
     )
     db.add(ingredient)
@@ -861,6 +904,7 @@ def create_ingredient(
         if existing.status == EntityStatus.INACTIVE:
             existing.status = EntityStatus.ACTIVE
             existing.type = ingredient.type
+            existing.available = ingredient.available
             if "calories_per_gram" in getattr(ingredient, "model_fields_set", set()):
                 existing.calories_per_gram = ingredient.calories_per_gram
             db.commit()
@@ -872,6 +916,7 @@ def create_ingredient(
         name=name,
         type=ingredient.type,
         status=ingredient.status,
+        available=ingredient.available,
         calories_per_gram=ingredient.calories_per_gram,
     )
     db.add(new_ingredient)
@@ -912,9 +957,32 @@ def update_ingredient(
         ingredient.type = ingredient_update.type
     if ingredient_update.status is not None:
         ingredient.status = ingredient_update.status
+    if ingredient_update.available is not None:
+        ingredient.available = ingredient_update.available
     if "calories_per_gram" in getattr(ingredient_update, "model_fields_set", set()):
         ingredient.calories_per_gram = ingredient_update.calories_per_gram
 
+    db.commit()
+    db.refresh(ingredient)
+    return ingredient
+
+
+@router.put(
+    "/ingredients/{ingredient_id}/availability",
+    response_model=IngredientResponse,
+    operation_id="admin_management_set_ingredient_availability",
+)
+def set_ingredient_availability(
+    ingredient_id: int,
+    availability: AvailabilityUpdate,
+    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
+    db: Session = Depends(get_db),
+):
+    ingredient = db.scalar(select(Ingredient).where(Ingredient.ingredient_id == ingredient_id))
+    if not ingredient:
+        raise AppHTTPException(status_code=404, error="ingredient_not_found", message="Ingredient not found.", details={"reason": "request_failed"})
+
+    ingredient.available = availability.available
     db.commit()
     db.refresh(ingredient)
     return ingredient
@@ -964,7 +1032,7 @@ def create_product(
         name=product.name,
         product_description=product.product_description,
         price=product.price,
-        stock=product.stock,
+        available=product.available,
         category_id=product.category_id,
         admin_id=current_admin.admin_id,
         sold=0,
@@ -1037,8 +1105,13 @@ def list_products(
         stmt = stmt.where(Product.contains_alcohol == (1 if contains_alcohol else 0))
 
     products = db.scalars(stmt.offset(skip).limit(limit)).unique().all()
-    ingredient_lookup = _product_ingredient_lookup(db, [product.product_id for product in products])
-    return [_product_admin_response(db, product, ingredient_lookup) for product in products]
+    product_ids = [product.product_id for product in products]
+    ingredient_lookup = _product_ingredient_lookup(db, product_ids)
+    unavailable_base_lookup = unavailable_base_ingredients(db, product_ids)
+    return [
+        _product_admin_response(db, product, ingredient_lookup, unavailable_base_lookup)
+        for product in products
+    ]
 
 
 @router.get(
@@ -1077,10 +1150,8 @@ def get_product_analytics(
     db: Session = Depends(get_db)
 ):
     parsed_product_id = parse_product_id(product_id)
-    product_row = db.execute(
-        select(Product.price, Product.stock).where(Product.product_id == parsed_product_id)
-    ).one_or_none()
-    if not product_row:
+    product = db.scalar(select(Product).where(Product.product_id == parsed_product_id))
+    if not product:
         raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
 
     end_date = datetime.utcnow().date()
@@ -1124,8 +1195,11 @@ def get_product_analytics(
         total_sales=total_sales,
         quantity_sold=quantity_sold,
         order_count=order_count,
-        current_price=float(product_row.price),
-        current_stock=product_row.stock,
+        current_price=float(product.price),
+        effective_available=effective_product_available(
+            product,
+            unavailable_base_product_ids(db, [parsed_product_id]),
+        ),
         average_rating=float(average_rating) if average_rating is not None else None,
         total_reviews=total_reviews,
         sales_by_day=[_sales_point(key, daily_buckets[key]) for key in daily_keys],
@@ -1160,8 +1234,8 @@ def update_product(
         product.product_description = product_update.product_description
     if product_update.price is not None:
         product.price = product_update.price
-    if product_update.stock is not None:
-        product.stock = product_update.stock
+    if product_update.available is not None:
+        product.available = product_update.available
     if product_update.category_id is not None:
         category = db.scalar(
             select(Category).where(
@@ -1191,6 +1265,28 @@ def update_product(
     if product_update.ingredients is not None:
         _sync_product_ingredients(db, parsed_product_id, product_update.ingredients)
 
+    db.commit()
+    db.refresh(product)
+    return _product_admin_response(db, product)
+
+
+@router.put(
+    "/products/{product_id}/availability",
+    response_model=ProductAdminResponse,
+    operation_id="admin_management_set_product_availability",
+)
+def set_product_availability(
+    product_id: str,
+    availability: AvailabilityUpdate,
+    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
+    db: Session = Depends(get_db),
+):
+    parsed_product_id = parse_product_id(product_id)
+    product = db.scalar(select(Product).where(Product.product_id == parsed_product_id))
+    if not product:
+        raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
+
+    product.available = availability.available
     db.commit()
     db.refresh(product)
     return _product_admin_response(db, product)
@@ -1814,23 +1910,10 @@ def get_dashboard_analytics(
         total_categories=total_categories,
         total_customers=total_customers,
         total_carts=total_carts,
-        low_stock_products=_low_stock_product_rows(db, 5),
+        unavailable_products=_unavailable_product_rows(db, 5),
         popular_products=_popular_product_rows(db, 5),
         sales_charts=_build_dashboard_sales_graphs(db),
     )
-
-@router.get(
-    "/analytics/low-stock",
-    response_model=List[LowStockProduct],
-    operation_id="admin_management_get_low_stock_products",
-)
-def get_low_stock_products(
-    limit: int = Query(5, ge=1, le=100),
-    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
-    db: Session = Depends(get_db)
-):
-    return _low_stock_product_rows(db, limit)
-
 
 @router.get(
     "/analytics/popular-products",

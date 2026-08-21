@@ -156,6 +156,7 @@ class IngredientCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=120)
     type: IngredientType = IngredientType.NORMAL
     status: EntityStatus = EntityStatus.ACTIVE
+    available: bool = True
     calories_per_gram: Optional[float] = Field(None, ge=0)
 
     @field_validator("type")
@@ -173,6 +174,7 @@ class IngredientUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=120)
     type: Optional[IngredientType] = None
     status: Optional[EntityStatus] = None
+    available: Optional[bool] = None
     calories_per_gram: Optional[float] = Field(None, ge=0)
 
     @field_validator("type")
@@ -191,6 +193,7 @@ class IngredientResponse(BaseModel):
     name: str
     type: IngredientType
     status: EntityStatus
+    available: bool
     calories_per_gram: Optional[float] = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -200,6 +203,7 @@ class ProductIngredientResponse(BaseModel):
     ingredient_id: int
     name: str
     type: IngredientType
+    available: bool = True
     included_by_default: bool = True
     removable: bool = True
     substitutable: bool = False
@@ -212,7 +216,7 @@ class ProductBase(BaseModel):
     name: str
     product_description: Optional[str] = None
     price: float
-    stock: int
+    available: bool = True
     category_id: CategoryId
     customizable: bool = True
     menu_tags: Optional[str] = None
@@ -249,7 +253,7 @@ class ProductUpdate(BaseModel):
     name: Optional[str] = None
     product_description: Optional[str] = None
     price: Optional[float] = None
-    stock: Optional[int] = None
+    available: Optional[bool] = None
     category_id: Optional[CategoryId] = None
     status: Optional[EntityStatus] = None
     customizable: Optional[bool] = None
@@ -299,7 +303,9 @@ class ProductAdminResponse(BaseModel):
     name: str
     product_description: Optional[str]
     price: float
-    stock: int
+    available: bool
+    effective_available: bool
+    unavailable_base_ingredients: List[str] = Field(default_factory=list)
     category_id: int
     category_display_id: str
     sold: Optional[int]
@@ -389,14 +395,14 @@ class KitchenOrderResponse(BaseModel):
 
 
 # Analytics Schemas
-class LowStockProduct(BaseModel):
-    """Response for low stock product."""
+class UnavailableProduct(BaseModel):
+    """Summary of a product that cannot currently be ordered."""
     product_id: int
     product_display_id: str
     name: str
-    stock: int
     price: float
     category: str
+    unavailable_reason: str
 
 
 class PopularProduct(BaseModel):
@@ -442,7 +448,7 @@ class ProductAnalyticsResponse(BaseModel):
     quantity_sold: int
     order_count: int
     current_price: float
-    current_stock: int
+    effective_available: bool
     average_rating: Optional[float] = None
     total_reviews: int
     sales_by_day: List[PeriodicSalesResponse]
@@ -473,9 +479,13 @@ class DashboardAnalytics(BaseModel):
     total_categories: int
     total_customers: int
     total_carts: int
-    low_stock_products: List[LowStockProduct]
+    unavailable_products: List[UnavailableProduct]
     popular_products: List[PopularProduct]
     sales_charts: DashboardSalesGraphs
+
+
+class AvailabilityUpdate(BaseModel):
+    available: bool
 
 
 class CategoryResponse(BaseModel):

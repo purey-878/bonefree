@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { guestCartService, normalizeCustomization } from './cartService';
+import { guestCartService, hasUnavailableCartItems, normalizeCustomization } from './cartService';
 
 class MemoryStorage implements Storage {
   private values = new Map<string, string>();
@@ -44,17 +44,32 @@ describe('guest cart domain logic', () => {
     });
   });
 
-  it('keeps separately customized guest items and caps quantities at stock', () => {
-    guestCartService.addItem(10, 2, 3, null);
-    guestCartService.addItem(10, 4, 3, null);
-    guestCartService.addItem(10, 1, 3, {
+  it('keeps separately customized guest items and caps each line at 99', () => {
+    guestCartService.addItem(10, 60, null);
+    guestCartService.addItem(10, 60, null);
+    guestCartService.addItem(10, 1, {
       remove: ['onion'], add: [], preferences: [], note: null,
       removedIngredients: [], extras: [], substitutions: [], finalUnitPrice: null,
     });
 
     expect(guestCartService.get()).toEqual([
-      { productId: 10, quantity: 3, customization: null },
+      { productId: 10, quantity: 99, customization: null },
       expect.objectContaining({ productId: 10, quantity: 1 }),
     ]);
+  });
+
+  it('blocks checkout only when a resolved cart line is unavailable', () => {
+    expect(hasUnavailableCartItems([{ productId: 10, quantity: 1 }])).toBe(false);
+    expect(hasUnavailableCartItems([{
+      cartProductId: 1,
+      productId: 10,
+      productDisplayId: 'P10',
+      name: 'Dish',
+      price: 10,
+      quantity: 1,
+      available: false,
+      unavailableReason: 'Currently unavailable',
+      subtotal: 10,
+    }])).toBe(true);
   });
 });

@@ -462,22 +462,18 @@ function Profile() {
   const addHistoricalItem = async (item: OrderItem) => {
     const product = await getProduct(item.productId)
 
-    if (product.stock <= 0) {
-      throw new Error(`${item.productName} está esgotado.`)
-    }
-    if (item.quantity > product.stock) {
-      throw new Error(`${item.productName} só tem ${product.stock} em stock.`)
+    if (!product.available) {
+      throw new Error(product.unavailableReason || `${item.productName} está atualmente indisponível.`)
     }
 
     if (hasStructuredCustomization(item.customization)) {
-      await cartService.addCustomizedItem(customizedCartBody(item), product.stock)
+      await cartService.addCustomizedItem(customizedCartBody(item))
       return
     }
 
     await cartService.addItem(
       item.productId,
       item.quantity,
-      product.stock,
       sanitizeLegacyCustomization(item.customization),
     )
   }

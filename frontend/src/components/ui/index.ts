@@ -6,7 +6,7 @@ export {
   SecondaryButton,
 } from './Button'
 export type { AddToCartButtonProps, ButtonProps, IconButtonProps } from './Button'
-export { CategoryBadge, Badge, StockBadge } from './Badge'
+export { CategoryBadge, Badge, AvailabilityBadge } from './Badge'
 export type { BadgeProps } from './Badge'
 export { Field, FieldError, FieldHint, Input, Textarea } from './Input'
 export type { InputProps, TextareaProps } from './Input'

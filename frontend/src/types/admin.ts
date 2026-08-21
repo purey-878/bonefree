@@ -8,6 +8,7 @@ export interface AdminIngredient {
   name: string;
   type: IngredientType;
   status: EntityStatus;
+  available: boolean;
   caloriesPerGram?: number | null;
 }
 
@@ -15,6 +16,7 @@ export interface AdminIngredientPayload {
   name: string;
   type: IngredientType;
   status?: EntityStatus;
+  available: boolean;
   caloriesPerGram?: number | null;
 }
 
@@ -22,6 +24,7 @@ export interface AdminProductIngredient {
   ingredientId?: number | null;
   name?: string | null;
   type: IngredientType;
+  available?: boolean;
   includedByDefault: boolean;
   removable: boolean;
   substitutable: boolean;
@@ -34,7 +37,7 @@ export interface AdminProductPayload {
   name: string;
   productDescription: string;
   price: number;
-  stock: number;
+  available: boolean;
   categoryId: number;
   customizable: boolean;
   menuTags: string;
@@ -51,6 +54,8 @@ export interface AdminProduct extends AdminProductPayload {
   productDisplayId: string;
   categoryDisplayId: string;
   sold: number | null;
+  effectiveAvailable: boolean;
+  unavailableBaseIngredients: string[];
   status: EntityStatus | null;
   deletedAt: string | null;
   images: ProductImage[];
@@ -112,13 +117,13 @@ export interface AdminReview {
   reactions?: ReviewReaction[];
 }
 
-export interface DashboardProductMetric { productId: number; productDisplayId: string; name: string; stock?: number; price: number; category: string; sold?: number; }
+export interface DashboardProductMetric { productId: number; productDisplayId: string; name: string; price: number; category: string; sold?: number; unavailableReason?: string; }
 export interface DashboardData {
   totalProducts: number;
   totalCategories: number;
   totalCustomers: number;
   totalCarts: number;
-  lowStockProducts: Array<DashboardProductMetric & { stock: number }>;
+  unavailableProducts: DashboardProductMetric[];
   popularProducts: Array<DashboardProductMetric & { sold: number }>;
   salesCharts: DashboardSalesGraphs;
 }
@@ -136,7 +141,7 @@ export interface ProductAnalytics {
   quantitySold: number;
   orderCount: number;
   currentPrice: number;
-  currentStock: number;
+  effectiveAvailable: boolean;
   averageRating: number | null;
   totalReviews: number;
   salesByDay: SalesDay[];

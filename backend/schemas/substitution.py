@@ -1,10 +1,10 @@
-"""Schemas for stock-out substitutions and similar dish suggestions."""
+"""Schemas for unavailable-product substitutions and similar dishes."""
 
 from pydantic import BaseModel
 from typing import List, Optional
 
 
-class StockSuggestion(BaseModel):
+class ProductSuggestion(BaseModel):
     """Ranked product suggestion returned when an item is unavailable."""
 
     product_id: int
@@ -12,7 +12,6 @@ class StockSuggestion(BaseModel):
     name: str
     category: str
     price: Optional[float]
-    stock: int
     score: float
     reason: str
 
@@ -23,9 +22,7 @@ class AvailabilitySuggestionResponse(BaseModel):
     product_id: int
     product_display_id: str
     name: str
-    requested_quantity: int
-    stock_threshold: int
     available: bool
     availability_reason: str
-    substitutes: List[StockSuggestion]
-    similar_dishes: List[StockSuggestion]
+    substitutes: List[ProductSuggestion]
+    similar_dishes: List[ProductSuggestion]

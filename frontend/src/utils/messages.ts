@@ -111,8 +111,8 @@ const ERROR_CODE_TRANSLATIONS: Record<string, string> = {
   invalid_coupon: "O cupão é inválido.",
   coupon_expired: "O cupão expirou.",
   coupon_not_active: "O cupão não está ativo.",
-  insufficient_stock: "Não existe stock suficiente.",
-  out_of_stock: "Este item está esgotado.",
+  product_unavailable: "Este item está atualmente indisponível.",
+  ingredient_unavailable: "Este ingrediente está atualmente indisponível.",
 };
 
 const FIELD_LABELS: Record<string, string> = {
@@ -195,16 +195,6 @@ export function translateUserMessage(message: string): string {
     return `${unableActionPrefix(unableAction[1])} ${translatedResource(unableAction[2])}.`;
   }
 
-  const outOfStock = trimmed.match(/^(.+?)\s+is out of stock\.?$/i);
-  if (outOfStock?.[1]) {
-    return `${outOfStock[1]} está esgotado.`;
-  }
-
-  const onlyHasStock = trimmed.match(/^(.+?)\s+only has\s+(\d+)\s+in stock\.?$/i);
-  if (onlyHasStock?.[1] && onlyHasStock?.[2]) {
-    return `${onlyHasStock[1]} só tem ${onlyHasStock[2]} em stock.`;
-  }
-
   const couldNotBeAdded = trimmed.match(/^(.+?)\s+could not be added\.?$/i);
   if (couldNotBeAdded?.[1]) {
     return `${couldNotBeAdded[1]} não pôde ser adicionado.`;
@@ -264,7 +254,7 @@ function translatedResource(resource: string): string {
     categories: "as categorias",
     category: "a categoria",
     image: "a imagem",
-    "low stock products": "os produtos com stock baixo",
+    "unavailable products": "os produtos indisponíveis",
     "popular products": "os produtos populares",
     "sales performance": "o desempenho de vendas",
     "analytics series": "a série de análises",

@@ -14,18 +14,18 @@ from schemas.customization import (
     ProductCustomizationOptions,
     ProductCustomizationResponse,
 )
-from schemas.substitution import AvailabilitySuggestionResponse, StockSuggestion
+from schemas.substitution import AvailabilitySuggestionResponse, ProductSuggestion
 from services.order_customization import COMMON_ADD_OPTIONS, COMMON_PREFERENCES
-from services.product_availability import INACTIVE_BASE_REASON, inactive_base_product_ids
+from services.product_availability import (
+    effective_product_available,
+    product_unavailable_reason,
+    unavailable_base_product_ids,
+)
 from services.product_pricing import discounted_product_price
 from services.substitution import (
-    DEFAULT_STOCK_THRESHOLD,
-    availability_reason,
-    is_product_available,
     product_category,
     product_name,
     product_price,
-    product_stock,
     rank_substitutions,
     suggest_similar_dishes,
 )
@@ -72,6 +72,7 @@ def _ingredient_nutrition_response(row: ProductIngredient) -> ProductIngredientN
         name=ingredient.name,
         type=ingredient.type,
         status=ingredient.status or EntityStatus.INACTIVE,
+        available=bool(ingredient.available),
         quantity=row.quantity,
         calories_per_gram=calories_per_gram,
         calories=round(calories, 2),
@@ -110,13 +111,13 @@ def list_products(db: Session = Depends(get_db)):
     query = select(Product).where(active_product_filter()).options(selectinload(Product.images))
     products = db.scalars(query).unique().all()
     product_ids = [product.product_id for product in products]
-    inactive_base_ids = inactive_base_product_ids(db, product_ids)
+    unavailable_base_ids = unavailable_base_product_ids(db, product_ids)
     ingredient_lookup = _product_ingredient_nutrition_lookup(db, product_ids)
     return [
         ProductResponse.from_orm_custom(
             product,
-            unavailable_due_to_inactive_base=product.product_id in inactive_base_ids,
-            unavailable_reason=INACTIVE_BASE_REASON,
+            unavailable_due_to_unavailable_base=product.product_id in unavailable_base_ids,
+            unavailable_reason=product_unavailable_reason(product, unavailable_base_ids),
             ingredients=ingredient_lookup.get(product.product_id, []),
         )
         for product in products
@@ -130,13 +131,11 @@ def list_products(db: Session = Depends(get_db)):
 )
 def get_availability_suggestions(
     product_id: str,
-    quantity: int = Query(1, ge=1),
-    stock_threshold: int = Query(DEFAULT_STOCK_THRESHOLD, ge=0),
     limit: int = Query(5, ge=1, le=20),
     db: Session = Depends(get_db),
 ):
     parsed_product_id = parse_product_id(product_id)
-    """Return stock-out substitutes and similar available dishes for a product."""
+    """Return substitutes and similar available dishes for an unavailable product."""
     product = db.scalar(
         select(Product).where(
             and_(Product.product_id == parsed_product_id, active_product_filter())
@@ -145,24 +144,29 @@ def get_availability_suggestions(
     if not product:
         raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
 
-    available = is_product_available(product, quantity, stock_threshold)
+    active_products = db.scalars(select(Product).where(active_product_filter())).unique().all()
+    unavailable_base_ids = unavailable_base_product_ids(
+        db,
+        [candidate.product_id for candidate in active_products],
+    )
+    available = effective_product_available(product, unavailable_base_ids)
 
     substitutes = []
     similar_dishes = []
     if not available:
-        active_products = db.scalars(select(Product).where(active_product_filter())).unique().all()
+        available_products = [
+            candidate
+            for candidate in active_products
+            if effective_product_available(candidate, unavailable_base_ids)
+        ]
         substitutes = rank_substitutions(
             product,
-            active_products,
-            quantity=quantity,
-            stock_threshold=stock_threshold,
+            available_products,
             limit=limit,
         )
         similar_dishes = suggest_similar_dishes(
             product,
-            active_products,
-            quantity=quantity,
-            stock_threshold=stock_threshold,
+            available_products,
             limit=limit,
         )
 
@@ -170,10 +174,11 @@ def get_availability_suggestions(
         product_id=product.product_id,
         product_display_id=format_product_id(product.product_id),
         name=product_name(product),
-        requested_quantity=quantity,
-        stock_threshold=stock_threshold,
         available=available,
-        availability_reason=availability_reason(product, quantity, stock_threshold),
+        availability_reason=(
+            product_unavailable_reason(product, unavailable_base_ids)
+            or "The item is available."
+        ),
         substitutes=[_suggestion_response(item) for item in substitutes],
         similar_dishes=[_suggestion_response(item) for item in similar_dishes],
     )
@@ -207,6 +212,7 @@ def get_customization_options(
                 ProductIngredient.product_id == parsed_product_id,
                 ProductIngredient.removable == 1,
                 Ingredient.status == EntityStatus.ACTIVE,
+                Ingredient.available.is_(True),
                 Ingredient.type == IngredientType.NORMAL,
             )
             .order_by(Ingredient.name)
@@ -234,7 +240,10 @@ def get_customization_options(
             *extra_filters,
             or_(
                 ProductCustomizationOption.ingredient_id.is_(None),
-                ProductCustomizationOption.ingredient.has(Ingredient.status == EntityStatus.ACTIVE),
+                ProductCustomizationOption.ingredient.has(
+                    (Ingredient.status == EntityStatus.ACTIVE)
+                    & Ingredient.available.is_(True)
+                ),
             ),
         )
         .order_by(ProductCustomizationOption.name)
@@ -292,7 +301,11 @@ def get_product_customization(
             included_by_default=bool(row.included_by_default),
         )
         for row in ingredient_rows
-        if row.ingredient and row.ingredient.status == EntityStatus.ACTIVE
+        if (
+            row.ingredient
+            and row.ingredient.status == EntityStatus.ACTIVE
+            and row.ingredient.available
+        )
     ]
 
     grouped_options = {
@@ -308,7 +321,10 @@ def get_product_customization(
             ProductCustomizationOption.type.in_(tuple(grouped_options.keys())),
             or_(
                 ProductCustomizationOption.ingredient_id.is_(None),
-                ProductCustomizationOption.ingredient.has(Ingredient.status == EntityStatus.ACTIVE),
+                ProductCustomizationOption.ingredient.has(
+                    (Ingredient.status == EntityStatus.ACTIVE)
+                    & Ingredient.available.is_(True)
+                ),
             ),
         )
         .order_by(ProductCustomizationOption.type, ProductCustomizationOption.name)
@@ -350,24 +366,23 @@ def get_product(product_id: str, db: Session = Depends(get_db)):
     )
     if not product:
         raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
-    unavailable = product.product_id in inactive_base_product_ids(db, [product.product_id])
+    unavailable_base_ids = unavailable_base_product_ids(db, [product.product_id])
     return ProductResponse.from_orm_custom(
         product,
-        unavailable_due_to_inactive_base=unavailable,
-        unavailable_reason=INACTIVE_BASE_REASON,
+        unavailable_due_to_unavailable_base=product.product_id in unavailable_base_ids,
+        unavailable_reason=product_unavailable_reason(product, unavailable_base_ids),
         ingredients=_product_ingredient_nutrition(db, product.product_id),
     )
 
 
-def _suggestion_response(suggestion) -> StockSuggestion:
+def _suggestion_response(suggestion) -> ProductSuggestion:
     product = suggestion.product
-    return StockSuggestion(
+    return ProductSuggestion(
         product_id=product.product_id,
         product_display_id=format_product_id(product.product_id),
         name=product_name(product),
         category=product_category(product),
         price=product_price(product),
-        stock=product_stock(product),
         score=suggestion.score,
         reason=suggestion.reason,
     )

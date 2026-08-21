@@ -7,7 +7,7 @@ import { Flame } from 'lucide-react'
 import styled, { css } from 'styled-components'
 
 import { AddToCartButton } from './Button'
-import { Badge, StockBadge } from './Badge'
+import { AvailabilityBadge, Badge } from './Badge'
 import { applyApiImageFallback, productImageFallback, resolveProductImageUrl } from '../../utils/imageFallback'
 import { formatEuro } from '../../utils/money'
 
@@ -20,14 +20,13 @@ export type ProductCardProduct = {
   price?: number | null
   originalPrice?: number | null
   discountPercent?: number
-  stock?: number | null
   totalCalories?: number | null
   customizable?: boolean
   tags?: string[]
   highlighted?: boolean
   available?: boolean
   unavailableReason?: string | null
-  unavailableDueToInactiveBase?: boolean
+  unavailableDueToUnavailableBase?: boolean
 }
 
 export type ProductCardProps = Omit<
@@ -153,13 +152,13 @@ const ProductCardShell = styled.article<{ $tone: 'dark' | 'light'; $dimUnavailab
         color: #6b560a;
       }
 
-      .product-card-stock.in {
+      .product-card-availability.in {
         background: #eef8ed;
         border-color: #bfe0ba;
         color: #276c37;
       }
 
-      .product-card-stock.out {
+      .product-card-availability.out {
         background: #fff0ef;
         border-color: #efbbb7;
         color: #a83b32;
@@ -388,11 +387,9 @@ export function ProductCard({
   tone = 'light',
   ...props
 }: ProductCardProps) {
-  const stock = Number(product.stock ?? 0)
   const unavailable = product.available === false
-  const baseUnavailable = Boolean(product.unavailableDueToInactiveBase)
+  const baseUnavailable = Boolean(product.unavailableDueToUnavailableBase)
   const dimUnavailable = unavailable && !baseUnavailable
-  const outOfStock = stock <= 0 || unavailable
   const imageSrc = resolveImageSrc(product.image)
   const discountPercent = Number(product.discountPercent ?? 0)
   const showDiscount =
@@ -481,10 +478,9 @@ export function ProductCard({
             <Badge className="product-card-category" size="sm" variant="accent">
               {product.category}
             </Badge>
-            <StockBadge
-              className={`product-card-stock ${stock <= 0 ? 'out' : 'in'}`}
-              inStock={stock > 0}
-              stock={stock}
+            <AvailabilityBadge
+              className={`product-card-availability ${unavailable ? 'out' : 'in'}`}
+              available={!unavailable}
             />
             {calories && (
               <ProductCalories title={`${calories} quilocalorias`}>
@@ -534,17 +530,17 @@ export function ProductCard({
               <AddToCartButton
                className="rounded-pill fw-semibold letter-spacing-1"
                 aria-label={`Adicionar ${product.name} ao carrinho`}
-                disabled={outOfStock || addingToCart}
+                disabled={unavailable || addingToCart}
                 fullWidth
                 isLoading={addingToCart}
                 onClick={handleAddToCart}
-                outOfStock={outOfStock}
+                unavailable={unavailable}
               >
                 {addToCartLabel ??
                   (addingToCart
                     ? 'A adicionar...'
-                    : stock <= 0
-                      ? 'Esgotado'
+                    : unavailable
+                      ? 'Indisponível'
                       : 'Adicionar')}
               </AddToCartButton>
             </ActionRow>

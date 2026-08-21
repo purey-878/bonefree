@@ -12,6 +12,7 @@ class ProductIngredientNutrition(BaseModel):
     name: str
     type: IngredientType
     status: EntityStatus = EntityStatus.ACTIVE
+    available: bool = True
     quantity: str | None = None
     calories_per_gram: float | None = None
     calories: float = 0
@@ -29,7 +30,6 @@ class ProductResponse(BaseModel):
     price: float | None
     original_price: float | None = None
     discount_percent: float = 0
-    stock: int
     sold: int = 0
     total_calories: float | None = None
     customizable: bool = False
@@ -39,7 +39,7 @@ class ProductResponse(BaseModel):
     highlighted: bool = False
     available: bool = True
     unavailable_reason: Optional[str] = None
-    unavailable_due_to_inactive_base: bool = False
+    unavailable_due_to_unavailable_base: bool = False
     ingredients: list[ProductIngredientNutrition] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
@@ -49,7 +49,7 @@ class ProductResponse(BaseModel):
         cls,
         p,
         *,
-        unavailable_due_to_inactive_base: bool = False,
+        unavailable_due_to_unavailable_base: bool = False,
         unavailable_reason: str | None = None,
         ingredients: list[ProductIngredientNutrition] | None = None,
     ):
@@ -80,8 +80,7 @@ class ProductResponse(BaseModel):
             image_url = f"/menu-images/{filename}.webp"
             image_urls = [image_url]
 
-        stock = int(getattr(p, "stock", 0) or 0)
-        available = stock > 0 and not unavailable_due_to_inactive_base
+        available = bool(getattr(p, "available", False)) and not unavailable_due_to_unavailable_base
         saved_calories = getattr(p, "total_calories", None)
         ingredient_calories = sum(
             item.calories
@@ -106,7 +105,6 @@ class ProductResponse(BaseModel):
             price=float(discounted_product_price(p)) if p.price else None,
             original_price=float(p.price) if p.price else None,
             discount_percent=float(product_discount_percent(p)),
-            stock=stock,
             sold=int(getattr(p, "sold", 0) or 0),
             total_calories=total_calories,
             customizable=bool(getattr(p, "customizable", 0)),
@@ -116,6 +114,6 @@ class ProductResponse(BaseModel):
             highlighted=bool(getattr(p, "featured", 0)),
             available=available,
             unavailable_reason=unavailable_reason if not available else None,
-            unavailable_due_to_inactive_base=unavailable_due_to_inactive_base,
+            unavailable_due_to_unavailable_base=unavailable_due_to_unavailable_base,
             ingredients=ingredients or [],
         )

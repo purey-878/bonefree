@@ -123,10 +123,15 @@ class OpenApiContractTests(unittest.TestCase):
         self.assertNotIn("refund", serialized_schema)
         self.assertNotIn("refunded", serialized_schema)
 
+    def test_contract_contains_no_inventory_control(self):
+        serialized_schema = json.dumps(self.schema).casefold()
+        self.assertNotIn("stock", serialized_schema)
+        self.assertNotIn("low-stock", serialized_schema)
+
     def test_public_contract_has_no_legacy_property_names(self):
         forbidden = {
             "calorias", "discount_percentual", "vendas_por_dia", "por_hora",
-            "por_dia", "por_mes", "por_ano", "order_numbers", "observacoes",
+            "por_dia", "por_mes", "por_ano", "order_numbers", "observacoes", "stock",
         }
         exposed = set()
         for component in self.schema["components"]["schemas"].values():

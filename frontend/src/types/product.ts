@@ -12,7 +12,6 @@ export interface Product {
   price: number | null;
   originalPrice?: number | null;
   discountPercent?: number;
-  stock: number;
   sold?: number;
   totalCalories?: number | null;
   customizable: boolean;
@@ -20,9 +19,9 @@ export interface Product {
   glutenFree?: boolean;
   containsAlcohol?: boolean;
   highlighted?: boolean;
-  available?: boolean;
+  available: boolean;
   unavailableReason?: string | null;
-  unavailableDueToInactiveBase?: boolean;
+  unavailableDueToUnavailableBase?: boolean;
   ingredients?: ProductIngredientNutrition[];
 }
 
@@ -31,6 +30,7 @@ export interface ProductIngredientNutrition {
   name: string;
   type: IngredientType;
   status?: EntityStatus;
+  available: boolean;
   quantity?: string | null;
   caloriesPerGram?: number | null;
   calories: number;
@@ -42,7 +42,6 @@ export interface ProductSuggestion {
   name: string;
   category: string;
   price: number | null;
-  stock: number;
   score: number;
   reason: string;
 }
@@ -51,8 +50,6 @@ export interface ProductAvailabilitySuggestions {
   productId: number;
   productDisplayId: string;
   name: string;
-  requestedQuantity: number;
-  stockThreshold: number;
   available: boolean;
   availabilityReason: string;
   substitutes: ProductSuggestion[];

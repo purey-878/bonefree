@@ -261,13 +261,13 @@ function Menu() {
       setErrorMessage(null);
       setSuccessMessage(null);
 
-      if (Number(product.stock ?? 0) <= 0) {
-        setErrorMessage(`${product.name} está esgotado.`);
+      if (!product.available) {
+        setErrorMessage(product.unavailableReason || `${product.name} está atualmente indisponível.`);
         setAddingToCart(null);
         return;
       }
 
-      await cartService.addItem(product.id, 1, product.stock);
+      await cartService.addItem(product.id, 1);
       setSuccessMessage("Adicionado ao carrinho");
 
       setTimeout(() => setSuccessMessage(null), 3000);

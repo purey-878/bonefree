@@ -121,19 +121,11 @@ const BadgeCount = styled.span`
   font-weight: 900;
 `
 
-type StockBadgeProps = Omit<BadgeProps, 'children' | 'variant'> & {
-  inStock?: boolean
-  stock?: number | null
+type AvailabilityBadgeProps = Omit<BadgeProps, 'children' | 'variant'> & {
+  available: boolean
 }
 
-export function StockBadge({ inStock, stock, ...props }: StockBadgeProps) {
-  const available = inStock ?? Number(stock ?? 0) > 0
-  const label = available
-    ? typeof stock === 'number'
-      ? `${stock} disponíveis`
-      : 'Disponível'
-    : 'Esgotado'
-
+export function AvailabilityBadge({ available, ...props }: AvailabilityBadgeProps) {
   return (
     <Badge
       dot
@@ -141,7 +133,7 @@ export function StockBadge({ inStock, stock, ...props }: StockBadgeProps) {
       variant={available ? 'success' : 'danger'}
       {...props}
     >
-      {label}
+      {available ? 'Disponível' : 'Atualmente indisponível'}
     </Badge>
   )
 }

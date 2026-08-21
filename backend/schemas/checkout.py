@@ -54,7 +54,7 @@ class CheckoutCustomer(BaseModel):
 
 class CheckoutItem(BaseModel):
     product_id: ProductId
-    quantity: int = Field(..., ge=1)
+    quantity: int = Field(..., ge=1, le=99)
     customization: Optional[ItemCustomization] = None
 
 

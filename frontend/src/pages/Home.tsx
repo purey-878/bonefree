@@ -190,8 +190,8 @@ const HomePage = () => {
     [products],
   );
 
-  const inStockProducts = useMemo(
-    () => visibleProducts.filter((product) => product.stock > 0),
+  const availableProducts = useMemo(
+    () => visibleProducts.filter((product) => product.available),
     [visibleProducts],
   );
 
@@ -205,8 +205,8 @@ const HomePage = () => {
     return Array.from(counts, ([name, count]) => ({ count, name })).slice(0, 7);
   }, [visibleProducts]);
 
-  const featuredDish = inStockProducts.find((product) => product.image) ?? inStockProducts[0] ?? visibleProducts[0];
-  const sortedPopularProducts = [...inStockProducts]
+  const featuredDish = availableProducts.find((product) => product.image) ?? availableProducts[0] ?? visibleProducts[0];
+  const sortedPopularProducts = [...availableProducts]
     .sort((a, b) => {
       if (a.highlighted !== b.highlighted) return a.highlighted ? -1 : 1;
       return (b.sold ?? 0) - (a.sold ?? 0);
@@ -215,7 +215,7 @@ const HomePage = () => {
   const popularProducts = highlightedProducts.length > 0 ? highlightedProducts : sortedPopularProducts.slice(0, 4);
   const configuredChefSpecial = products.find((product) => product.id === chefSpecialProductId && !isHiddenHomeProduct(product));
   const chefSpecial = configuredChefSpecial
-    ?? inStockProducts.find((product) => product.id !== featuredDish?.id)
+    ?? availableProducts.find((product) => product.id !== featuredDish?.id)
     ?? featuredDish;
   const heroDish = popularProducts[activeHeroProductIndex] ?? featuredDish;
   const displayedHomeReviews = homeReviews.length > 0 ? homeReviews : fallbackHomeReviews;
@@ -526,7 +526,7 @@ const HomePage = () => {
 
             {chefSpecial && <strong>{formatEuro(chefSpecial.price)}</strong>}
             {chefSpecial && (
-              <span>{chefSpecial.stock > 0 ? `${chefSpecial.stock} disponíveis` : "Pergunte à equipa"}</span>
+              <span>{chefSpecial.available ? "Disponível" : "Atualmente indisponível"}</span>
             )}
           </ChefDetails>
           <PrimaryCta className="fw-semibold" to={chefSpecial ? `/product/${chefSpecial.id}` : "/menu"}>

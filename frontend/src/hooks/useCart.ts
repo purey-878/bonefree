@@ -37,12 +37,11 @@ export function useCart() {
   const addItem = useCallback(async (
     productId: number,
     quantity: number = 1,
-    stock?: number,
     customization?: ItemCustomization | null,
   ) => {
     try {
       setError(null);
-      await cartService.addItem(productId, quantity, stock, customization);
+      await cartService.addItem(productId, quantity, customization);
       await loadCart(true);
     } catch (err) {
       const errorMsg = translateUserMessage(err instanceof Error ? err.message : "Failed to add item");
@@ -78,7 +77,6 @@ export function useCart() {
   const updateQuantity = useCallback(async (
     productId: number,
     quantity: number,
-    stock?: number,
     cartLogId?: number,
     customization?: ItemCustomization | null,
   ) => {
@@ -89,7 +87,7 @@ export function useCart() {
 
     try {
       setError(null);
-      await cartService.updateItem(productId, quantity, stock, cartLogId, customization);
+      await cartService.updateItem(productId, quantity, cartLogId, customization);
       await loadCart(true);
     } catch (err) {
       const errorMsg = translateUserMessage(err instanceof Error ? err.message : "Failed to update quantity");

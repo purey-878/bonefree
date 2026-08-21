@@ -1,6 +1,6 @@
 """Cart/Cart schemas for API validation."""
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from typing import List, Optional
 from decimal import Decimal
 from .customization import ItemCustomization
@@ -14,8 +14,9 @@ class CartItemOut(BaseModel):
     product_display_id: str
     name: str
     price: Decimal
-    quantity: int
-    stock: int
+    quantity: int = Field(..., ge=1, le=99)
+    available: bool
+    unavailable_reason: Optional[str] = None
     image_path: Optional[str] = None
     customization: Optional[ItemCustomization] = None
     subtotal: Decimal
@@ -35,21 +36,21 @@ class CartOut(BaseModel):
 class AddItemSchema(BaseModel):
     """Request model for adding an item to cart."""
     product_id: ProductId
-    quantity: int = 1
+    quantity: int = Field(1, ge=1, le=99)
     customization: Optional[ItemCustomization] = None
 
 
 class UpdateItemSchema(BaseModel):
     """Request model for updating cart item quantity."""
     product_id: ProductId
-    quantity: int
+    quantity: int = Field(..., ge=1, le=99)
     cart_product_id: Optional[int] = None
 
 
 class GuestCartItem(BaseModel):
     """Model for guest cart items (localStorage)."""
     product_id: ProductId
-    quantity: int
+    quantity: int = Field(..., ge=1, le=99)
     customization: Optional[ItemCustomization] = None
 
 
@@ -61,6 +62,6 @@ class MergeCartSchema(BaseModel):
 class MergeResult(BaseModel):
     """Response model for cart merge operation."""
     merged: List[int]          # product ids successfully merged
-    capped: List[int]          # product ids where qty was capped to stock
-    skipped: List[int]         # product ids skipped (out of stock)
+    capped: List[int]          # product ids capped to the technical limit
+    skipped: List[int]         # unavailable or invalid product ids
     cart: CartOut

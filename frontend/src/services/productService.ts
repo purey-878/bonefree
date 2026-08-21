@@ -25,8 +25,6 @@ import type {
 } from '../types/product';
 
 interface AvailabilitySuggestionOptions {
-  quantity?: number;
-  stockThreshold?: number;
   limit?: number;
 }
 
@@ -53,8 +51,6 @@ export const productService = {
     return toDomain<ProductAvailabilitySuggestions>(await apiData(productsGetAvailabilitySuggestions({
       path: { product_id: String(id) },
       query: {
-        quantity: options.quantity,
-        stock_threshold: options.stockThreshold,
         limit: options.limit,
       },
       client: publicApiClient,

@@ -58,6 +58,10 @@ function isCartItem(item: CartItem | GuestCartItem): item is CartItem {
   return 'name' in item;
 }
 
+export function hasUnavailableCartItems(items: Array<CartItem | GuestCartItem>): boolean {
+  return items.some((item) => isCartItem(item) && !item.available);
+}
+
 export function emptyCustomization(): ItemCustomization {
   return {
     remove: [], add: [], preferences: [], note: null,
@@ -150,7 +154,7 @@ function readGuestItem(value: unknown): GuestCartItem | null {
   if (typeof value !== 'object' || value === null) return null;
   const record = value as Record<string, unknown>;
   const productId = Number(record.productId ?? record.id_produto);
-  const quantity = Number(record.quantity ?? record.quantidade);
+  const quantity = Math.min(99, Number(record.quantity ?? record.quantidade));
   if (!Number.isInteger(productId) || productId <= 0 || !Number.isFinite(quantity) || quantity <= 0) return null;
   const customization = (record.customization ?? record.personalizacao) as ItemCustomization | null | undefined;
   return { productId, quantity, customization: normalizeCustomization(customization) };
@@ -186,20 +190,18 @@ export const guestCartService = {
     }
   },
 
-  addItem(productId: number, quantity = 1, stock?: number, customization?: ItemCustomization | null): GuestCartItem[] {
+  addItem(productId: number, quantity = 1, customization?: ItemCustomization | null): GuestCartItem[] {
     const cart = this.get();
     const normalizedCustomization = normalizeCustomization(customization);
     const targetKey = customizationKey(normalizedCustomization);
     const existing = cart.find((item) => item.productId === productId && customizationKey(item.customization) === targetKey);
-    const safeQuantity = Math.max(1, Number(quantity) || 1);
-    const safeStock = stock !== undefined && Number.isFinite(stock) ? Math.max(0, stock) : undefined;
+    const safeQuantity = Math.min(99, Math.max(1, Number(quantity) || 1));
     if (existing) {
-      const next = existing.quantity + safeQuantity;
-      existing.quantity = safeStock === undefined ? next : Math.min(next, safeStock);
+      existing.quantity = Math.min(99, existing.quantity + safeQuantity);
     } else {
       cart.push({
         productId,
-        quantity: safeStock === undefined ? safeQuantity : Math.min(safeQuantity, safeStock),
+        quantity: safeQuantity,
         customization: normalizedCustomization,
       });
     }
@@ -207,14 +209,14 @@ export const guestCartService = {
     return cart;
   },
 
-  updateItem(productId: number, quantity: number, stock?: number, customization?: ItemCustomization | null): GuestCartItem[] {
+  updateItem(productId: number, quantity: number, customization?: ItemCustomization | null): GuestCartItem[] {
     let cart = this.get();
     const targetKey = customizationKey(customization);
     if (quantity <= 0) {
       cart = cart.filter((item) => !(item.productId === productId && customizationKey(item.customization) === targetKey));
     } else {
       const item = cart.find((entry) => entry.productId === productId && customizationKey(entry.customization) === targetKey);
-      if (item) item.quantity = stock === undefined ? quantity : Math.min(quantity, stock);
+      if (item) item.quantity = Math.min(99, quantity);
     }
     this.save(cart);
     return cart;
@@ -298,7 +300,8 @@ export const cartService = {
           name: product.name,
           price: unitPrice,
           quantity: item.quantity,
-          stock: product.stock,
+          available: product.available,
+          unavailableReason: product.unavailableReason,
           imagePath: product.image,
           customization: normalizeCustomization(item.customization),
           subtotal: unitPrice * item.quantity,
@@ -311,23 +314,23 @@ export const cartService = {
     }
   },
 
-  async addItem(productId: number, quantity = 1, stock?: number, customization?: ItemCustomization | null) {
+  async addItem(productId: number, quantity = 1, customization?: ItemCustomization | null) {
     return getStoredToken('token')
       ? apiCartService.addItem(productId, quantity, customization)
-      : guestCartService.addItem(productId, quantity, stock, customization);
+      : guestCartService.addItem(productId, quantity, customization);
   },
 
-  async addCustomizedItem(body: CustomizedCartItemRequest, stock?: number) {
+  async addCustomizedItem(body: CustomizedCartItemRequest) {
     const validatedCart = await apiCartService.addCustomizedItem(body);
     if (getStoredToken('token')) return validatedCart;
     const validatedItem = validatedCart.items[0] as CartItem | undefined;
-    return guestCartService.addItem(body.productId, body.quantity, stock, validatedItem?.customization);
+    return guestCartService.addItem(body.productId, body.quantity, validatedItem?.customization);
   },
 
-  async updateItem(productId: number, quantity: number, stock?: number, cartProductId?: number, customization?: ItemCustomization | null) {
+  async updateItem(productId: number, quantity: number, cartProductId?: number, customization?: ItemCustomization | null) {
     return getStoredToken('token')
       ? apiCartService.updateItem(productId, quantity, cartProductId)
-      : guestCartService.updateItem(productId, quantity, stock, customization);
+      : guestCartService.updateItem(productId, quantity, customization);
   },
 
   async removeItem(productId: number, cartProductId?: number, customization?: ItemCustomization | null) {

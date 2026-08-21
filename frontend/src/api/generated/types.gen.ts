@@ -193,21 +193,23 @@ export type AvailabilitySuggestionResponse = {
      */
     product_id: number;
     /**
-     * Requested Quantity
-     */
-    requested_quantity: number;
-    /**
      * Similar Dishes
      */
-    similar_dishes: Array<StockSuggestion>;
-    /**
-     * Stock Threshold
-     */
-    stock_threshold: number;
+    similar_dishes: Array<ProductSuggestion>;
     /**
      * Substitutes
      */
-    substitutes: Array<StockSuggestion>;
+    substitutes: Array<ProductSuggestion>;
+};
+
+/**
+ * AvailabilityUpdate
+ */
+export type AvailabilityUpdate = {
+    /**
+     * Available
+     */
+    available: boolean;
 };
 
 /**
@@ -231,6 +233,10 @@ export type CancellationOrigin = 'client' | 'admin' | 'system';
  * Response model for a cart item.
  */
 export type CartItemOut = {
+    /**
+     * Available
+     */
+    available: boolean;
     /**
      * Cart Product Id
      */
@@ -261,13 +267,13 @@ export type CartItemOut = {
      */
     quantity: number;
     /**
-     * Stock
-     */
-    stock: number;
-    /**
      * Subtotal
      */
     subtotal: string;
+    /**
+     * Unavailable Reason
+     */
+    unavailable_reason?: string | null;
 };
 
 /**
@@ -872,10 +878,6 @@ export type CustomizedCartItemRequest = {
  */
 export type DashboardAnalytics = {
     /**
-     * Low Stock Products
-     */
-    low_stock_products: Array<LowStockProduct>;
-    /**
      * Popular Products
      */
     popular_products: Array<PopularProduct>;
@@ -896,6 +898,10 @@ export type DashboardAnalytics = {
      * Total Products
      */
     total_products: number;
+    /**
+     * Unavailable Products
+     */
+    unavailable_products: Array<UnavailableProduct>;
 };
 
 /**
@@ -1026,6 +1032,10 @@ export type HealthResponse = {
  */
 export type IngredientCreate = {
     /**
+     * Available
+     */
+    available?: boolean;
+    /**
      * Calories Per Gram
      */
     calories_per_gram?: number | null;
@@ -1041,6 +1051,10 @@ export type IngredientCreate = {
  * IngredientResponse
  */
 export type IngredientResponse = {
+    /**
+     * Available
+     */
+    available: boolean;
     /**
      * Calories Per Gram
      */
@@ -1066,6 +1080,10 @@ export type IngredientType = 'normal' | 'sauce' | 'extra' | 'drink' | 'base' | '
  * IngredientUpdate
  */
 export type IngredientUpdate = {
+    /**
+     * Available
+     */
+    available?: boolean | null;
     /**
      * Calories Per Gram
      */
@@ -1194,38 +1212,6 @@ export type KitchenOrderResponse = {
      * Updated At
      */
     updated_at?: string | null;
-};
-
-/**
- * LowStockProduct
- *
- * Response for low stock product.
- */
-export type LowStockProduct = {
-    /**
-     * Category
-     */
-    category: string;
-    /**
-     * Name
-     */
-    name: string;
-    /**
-     * Price
-     */
-    price: number;
-    /**
-     * Product Display Id
-     */
-    product_display_id: string;
-    /**
-     * Product Id
-     */
-    product_id: number;
-    /**
-     * Stock
-     */
-    stock: number;
 };
 
 /**
@@ -1449,6 +1435,10 @@ export type PopularProduct = {
  */
 export type ProductAdminResponse = {
     /**
+     * Available
+     */
+    available: boolean;
+    /**
      * Category Display Id
      */
     category_display_id: string;
@@ -1472,6 +1462,10 @@ export type ProductAdminResponse = {
      * Discount Percentage
      */
     discount_percentage?: number;
+    /**
+     * Effective Available
+     */
+    effective_available: boolean;
     /**
      * Featured
      */
@@ -1518,13 +1512,13 @@ export type ProductAdminResponse = {
     sold: number | null;
     status: EntityStatus | null;
     /**
-     * Stock
-     */
-    stock: number;
-    /**
      * Total Calories
      */
     total_calories?: number | null;
+    /**
+     * Unavailable Base Ingredients
+     */
+    unavailable_base_ingredients?: Array<string>;
 };
 
 /**
@@ -1542,9 +1536,9 @@ export type ProductAnalyticsResponse = {
      */
     current_price: number;
     /**
-     * Current Stock
+     * Effective Available
      */
-    current_stock: number;
+    effective_available: boolean;
     /**
      * Order Count
      */
@@ -1581,6 +1575,10 @@ export type ProductAnalyticsResponse = {
  * Schema for creating a product.
  */
 export type ProductCreate = {
+    /**
+     * Available
+     */
+    available?: boolean;
     /**
      * Category Id
      */
@@ -1625,10 +1623,6 @@ export type ProductCreate = {
      * Product Description
      */
     product_description?: string | null;
-    /**
-     * Stock
-     */
-    stock: number;
     /**
      * Total Calories
      */
@@ -1747,6 +1741,10 @@ export type ProductImageUploadResponse = {
  */
 export type ProductIngredientNutrition = {
     /**
+     * Available
+     */
+    available?: boolean;
+    /**
      * Calories
      */
     calories?: number;
@@ -1811,6 +1809,10 @@ export type ProductIngredientPayload = {
  * ProductIngredientResponse
  */
 export type ProductIngredientResponse = {
+    /**
+     * Available
+     */
+    available?: boolean;
     /**
      * Calories Per Gram
      */
@@ -1917,10 +1919,6 @@ export type ProductResponse = {
      */
     sold?: number;
     /**
-     * Stock
-     */
-    stock: number;
-    /**
      * Tags
      */
     tags?: Array<string>;
@@ -1929,9 +1927,9 @@ export type ProductResponse = {
      */
     total_calories?: number | null;
     /**
-     * Unavailable Due To Inactive Base
+     * Unavailable Due To Unavailable Base
      */
-    unavailable_due_to_inactive_base?: boolean;
+    unavailable_due_to_unavailable_base?: boolean;
     /**
      * Unavailable Reason
      */
@@ -2119,11 +2117,51 @@ export type ProductReviewUpdate = {
 };
 
 /**
+ * ProductSuggestion
+ *
+ * Ranked product suggestion returned when an item is unavailable.
+ */
+export type ProductSuggestion = {
+    /**
+     * Category
+     */
+    category: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Price
+     */
+    price: number | null;
+    /**
+     * Product Display Id
+     */
+    product_display_id: string;
+    /**
+     * Product Id
+     */
+    product_id: number;
+    /**
+     * Reason
+     */
+    reason: string;
+    /**
+     * Score
+     */
+    score: number;
+};
+
+/**
  * ProductUpdate
  *
  * Schema for updating a product.
  */
 export type ProductUpdate = {
+    /**
+     * Available
+     */
+    available?: boolean | null;
     /**
      * Category Id
      */
@@ -2169,10 +2207,6 @@ export type ProductUpdate = {
      */
     product_description?: string | null;
     status?: EntityStatus | null;
-    /**
-     * Stock
-     */
-    stock?: number | null;
     /**
      * Total Calories
      */
@@ -2443,46 +2477,6 @@ export type StaffAdminUpdate = {
 };
 
 /**
- * StockSuggestion
- *
- * Ranked product suggestion returned when an item is unavailable.
- */
-export type StockSuggestion = {
-    /**
-     * Category
-     */
-    category: string;
-    /**
-     * Name
-     */
-    name: string;
-    /**
-     * Price
-     */
-    price: number | null;
-    /**
-     * Product Display Id
-     */
-    product_display_id: string;
-    /**
-     * Product Id
-     */
-    product_id: number;
-    /**
-     * Reason
-     */
-    reason: string;
-    /**
-     * Score
-     */
-    score: number;
-    /**
-     * Stock
-     */
-    stock: number;
-};
-
-/**
  * ThemeBackground
  */
 export type ThemeBackground = {
@@ -2672,6 +2666,38 @@ export type TokenResponse = {
      */
     token_type: string;
     user: UserResponse;
+};
+
+/**
+ * UnavailableProduct
+ *
+ * Summary of a product that cannot currently be ordered.
+ */
+export type UnavailableProduct = {
+    /**
+     * Category
+     */
+    category: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Price
+     */
+    price: number;
+    /**
+     * Product Display Id
+     */
+    product_display_id: string;
+    /**
+     * Product Id
+     */
+    product_id: number;
+    /**
+     * Unavailable Reason
+     */
+    unavailable_reason: string;
 };
 
 /**
@@ -3016,62 +3042,6 @@ export type AdminManagementGetDashboardAnalyticsResponses = {
 };
 
 export type AdminManagementGetDashboardAnalyticsResponse = AdminManagementGetDashboardAnalyticsResponses[keyof AdminManagementGetDashboardAnalyticsResponses];
-
-export type AdminManagementGetLowStockProductsData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Limit
-         */
-        limit?: number;
-    };
-    url: '/admin/analytics/low-stock';
-};
-
-export type AdminManagementGetLowStockProductsErrors = {
-    /**
-     * Invalid request
-     */
-    400: ApiErrorResponse;
-    /**
-     * Authentication required
-     */
-    401: ApiErrorResponse;
-    /**
-     * Permission denied
-     */
-    403: ApiErrorResponse;
-    /**
-     * Resource not found
-     */
-    404: ApiErrorResponse;
-    /**
-     * Request conflict
-     */
-    409: ApiErrorResponse;
-    /**
-     * Validation error
-     */
-    422: ApiErrorResponse;
-    /**
-     * Internal server error
-     */
-    500: ApiErrorResponse;
-};
-
-export type AdminManagementGetLowStockProductsError = AdminManagementGetLowStockProductsErrors[keyof AdminManagementGetLowStockProductsErrors];
-
-export type AdminManagementGetLowStockProductsResponses = {
-    /**
-     * Response Admin Management Get Low Stock Products
-     *
-     * Successful Response
-     */
-    200: Array<LowStockProduct>;
-};
-
-export type AdminManagementGetLowStockProductsResponse = AdminManagementGetLowStockProductsResponses[keyof AdminManagementGetLowStockProductsResponses];
 
 export type AdminManagementGetPopularProductsData = {
     body?: never;
@@ -3900,6 +3870,60 @@ export type AdminManagementUpdateIngredientResponses = {
 
 export type AdminManagementUpdateIngredientResponse = AdminManagementUpdateIngredientResponses[keyof AdminManagementUpdateIngredientResponses];
 
+export type AdminManagementSetIngredientAvailabilityData = {
+    body: AvailabilityUpdate;
+    path: {
+        /**
+         * Ingredient Id
+         */
+        ingredient_id: number;
+    };
+    query?: never;
+    url: '/admin/ingredients/{ingredient_id}/availability';
+};
+
+export type AdminManagementSetIngredientAvailabilityErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type AdminManagementSetIngredientAvailabilityError = AdminManagementSetIngredientAvailabilityErrors[keyof AdminManagementSetIngredientAvailabilityErrors];
+
+export type AdminManagementSetIngredientAvailabilityResponses = {
+    /**
+     * Successful Response
+     */
+    200: IngredientResponse;
+};
+
+export type AdminManagementSetIngredientAvailabilityResponse = AdminManagementSetIngredientAvailabilityResponses[keyof AdminManagementSetIngredientAvailabilityResponses];
+
 export type AdminManagementListKitchenOrdersData = {
     body?: never;
     path?: never;
@@ -4695,6 +4719,60 @@ export type AdminManagementGetProductAnalyticsResponses = {
 };
 
 export type AdminManagementGetProductAnalyticsResponse = AdminManagementGetProductAnalyticsResponses[keyof AdminManagementGetProductAnalyticsResponses];
+
+export type AdminManagementSetProductAvailabilityData = {
+    body: AvailabilityUpdate;
+    path: {
+        /**
+         * Product Id
+         */
+        product_id: string;
+    };
+    query?: never;
+    url: '/admin/products/{product_id}/availability';
+};
+
+export type AdminManagementSetProductAvailabilityErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type AdminManagementSetProductAvailabilityError = AdminManagementSetProductAvailabilityErrors[keyof AdminManagementSetProductAvailabilityErrors];
+
+export type AdminManagementSetProductAvailabilityResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProductAdminResponse;
+};
+
+export type AdminManagementSetProductAvailabilityResponse = AdminManagementSetProductAvailabilityResponses[keyof AdminManagementSetProductAvailabilityResponses];
 
 export type AdminManagementUploadProductImageData = {
     body: BodyAdminManagementUploadProductImage;
@@ -7119,14 +7197,6 @@ export type ProductsGetAvailabilitySuggestionsData = {
         product_id: string;
     };
     query?: {
-        /**
-         * Quantity
-         */
-        quantity?: number;
-        /**
-         * Stock Threshold
-         */
-        stock_threshold?: number;
         /**
          * Limit
          */
