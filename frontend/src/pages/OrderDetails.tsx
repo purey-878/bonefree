@@ -2,8 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { ArrowLeft, Clock, Download, LoaderCircle, ReceiptText, X } from "lucide-react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 
-import { ApiError } from "../api/errors"
+import { ApiError, isApiErrorWithStatus } from "../api/errors"
 import Navbar from "../components/Navbar"
+import ResourceNotFound from "../components/ResourceNotFound"
 import {
   clearActiveOrder,
   readActiveOrder,
@@ -35,6 +36,7 @@ export default function OrderDetails() {
   const [order, setOrder] = useState<OrderResponse | null>(null)
   const [accessVersion, setAccessVersion] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const [notFoundOrderId, setNotFoundOrderId] = useState<number | null>(null)
   const [isCancelling, setIsCancelling] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
 
@@ -47,12 +49,14 @@ export default function OrderDetails() {
 
   const loadOrder = useCallback(async () => {
     if (!Number.isInteger(orderId) || orderId <= 0) {
+      setNotFoundOrderId(null)
       setError("Pedido inválido.")
       return
     }
     if (!guestToken && authLoading) return
     if (!guestToken && !isAuthenticated) {
       setOrder(null)
+      setNotFoundOrderId(null)
       setError("Este pedido só está disponível com a sessão do cliente ou com o acesso guest guardado neste navegador.")
       return
     }
@@ -60,6 +64,7 @@ export default function OrderDetails() {
     try {
       const loadedOrder = await checkoutService.getOrder(orderId, guestToken)
       setOrder(loadedOrder)
+      setNotFoundOrderId(null)
       setError(null)
     } catch (requestError) {
       if (
@@ -71,6 +76,12 @@ export default function OrderDetails() {
         setAccessVersion((current) => current + 1)
       }
       setOrder(null)
+      if (isApiErrorWithStatus(requestError, 404)) {
+        setNotFoundOrderId(orderId)
+        setError(null)
+        return
+      }
+      setNotFoundOrderId(null)
       setError(requestError instanceof Error ? requestError.message : "Não foi possível carregar este pedido.")
     }
   }, [authLoading, guestToken, isAuthenticated, orderId])
@@ -82,10 +93,11 @@ export default function OrderDetails() {
   }, [])
 
   useEffect(() => {
+    if (notFoundOrderId === orderId) return
     void loadOrder()
     const intervalId = window.setInterval(() => void loadOrder(), 5000)
     return () => window.clearInterval(intervalId)
-  }, [loadOrder])
+  }, [loadOrder, notFoundOrderId, orderId])
 
   const cancelOrder = async () => {
     if (!order?.canCancel) return
@@ -127,6 +139,8 @@ export default function OrderDetails() {
   }
 
   const waitingForAccess = authLoading && !guestToken
+
+  if (notFoundOrderId === orderId) return <ResourceNotFound kind="order" />
 
   return (
     <section className="order-details-page site-page">

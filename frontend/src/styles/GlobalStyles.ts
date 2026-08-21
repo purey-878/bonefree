@@ -50,6 +50,8 @@ export const GlobalStyles = createGlobalStyle`
   }
 
   #root {
+    display: flex;
+    flex-direction: column;
     width: 100%;
     max-width: 100%;
     min-height: 100vh;

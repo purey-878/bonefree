@@ -28,7 +28,9 @@ import {
 
 import "./ProductDetail.css"
 import "../theme.css"
+import { isApiErrorWithStatus } from "../api/errors"
 import Navbar from "../components/Navbar"
+import ResourceNotFound from "../components/ResourceNotFound"
 import { AddToCartButton, AvailabilityBadge, Badge, ProductCard, Skeleton, Textarea } from "../components/ui"
 import ConfirmDialog from "../components/ui/ConfirmDialog"
 import { useToast } from "../components/ui/toastContext"
@@ -167,6 +169,7 @@ export const ProductDetail = () => {
   const [customization, setCustomization] = useState<ItemCustomization>(emptyCustomization())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [notFound, setNotFound] = useState(false)
   const [quantity, setQuantity] = useState(1)
   const [addingToCart, setAddingToCart] = useState(false)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
@@ -197,10 +200,13 @@ export const ProductDetail = () => {
     const productId = id
 
     const fetchProduct = async () => {
+      let primaryProductLoaded = false
       setLoading(true)
       setError(null)
+      setNotFound(false)
       try {
         const data = await productService.getById(productId)
+        primaryProductLoaded = true
         setProduct(data)
         setCustomization(emptyCustomization())
         setQuantity(1)
@@ -267,6 +273,11 @@ export const ProductDetail = () => {
           setSelectedOrderItemId("")
         }
       } catch (fetchError) {
+        if (!primaryProductLoaded && isApiErrorWithStatus(fetchError, 404)) {
+          setProduct(null)
+          setNotFound(true)
+          return
+        }
         setError("Não foi possível carregar os detalhes do produto.")
         console.error(fetchError)
       } finally {
@@ -532,6 +543,8 @@ export const ProductDetail = () => {
       </div>
     </div>
   )
+
+  if (notFound) return <ResourceNotFound kind="product" />
 
   if (error) return (
     <div className="pd-page">

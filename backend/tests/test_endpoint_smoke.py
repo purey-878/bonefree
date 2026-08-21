@@ -222,6 +222,19 @@ class EndpointSmokeTests(unittest.TestCase):
                 )
                 self.assertEqual(response.status_code, 200, response.text)
 
+    def test_login_reports_invalid_credentials_for_customer_and_admin(self):
+        attempts = (
+            ("/login", {"email": "customer@bonefree.test", "password": "WrongPass1!"}),
+            ("/admin/login", {"email": "owner@bonefree.test", "password": "WrongPass1!"}),
+        )
+
+        for path, payload in attempts:
+            with self.subTest(path=path):
+                response = self.client.post(path, json=payload)
+                self.assertEqual(response.status_code, 401, response.text)
+                self.assertEqual(response.json()["error"], "invalid_credentials")
+                self.assertEqual(response.json()["message"], "Invalid email or password.")
+
     def test_counter_checkout_payment_receipt_and_idempotency_workflow(self):
         with self.Session() as db:
             before_product = db.get(Product, self.product_id)

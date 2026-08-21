@@ -113,7 +113,12 @@ def authenticate_customer(
     request: Request,
 ) -> tuple[Customer, str]:
     if customer is None or not verify_password(password, customer.password):
-        raise AppHTTPException(status_code=status.HTTP_401_UNAUTHORIZED, error="authentication_required", message="Authentication required.", details={"reason": "request_failed"})
+        raise AppHTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            error="invalid_credentials",
+            message="Invalid email or password.",
+            details={"reason": "invalid_credentials"},
+        )
 
     if customer.status != UserStatus.ACTIVE:
         raise AppHTTPException(status_code=status.HTTP_403_FORBIDDEN, error="permission_denied", message="Permission denied.", details={"reason": "request_failed"})
@@ -135,14 +140,24 @@ def authenticate_admin(
     request: Request,
 ) -> tuple[Admin, str]:
     if admin is None or not verify_password(password, admin.password):
-        raise AppHTTPException(status_code=status.HTTP_401_UNAUTHORIZED, error="authentication_required", message="Authentication required.", details={"reason": "request_failed"})
+        raise AppHTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            error="invalid_credentials",
+            message="Invalid email or password.",
+            details={"reason": "invalid_credentials"},
+        )
 
     if admin.status != UserStatus.ACTIVE:
         raise AppHTTPException(status_code=status.HTTP_403_FORBIDDEN, error="permission_denied", message="Permission denied.", details={"reason": "request_failed"})
 
     admin.role = normalize_user_role(admin.role)
     if not is_admin_role(admin.role):
-        raise AppHTTPException(status_code=status.HTTP_401_UNAUTHORIZED, error="authentication_required", message="Authentication required.", details={"reason": "request_failed"})
+        raise AppHTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            error="invalid_credentials",
+            message="Invalid email or password.",
+            details={"reason": "invalid_credentials"},
+        )
 
     token = create_admin_session(
         db,

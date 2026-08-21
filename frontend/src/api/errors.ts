@@ -24,6 +24,10 @@ export class ApiError extends Error {
   }
 }
 
+export function isApiErrorWithStatus(error: unknown, status: number): error is ApiError {
+  return error instanceof ApiError && error.status === status;
+}
+
 function isPayload(value: unknown): value is ErrorPayload {
   return typeof value === 'object' && value !== null;
 }

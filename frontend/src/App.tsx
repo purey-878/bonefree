@@ -23,6 +23,7 @@ import Checkout from './pages/Checkout'
 import OrderDetails from './pages/OrderDetails'
 import Profile from './pages/Profile'
 import {ProductDetail} from './pages/ProductDetail'
+import NotFound from './pages/NotFound'
 import AdminLogin from './pages/AdminLogin'
 import AdminDashboard from './pages/AdminDashboard'
 import type { AdminRole } from './types/admin'
@@ -128,6 +129,7 @@ function App() {
         <Route path="/events" element={<Events />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/product/:id" element={<ProductDetail />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
 
       {backgroundLocation && (
