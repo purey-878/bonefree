@@ -5,7 +5,7 @@ from sqlalchemy import and_, exists, or_, select
 from sqlalchemy.orm import Session, selectinload
 from database import get_db
 from schemas.enums import EntityStatus, IngredientType, ProductCustomizationOptionType
-from models import Ingredient, Product, ProductIngredient, ProductCustomizationOption
+from models import Ingredient, Media, Product, ProductIngredient, ProductCustomizationOption, ProductMedia
 from schemas import ProductResponse
 from schemas.product import ProductIngredientNutrition
 from schemas.customization import (
@@ -107,8 +107,12 @@ def _product_ingredient_nutrition(db: Session, product_id: int) -> list[ProductI
 
 @router.get('/', response_model=list[ProductResponse], operation_id="products_list_products")
 def list_products(db: Session = Depends(get_db)):
-    """Get all active products with their images."""
-    query = select(Product).where(active_product_filter()).options(selectinload(Product.images))
+    """Get all active products with their media."""
+    query = select(Product).where(active_product_filter()).options(
+        selectinload(Product.media_items)
+        .selectinload(ProductMedia.media)
+        .selectinload(Media.variants)
+    )
     products = db.scalars(query).unique().all()
     product_ids = [product.product_id for product in products]
     unavailable_base_ids = unavailable_base_product_ids(db, product_ids)
@@ -356,11 +360,15 @@ def get_product_customization(
 
 @router.get('/{product_id}', response_model=ProductResponse, operation_id="products_get_product")
 def get_product(product_id: str, db: Session = Depends(get_db)):
-    """Get a single active product by ID, including its images."""
+    """Get a single active product by ID, including its media."""
     parsed_product_id = parse_product_id(product_id)
     product = db.scalar(
         select(Product)
-        .options(selectinload(Product.images))
+        .options(
+            selectinload(Product.media_items)
+            .selectinload(ProductMedia.media)
+            .selectinload(Media.variants)
+        )
         .where(and_(Product.product_id == parsed_product_id, active_product_filter()))
         .limit(1)
     )

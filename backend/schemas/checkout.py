@@ -15,6 +15,7 @@ from schemas.enums import (
     PaymentStatus,
 )
 from .customization import ItemCustomization
+from .media import ProductMediaResponse
 from .id_types import ProductId
 from utils.validation import normalize_phone, validate_email, validate_name, validate_portuguese_tax_id
 
@@ -96,7 +97,7 @@ class OrderItemResponse(BaseModel):
     quantity: int
     subtotal: Decimal
     customization: Optional[ItemCustomization] = None
-    image: Optional[str] = None
+    media: Optional[ProductMediaResponse] = None
     calories: Optional[Decimal] = None
 
     model_config = ConfigDict(from_attributes=True)

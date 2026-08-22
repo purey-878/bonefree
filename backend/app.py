@@ -20,6 +20,7 @@ from core.exception_handlers import (
     unexpected_exception_handler,
 )
 from migrations import run_or_stamp_migrations
+from database import engine as database_engine
 from routers.admin import router as admin_router
 from routers.auth import router as auth_router
 from routers.cart import router as cart_router
@@ -30,6 +31,7 @@ from routers.reviews import router as reviews_router
 from routers.site_settings import admin_router as site_settings_admin_router
 from routers.site_settings import public_router as site_settings_public_router
 from seeds import seed_test_users
+from scripts.seed_catalog import seed_catalog_on_development_startup
 from core.email_provider import validate_email_config
 from core.redis import create_redis_client
 from schemas.errors import ApiErrorResponse, HealthResponse
@@ -73,6 +75,9 @@ def create_app(
             if run_startup_tasks:
                 run_or_stamp_migrations()
                 if settings.environment == "development":
+                    database_engine.dispose()
+                    seed_catalog_on_development_startup(uploads_root=resolved_uploads)
+                    database_engine.dispose()
                     seed_test_users()
 
                 missing_email_config = validate_email_config()

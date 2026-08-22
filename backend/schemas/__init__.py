@@ -20,6 +20,7 @@ from .customization import (
     ProductCustomizationResponse,
 )
 from .product import ProductResponse
+from .media import MediaVariantResponse, ProductMediaResponse
 from .review import (
     ProductReviewCreate,
     ProductReviewEligibilityItem,
@@ -64,6 +65,8 @@ __all__ = [
     "ProductCustomizationResponse",
     # Product schemas
     "ProductResponse",
+    "MediaVariantResponse",
+    "ProductMediaResponse",
     # Review schemas
     "ProductReviewCreate",
     "ProductReviewEligibilityItem",

@@ -9,7 +9,7 @@ import {
   adminManagementDeleteCustomer,
   adminManagementDeleteIngredient,
   adminManagementDeleteProduct,
-  adminManagementDeleteProductImage,
+  adminManagementDeleteProductMedia,
   adminManagementDeleteStaffAdmin,
   adminManagementGetAnalyticsSeries,
   adminManagementGetDashboardAnalytics,
@@ -37,7 +37,7 @@ import {
   adminManagementUpdateOrderStatus,
   adminManagementUpdateProduct,
   adminManagementUpdateStaffAdmin,
-  adminManagementUploadProductImage,
+  adminManagementUploadProductMedia,
   reviewsCreateReviewReply,
   reviewsDeleteReviewReaction,
   reviewsDeleteReviewReply,
@@ -84,6 +84,7 @@ import type {
   ReviewReply,
   SalesPerformance,
 } from '../types/admin';
+import type { ProductMedia } from '../types/product';
 
 const pathId = (value: string | number) => String(value);
 
@@ -280,9 +281,9 @@ export async function deleteCategory(categoryId: string | number): Promise<Categ
   })));
 }
 
-export type UploadedProductImage = { imagePath: string; filename: string; message: string; url: string; };
-export async function uploadProductImage(productId: string | number, file: File, replaceExisting = true): Promise<UploadedProductImage> {
-  return toDomain(await apiData(adminManagementUploadProductImage({
+export type UploadedProductMedia = { media: ProductMedia; message: string; };
+export async function uploadProductMedia(productId: string | number, file: File, replaceExisting = true): Promise<UploadedProductMedia> {
+  return toDomain(await apiData(adminManagementUploadProductMedia({
     path: { product_id: pathId(productId) },
     query: { replace_existing: replaceExisting },
     body: { file },
@@ -290,9 +291,9 @@ export async function uploadProductImage(productId: string | number, file: File,
     throwOnError: true,
   })));
 }
-export async function deleteProductImage(productId: string | number, imageId: number): Promise<void> {
-  await adminManagementDeleteProductImage({
-    path: { product_id: pathId(productId), image_id: imageId }, client: adminApiClient, throwOnError: true,
+export async function deleteProductMedia(productId: string | number, mediaId: number): Promise<void> {
+  await adminManagementDeleteProductMedia({
+    path: { product_id: pathId(productId), media_id: mediaId }, client: adminApiClient, throwOnError: true,
   });
 }
 

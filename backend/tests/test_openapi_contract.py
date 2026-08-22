@@ -112,7 +112,7 @@ class OpenApiContractTests(unittest.TestCase):
                 self.assertEqual(validation_schema.get("$ref"), "#/components/schemas/ApiErrorResponse")
 
     def test_upload_and_binary_download_media_types_are_explicit(self):
-        upload_content = self.schema["paths"]["/admin/products/{product_id}/image"]["post"]["requestBody"]["content"]
+        upload_content = self.schema["paths"]["/admin/products/{product_id}/media"]["post"]["requestBody"]["content"]
         self.assertIn("multipart/form-data", upload_content)
 
         pdf_schema = self.schema["paths"]["/checkout/orders/{order_id}/receipt.pdf"]["get"]["responses"]["200"]["content"]["application/pdf"]["schema"]

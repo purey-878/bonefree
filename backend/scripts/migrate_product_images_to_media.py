@@ -1,420 +1,370 @@
 from __future__ import annotations
 
+import argparse
 import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-from PIL import Image, ImageOps
-from sqlalchemy import inspect, select, text
-from sqlalchemy.orm import Session, joinedload
+from PIL import Image
+from sqlalchemy import delete, select
+from sqlalchemy.orm import Session, selectinload
 
 from database import SessionLocal
-from models import Media, MediaVariant, Product, ProductImage, ProductMedia
+from models import Media, MediaVariant, Product, ProductMedia
 from schemas.enums import MediaOwnerType, MediaVariantKind
-from services.media_storage import PRODUCT_MEDIA_DIR, UPLOADS_ROOT, VARIANT_SIZES, public_url_for_storage_key
-from utils.id_format import format_product_id
+from services.media_storage import PRODUCT_MEDIA_DIR, UPLOADS_ROOT, public_url_for_storage_key
 
 
-PROJECT_ROOT = BACKEND_DIR.parent
-LEGACY_MENU_IMAGES_ROOT = PROJECT_ROOT / "frontend" / "public" / "assets" / "images" / "menu-images"
-LEGACY_FRONTEND_ASSET_ROOT = PROJECT_ROOT / "frontend" / "public" / "assets"
-LEGACY_ASSET_ROOT = PROJECT_ROOT / "public" / "assets"
-LEGACY_UPLOADS_ROOT = PROJECT_ROOT / "uploads"
+PRODUCT_FOLDER_PATTERN = re.compile(r"^PRD-(\d+)$")
+FILE_SUFFIXES: dict[str, MediaVariantKind | None] = {
+    "original": None,
+    "thumb": MediaVariantKind.THUMB,
+    "card": MediaVariantKind.CARD,
+    "detail": MediaVariantKind.DETAIL,
+}
+
+
+class MediaMigrationError(RuntimeError):
+    pass
 
 
 @dataclass(frozen=True)
-class LegacyProductImage:
+class ImageFileMetadata:
+    path: Path
+    storage_key: str
+    public_url: str
+    width: int
+    height: int
+    size_bytes: int
+
+
+@dataclass(frozen=True)
+class ProductFolderMedia:
     product_id: int
-    source_id: str
-    image_path: str
-    source_label: str
-    product_name: str | None = None
-    product: Product | None = None
-    product_image: ProductImage | None = None
-    legacy_product_image_id: int | None = None
-    update_legacy_product: bool = False
-    create_product_image: bool = False
+    folder: Path
+    original: ImageFileMetadata
+    variants: dict[MediaVariantKind, ImageFileMetadata]
+
+
+@dataclass(frozen=True)
+class MigrationSummary:
+    product_folders: int
+    media: int
+    variants: int
+    product_links: int
 
 
 def _log(message: str) -> None:
     print(message, flush=True)
 
 
-def _source_path_for_public_url(public_url: str) -> Path | None:
-    candidate_paths: list[Path] = []
-
-    if public_url.startswith("/uploads/"):
-        candidate_paths.append(LEGACY_UPLOADS_ROOT / public_url.removeprefix("/uploads/"))
-    elif public_url.startswith("/assets/images/menu-images/"):
-        candidate_paths.append(LEGACY_MENU_IMAGES_ROOT / public_url.removeprefix("/assets/images/menu-images/"))
-    elif public_url.startswith("/assets/"):
-        relative_path = public_url.removeprefix("/assets/")
-        candidate_paths.append(LEGACY_FRONTEND_ASSET_ROOT / relative_path)
-        candidate_paths.append(LEGACY_ASSET_ROOT / relative_path)
-    elif public_url.startswith("/menu-images/"):
-        candidate_paths.append(LEGACY_MENU_IMAGES_ROOT / public_url.removeprefix("/menu-images/"))
-    else:
-        candidate_paths.extend(
-            [
-                LEGACY_UPLOADS_ROOT / public_url,
-                LEGACY_UPLOADS_ROOT / "images" / public_url,
-                LEGACY_MENU_IMAGES_ROOT / public_url,
-                LEGACY_FRONTEND_ASSET_ROOT / public_url,
-                LEGACY_ASSET_ROOT / public_url,
-            ]
-        )
-
-    for path in candidate_paths:
-        if path.exists():
-            return path
-
-    return None
+def _relative_storage_key(path: Path, uploads_root: Path) -> str:
+    try:
+        return path.relative_to(uploads_root).as_posix()
+    except ValueError as exc:
+        raise MediaMigrationError(f"Media file is outside uploads: {path}") from exc
 
 
-def _relative_storage_key(path: Path) -> str:
-    return path.relative_to(UPLOADS_ROOT).as_posix()
+def _metadata(path: Path, uploads_root: Path) -> ImageFileMetadata:
+    try:
+        with Image.open(path) as image:
+            width, height = image.size
+            image.verify()
+    except Exception as exc:
+        raise MediaMigrationError(f"Invalid image file: {path}") from exc
 
-
-def _safe_source_id(value: str) -> str:
-    return re.sub(r"[^A-Za-z0-9_-]+", "-", value).strip("-") or "image"
-
-
-def _webp_compatible(image: Image.Image) -> Image.Image:
-    if image.mode not in ("RGB", "RGBA"):
-        return image.convert("RGBA")
-    return image
-
-
-def _copy_original(source_path: Path, product_id: int, source_id: str) -> Path:
-    destination_dir = PRODUCT_MEDIA_DIR / format_product_id(product_id)
-    destination_dir.mkdir(parents=True, exist_ok=True)
-
-    destination = destination_dir / f"legacy-{_safe_source_id(source_id)}-original.webp"
-    if not destination.exists():
-        with Image.open(source_path) as opened_image:
-            image = _webp_compatible(ImageOps.exif_transpose(opened_image))
-            image.save(destination, "WEBP", quality=86, method=6)
-    return destination
-
-
-def _save_variant(source: Image.Image, destination: Path, kind: MediaVariantKind, size: tuple[int, int]) -> MediaVariant:
-    image = _webp_compatible(source.copy())
-    image.thumbnail(size, Image.Resampling.LANCZOS)
-
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    image.save(destination, "WEBP", quality=82, method=6)
-
-    storage_key = _relative_storage_key(destination)
-    return MediaVariant(
-        kind=kind,
+    storage_key = _relative_storage_key(path, uploads_root)
+    return ImageFileMetadata(
+        path=path,
         storage_key=storage_key,
         public_url=public_url_for_storage_key(storage_key),
-        content_type="image/webp",
-        width=image.width,
-        height=image.height,
-        size_bytes=destination.stat().st_size,
+        width=width,
+        height=height,
+        size_bytes=path.stat().st_size,
     )
 
 
-def _table_exists(db: Session, table_name: str) -> bool:
-    return inspect(db.get_bind()).has_table(table_name)
+def _single_file_for_suffix(folder: Path, suffix: str) -> Path:
+    matches = sorted(
+        path
+        for path in folder.iterdir()
+        if path.is_file() and path.name.endswith(f"-{suffix}.webp")
+    )
+    if len(matches) != 1:
+        raise MediaMigrationError(
+            f"{folder.name} must contain exactly one *-{suffix}.webp file; found {len(matches)}."
+        )
+    return matches[0]
 
 
-def _product_exists(db: Session, product_id: int) -> bool:
-    return db.scalar(select(Product.id).where(Product.id == product_id).limit(1)) is not None
+def discover_product_folders(
+    *,
+    product_media_dir: Path | None = None,
+    uploads_root: Path | None = None,
+) -> list[ProductFolderMedia]:
+    product_media_dir = product_media_dir or PRODUCT_MEDIA_DIR
+    uploads_root = uploads_root or UPLOADS_ROOT
+    if not product_media_dir.exists():
+        return []
+
+    discovered: list[ProductFolderMedia] = []
+    seen_product_ids: set[int] = set()
+    for folder in sorted(path for path in product_media_dir.iterdir() if path.is_dir()):
+        match = PRODUCT_FOLDER_PATTERN.fullmatch(folder.name)
+        if match is None:
+            continue
+
+        product_id = int(match.group(1))
+        if product_id in seen_product_ids:
+            raise MediaMigrationError(f"Duplicate product folder for product {product_id}.")
+        seen_product_ids.add(product_id)
+
+        files = {
+            suffix: _metadata(_single_file_for_suffix(folder, suffix), uploads_root)
+            for suffix in FILE_SUFFIXES
+        }
+        discovered.append(
+            ProductFolderMedia(
+                product_id=product_id,
+                folder=folder,
+                original=files["original"],
+                variants={
+                    variant_kind: files[suffix]
+                    for suffix, variant_kind in FILE_SUFFIXES.items()
+                    if variant_kind is not None
+                },
+            )
+        )
+
+    return discovered
 
 
-def _already_migrated(db: Session, product_id: int, source_id: str) -> bool:
-    storage_key_pattern = f"products/{format_product_id(product_id)}/legacy-{_safe_source_id(source_id)}-original%"
-    return db.scalar(select(Media.id).where(Media.storage_key.like(storage_key_pattern)).limit(1)) is not None
-
-
-def _resolved_source_key(image_path: str) -> str | None:
-    source_path = _source_path_for_public_url(image_path)
-    if source_path is None:
-        return None
-    try:
-        return str(source_path.resolve())
-    except OSError:
-        return str(source_path)
-
-
-def _legacy_file_image_path(path: Path) -> str:
-    return f"/assets/images/menu-images/{path.name}"
-
-
-def _legacy_product_names(db: Session) -> dict[int, str | None]:
-    if not _table_exists(db, "produto"):
+def _load_products(db: Session, product_ids: set[int]) -> dict[int, Product]:
+    if not product_ids:
         return {}
-    rows = db.execute(text("SELECT id_produto, nome FROM produto ORDER BY id_produto")).mappings().all()
-    return {int(row["id_produto"]): row["nome"] for row in rows}
+    products = db.scalars(select(Product).where(Product.id.in_(product_ids))).all()
+    return {product.id: product for product in products}
 
 
-def _legacy_product_images(db: Session) -> list[LegacyProductImage]:
-    legacy_images: list[LegacyProductImage] = []
-    seen_sources: set[tuple[int, str]] = set()
-    legacy_names = _legacy_product_names(db)
-
-    product_images = db.scalars(
-        select(ProductImage)
-        .options(joinedload(ProductImage.product))
-        .join(Product, Product.id == ProductImage.product_id)
-        .order_by(ProductImage.product_id.asc(), ProductImage.id.asc())
-    ).all()
-
-    for image in product_images:
-        legacy_images.append(
-            LegacyProductImage(
-                product_id=image.product_id,
-                source_id=f"product-image-{image.id}",
-                image_path=image.image_path,
-                source_label=f"product_image {image.id}",
-                product_name=image.product.name if image.product else legacy_names.get(image.product_id),
-                product=image.product,
-                product_image=image,
-            )
-        )
-        source_key = _resolved_source_key(image.image_path)
-        if source_key is not None:
-            seen_sources.add((image.product_id, source_key))
-
-    products = db.scalars(select(Product).order_by(Product.id.asc())).all()
-    product_map = {product.id: product for product in products}
-    for product in products:
-        if product.image:
-            source_key = _resolved_source_key(product.image)
-            if source_key is not None and (product.id, source_key) not in seen_sources:
-                legacy_images.append(
-                    LegacyProductImage(
-                        product_id=product.id,
-                        source_id=f"product-{product.id}-image",
-                        image_path=product.image,
-                        source_label="product.image",
-                        product_name=product.name,
-                        product=product,
-                        create_product_image=True,
-                    )
-                )
-                seen_sources.add((product.id, source_key))
-
-    if _table_exists(db, "imagem_produto"):
-        rows = db.execute(
-            text(
-                "SELECT id_imagem, id_produto, caminho_imagem "
-                "FROM imagem_produto "
-                "ORDER BY id_produto, id_imagem"
-            )
-        ).mappings().all()
-        for row in rows:
-            product_id = int(row["id_produto"])
-            image_path = row["caminho_imagem"]
-            source_key = _resolved_source_key(image_path)
-            if source_key is not None:
-                if (product_id, source_key) in seen_sources:
-                    continue
-                seen_sources.add((product_id, source_key))
-            image_id = int(row["id_imagem"])
-            product = product_map.get(product_id)
-            legacy_images.append(
-                LegacyProductImage(
-                    product_id=product_id,
-                    source_id=f"legacy-product-image-{image_id}",
-                    image_path=image_path,
-                    source_label=f"imagem_produto {image_id}",
-                    product_name=product.name if product else legacy_names.get(product_id),
-                    product=product,
-                    legacy_product_image_id=image_id,
-                    create_product_image=product is not None,
-                )
-            )
-
-    if _table_exists(db, "produto"):
-        rows = db.execute(
-            text(
-                "SELECT id_produto, nome, imagem "
-                "FROM produto "
-                "WHERE imagem IS NOT NULL AND imagem != '' "
-                "ORDER BY id_produto"
-            )
-        ).mappings().all()
-        for row in rows:
-            product_id = int(row["id_produto"])
-            image_path = row["imagem"]
-            source_key = _resolved_source_key(image_path)
-            if source_key is not None:
-                if (product_id, source_key) in seen_sources:
-                    continue
-                seen_sources.add((product_id, source_key))
-            product = product_map.get(product_id)
-            legacy_images.append(
-                LegacyProductImage(
-                    product_id=product_id,
-                    source_id=f"legacy-product-{product_id}-image",
-                    image_path=image_path,
-                    source_label="produto.imagem",
-                    product_name=product.name if product else row["nome"],
-                    product=product,
-                    update_legacy_product=True,
-                    create_product_image=product is not None,
-                )
-            )
-
-    file_product_ids = sorted(set(product_map) | set(legacy_names))
-    for product_id in file_product_ids:
-        for source_path in sorted(LEGACY_MENU_IMAGES_ROOT.glob(f"{format_product_id(product_id)}*")):
-            if not source_path.is_file():
-                continue
-            try:
-                source_key = str(source_path.resolve())
-            except OSError:
-                source_key = str(source_path)
-            if (product_id, source_key) in seen_sources:
-                continue
-            product = product_map.get(product_id)
-            legacy_images.append(
-                LegacyProductImage(
-                    product_id=product_id,
-                    source_id=f"legacy-product-{product_id}-file-{source_path.stem}",
-                    image_path=_legacy_file_image_path(source_path),
-                    source_label="legacy file",
-                    product_name=product.name if product else legacy_names.get(product_id),
-                    product=product,
-                    update_legacy_product=product is None,
-                    create_product_image=product is not None,
-                )
-            )
-            seen_sources.add((product_id, source_key))
-
-    return legacy_images
+def _validate_products_exist(db: Session, folders: list[ProductFolderMedia]) -> dict[int, Product]:
+    product_ids = {folder.product_id for folder in folders}
+    products = _load_products(db, product_ids)
+    missing_ids = sorted(product_ids - set(products))
+    if missing_ids:
+        formatted = ", ".join(str(product_id) for product_id in missing_ids)
+        raise MediaMigrationError(f"Upload folders have no matching product: {formatted}.")
+    return products
 
 
-def _update_legacy_tables(db: Session, image: LegacyProductImage, migrated_public_url: str) -> None:
-    if image.legacy_product_image_id is not None and _table_exists(db, "imagem_produto"):
-        db.execute(
-            text("UPDATE imagem_produto SET caminho_imagem = :image_path WHERE id_imagem = :image_id"),
-            {"image_path": migrated_public_url, "image_id": image.legacy_product_image_id},
-        )
-    if image.update_legacy_product and _table_exists(db, "produto"):
-        db.execute(
-            text("UPDATE produto SET imagem = :image_path WHERE id_produto = :product_id"),
-            {"image_path": migrated_public_url, "product_id": image.product_id},
-        )
+def _apply_file_metadata(media: Media, metadata: ImageFileMetadata) -> None:
+    media.owner_type = MediaOwnerType.PRODUCT
+    media.original_filename = metadata.path.name
+    media.content_type = "image/webp"
+    media.storage_key = metadata.storage_key
+    media.public_url = metadata.public_url
+    media.width = metadata.width
+    media.height = metadata.height
+    media.size_bytes = metadata.size_bytes
 
 
-def migrate_product_images_to_media() -> None:
-    _log("Starting product image migration.")
-    _log(f"Backend directory: {BACKEND_DIR}")
-    _log(f"Project root: {PROJECT_ROOT}")
-    _log(f"Legacy menu images root: {LEGACY_MENU_IMAGES_ROOT}")
-    _log(f"Legacy uploads root: {LEGACY_UPLOADS_ROOT}")
-    _log(f"Destination product media directory: {PRODUCT_MEDIA_DIR}")
+def _apply_variant_metadata(variant: MediaVariant, kind: MediaVariantKind, metadata: ImageFileMetadata) -> None:
+    variant.kind = kind
+    variant.storage_key = metadata.storage_key
+    variant.public_url = metadata.public_url
+    variant.content_type = "image/webp"
+    variant.width = metadata.width
+    variant.height = metadata.height
+    variant.size_bytes = metadata.size_bytes
 
-    db = SessionLocal()
-    try:
-        _log("Loading legacy product images from database and filesystem...")
-        images = _legacy_product_images(db)
 
-        total = len(images)
-        _log(f"Found {total} legacy product images.")
+def _reconcile_database(db: Session, folders: list[ProductFolderMedia]) -> MigrationSummary:
+    products = _validate_products_exist(db, folders)
+    expected_original_keys = {folder.original.storage_key for folder in folders}
 
-        migrated = 0
-        skipped = 0
+    existing_media = (
+        db.scalars(
+            select(Media)
+            .options(selectinload(Media.variants), selectinload(Media.product_links))
+            .where(Media.storage_key.in_(expected_original_keys))
+        ).unique().all()
+        if expected_original_keys
+        else []
+    )
+    media_by_storage_key = {media.storage_key: media for media in existing_media}
 
-        for index, image in enumerate(images, start=1):
-            prefix = f"[{index}/{total}] {image.source_label} product {image.product_id}"
-            _log(f"{prefix}: processing {image.image_path}")
-
-            if _already_migrated(db, image.product_id, image.source_id):
-                skipped += 1
-                _log(f"{prefix}: skipped because it was already migrated.")
-                continue
-
-            source_path = _source_path_for_public_url(image.image_path)
-            if source_path is None:
-                skipped += 1
-                _log(f"{prefix}: skipped missing source: {image.image_path}")
-                continue
-
-            _log(f"{prefix}: source found at {source_path}")
-
-            original_path = _copy_original(source_path, image.product_id, image.source_id)
-            storage_key = _relative_storage_key(original_path)
-            _log(f"{prefix}: original copied to {original_path}")
-
-            try:
-                _log(f"{prefix}: opening image and generating variants...")
-                with Image.open(original_path) as opened_image:
-                    source = ImageOps.exif_transpose(opened_image)
-                    width, height = source.size
-                    variants = []
-                    safe_source_id = _safe_source_id(image.source_id)
-                    for kind, size in VARIANT_SIZES.items():
-                        variant_path = original_path.parent / f"legacy-{safe_source_id}-{kind.value}.webp"
-                        _log(f"{prefix}: generating {kind.value} variant at {variant_path}")
-                        variants.append(_save_variant(source, variant_path, kind, size))
-            except Exception as exc:
-                skipped += 1
-                _log(f"{prefix}: skipped invalid image: {exc}")
-                continue
-
-            original_public_url = public_url_for_storage_key(storage_key)
-            card_variant = next((variant for variant in variants if variant.kind == MediaVariantKind.CARD), None)
-            migrated_public_url = card_variant.public_url if card_variant else original_public_url
-
-            _log(f"{prefix}: creating Media records...")
+    expected_media_ids: set[int] = set()
+    expected_links: set[tuple[int, int]] = set()
+    for folder in folders:
+        media = media_by_storage_key.get(folder.original.storage_key)
+        if media is None:
             media = Media(
                 owner_type=MediaOwnerType.PRODUCT,
-                original_filename=source_path.name,
+                original_filename=folder.original.path.name,
                 content_type="image/webp",
-                storage_key=storage_key,
-                public_url=original_public_url,
-                width=width,
-                height=height,
-                size_bytes=original_path.stat().st_size,
-                variants=variants,
+                storage_key=folder.original.storage_key,
+                public_url=folder.original.public_url,
+                width=folder.original.width,
+                height=folder.original.height,
+                size_bytes=folder.original.size_bytes,
             )
             db.add(media)
             db.flush()
+            media_by_storage_key[folder.original.storage_key] = media
+        else:
+            _apply_file_metadata(media, folder.original)
 
-            if _product_exists(db, image.product_id):
-                db.add(
-                    ProductMedia(
-                        product_id=image.product_id,
-                        media_id=media.id,
-                        sort_order=0,
-                        alt_text=image.product_name,
-                        is_primary=True,
-                    )
-                )
-                if image.product_image is not None:
-                    image.product_image.image_path = migrated_public_url
-                elif image.create_product_image:
-                    db.add(ProductImage(product_id=image.product_id, image_path=migrated_public_url))
-                if image.product is not None and (image.product.image == image.image_path or not image.product.image):
-                    image.product.image = migrated_public_url
-            else:
-                _log(f"{prefix}: product table has no matching product; skipped ProductMedia link.")
+        variants_by_kind = {variant.kind: variant for variant in media.variants}
+        for kind, metadata in folder.variants.items():
+            variant = variants_by_kind.get(kind)
+            if variant is None:
+                variant = MediaVariant(media_id=media.id, kind=kind)
+                db.add(variant)
+            _apply_variant_metadata(variant, kind, metadata)
 
-            _update_legacy_tables(db, image, migrated_public_url)
-            migrated += 1
-            _log(f"{prefix}: migrated to {migrated_public_url}")
+        for variant in [item for item in media.variants if item.kind not in folder.variants]:
+            db.delete(variant)
 
-        _log("Committing migration changes...")
-        db.commit()
-        _log(f"Migration completed. Migrated {migrated} product images to media. Skipped {skipped}.")
+        expected_media_ids.add(media.id)
+        expected_links.add((folder.product_id, media.id))
+
+        link = next(
+            (item for item in media.product_links if item.product_id == folder.product_id),
+            None,
+        )
+        if link is None:
+            link = ProductMedia(product_id=folder.product_id, media_id=media.id)
+            db.add(link)
+        link.sort_order = 0
+        link.alt_text = products[folder.product_id].name
+        link.is_primary = True
+
+    all_links = db.scalars(select(ProductMedia)).all()
+    for link in all_links:
+        if (link.product_id, link.media_id) not in expected_links:
+            db.delete(link)
+
+    db.flush()
+    stale_media_statement = select(Media.id).where(Media.owner_type == MediaOwnerType.PRODUCT)
+    if expected_media_ids:
+        stale_media_statement = stale_media_statement.where(Media.id.not_in(expected_media_ids))
+    stale_media_ids = list(db.scalars(stale_media_statement).all())
+    if stale_media_ids:
+        db.execute(delete(MediaVariant).where(MediaVariant.media_id.in_(stale_media_ids)))
+        db.execute(delete(Media).where(Media.id.in_(stale_media_ids)))
+
+    return MigrationSummary(
+        product_folders=len(folders),
+        media=len(folders),
+        variants=len(folders) * 3,
+        product_links=len(folders),
+    )
+
+
+def _audit_database(db: Session, folders: list[ProductFolderMedia]) -> MigrationSummary:
+    _validate_products_exist(db, folders)
+    expected_original_keys = {folder.original.storage_key for folder in folders}
+    media_rows = db.scalars(
+        select(Media)
+        .options(selectinload(Media.variants), selectinload(Media.product_links))
+        .where(Media.owner_type == MediaOwnerType.PRODUCT)
+    ).unique().all()
+    media_by_key = {media.storage_key: media for media in media_rows}
+
+    if set(media_by_key) != expected_original_keys:
+        missing = sorted(expected_original_keys - set(media_by_key))
+        unexpected = sorted(set(media_by_key) - expected_original_keys)
+        raise MediaMigrationError(
+            f"Media storage keys do not match uploads; missing={missing}, unexpected={unexpected}."
+        )
+
+    for folder in folders:
+        media = media_by_key[folder.original.storage_key]
+        expected_variants = {
+            kind: metadata.storage_key
+            for kind, metadata in folder.variants.items()
+        }
+        actual_variants = {variant.kind: variant.storage_key for variant in media.variants}
+        if actual_variants != expected_variants:
+            raise MediaMigrationError(f"Variant records do not match files for {folder.folder.name}.")
+
+        matching_links = [
+            link
+            for link in media.product_links
+            if link.product_id == folder.product_id
+        ]
+        if len(matching_links) != 1:
+            raise MediaMigrationError(f"Expected one product link for {folder.folder.name}.")
+        link = matching_links[0]
+        if link.sort_order != 0 or not link.is_primary:
+            raise MediaMigrationError(f"Invalid primary media link for {folder.folder.name}.")
+
+    all_links = db.scalars(select(ProductMedia)).all()
+    if len(all_links) != len(folders):
+        raise MediaMigrationError("ProductMedia rows do not match upload folders.")
+
+    return MigrationSummary(
+        product_folders=len(folders),
+        media=len(media_rows),
+        variants=sum(len(media.variants) for media in media_rows),
+        product_links=len(all_links),
+    )
+
+
+def migrate_product_images_to_media(
+    *,
+    apply: bool,
+    product_media_dir: Path | None = None,
+    uploads_root: Path | None = None,
+    session_factory: Callable[[], Session] | None = None,
+) -> MigrationSummary:
+    product_media_dir = product_media_dir or PRODUCT_MEDIA_DIR
+    uploads_root = uploads_root or UPLOADS_ROOT
+    session_factory = session_factory or SessionLocal
+    folders = discover_product_folders(
+        product_media_dir=product_media_dir,
+        uploads_root=uploads_root,
+    )
+    _log(f"Discovered {len(folders)} product media folders in {product_media_dir}.")
+
+    db = session_factory()
+    try:
+        if apply:
+            summary = _reconcile_database(db, folders)
+            db.commit()
+            _log("Media database records reconciled successfully.")
+        else:
+            summary = _audit_database(db, folders)
+            _log("Media database records match the upload folders.")
+        return summary
     except Exception:
-        _log("Migration failed. Rolling back database changes...")
         db.rollback()
         raise
     finally:
         db.close()
-        _log("Database session closed.")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Register product Media records from existing uploads without changing files."
+    )
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--check", action="store_true", help="Validate files and database without writing.")
+    mode.add_argument("--apply", action="store_true", help="Create or repair Media database records.")
+    args = parser.parse_args()
+
+    summary = migrate_product_images_to_media(apply=args.apply)
+    _log(
+        "Summary: "
+        f"folders={summary.product_folders}, media={summary.media}, "
+        f"variants={summary.variants}, product_links={summary.product_links}."
+    )
 
 
 if __name__ == "__main__":
-    migrate_product_images_to_media()
+    main()

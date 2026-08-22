@@ -1,5 +1,29 @@
 export type EntityStatus = 'active' | 'inactive';
 export type IngredientType = 'normal' | 'sauce' | 'extra' | 'drink' | 'base' | 'side';
+export type MediaVariantKind = 'thumb' | 'card' | 'detail';
+
+export interface MediaVariant {
+  kind: MediaVariantKind;
+  url: string;
+  contentType: string;
+  width: number;
+  height: number;
+  sizeBytes?: number | null;
+}
+
+export interface ProductMedia {
+  mediaId: number;
+  sortOrder: number;
+  altText?: string | null;
+  isPrimary: boolean;
+  originalUrl: string;
+  originalFilename?: string | null;
+  contentType: string;
+  width?: number | null;
+  height?: number | null;
+  sizeBytes?: number | null;
+  variants: MediaVariant[];
+}
 
 export interface Product {
   id: number;
@@ -7,8 +31,7 @@ export interface Product {
   category: string;
   name: string;
   description: string | null;
-  image: string | null;
-  images?: string[];
+  media: ProductMedia[];
   price: number | null;
   originalPrice?: number | null;
   discountPercent?: number;

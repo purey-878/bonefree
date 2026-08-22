@@ -46,7 +46,7 @@ from schemas.enums import (
 
 BACKEND = Path(__file__).resolve().parents[1]
 RESET_REVISION = "c4a8f2e1d9b7"
-HEAD_REVISION = "a2f4c6d8e901"
+HEAD_REVISION = "b6d8f0a2c4e7"
 PRE_RESET_REVISION = "9b2f4d1a7c8e"
 CLEARED_TABLES = (
     "review_reactions",
@@ -83,14 +83,20 @@ class ProductionResetMigrationTests(unittest.TestCase):
             "AUTO_APPLY_MIGRATIONS": "false",
             "DATABASE_URL": database_url or self.database_url,
         })
-        return subprocess.run(
+        result = subprocess.run(
             [sys.executable, "-m", "alembic", "-c", "alembic.ini", "upgrade", revision],
             cwd=BACKEND,
             env=environment,
-            check=check,
+            check=False,
             capture_output=True,
             text=True,
         )
+        if check and result.returncode:
+            self.fail(
+                f"Alembic upgrade to {revision} failed.\n"
+                f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+            )
+        return result
 
     def _create_pre_reset_database(self, *, email_collision: bool = False) -> None:
         self._upgrade(PRE_RESET_REVISION)

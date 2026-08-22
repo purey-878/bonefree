@@ -19,6 +19,7 @@ from schemas.enums import (
     normalize_admin_role,
 )
 from .id_types import CategoryId, ProductId
+from .media import ProductMediaResponse
 
 ORDER_STATES = set(enum_values(OrderState))
 KITCHEN_ORDER_STATES = {
@@ -281,19 +282,9 @@ class ProductUpdate(BaseModel):
         return ", ".join(tags) or None
 
 
-class ProductImageResponse(BaseModel):
-    """Response model for product image."""
-    image_id: int
-    image_path: str
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class ProductImageUploadResponse(BaseModel):
+class ProductMediaUploadResponse(BaseModel):
     message: str
-    filename: str
-    url: str
-    image_path: str
+    media: ProductMediaResponse
 
 
 class ProductAdminResponse(BaseModel):
@@ -318,7 +309,7 @@ class ProductAdminResponse(BaseModel):
     contains_alcohol: bool = False
     total_calories: Optional[float] = None
     deleted_at: Optional[datetime]
-    images: Optional[List[ProductImageResponse]] = []
+    media: List[ProductMediaResponse] = Field(default_factory=list)
     ingredients: List[ProductIngredientResponse] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)

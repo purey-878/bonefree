@@ -29,6 +29,7 @@ import { applyApiImageFallback, resolveProductImageUrl } from "../utils/imageFal
 import { validateEmail, validateName, validateNif, validatePhone } from "../utils/validation"
 import type { FieldErrors } from "../utils/validation"
 import { formatEuro } from "../utils/money"
+import { primaryProductMediaUrl, productMediaUrl } from "../utils/productMedia"
 import "./Checkout.css"
 
 interface CheckoutForm {
@@ -617,7 +618,7 @@ function Checkout() {
                         return (
                           <div key={`${item.cartProductId}-${item.productId}`} className="confirmation-item confirmation-item-premium">
                             <img
-                              src={imageForItem(item.imagePath)}
+                              src={imageForItem(productMediaUrl(item.media, "thumb"))}
                               alt=""
                               onError={(event) => {
                                 applyApiImageFallback(event.currentTarget)
@@ -811,7 +812,7 @@ function Checkout() {
                 const busy = upsellBusyId === product.id
                 return (
                   <article key={product.id} className="checkout-upsell-item">
-                    <img src={checkoutImageUrl(product.image)} alt="" onError={(event) => applyApiImageFallback(event.currentTarget)} />
+                    <img src={checkoutImageUrl(primaryProductMediaUrl(product.media, "thumb"))} alt="" onError={(event) => applyApiImageFallback(event.currentTarget)} />
                     <div>
                       <span>{label}</span>
                       <strong>{product.name}</strong>
@@ -1046,7 +1047,7 @@ function Checkout() {
                     const busy = cartBusyKey === `${item.cartProductId}-${item.productId}`
                     return (
                       <div key={`${item.cartProductId}-${item.productId}`} className="checkout-summary-item checkout-summary-item-detailed checkout-mini-cart-item">
-                        <img src={checkoutImageUrl(item.imagePath)} alt={item.name} onError={(event) => applyApiImageFallback(event.currentTarget)} />
+                        <img src={checkoutImageUrl(productMediaUrl(item.media, "thumb"))} alt={item.name} onError={(event) => applyApiImageFallback(event.currentTarget)} />
                         <div className="checkout-mini-cart-copy">
                           <span>
                             {item.name}

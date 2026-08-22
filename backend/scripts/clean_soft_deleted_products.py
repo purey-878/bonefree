@@ -20,7 +20,6 @@ from models import (
     OrderProduct,
     Product,
     ProductCustomizationOption,
-    ProductImage,
     ProductIngredient,
     ProductMedia,
     ProductReview,
@@ -81,28 +80,24 @@ def clean_soft_deleted_products(*, apply: bool, delete_files: bool) -> None:
             product_id for product_id in product_ids if product_id not in set(blocked_product_ids)
         ]
 
-        product_image_count = _count(db, ProductImage, ProductImage.product_id.in_(deletable_product_ids)) if deletable_product_ids else 0
         product_ingredient_count = _count(db, ProductIngredient, ProductIngredient.product_id.in_(deletable_product_ids)) if deletable_product_ids else 0
         product_option_ids = _ids(db, select(ProductCustomizationOption.id).where(ProductCustomizationOption.product_id.in_(deletable_product_ids))) if deletable_product_ids else []
         cart_product_ids = _ids(db, select(CartProduct.id).where(CartProduct.product_id.in_(deletable_product_ids))) if deletable_product_ids else []
         product_review_ids = _ids(db, select(ProductReview.id).where(ProductReview.product_id.in_(deletable_product_ids))) if deletable_product_ids else []
         product_media_ids = _ids(db, select(ProductMedia.media_id).where(ProductMedia.product_id.in_(deletable_product_ids))) if deletable_product_ids else []
-        orphan_media_ids = [
-            media_id
-            for media_id in product_media_ids
-            if _count(
-                db,
-                ProductMedia,
-                ProductMedia.media_id == media_id,
+        shared_media_ids = set(_ids(
+            db,
+            select(ProductMedia.media_id).where(
+                ProductMedia.media_id.in_(product_media_ids),
                 ProductMedia.product_id.not_in(deletable_product_ids),
-            ) == 0
-        ]
+            ),
+        )) if product_media_ids else set()
+        orphan_media_ids = sorted(set(product_media_ids) - shared_media_ids)
 
         _log(f"Soft-deleted products found: {len(product_ids)}")
         _log(f"Products eligible for hard delete: {len(deletable_product_ids)}")
         if blocked_product_ids:
             _log(f"Products skipped because they have order history: {len(blocked_product_ids)}")
-        _log(f"Product images to delete: {product_image_count}")
         _log(f"Product ingredient links to delete: {product_ingredient_count}")
         _log(f"Product customization options to delete: {len(product_option_ids)}")
         _log(f"Cart items to delete: {len(cart_product_ids)}")
@@ -135,7 +130,6 @@ def clean_soft_deleted_products(*, apply: bool, delete_files: bool) -> None:
             db.execute(delete(CartProductCustomization).where(CartProductCustomization.option_id.in_(product_option_ids)))
             db.execute(delete(ProductCustomizationOption).where(ProductCustomizationOption.id.in_(product_option_ids)))
 
-        db.execute(delete(ProductImage).where(ProductImage.product_id.in_(deletable_product_ids)))
         db.execute(delete(ProductIngredient).where(ProductIngredient.product_id.in_(deletable_product_ids)))
         db.execute(delete(ProductMedia).where(ProductMedia.product_id.in_(deletable_product_ids)))
 

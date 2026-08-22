@@ -47,6 +47,7 @@ import type {
 import type { ItemCustomization, ProductCustomizationOptions } from "../types/cart"
 import { applyApiImageFallback, productImageFallback, resolveProductImageUrl } from "../utils/imageFallback"
 import { formatEuro } from "../utils/money"
+import { productMediaUrl } from "../utils/productMedia"
 
 type GalleryImage = {
   alt: string
@@ -506,7 +507,7 @@ export const ProductDetail = () => {
       category: suggestion.category,
       name: suggestion.name,
       description: suggestion.reason,
-      image: suggestionProduct?.image ?? null,
+      media: suggestionProduct?.media ?? [],
       price,
       available: true,
       customizable: suggestionProduct?.customizable ?? false,
@@ -523,7 +524,7 @@ export const ProductDetail = () => {
 
   const galleryImages = useMemo<GalleryImage[]>(() => {
     if (!product) return []
-    const sources = product.images?.length ? product.images : [product.image]
+    const sources = product.media.map((media) => productMediaUrl(media, "detail"))
     return sources
       .filter((src): src is string => typeof src === "string")
       .map(src => getImage(src))

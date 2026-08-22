@@ -5,7 +5,7 @@ from enum import StrEnum
 from decimal import Decimal
 from typing import List
 
-from sqlalchemy import Boolean, DateTime, Enum as SAEnum, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, Enum as SAEnum, ForeignKey, Index, Integer, Numeric, String, Text, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship, synonym
 
 from database import Base
@@ -146,7 +146,6 @@ class Product(AppBaseModel):
     category_id: Mapped[int] = mapped_column(Integer, ForeignKey('category.id'), nullable=False)
     admin_id: Mapped[int] = mapped_column(Integer, ForeignKey('user.id'), nullable=False, index=True)
     sold: Mapped[int] = mapped_column(Integer, nullable=True)
-    image: Mapped[str] = mapped_column(String(255), nullable=True)
     status: Mapped[EntityStatus] = mapped_column(
         SAEnum(EntityStatus, values_callable=enum_values),
         default=EntityStatus.ACTIVE,
@@ -168,9 +167,13 @@ class Product(AppBaseModel):
 
     admin: Mapped["User"] = relationship("User")
     category: Mapped[Category] = relationship('Category', lazy='joined')
-    # Parent-side 0..N: a product may exist without any uploaded images.
-    images: Mapped[List[ProductImage]] = relationship('ProductImage', back_populates='product', lazy='selectin')
-    media_items: Mapped[List["ProductMedia"]] = relationship("ProductMedia", back_populates="product", lazy="selectin")
+    media_items: Mapped[List["ProductMedia"]] = relationship(
+        "ProductMedia",
+        back_populates="product",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        order_by=lambda: (ProductMedia.sort_order, ProductMedia.id),
+    )
     # Parent-side 0..N: a product may exist without any customer reviews.
     reviews: Mapped[List[ProductReview]] = relationship("ProductReview", back_populates="product")
 
@@ -183,17 +186,6 @@ class Product(AppBaseModel):
     @property
     def category_display_id(self) -> str:
         return format_category_id(self.category_id)
-
-
-class ProductImage(AppBaseModel):
-    __tablename__ = 'product_image'
-
-    image_id = synonym("id")
-
-    product_id: Mapped[int] = mapped_column(Integer, ForeignKey('product.id'), nullable=False)
-    image_path: Mapped[str] = mapped_column(String(255), nullable=False)
-
-    product: Mapped[Product] = relationship("Product", back_populates="images")
 
 
 class Media(AppBaseModel):
@@ -254,6 +246,19 @@ class ProductMedia(AppBaseModel):
     __tablename__ = "product_media"
     __table_args__ = (
         UniqueConstraint("product_id", "media_id", name="uq_product_media_product_media"),
+        Index(
+            "uq_product_media_product_sort_order",
+            "product_id",
+            "sort_order",
+            unique=True,
+        ),
+        Index(
+            "uq_product_media_primary_per_product",
+            "product_id",
+            unique=True,
+            sqlite_where=text("is_primary = 1"),
+            postgresql_where=text("is_primary"),
+        ),
     )
 
     product_media_id = synonym("id")

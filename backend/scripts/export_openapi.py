@@ -24,6 +24,10 @@ FORBIDDEN_SCHEMA_PROPERTIES = {
     "por_ano",
     "order_numbers",
     "observacoes",
+    "image",
+    "images",
+    "image_id",
+    "image_path",
 }
 
 
@@ -129,13 +133,13 @@ def _validate_schema(schema: dict[str, Any]) -> None:
 
     upload_content = (
         schema.get("paths", {})
-        .get("/admin/products/{product_id}/image", {})
+        .get("/admin/products/{product_id}/media", {})
         .get("post", {})
         .get("requestBody", {})
         .get("content", {})
     )
     if "multipart/form-data" not in upload_content:
-        raise RuntimeError("Product image upload must document multipart/form-data")
+        raise RuntimeError("Product media upload must document multipart/form-data")
 
 
 def main() -> None:

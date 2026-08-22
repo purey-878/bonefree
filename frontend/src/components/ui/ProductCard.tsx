@@ -10,12 +10,14 @@ import { AddToCartButton } from './Button'
 import { AvailabilityBadge, Badge } from './Badge'
 import { applyApiImageFallback, productImageFallback, resolveProductImageUrl } from '../../utils/imageFallback'
 import { formatEuro } from '../../utils/money'
+import { primaryProductMediaUrl } from '../../utils/productMedia'
+import type { ProductMedia as ProductMediaItem } from '../../types/product'
 
 export type ProductCardProduct = {
   category: string
   description?: string | null
   id: string | number
-  image?: string | null
+  media?: ProductMediaItem[]
   name: string
   price?: number | null
   originalPrice?: number | null
@@ -390,7 +392,7 @@ export function ProductCard({
   const unavailable = product.available === false
   const baseUnavailable = Boolean(product.unavailableDueToUnavailableBase)
   const dimUnavailable = unavailable && !baseUnavailable
-  const imageSrc = resolveImageSrc(product.image)
+  const imageSrc = resolveImageSrc(primaryProductMediaUrl(product.media, 'card'))
   const discountPercent = Number(product.discountPercent ?? 0)
   const showDiscount =
     discountPercent > 0 &&

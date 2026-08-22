@@ -9,6 +9,7 @@ import { customizationSummary, hasUnavailableCartItems } from "../services"
 import type { CartItem, GuestCartItem, ItemCustomization } from "../types/cart"
 import { applyApiImageFallback, resolveProductImageUrl } from "../utils/imageFallback"
 import { formatEuro } from "../utils/money"
+import { productMediaUrl } from "../utils/productMedia"
 
 function isCartItem(item: CartItem | GuestCartItem): item is CartItem {
   return "name" in item
@@ -138,7 +139,7 @@ function Cart({ overlay = false }: CartProps) {
                       name: item.name,
                       price: Number(item.price),
                       quantity: item.quantity,
-                      image: item.imagePath,
+                      image: productMediaUrl(item.media, "thumb"),
                       available: item.available,
                       unavailableReason: item.unavailableReason,
                       cartLogId: item.cartProductId,

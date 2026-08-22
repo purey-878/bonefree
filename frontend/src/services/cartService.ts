@@ -302,7 +302,7 @@ export const cartService = {
           quantity: item.quantity,
           available: product.available,
           unavailableReason: product.unavailableReason,
-          imagePath: product.image,
+          media: product.media.find((media) => media.isPrimary) ?? product.media[0] ?? null,
           customization: normalizeCustomization(item.customization),
           subtotal: unitPrice * item.quantity,
         }];

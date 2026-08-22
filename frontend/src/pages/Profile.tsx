@@ -53,6 +53,7 @@ import {
 } from "../utils/validation"
 import type { FieldErrors } from "../utils/validation"
 import { formatEuro } from "../utils/money"
+import { primaryProductMediaUrl, productMediaUrl } from "../utils/productMedia"
 import "./Profile.css"
 
 interface ProfileForm {
@@ -1117,7 +1118,8 @@ function OrderTimelineCard({
               </div>
               {order.items.map((item, index) => {
                 const product = productsById[item.productId]
-                const productImage = item.image ?? product?.image
+                const productImage = productMediaUrl(item.media, "thumb")
+                  ?? primaryProductMediaUrl(product?.media, "thumb")
                 const customizationLines = customizationSummary(item.customization)
                 const itemKey = `${order.orderId}-${item.productId}-${index}`
                 return (
@@ -1189,7 +1191,12 @@ function OrderTimelineCard({
               const product = productsById[item.productId]
               return (
                 <span key={`${order.orderId}-${item.productId}-${index}`}>
-                  {product?.image ? <img src={resolveImage(product.image)} alt="" /> : item.productName.charAt(0)}
+                  {productMediaUrl(item.media, "thumb") ?? primaryProductMediaUrl(product?.media, "thumb") ? (
+                    <img
+                      src={resolveImage(productMediaUrl(item.media, "thumb") ?? primaryProductMediaUrl(product?.media, "thumb"))}
+                      alt=""
+                    />
+                  ) : item.productName.charAt(0)}
                 </span>
               )
             })}

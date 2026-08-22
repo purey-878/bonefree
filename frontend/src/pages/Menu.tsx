@@ -16,6 +16,7 @@ import {
 } from "../utils/loyaltyCoupon";
 import { applyApiImageFallback, resolveProductImageUrl } from "../utils/imageFallback";
 import { formatEuro } from "../utils/money";
+import { primaryProductMediaUrl } from "../utils/productMedia";
 
 interface CategoryCount {
   name: string;
@@ -444,7 +445,7 @@ function Menu() {
               >
                 <span className="menu-popular-media">
                   <img
-                    src={resolveProductImageUrl(product.image)}
+                    src={resolveProductImageUrl(primaryProductMediaUrl(product.media, "card"))}
                     alt=""
                     onError={(event) => applyApiImageFallback(event.currentTarget)}
                   />

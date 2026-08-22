@@ -36,6 +36,8 @@ examples/
 *.db
 *.sqlite
 *.sqlite3
+/backend/backups/
+/uploads/
 
 # OS / editor files
 .DS_Store

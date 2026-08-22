@@ -29,10 +29,12 @@ from models import (
     Customer,
     CustomerLoyalty,
     Coupon,
+    Media,
     Order,
     OrderProduct,
     Payment,
     Product,
+    ProductMedia,
 )
 from schemas.checkout import (
     CouponResponse,
@@ -52,6 +54,7 @@ from services.product_availability import (
     unavailable_base_product_ids,
 )
 from services.product_pricing import discounted_product_price
+from services.product_media import primary_product_media_response
 from services.site_settings import get_loyalty_coupon_settings
 from utils.id_format import format_product_id
 from core.errors import AppHTTPException
@@ -68,25 +71,6 @@ router = APIRouter(prefix="/checkout", tags=["Checkout"])
 
 SERVICE_FEE = Decimal("0")
 VAT_PERCENTAGE = Decimal("13.00")
-
-
-def _product_image_path(product: Product | None) -> str | None:
-    if not product:
-        return None
-
-    image_path = None
-    if product.images:
-        image_path = product.images[0].image_path
-    elif product.image:
-        image_path = product.image
-
-    if not image_path:
-        return None
-    if image_path.startswith(("http://", "https://", "/assets/", "/uploads/", "/menu-images/")):
-        return image_path
-    if image_path.startswith("menu-images/"):
-        return f"/{image_path}"
-    return f"/menu-images/{image_path}"
 
 
 def _included_vat(total: Decimal, vat_percentage: Decimal = VAT_PERCENTAGE) -> Decimal:
@@ -243,7 +227,11 @@ def _load_order_for_customer_or_guest(
         select(Order)
         .options(
             joinedload(Order.customer),
-            selectinload(Order.items).joinedload(OrderProduct.product),
+            selectinload(Order.items)
+            .joinedload(OrderProduct.product)
+            .selectinload(Product.media_items)
+            .selectinload(ProductMedia.media)
+            .selectinload(Media.variants),
         )
         .where(Order.order_id == order_id)
         .limit(1)
@@ -459,7 +447,7 @@ def _order_response(order: Order) -> dict:
                 "quantity": item.quantity,
                 "customization": customization_from_json(item.customization),
                 "subtotal": Decimal(str(item.unit_price)) * item.quantity,
-                "image": _product_image_path(item.product),
+                "media": primary_product_media_response(item.product) if item.product else None,
                 "calories": item.product.total_calories if item.product else None,
             }
             for item in order.items
@@ -551,7 +539,11 @@ def create_order(
     product_ids = [item.product_id for item in items]
     products = db.scalars(
         select(Product)
-        .options(selectinload(Product.images))
+        .options(
+            selectinload(Product.media_items)
+            .selectinload(ProductMedia.media)
+            .selectinload(Media.variants)
+        )
         .where(Product.product_id.in_(product_ids))
     ).unique().all()
     product_map = {product.product_id: product for product in products}
@@ -688,7 +680,13 @@ def create_order(
 
     saved = db.scalar(
         select(Order)
-        .options(selectinload(Order.items).joinedload(OrderProduct.product))
+        .options(
+            selectinload(Order.items)
+            .joinedload(OrderProduct.product)
+            .selectinload(Product.media_items)
+            .selectinload(ProductMedia.media)
+            .selectinload(Media.variants)
+        )
         .where(Order.order_id == order.order_id)
         .limit(1)
     )
@@ -791,7 +789,13 @@ def list_order_history(
 ):
     orders = db.scalars(
         select(Order)
-        .options(selectinload(Order.items).joinedload(OrderProduct.product))
+        .options(
+            selectinload(Order.items)
+            .joinedload(OrderProduct.product)
+            .selectinload(Product.media_items)
+            .selectinload(ProductMedia.media)
+            .selectinload(Media.variants)
+        )
         .where(Order.customer_id == current_user.customer_id)
         .order_by(Order.ordered_at.desc())
     ).unique().all()

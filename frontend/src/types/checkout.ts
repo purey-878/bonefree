@@ -1,4 +1,5 @@
 import type { ItemCustomization } from './cart';
+import type { ProductMedia } from './product';
 
 export type FulfillmentMethod = 'dine_in' | 'pickup' | 'takeaway';
 export type PaymentMethod = 'counter';
@@ -33,7 +34,7 @@ export interface OrderItem {
   quantity: number;
   subtotal: number;
   customization?: ItemCustomization | null;
-  image?: string | null;
+  media?: ProductMedia | null;
   calories?: number | null;
 }
 

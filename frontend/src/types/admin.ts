@@ -1,4 +1,4 @@
-export interface ProductImage { imageId: number; imagePath: string; }
+import type { ProductMedia } from './product';
 export type EntityStatus = 'active' | 'inactive';
 export type UserStatus = 'active' | 'suspended' | 'pending';
 export type IngredientType = 'normal' | 'sauce' | 'extra' | 'drink' | 'base' | 'side';
@@ -58,7 +58,7 @@ export interface AdminProduct extends AdminProductPayload {
   unavailableBaseIngredients: string[];
   status: EntityStatus | null;
   deletedAt: string | null;
-  images: ProductImage[];
+  media: ProductMedia[];
 }
 
 export interface AdminOrderItem {

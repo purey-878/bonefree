@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Query, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import and_, delete, or_, select
 from datetime import datetime
 from decimal import Decimal
@@ -13,9 +13,11 @@ from models import (
     CartProductCustomization,
     Customer,
     Ingredient,
+    Media,
     Product,
     ProductIngredient,
     ProductCustomizationOption,
+    ProductMedia,
 )
 from schemas import (
     CartOut,
@@ -35,6 +37,7 @@ from services.product_availability import (
     unavailable_base_product_ids,
 )
 from services.product_pricing import discounted_product_price
+from services.product_media import primary_product_media_response
 from utils.id_format import format_product_id, parse_product_id
 from core.errors import AppHTTPException
 
@@ -45,28 +48,6 @@ CUSTOMIZATION_ADD_SURCHARGE = Decimal("1.00")
 # ─────────────────────────────────────────────────────────────────────────────
 # HELPERS
 # ─────────────────────────────────────────────────────────────────────────────
-
-def _product_image_path(product: Product) -> str | None:
-    """Return a frontend asset path for a product image."""
-    image_path = None
-    if product.images:
-        image_path = product.images[0].image_path
-    elif product.image:
-        image_path = product.image
-
-    if image_path:
-        if image_path.startswith(("http://", "https://", "/assets/", "/uploads/", "/menu-images/")):
-            return image_path
-        if image_path.startswith("menu-images/"):
-            return f"/{image_path}"
-        return f"/menu-images/{image_path}"
-
-    if product.name:
-        filename = product.name.lower().replace(' ', '').replace('ã', 'a').replace('é', 'e').replace('ç', 'c')
-        filename = ''.join(c for c in filename if c.isalnum())
-        return f"/menu-images/{filename}.webp"
-
-    return None
 
 def _get_or_create_cart(db: Session, customer_id: int) -> Cart:
     """Return the customer's cart, creating one if it doesn't exist yet."""
@@ -82,8 +63,6 @@ def _get_or_create_cart(db: Session, customer_id: int) -> Cart:
 def _build_item_out(item: CartProduct, unavailable_base_ids: set[int]) -> CartItemOut:
     """Convert a CartProduct ORM row into the response schema."""
     product = item.product
-    image = _product_image_path(product)
-
     customization = customization_from_json(item.customization)
     price = (
         Decimal(str(customization.final_unit_price))
@@ -101,7 +80,7 @@ def _build_item_out(item: CartProduct, unavailable_base_ids: set[int]) -> CartIt
         quantity=quantity,
         available=available,
         unavailable_reason=product_unavailable_reason(product, unavailable_base_ids),
-        image_path=image,
+        media=primary_product_media_response(product),
         customization=customization,
         subtotal=price * quantity,
     )
@@ -120,7 +99,11 @@ def _build_cart_out(db: Session, cart: Cart) -> CartOut:
 
 def _get_product_or_404(db: Session, product_id: int) -> Product:
     product = db.scalar(
-        select(Product).where(
+        select(Product).options(
+            selectinload(Product.media_items)
+            .selectinload(ProductMedia.media)
+            .selectinload(Media.variants)
+        ).where(
             and_(Product.product_id == product_id, Product.status == EntityStatus.ACTIVE, Product.deleted_at.is_(None))
         ).limit(1)
     )
@@ -418,7 +401,6 @@ def _cart_item_out_from_product(
     unit_price: Decimal,
     customization: ItemCustomization,
 ) -> CartItemOut:
-    image = _product_image_path(product)
     return CartItemOut(
         cart_product_id=0,
         product_id=product.product_id,
@@ -428,7 +410,7 @@ def _cart_item_out_from_product(
         quantity=quantity,
         available=True,
         unavailable_reason=None,
-        image_path=image,
+        media=primary_product_media_response(product),
         customization=customization,
         subtotal=unit_price * quantity,
     )

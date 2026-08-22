@@ -4,6 +4,8 @@ from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 
 from schemas.enums import EntityStatus, IngredientType
+from schemas.media import ProductMediaResponse
+from services.product_media import product_media_responses
 from services.product_pricing import discounted_product_price, product_discount_percent, product_tags
 
 
@@ -25,8 +27,7 @@ class ProductResponse(BaseModel):
     category: str
     name: str
     description: str | None
-    image: str | None
-    images: list[str] = Field(default_factory=list)
+    media: list[ProductMediaResponse] = Field(default_factory=list)
     price: float | None
     original_price: float | None = None
     discount_percent: float = 0
@@ -54,32 +55,6 @@ class ProductResponse(BaseModel):
         ingredients: list[ProductIngredientNutrition] | None = None,
     ):
         """Custom ORM conversion for Product model."""
-        def normalize_image_path(image_path: str | None) -> str | None:
-            if not image_path:
-                return None
-            if image_path.startswith(("http://", "https://", "/assets/", "/uploads/", "/menu-images/")):
-                return image_path
-            if image_path.startswith("menu-images/"):
-                return f"/{image_path}"
-            return f"/menu-images/{image_path}"
-
-        image_urls = []
-        for image in getattr(p, 'images', []) or []:
-            normalized = normalize_image_path(image.image_path)
-            if normalized and normalized not in image_urls:
-                image_urls.append(normalized)
-
-        image_url = image_urls[0] if image_urls else None
-
-        # Fallback: Generate image filename from product name if no image in DB
-        if not image_url and p.name:
-
-            filename = p.name.lower().replace(' ', '').replace('ã', 'a').replace('é', 'e').replace('ç', 'c')
-
-            filename = ''.join(c for c in filename if c.isalnum())
-            image_url = f"/menu-images/{filename}.webp"
-            image_urls = [image_url]
-
         available = bool(getattr(p, "available", False)) and not unavailable_due_to_unavailable_base
         saved_calories = getattr(p, "total_calories", None)
         ingredient_calories = sum(
@@ -100,8 +75,7 @@ class ProductResponse(BaseModel):
             name=p.name,
             category=p.category.category_name if getattr(p, 'category', None) else p.category_id,
             description=p.product_description,
-            image=image_url,
-            images=image_urls,
+            media=product_media_responses(p),
             price=float(discounted_product_price(p)) if p.price else None,
             original_price=float(p.price) if p.price else None,
             discount_percent=float(product_discount_percent(p)),

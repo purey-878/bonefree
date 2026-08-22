@@ -2,10 +2,8 @@
 Admin routes for product management and analytics.
 """
 
-import os
 import logging
 from decimal import Decimal
-from pathlib import Path
 from fastapi import APIRouter, BackgroundTasks, Depends, Request, status, Query, UploadFile, File
 from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import and_, desc, exists, extract, func, or_, select
@@ -14,9 +12,9 @@ from typing import Dict, List, Optional, Union
 
 from database import get_db
 from dependencies import rate_limit_admin_login, require_role
-from schemas.enums import ADMIN_ROLES, EntityStatus, IngredientType, MediaOwnerType, MediaVariantKind, OrderState, PaymentMethod, PaymentState, PaymentStatus, ReviewStatus, UserRole, UserStatus, normalize_admin_role
+from schemas.enums import ADMIN_ROLES, EntityStatus, IngredientType, MediaOwnerType, OrderState, PaymentMethod, PaymentState, PaymentStatus, ReviewStatus, UserRole, UserStatus, normalize_admin_role
 from models import (
-    Admin, Product, Cart, CartProduct as CartItem, Customer, ProductImage,
+    Admin, Product, Cart, CartProduct as CartItem, Customer,
     Category, Order, OrderProduct, Payment, ProductReview,
     Ingredient, ProductIngredient, CustomerBillingAddress, Media, MediaVariant, ProductMedia,
 )
@@ -29,7 +27,7 @@ from services.auth_service import (
 )
 from schemas.admin import (
     AdminLogin, AdminTokenResponse,
-    ProductCreate, ProductUpdate, ProductAdminResponse, ProductImageUploadResponse,
+    ProductCreate, ProductUpdate, ProductAdminResponse, ProductMediaUploadResponse,
     IngredientCreate, IngredientResponse, IngredientUpdate, ProductIngredientPayload,
     ProductIngredientResponse,
     OrderResponse, CartItemResponse, UnavailableProduct,
@@ -52,7 +50,8 @@ from services.product_availability import (
     unavailable_base_product_ids,
 )
 from services.receipt_email import build_saved_order_receipt_payload, send_purchase_receipt
-from services.media_storage import ALLOWED_IMAGE_TYPES, delete_storage_key, store_product_image_upload
+from services.media_storage import ALLOWED_IMAGE_TYPES, delete_storage_key, store_product_media_upload
+from services.product_media import product_media_response, product_media_responses
 from utils.id_format import format_category_id, format_product_id, parse_category_id, parse_product_id
 from core.errors import AppHTTPException
 from core.rate_limit import RATE_LIMIT_OPENAPI_RESPONSES
@@ -63,26 +62,6 @@ router = APIRouter(
     responses=RATE_LIMIT_OPENAPI_RESPONSES,
 )
 logger = logging.getLogger(__name__)
-
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-UPLOAD_DIR = PROJECT_ROOT / "uploads" / "images"
-LEGACY_UPLOAD_DIR = PROJECT_ROOT / "public" / "assets" / "images" / "menu-images"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-
-
-def _image_filename(image_path: str) -> str:
-    return Path(image_path).name
-
-
-def _delete_uploaded_image_file(image_path: str) -> None:
-    filename = _image_filename(image_path)
-    for directory in (UPLOAD_DIR, LEGACY_UPLOAD_DIR):
-        filepath = directory / filename
-        try:
-            if filepath.exists():
-                filepath.unlink()
-        except Exception:
-            logger.exception("Failed to remove product image file %s", filepath)
 
 KITCHEN_VISIBLE_STATES = (OrderState.CONFIRMED, OrderState.IN_PREPARATION, OrderState.READY)
 CHEF_ALLOWED_STATES = {OrderState.CONFIRMED, OrderState.IN_PREPARATION, OrderState.READY}
@@ -514,6 +493,7 @@ def _product_admin_response(
             "discount_percentage",
             "effective_available",
             "ingredients",
+            "media",
             "unavailable_base_ingredients",
         }
     }
@@ -522,6 +502,7 @@ def _product_admin_response(
     if ingredients is None:
         ingredients = _product_ingredient_lookup(db, [product.product_id]).get(product.product_id, [])
     data["ingredients"] = [ingredient.model_dump() for ingredient in ingredients]
+    data["media"] = [item.model_dump() for item in product_media_responses(product)]
     if unavailable_base_lookup is None:
         unavailable_base_lookup = unavailable_base_ingredients(db, [product.product_id])
     unavailable_names = unavailable_base_lookup.get(product.product_id, [])
@@ -1074,7 +1055,11 @@ def create_product(
     db.refresh(new_product)
 
     saved_product = db.scalar(
-        select(Product).options(selectinload(Product.images)).where(
+        select(Product).options(
+            selectinload(Product.media_items)
+            .selectinload(ProductMedia.media)
+            .selectinload(Media.variants)
+        ).where(
             Product.product_id == new_product.product_id
         ).limit(1)
     )
@@ -1100,7 +1085,11 @@ def list_products(
     current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
-    stmt = select(Product).options(selectinload(Product.images))
+    stmt = select(Product).options(
+        selectinload(Product.media_items)
+        .selectinload(ProductMedia.media)
+        .selectinload(Media.variants)
+    )
 
     if not include_deleted:
         stmt = stmt.where(active_product_filter(), Product.deleted_at.is_(None))
@@ -1148,7 +1137,11 @@ def get_product(
 ):
     parsed_product_id = parse_product_id(product_id)
     product = db.scalar(
-        select(Product).options(selectinload(Product.images)).where(
+        select(Product).options(
+            selectinload(Product.media_items)
+            .selectinload(ProductMedia.media)
+            .selectinload(Media.variants)
+        ).where(
             Product.product_id == parsed_product_id,
             Product.status == EntityStatus.ACTIVE,
         ).limit(1)
@@ -1368,52 +1361,48 @@ def delete_product(
 
 
 @router.post(
-    "/products/{product_id}/image",
-    response_model=ProductImageUploadResponse,
-    operation_id="admin_management_upload_product_image",
+    "/products/{product_id}/media",
+    response_model=ProductMediaUploadResponse,
+    operation_id="admin_management_upload_product_media",
 )
-def upload_product_image(
+def upload_product_media(
     product_id: str,
     file: UploadFile = File(...),
     replace_existing: bool = Query(True),
     current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     parsed_product_id = parse_product_id(product_id)
-    # Verify product exists
     product = db.scalar(
         select(Product).where(Product.product_id == parsed_product_id).limit(1)
     )
     if not product:
         raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
+    if file.content_type not in ALLOWED_IMAGE_TYPES:
+        raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="invalid_image_type", message="Image type is not supported.", details={"content_type": file.content_type, "allowed_types": sorted(ALLOWED_IMAGE_TYPES)})
 
-    # Validate file type
-    allowed_types = {"image/jpeg", "image/png", "image/webp", "image/avif", "image/gif"}
-    if file.content_type not in allowed_types:
-        raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="invalid_image_type", message="Image type is not supported.", details={"content_type": file.content_type, "allowed_types": sorted(allowed_types)})
-
+    stored_image = None
     try:
-        stored_image = store_product_image_upload(parsed_product_id, file)
-        card_variant = next((variant for variant in stored_image.variants if variant.kind == MediaVariantKind.CARD), None)
-        public_image_path = card_variant.public_url if card_variant else stored_image.public_url
+        stored_image = store_product_media_upload(parsed_product_id, file)
+        old_storage_keys: list[str] = []
+        old_media_links = db.scalars(
+            select(ProductMedia)
+            .options(selectinload(ProductMedia.media).selectinload(Media.variants))
+            .where(ProductMedia.product_id == parsed_product_id)
+            .order_by(ProductMedia.sort_order, ProductMedia.id)
+        ).all()
 
         if replace_existing:
-            old_images = db.scalars(select(ProductImage).where(ProductImage.product_id == parsed_product_id)).all()
-            for old_img in old_images:
-                _delete_uploaded_image_file(old_img.image_path)
-                db.delete(old_img)
-
-            old_media_links = db.scalars(
-                select(ProductMedia)
-                .options(selectinload(ProductMedia.media).selectinload(Media.variants))
-                .where(ProductMedia.product_id == parsed_product_id)
-            ).all()
-            for link in old_media_links:
-                media = link.media
-                for variant in media.variants:
-                    delete_storage_key(variant.storage_key)
-                delete_storage_key(media.storage_key)
-                db.delete(media)
+            for old_link in old_media_links:
+                old_storage_keys.extend(variant.storage_key for variant in old_link.media.variants)
+                old_storage_keys.append(old_link.media.storage_key)
+                db.delete(old_link.media)
+            db.flush()
+            sort_order = 0
+            is_primary = True
+        else:
+            sort_order = max((old_link.sort_order for old_link in old_media_links), default=-1) + 1
+            is_primary = not old_media_links
 
         media = Media(
             owner_type=MediaOwnerType.PRODUCT,
@@ -1437,71 +1426,108 @@ def upload_product_image(
                 for variant in stored_image.variants
             ],
         )
-        db.add(media)
-        db.add(ProductMedia(product_id=parsed_product_id, media=media, sort_order=0, alt_text=product.name, is_primary=True))
-        db.add(ProductImage(product_id=parsed_product_id, image_path=public_image_path))
+        link = ProductMedia(
+            product_id=parsed_product_id,
+            media=media,
+            sort_order=sort_order,
+            alt_text=product.name,
+            is_primary=is_primary,
+        )
+        db.add(link)
         db.commit()
 
-        return {
-            "message": "Image uploaded successfully",
-            "filename": Path(stored_image.storage_key).name,
-            "url": public_image_path,
-            "image_path": public_image_path,
-        }
+        for storage_key in old_storage_keys:
+            try:
+                delete_storage_key(storage_key)
+            except OSError:
+                logger.exception("Failed to remove replaced media file %s", storage_key)
 
-    except ValueError as e:
+        saved_link = db.scalar(
+            select(ProductMedia)
+            .options(selectinload(ProductMedia.media).selectinload(Media.variants))
+            .where(ProductMedia.id == link.id)
+        )
+        return ProductMediaUploadResponse(
+            message="Media uploaded successfully.",
+            media=product_media_response(saved_link),
+        )
+    except ValueError as exc:
         db.rollback()
-        if str(e) == "unsupported_image_type":
+        if str(exc) == "unsupported_image_type":
             raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="invalid_image_type", message="Image type is not supported.", details={"content_type": file.content_type, "allowed_types": sorted(ALLOWED_IMAGE_TYPES)})
         raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="invalid_image_file", message="Uploaded file is not a valid image.", details={"reason": "request_failed"})
-    except Exception as e:
+    except Exception:
         db.rollback()
+        if stored_image is not None:
+            for storage_key in [
+                stored_image.storage_key,
+                *(variant.storage_key for variant in stored_image.variants),
+            ]:
+                try:
+                    delete_storage_key(storage_key)
+                except OSError:
+                    logger.exception("Failed to clean up uncommitted media file %s", storage_key)
+        logger.exception("Failed to upload product media for product %s", parsed_product_id)
         raise AppHTTPException(status_code=500, error="internal_server_error", message="Internal server error.", details={"reason": "request_failed"})
 
 
 @router.delete(
-    "/products/{product_id}/images/{image_id}",
+    "/products/{product_id}/media/{media_id}",
     response_model=MessageResponse,
-    operation_id="admin_management_delete_product_image",
+    operation_id="admin_management_delete_product_media",
 )
-def delete_product_image(
+def delete_product_media(
     product_id: str,
-    image_id: int,
+    media_id: int,
     current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     parsed_product_id = parse_product_id(product_id)
-    image = db.scalar(
-        select(ProductImage).where(
-            ProductImage.product_id == parsed_product_id,
-            ProductImage.image_id == image_id,
-        )
-    )
-    if not image:
-        raise AppHTTPException(status_code=404, error="image_not_found", message="Image not found.", details={"reason": "request_failed"})
-
-    media = db.scalar(
-        select(Media)
-        .options(selectinload(Media.variants))
-        .join(MediaVariant, MediaVariant.media_id == Media.media_id)
-        .join(ProductMedia, ProductMedia.media_id == Media.media_id)
+    link = db.scalar(
+        select(ProductMedia)
+        .options(selectinload(ProductMedia.media).selectinload(Media.variants))
         .where(
             ProductMedia.product_id == parsed_product_id,
-            MediaVariant.public_url == image.image_path,
+            ProductMedia.media_id == media_id,
         )
         .limit(1)
     )
+    if not link:
+        raise AppHTTPException(status_code=404, error="media_not_found", message="Media not found.", details={"reason": "request_failed"})
 
-    _delete_uploaded_image_file(image.image_path)
-    if media:
-        for variant in media.variants:
-            delete_storage_key(variant.storage_key)
-        delete_storage_key(media.storage_key)
+    media = link.media
+    storage_keys = [media.storage_key, *(variant.storage_key for variant in media.variants)]
+    was_primary = link.is_primary
+    has_other_owner = bool(db.scalar(select(exists().where(
+        ProductMedia.media_id == media_id,
+        ProductMedia.id != link.id,
+    ))))
+    db.delete(link)
+    db.flush()
+
+    remaining_links = db.scalars(
+        select(ProductMedia)
+        .where(ProductMedia.product_id == parsed_product_id)
+        .order_by(ProductMedia.sort_order, ProductMedia.id)
+    ).all()
+    for temporary_order, remaining_link in enumerate(remaining_links, start=1):
+        remaining_link.sort_order = -temporary_order
+    db.flush()
+    for sort_order, remaining_link in enumerate(remaining_links):
+        remaining_link.sort_order = sort_order
+    if was_primary and remaining_links:
+        remaining_links[0].is_primary = True
+    if not has_other_owner:
         db.delete(media)
-
-    db.delete(image)
     db.commit()
-    return {"message": "Image removed successfully."}
+
+    if not has_other_owner:
+        for storage_key in storage_keys:
+            try:
+                delete_storage_key(storage_key)
+            except OSError:
+                logger.exception("Failed to remove media file %s", storage_key)
+    return {"message": "Media removed successfully."}
 
 
 # ─────────────────────────────────────────────────────────────

@@ -27,7 +27,7 @@ class Settings(BaseSettings):
         return self.environment == "development"
 
     database_url: str = Field(
-        default=f"sqlite:///{(BASE_DIR / 'bonefree_rest_2.db').as_posix()}",
+        default=f"sqlite:///{(BASE_DIR / 'bonefree.db').as_posix()}",
         validation_alias="DATABASE_URL",
     )
     database_pool_size: int = Field(

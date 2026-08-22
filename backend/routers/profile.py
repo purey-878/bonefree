@@ -10,10 +10,11 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from dependencies import get_current_user
 from database import get_db
 from schemas.enums import OrderState, PaymentMethod, PaymentStatus
-from models import Customer, CustomerBillingAddress, Order, OrderProduct
+from models import Customer, CustomerBillingAddress, Media, Order, OrderProduct, Product, ProductMedia
 from schemas import UserProfileUpdate, UserResponse
 from schemas.checkout import OrderResponse
 from services.order_customization import customization_from_json
+from services.product_media import primary_product_media_response
 from utils.id_format import format_product_id
 from core.errors import AppHTTPException
 
@@ -54,25 +55,6 @@ def _note_value(notes: str | None, key: str) -> str | None:
         if part.startswith(prefix):
             return part.removeprefix(prefix)
     return None
-
-
-def _product_image_path(product) -> str | None:
-    if not product:
-        return None
-
-    image_path = None
-    if product.images:
-        image_path = product.images[0].image_path
-    elif product.image:
-        image_path = product.image
-
-    if not image_path:
-        return None
-    if image_path.startswith(("http://", "https://", "/assets/", "/uploads/", "/menu-images/")):
-        return image_path
-    if image_path.startswith("menu-images/"):
-        return f"/{image_path}"
-    return f"/menu-images/{image_path}"
 
 
 def _fulfillment_from_notes(notes: str | None) -> str:
@@ -126,7 +108,7 @@ def _order_response(order: Order) -> dict:
                 "quantity": item.quantity,
                 "customization": customization_from_json(item.customization),
                 "subtotal": Decimal(str(item.unit_price)) * item.quantity,
-                "image": _product_image_path(item.product),
+                "media": primary_product_media_response(item.product) if item.product else None,
                 "calories": item.product.total_calories if item.product else None,
             }
             for item in order.items
@@ -212,7 +194,13 @@ def get_purchase_history(
 ):
     statement = (
         select(Order)
-        .options(selectinload(Order.items).joinedload(OrderProduct.product))
+        .options(
+            selectinload(Order.items)
+            .joinedload(OrderProduct.product)
+            .selectinload(Product.media_items)
+            .selectinload(ProductMedia.media)
+            .selectinload(Media.variants)
+        )
         .where(Order.customer_id == current_user.customer_id)
     )
 

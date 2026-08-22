@@ -213,9 +213,9 @@ export type AvailabilityUpdate = {
 };
 
 /**
- * Body_admin_management_upload_product_image
+ * Body_admin_management_upload_product_media
  */
-export type BodyAdminManagementUploadProductImage = {
+export type BodyAdminManagementUploadProductMedia = {
     /**
      * File
      */
@@ -242,10 +242,7 @@ export type CartItemOut = {
      */
     cart_product_id: number;
     customization?: ItemCustomizationOutput | null;
-    /**
-     * Image Path
-     */
-    image_path?: string | null;
+    media?: ProductMediaResponse | null;
     /**
      * Name
      */
@@ -1269,6 +1266,38 @@ export type LoyaltyCouponSettingsOutput = {
 };
 
 /**
+ * MediaVariantKind
+ */
+export type MediaVariantKind = 'original' | 'thumb' | 'card' | 'detail';
+
+/**
+ * MediaVariantResponse
+ */
+export type MediaVariantResponse = {
+    /**
+     * Content Type
+     */
+    content_type: string;
+    /**
+     * Height
+     */
+    height: number;
+    kind: MediaVariantKind;
+    /**
+     * Size Bytes
+     */
+    size_bytes?: number | null;
+    /**
+     * Url
+     */
+    url: string;
+    /**
+     * Width
+     */
+    width: number;
+};
+
+/**
  * MergeCartSchema
  *
  * Request model for merging guest cart on login.
@@ -1391,10 +1420,7 @@ export type OrderItemResponse = {
      */
     calories?: string | null;
     customization?: ItemCustomizationOutput | null;
-    /**
-     * Image
-     */
-    image?: string | null;
+    media?: ProductMediaResponse | null;
     /**
      * Product Display Id
      */
@@ -1546,13 +1572,13 @@ export type ProductAdminResponse = {
      */
     gluten_free?: boolean;
     /**
-     * Images
-     */
-    images?: Array<ProductImageResponse> | null;
-    /**
      * Ingredients
      */
     ingredients?: Array<ProductIngredientResponse>;
+    /**
+     * Media
+     */
+    media?: Array<ProductMediaResponse>;
     /**
      * Menu Tags
      */
@@ -1770,44 +1796,6 @@ export type ProductCustomizationResponse = {
 };
 
 /**
- * ProductImageResponse
- *
- * Response model for product image.
- */
-export type ProductImageResponse = {
-    /**
-     * Image Id
-     */
-    image_id: number;
-    /**
-     * Image Path
-     */
-    image_path: string;
-};
-
-/**
- * ProductImageUploadResponse
- */
-export type ProductImageUploadResponse = {
-    /**
-     * Filename
-     */
-    filename: string;
-    /**
-     * Image Path
-     */
-    image_path: string;
-    /**
-     * Message
-     */
-    message: string;
-    /**
-     * Url
-     */
-    url: string;
-};
-
-/**
  * ProductIngredientNutrition
  */
 export type ProductIngredientNutrition = {
@@ -1916,6 +1904,67 @@ export type ProductIngredientResponse = {
 };
 
 /**
+ * ProductMediaResponse
+ */
+export type ProductMediaResponse = {
+    /**
+     * Alt Text
+     */
+    alt_text?: string | null;
+    /**
+     * Content Type
+     */
+    content_type: string;
+    /**
+     * Height
+     */
+    height?: number | null;
+    /**
+     * Is Primary
+     */
+    is_primary: boolean;
+    /**
+     * Media Id
+     */
+    media_id: number;
+    /**
+     * Original Filename
+     */
+    original_filename?: string | null;
+    /**
+     * Original Url
+     */
+    original_url: string;
+    /**
+     * Size Bytes
+     */
+    size_bytes?: number | null;
+    /**
+     * Sort Order
+     */
+    sort_order: number;
+    /**
+     * Variants
+     */
+    variants?: Array<MediaVariantResponse>;
+    /**
+     * Width
+     */
+    width?: number | null;
+};
+
+/**
+ * ProductMediaUploadResponse
+ */
+export type ProductMediaUploadResponse = {
+    media: ProductMediaResponse;
+    /**
+     * Message
+     */
+    message: string;
+};
+
+/**
  * ProductResponse
  *
  * Response model for a product.
@@ -1962,17 +2011,13 @@ export type ProductResponse = {
      */
     id_display: string;
     /**
-     * Image
-     */
-    image: string | null;
-    /**
-     * Images
-     */
-    images?: Array<string>;
-    /**
      * Ingredients
      */
     ingredients?: Array<ProductIngredientNutrition>;
+    /**
+     * Media
+     */
+    media?: Array<ProductMediaResponse>;
     /**
      * Name
      */
@@ -4977,8 +5022,8 @@ export type AdminManagementSetProductAvailabilityResponses = {
 
 export type AdminManagementSetProductAvailabilityResponse = AdminManagementSetProductAvailabilityResponses[keyof AdminManagementSetProductAvailabilityResponses];
 
-export type AdminManagementUploadProductImageData = {
-    body: BodyAdminManagementUploadProductImage;
+export type AdminManagementUploadProductMediaData = {
+    body: BodyAdminManagementUploadProductMedia;
     path: {
         /**
          * Product Id
@@ -4991,10 +5036,10 @@ export type AdminManagementUploadProductImageData = {
          */
         replace_existing?: boolean;
     };
-    url: '/admin/products/{product_id}/image';
+    url: '/admin/products/{product_id}/media';
 };
 
-export type AdminManagementUploadProductImageErrors = {
+export type AdminManagementUploadProductMediaErrors = {
     /**
      * Invalid request
      */
@@ -5029,18 +5074,18 @@ export type AdminManagementUploadProductImageErrors = {
     500: ApiErrorResponse;
 };
 
-export type AdminManagementUploadProductImageError = AdminManagementUploadProductImageErrors[keyof AdminManagementUploadProductImageErrors];
+export type AdminManagementUploadProductMediaError = AdminManagementUploadProductMediaErrors[keyof AdminManagementUploadProductMediaErrors];
 
-export type AdminManagementUploadProductImageResponses = {
+export type AdminManagementUploadProductMediaResponses = {
     /**
      * Successful Response
      */
-    200: ProductImageUploadResponse;
+    200: ProductMediaUploadResponse;
 };
 
-export type AdminManagementUploadProductImageResponse = AdminManagementUploadProductImageResponses[keyof AdminManagementUploadProductImageResponses];
+export type AdminManagementUploadProductMediaResponse = AdminManagementUploadProductMediaResponses[keyof AdminManagementUploadProductMediaResponses];
 
-export type AdminManagementDeleteProductImageData = {
+export type AdminManagementDeleteProductMediaData = {
     body?: never;
     path: {
         /**
@@ -5048,15 +5093,15 @@ export type AdminManagementDeleteProductImageData = {
          */
         product_id: string;
         /**
-         * Image Id
+         * Media Id
          */
-        image_id: number;
+        media_id: number;
     };
     query?: never;
-    url: '/admin/products/{product_id}/images/{image_id}';
+    url: '/admin/products/{product_id}/media/{media_id}';
 };
 
-export type AdminManagementDeleteProductImageErrors = {
+export type AdminManagementDeleteProductMediaErrors = {
     /**
      * Invalid request
      */
@@ -5091,16 +5136,16 @@ export type AdminManagementDeleteProductImageErrors = {
     500: ApiErrorResponse;
 };
 
-export type AdminManagementDeleteProductImageError = AdminManagementDeleteProductImageErrors[keyof AdminManagementDeleteProductImageErrors];
+export type AdminManagementDeleteProductMediaError = AdminManagementDeleteProductMediaErrors[keyof AdminManagementDeleteProductMediaErrors];
 
-export type AdminManagementDeleteProductImageResponses = {
+export type AdminManagementDeleteProductMediaResponses = {
     /**
      * Successful Response
      */
     200: MessageResponse;
 };
 
-export type AdminManagementDeleteProductImageResponse = AdminManagementDeleteProductImageResponses[keyof AdminManagementDeleteProductImageResponses];
+export type AdminManagementDeleteProductMediaResponse = AdminManagementDeleteProductMediaResponses[keyof AdminManagementDeleteProductMediaResponses];
 
 export type AdminManagementToggleProductStatusData = {
     body?: never;

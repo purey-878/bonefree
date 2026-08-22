@@ -12,11 +12,13 @@ from models import (
     CartProductCustomization,
     Category,
     Ingredient,
+    Media,
+    MediaVariant,
     Order,
     OrderProduct,
     Product,
-    ProductImage,
     ProductIngredient,
+    ProductMedia,
     ProductReview,
     User,
 )
@@ -35,6 +37,8 @@ from schemas.enums import (
     CartCustomizationAction,
     EntityStatus,
     IngredientType,
+    MediaOwnerType,
+    MediaVariantKind,
     OrderState,
     PaymentMethod,
     PaymentStatus,
@@ -100,7 +104,7 @@ class SqlAlchemy2BehaviorTests(unittest.TestCase):
         )
         self.db.add(self.product)
         self.db.flush()
-        self.db.add(ProductImage(product_id=self.product.id, image_path="test.webp"))
+        self._add_product_media(self.product, "test")
 
         ingredient = Ingredient(
             name="Inactive base",
@@ -148,6 +152,42 @@ class SqlAlchemy2BehaviorTests(unittest.TestCase):
         self.db.commit()
         self.cart_id = cart.id
 
+    def _add_product_media(self, product: Product, stem: str) -> None:
+        media = Media(
+            owner_type=MediaOwnerType.PRODUCT,
+            original_filename=f"{stem}.webp",
+            content_type="image/webp",
+            storage_key=f"products/{stem}-original.webp",
+            public_url=f"/uploads/products/{stem}-original.webp",
+            width=100,
+            height=100,
+            size_bytes=100,
+            variants=[
+                MediaVariant(
+                    kind=kind,
+                    storage_key=f"products/{stem}-{kind.value}.webp",
+                    public_url=f"/uploads/products/{stem}-{kind.value}.webp",
+                    content_type="image/webp",
+                    width=100,
+                    height=100,
+                    size_bytes=100,
+                )
+                for kind in (
+                    MediaVariantKind.THUMB,
+                    MediaVariantKind.CARD,
+                    MediaVariantKind.DETAIL,
+                )
+            ],
+        )
+        self.db.add(media)
+        self.db.add(ProductMedia(
+            product=product,
+            media=media,
+            sort_order=0,
+            alt_text=product.name,
+            is_primary=True,
+        ))
+
     def tearDown(self):
         self.db.close()
         self.engine.dispose()
@@ -166,7 +206,8 @@ class SqlAlchemy2BehaviorTests(unittest.TestCase):
 
         response = get_product(str(self.product.id), self.db)
         self.assertEqual(response.id, self.product.id)
-        self.assertEqual(response.image, "/menu-images/test.webp")
+        self.assertEqual(response.media[0].original_url, "/uploads/products/test-original.webp")
+        self.assertEqual(response.media[0].variants[1].kind, MediaVariantKind.CARD)
 
         stats = get_product_review_stats(str(self.product.id), self.db)
         self.assertEqual(stats.total_reviews, 2)
@@ -199,7 +240,7 @@ class SqlAlchemy2BehaviorTests(unittest.TestCase):
         self.assertEqual(self.product.discount_percentage, Decimal("10"))
 
     def test_collection_relationships_avoid_joined_row_multiplication(self):
-        self.assertEqual(Product.images.property.lazy, "selectin")
+        self.assertEqual(Product.media_items.property.lazy, "selectin")
         self.assertEqual(Order.items.property.lazy, "selectin")
 
     def test_product_listing_uses_constant_query_count(self):
@@ -215,7 +256,7 @@ class SqlAlchemy2BehaviorTests(unittest.TestCase):
         )
         self.db.add(second_product)
         self.db.flush()
-        self.db.add(ProductImage(product_id=second_product.id, image_path="second.webp"))
+        self._add_product_media(second_product, "second")
         self.db.commit()
         self.db.expire_all()
 
@@ -232,7 +273,7 @@ class SqlAlchemy2BehaviorTests(unittest.TestCase):
             event.remove(self.engine, "before_cursor_execute", record_statement)
 
         self.assertEqual(len(response), 2)
-        self.assertLessEqual(len(statements), 4)
+        self.assertLessEqual(len(statements), 6)
         self.assertEqual(len(_unavailable_product_rows(self.db, 2)), 2)
         self.assertEqual(len(_popular_product_rows(self.db, 2)), 2)
 

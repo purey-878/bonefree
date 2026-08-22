@@ -35,8 +35,8 @@ import {
   deleteProduct,
   restoreProduct,
   setProductAvailability,
-  uploadProductImage,
-  deleteProductImage,
+  uploadProductMedia,
+  deleteProductMedia,
   updateOrderStatus,
   payCounterOrder,
   listCustomers,
@@ -120,6 +120,7 @@ import { applyApiImageFallback, resolveProductImageUrl } from "../utils/imageFal
 import { formatEuro } from "../utils/money"
 import { translateUserMessage } from "../utils/messages"
 import { persistOptimisticUpdate } from "../utils/optimisticUpdate"
+import { primaryProductMediaUrl, productMediaUrl } from "../utils/productMedia"
 
 function getImageUrl(imagePath: string): string {
   return resolveProductImageUrl(imagePath)
@@ -647,7 +648,7 @@ function ProductAnalyticsDrawer({
     ...point,
     label: formatSalesTick(point.period, "day"),
   }))
-  const image = product.images?.[0]?.imagePath
+  const image = primaryProductMediaUrl(product.media, "card")
   const rating = analytics?.averageRating == null ? "Sem avaliação" : `${analytics.averageRating.toFixed(1)}/5`
   const selectedRange = PRODUCT_ANALYTICS_RANGE_OPTIONS.find((option) => option.days === rangeDays) ?? PRODUCT_ANALYTICS_RANGE_OPTIONS[2]
 
@@ -802,6 +803,7 @@ function SiteSettingsPanel({
   const colors = value.config.colors
   const selectedPreset = themePresetById(value.themeId)
   const selectedChefSpecial = products.find((product) => product.productId === chefSpecial.productId)
+  const selectedChefSpecialImage = primaryProductMediaUrl(selectedChefSpecial?.media, "card")
   const socialLinks = defaultSocialMediaSettings.links.map((defaultLink) => (
     socialMedia.links.find((link) => link.platform === defaultLink.platform) ?? defaultLink
   ))
@@ -951,9 +953,9 @@ function SiteSettingsPanel({
             </div>
             {selectedChefSpecial ? (
               <div className="ad-chef-special-preview">
-                {selectedChefSpecial.images?.[0] ? (
+                {selectedChefSpecialImage ? (
                   <img
-                    src={getImageUrl(selectedChefSpecial.images[0].imagePath)}
+                    src={getImageUrl(selectedChefSpecialImage)}
                     alt={selectedChefSpecial.name}
                     onError={handleAdminImageError}
                   />
@@ -1450,7 +1452,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
   const [productTagInput, setProductTagInput] = useState("")
   const [imageFiles, setImageFiles] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
-  const [deletingProductImageId, setDeletingProductImageId] = useState<number | null>(null)
+  const [deletingProductMediaId, setDeletingProductMediaId] = useState<number | null>(null)
   const [isProductImageDragging, setIsProductImageDragging] = useState(false)
   const [showClienteForm, setShowClienteForm] = useState(false)
   const [editingCliente, setEditingCliente] = useState<AdminCustomer | null>(null)
@@ -2026,7 +2028,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
     setProductFormMessage("")
     setImageFiles([])
     setIsProductImageDragging(false)
-    setImagePreviews((product.images ?? []).map((image) => getImageUrl(image.imagePath)))
+    setImagePreviews((product.media ?? []).map((media) => getImageUrl(productMediaUrl(media, "card") ?? media.originalUrl)))
     setShowProductForm(true)
   }
 
@@ -2165,7 +2167,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
         savedId = created.productId
       }
       for (const [index, file] of imageFiles.entries()) {
-        await uploadProductImage(savedId, file, !editingProduct && index === 0)
+        await uploadProductMedia(savedId, file, !editingProduct && index === 0)
       }
       closeForm()
       await handleLoadProducts()
@@ -2529,13 +2531,13 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
     setImagePreviews((current) => current.filter((_, index) => index !== previewIndex))
   }
 
-  const handleDeleteExistingProductImage = async (imageId: number, previewIndex: number) => {
+  const handleDeleteExistingProductMedia = async (mediaId: number, previewIndex: number) => {
     if (!editingProduct) return
-    setDeletingProductImageId(imageId)
+    setDeletingProductMediaId(mediaId)
     try {
-      await deleteProductImage(editingProduct.productId, imageId)
+      await deleteProductMedia(editingProduct.productId, mediaId)
       setEditingProduct((current) => current
-        ? { ...current, images: current.images.filter((image) => image.imageId !== imageId) }
+        ? { ...current, media: current.media.filter((media) => media.mediaId !== mediaId) }
         : current)
       setImagePreviews((current) => current.filter((_, index) => index !== previewIndex))
       await handleLoadProducts()
@@ -2544,7 +2546,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
       const message = getErrorMessage(err, "Não foi possível remover a imagem.")
       toast.error(message)
     } finally {
-      setDeletingProductImageId(null)
+      setDeletingProductMediaId(null)
     }
   }
 
@@ -3229,17 +3231,17 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
       .filter((quantity): quantity is string => !!quantity)
     return [...new Set([...QUANTITY_PRESETS, ...customQuantityChips, ...selectedQuantities])]
   }, [customQuantityChips, formData.ingredients])
-  const existingProductImageCount = editingProduct?.images?.length ?? 0
+  const existingProductMediaCount = editingProduct?.media?.length ?? 0
   const productMediaPreviewItems = imagePreviews.map((src, index) => {
-    const fileIndex = Math.max(0, index - existingProductImageCount)
-    const isPendingUpload = index >= existingProductImageCount
+    const fileIndex = Math.max(0, index - existingProductMediaCount)
+    const isPendingUpload = index >= existingProductMediaCount
     return {
       src,
       name: isPendingUpload
         ? imageFiles[fileIndex]?.name ?? "Nova imagem do produto"
-        : editingProduct?.images?.[index]?.imagePath ?? "Imagem do produto",
+        : editingProduct?.media?.[index]?.originalFilename ?? "Imagem do produto",
       status: isPendingUpload ? "Pronta para carregar" : "Multimédia existente",
-      imageId: isPendingUpload ? null : editingProduct?.images?.[index]?.imageId ?? null,
+      mediaId: isPendingUpload ? null : editingProduct?.media?.[index]?.mediaId ?? null,
       fileIndex,
       isPendingUpload,
     }
@@ -4565,18 +4567,18 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                                   <button
                                     type="button"
                                     className="ad-btn ad-btn-sm ad-btn-danger ad-media-remove"
-                                    disabled={!item.isPendingUpload && deletingProductImageId === item.imageId}
+                                    disabled={!item.isPendingUpload && deletingProductMediaId === item.mediaId}
                                     onClick={() => {
                                       if (item.isPendingUpload) {
                                         removePendingProductImage(index, item.fileIndex)
                                         return
                                       }
-                                      if (item.imageId != null) {
-                                        void handleDeleteExistingProductImage(item.imageId, index)
+                                      if (item.mediaId != null) {
+                                        void handleDeleteExistingProductMedia(item.mediaId, index)
                                       }
                                     }}
                                   >
-                                    {!item.isPendingUpload && deletingProductImageId === item.imageId ? "A remover..." : "Remover"}
+                                    {!item.isPendingUpload && deletingProductMediaId === item.mediaId ? "A remover..." : "Remover"}
                                   </button>
                                 </div>
                               ))}
@@ -4587,7 +4589,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                                 {imageFiles.length > 0 && (
                                   <button type="button" className="ad-btn ad-btn-sm ad-btn-danger" onClick={() => {
                                     setImageFiles([])
-                                    setImagePreviews((editingProduct?.images ?? []).map((image) => getImageUrl(image.imagePath)))
+                                    setImagePreviews((editingProduct?.media ?? []).map((media) => getImageUrl(productMediaUrl(media, "card") ?? media.originalUrl)))
                                   }}>
                                     Clear selected
                                   </button>
@@ -4910,23 +4912,23 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                               className="ad-btn ad-btn-sm ad-btn-danger"
                               onClick={() => {
                                 setImageFiles([])
-                                setImagePreviews((editingProduct?.images ?? []).map((image) => getImageUrl(image.imagePath)))
+                                setImagePreviews((editingProduct?.media ?? []).map((media) => getImageUrl(productMediaUrl(media, "card") ?? media.originalUrl)))
                               }}
                             >
                               Remove
                             </button>
                           </div>
                         )}
-                        {!imagePreviews[0] && editingProduct?.images?.[0]?.imagePath && (
+                        {!imagePreviews[0] && editingProduct?.media?.[0] && (
                           <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 12 }}>
                             <img
-                              src={getImageUrl(editingProduct.images[0].imagePath)} alt="Atual"
+                              src={getImageUrl(productMediaUrl(editingProduct.media[0], "card") ?? editingProduct.media[0].originalUrl)} alt="Atual"
                               onError={handleAdminImageError}
                               style={{ height: 90, borderRadius: 8, objectFit: "cover", border: "1px solid var(--ad-border, #cbd5e1)" }}
                             />
                             <div style={{ fontSize: 12, opacity: 0.6 }}>
                               <p>Imagem atual</p>
-                              <p>{editingProduct.images[0].imagePath}</p>
+                              <p>{editingProduct.media[0].originalFilename ?? editingProduct.media[0].originalUrl}</p>
                             </div>
                           </div>
                         )}
@@ -4966,7 +4968,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                   {products.map((p) => {
                     const unavailableReason = getBaseUnavailableReason(p)
                     const isUnavailable = !p.effectiveAvailable
-                    const image = p.images?.[0]?.imagePath
+                    const image = primaryProductMediaUrl(p.media, "card")
                     const promoText = p.discountPercentage > 0
                       ? `${p.discountPercentage}% desconto`
                       : p.featured
@@ -5070,9 +5072,9 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                         return (
                         <tr key={p.productId} className={isUnavailable ? "ad-product-unavailable" : ""}>
                           <td data-label="Imagem">
-                            {p.images?.[0] ? (
+                            {primaryProductMediaUrl(p.media, "card") ? (
                               <img
-                                src={getImageUrl(p.images[0].imagePath)} alt={p.name}
+                                src={getImageUrl(primaryProductMediaUrl(p.media, "card")!)} alt={p.name}
                                 onError={handleAdminImageError}
                                 style={{ width: 40, height: 40, borderRadius: 6, objectFit: "cover" }}
                               />

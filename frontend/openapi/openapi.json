@@ -289,7 +289,7 @@
         "title": "AvailabilityUpdate",
         "type": "object"
       },
-      "Body_admin_management_upload_product_image": {
+      "Body_admin_management_upload_product_media": {
         "properties": {
           "file": {
             "contentMediaType": "application/octet-stream",
@@ -300,7 +300,7 @@
         "required": [
           "file"
         ],
-        "title": "Body_admin_management_upload_product_image",
+        "title": "Body_admin_management_upload_product_media",
         "type": "object"
       },
       "CancellationOrigin": {
@@ -333,16 +333,15 @@
               }
             ]
           },
-          "image_path": {
+          "media": {
             "anyOf": [
               {
-                "type": "string"
+                "$ref": "#/components/schemas/ProductMediaResponse"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Image Path"
+            ]
           },
           "name": {
             "title": "Name",
@@ -2292,6 +2291,59 @@
         "title": "LoyaltyCouponSettings",
         "type": "object"
       },
+      "MediaVariantKind": {
+        "enum": [
+          "original",
+          "thumb",
+          "card",
+          "detail"
+        ],
+        "title": "MediaVariantKind",
+        "type": "string"
+      },
+      "MediaVariantResponse": {
+        "properties": {
+          "content_type": {
+            "title": "Content Type",
+            "type": "string"
+          },
+          "height": {
+            "title": "Height",
+            "type": "integer"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/MediaVariantKind"
+          },
+          "size_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Size Bytes"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          },
+          "width": {
+            "title": "Width",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "url",
+          "content_type",
+          "width",
+          "height"
+        ],
+        "title": "MediaVariantResponse",
+        "type": "object"
+      },
       "MergeCartSchema": {
         "description": "Request model for merging guest cart on login.",
         "properties": {
@@ -2533,16 +2585,15 @@
               }
             ]
           },
-          "image": {
+          "media": {
             "anyOf": [
               {
-                "type": "string"
+                "$ref": "#/components/schemas/ProductMediaResponse"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Image"
+            ]
           },
           "product_display_id": {
             "title": "Product Display Id",
@@ -2747,26 +2798,18 @@
             "title": "Gluten Free",
             "type": "boolean"
           },
-          "images": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/ProductImageResponse"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": [],
-            "title": "Images"
-          },
           "ingredients": {
             "items": {
               "$ref": "#/components/schemas/ProductIngredientResponse"
             },
             "title": "Ingredients",
+            "type": "array"
+          },
+          "media": {
+            "items": {
+              "$ref": "#/components/schemas/ProductMediaResponse"
+            },
+            "title": "Media",
             "type": "array"
           },
           "menu_tags": {
@@ -3145,53 +3188,6 @@
         "title": "ProductCustomizationResponse",
         "type": "object"
       },
-      "ProductImageResponse": {
-        "description": "Response model for product image.",
-        "properties": {
-          "image_id": {
-            "title": "Image Id",
-            "type": "integer"
-          },
-          "image_path": {
-            "title": "Image Path",
-            "type": "string"
-          }
-        },
-        "required": [
-          "image_id",
-          "image_path"
-        ],
-        "title": "ProductImageResponse",
-        "type": "object"
-      },
-      "ProductImageUploadResponse": {
-        "properties": {
-          "filename": {
-            "title": "Filename",
-            "type": "string"
-          },
-          "image_path": {
-            "title": "Image Path",
-            "type": "string"
-          },
-          "message": {
-            "title": "Message",
-            "type": "string"
-          },
-          "url": {
-            "title": "Url",
-            "type": "string"
-          }
-        },
-        "required": [
-          "message",
-          "filename",
-          "url",
-          "image_path"
-        ],
-        "title": "ProductImageUploadResponse",
-        "type": "object"
-      },
       "ProductIngredientNutrition": {
         "properties": {
           "available": {
@@ -3388,6 +3384,118 @@
         "title": "ProductIngredientResponse",
         "type": "object"
       },
+      "ProductMediaResponse": {
+        "properties": {
+          "alt_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alt Text"
+          },
+          "content_type": {
+            "title": "Content Type",
+            "type": "string"
+          },
+          "height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Height"
+          },
+          "is_primary": {
+            "title": "Is Primary",
+            "type": "boolean"
+          },
+          "media_id": {
+            "title": "Media Id",
+            "type": "integer"
+          },
+          "original_filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Filename"
+          },
+          "original_url": {
+            "title": "Original Url",
+            "type": "string"
+          },
+          "size_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Size Bytes"
+          },
+          "sort_order": {
+            "title": "Sort Order",
+            "type": "integer"
+          },
+          "variants": {
+            "items": {
+              "$ref": "#/components/schemas/MediaVariantResponse"
+            },
+            "title": "Variants",
+            "type": "array"
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width"
+          }
+        },
+        "required": [
+          "media_id",
+          "sort_order",
+          "is_primary",
+          "original_url",
+          "content_type"
+        ],
+        "title": "ProductMediaResponse",
+        "type": "object"
+      },
+      "ProductMediaUploadResponse": {
+        "properties": {
+          "media": {
+            "$ref": "#/components/schemas/ProductMediaResponse"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message",
+          "media"
+        ],
+        "title": "ProductMediaUploadResponse",
+        "type": "object"
+      },
       "ProductResponse": {
         "description": "Response model for a product.",
         "properties": {
@@ -3444,29 +3552,18 @@
             "title": "Id Display",
             "type": "string"
           },
-          "image": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Image"
-          },
-          "images": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Images",
-            "type": "array"
-          },
           "ingredients": {
             "items": {
               "$ref": "#/components/schemas/ProductIngredientNutrition"
             },
             "title": "Ingredients",
+            "type": "array"
+          },
+          "media": {
+            "items": {
+              "$ref": "#/components/schemas/ProductMediaResponse"
+            },
+            "title": "Media",
             "type": "array"
           },
           "name": {
@@ -3541,7 +3638,6 @@
           "category",
           "name",
           "description",
-          "image",
           "price"
         ],
         "title": "ProductResponse",
@@ -9844,9 +9940,9 @@
         ]
       }
     },
-    "/admin/products/{product_id}/image": {
+    "/admin/products/{product_id}/media": {
       "post": {
-        "operationId": "admin_management_upload_product_image",
+        "operationId": "admin_management_upload_product_media",
         "parameters": [
           {
             "in": "path",
@@ -9872,7 +9968,7 @@
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_admin_management_upload_product_image"
+                "$ref": "#/components/schemas/Body_admin_management_upload_product_media"
               }
             }
           },
@@ -9883,7 +9979,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProductImageUploadResponse"
+                  "$ref": "#/components/schemas/ProductMediaUploadResponse"
                 }
               }
             },
@@ -9984,15 +10080,15 @@
             "BearerAuth": []
           }
         ],
-        "summary": "Upload Product Image",
+        "summary": "Upload Product Media",
         "tags": [
           "Admin Management"
         ]
       }
     },
-    "/admin/products/{product_id}/images/{image_id}": {
+    "/admin/products/{product_id}/media/{media_id}": {
       "delete": {
-        "operationId": "admin_management_delete_product_image",
+        "operationId": "admin_management_delete_product_media",
         "parameters": [
           {
             "in": "path",
@@ -10005,10 +10101,10 @@
           },
           {
             "in": "path",
-            "name": "image_id",
+            "name": "media_id",
             "required": true,
             "schema": {
-              "title": "Image Id",
+              "title": "Media Id",
               "type": "integer"
             }
           }
@@ -10119,7 +10215,7 @@
             "BearerAuth": []
           }
         ],
-        "summary": "Delete Product Image",
+        "summary": "Delete Product Media",
         "tags": [
           "Admin Management"
         ]
@@ -15194,7 +15290,7 @@
     },
     "/products/": {
       "get": {
-        "description": "Get all active products with their images.",
+        "description": "Get all active products with their media.",
         "operationId": "products_list_products",
         "responses": {
           "200": {
@@ -15290,7 +15386,7 @@
     },
     "/products/{product_id}": {
       "get": {
-        "description": "Get a single active product by ID, including its images.",
+        "description": "Get a single active product by ID, including its media.",
         "operationId": "products_get_product",
         "parameters": [
           {

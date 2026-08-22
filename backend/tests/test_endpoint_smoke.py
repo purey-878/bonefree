@@ -21,7 +21,7 @@ from app import create_app
 from core.config import settings
 from core.redis import InMemoryRedis
 from database import Base, get_db
-from models import Category, Coupon, CustomerLoyalty, Ingredient, Invoice, Order, OrderProduct, Payment, Product, ProductCustomizationOption, ProductImage, ProductIngredient, ProductReview, Session, User
+from models import Category, Coupon, CustomerLoyalty, Ingredient, Invoice, Media, Order, OrderProduct, Payment, Product, ProductCustomizationOption, ProductIngredient, ProductMedia, ProductReview, Session, User
 from schemas.enums import EntityStatus, IngredientType, PaymentState, ProductCustomizationOptionType, UserRole, UserStatus
 from services.auth_service import hash_password, hash_session_token
 
@@ -133,21 +133,20 @@ class EndpointSmokeTests(unittest.TestCase):
             db.commit()
             cls.product_id = product.id
 
-        import routers.admin as admin_router
+        import services.media_storage as media_storage
 
-        cls.original_upload_dir = admin_router.UPLOAD_DIR
-        cls.original_legacy_upload_dir = admin_router.LEGACY_UPLOAD_DIR
-        admin_router.UPLOAD_DIR = temp_root / "uploads" / "images"
-        admin_router.LEGACY_UPLOAD_DIR = temp_root / "legacy-images"
-        admin_router.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-        admin_router.LEGACY_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+        cls.original_uploads_root = media_storage.UPLOADS_ROOT
+        cls.original_product_media_dir = media_storage.PRODUCT_MEDIA_DIR
+        media_storage.UPLOADS_ROOT = temp_root / "uploads"
+        media_storage.PRODUCT_MEDIA_DIR = temp_root / "uploads" / "products"
+        media_storage.PRODUCT_MEDIA_DIR.mkdir(parents=True, exist_ok=True)
 
     @classmethod
     def tearDownClass(cls):
-        import routers.admin as admin_router
+        import services.media_storage as media_storage
 
-        admin_router.UPLOAD_DIR = cls.original_upload_dir
-        admin_router.LEGACY_UPLOAD_DIR = cls.original_legacy_upload_dir
+        media_storage.UPLOADS_ROOT = cls.original_uploads_root
+        media_storage.PRODUCT_MEDIA_DIR = cls.original_product_media_dir
         cls.client.close()
         cls.app.dependency_overrides.clear()
         Base.metadata.drop_all(cls.engine)
@@ -649,15 +648,42 @@ class EndpointSmokeTests(unittest.TestCase):
         image_buffer = BytesIO()
         Image.new("RGB", (20, 20), color="red").save(image_buffer, format="PNG")
         upload = self.client.post(
-            f"/admin/products/{self.product_id}/image",
+            f"/admin/products/{self.product_id}/media",
             headers=self.admin_headers,
             files={"file": ("smoke.png", image_buffer.getvalue(), "image/png")},
         )
         self.assertEqual(upload.status_code, 200, upload.text)
-        self.assertTrue(upload.json()["filename"].endswith("-original.webp"))
+        uploaded_media = upload.json()["media"]
+        self.assertTrue(uploaded_media["original_url"].endswith("-original.webp"))
+        self.assertEqual(
+            [variant["kind"] for variant in uploaded_media["variants"]],
+            ["thumb", "card", "detail"],
+        )
+
+        appended = self.client.post(
+            f"/admin/products/{self.product_id}/media?replace_existing=false",
+            headers=self.admin_headers,
+            files={"file": ("smoke-append.png", image_buffer.getvalue(), "image/png")},
+        )
+        self.assertEqual(appended.status_code, 200, appended.text)
+        self.assertEqual(appended.json()["media"]["sort_order"], 1)
+        self.assertFalse(appended.json()["media"]["is_primary"])
+
+        deleted = self.client.delete(
+            f"/admin/products/{self.product_id}/media/{uploaded_media['media_id']}",
+            headers=self.admin_headers,
+        )
+        self.assertEqual(deleted.status_code, 200, deleted.text)
         with self.Session() as db:
-            image = db.scalar(select(ProductImage).where(ProductImage.product_id == self.product_id))
-            self.assertIsNotNone(image)
+            links = db.scalars(
+                select(ProductMedia)
+                .where(ProductMedia.product_id == self.product_id)
+                .order_by(ProductMedia.sort_order)
+            ).all()
+            self.assertEqual(len(links), 1)
+            self.assertEqual(links[0].sort_order, 0)
+            self.assertTrue(links[0].is_primary)
+            self.assertEqual(db.scalar(select(func.count()).select_from(Media)), 1)
 
         created = self._create_order()
         order_id = created["order_id"]

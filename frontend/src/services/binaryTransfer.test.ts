@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { adminApiClient } from '../api/clients';
-import { uploadProductImage } from './adminService';
+import { uploadProductMedia } from './adminService';
 import { contentDispositionFilename } from './checkoutService';
 
 class MemoryStorage implements Storage {
@@ -31,26 +31,31 @@ describe('uploads and downloads', () => {
     )).toBe('fatura 42.pdf');
   });
 
-  it('sends product images as authenticated multipart data', async () => {
+  it('sends product media as authenticated multipart data', async () => {
     localStorage.setItem('admin_token', 'admin-secret');
     let capturedRequest: Request | undefined;
     const fetchMock = vi.fn(async (request: Request) => {
       capturedRequest = request;
       return new Response(JSON.stringify({
         message: 'uploaded',
-        filename: 'burger.png',
-        image_path: '/uploads/burger.png',
-        url: '/uploads/burger.png',
+        media: {
+          media_id: 12,
+          sort_order: 0,
+          is_primary: true,
+          original_url: '/uploads/products/PRD-009/burger-original.webp',
+          content_type: 'image/webp',
+          variants: [],
+        },
       }), { status: 200, headers: { 'Content-Type': 'application/json' } });
     }) as unknown as typeof fetch;
     adminApiClient.setConfig({ baseUrl: 'https://api.example.test', fetch: fetchMock });
 
-    const result = await uploadProductImage(9, new File(['image'], 'burger.png', { type: 'image/png' }));
+    const result = await uploadProductMedia(9, new File(['image'], 'burger.png', { type: 'image/png' }));
 
     expect(capturedRequest).toBeDefined();
     expect(capturedRequest?.headers.get('Authorization')).toBe('Bearer admin-secret');
     expect(capturedRequest?.headers.get('Content-Type')).toContain('multipart/form-data');
-    expect(capturedRequest?.url).toContain('/admin/products/9/image?replace_existing=true');
-    expect(result.imagePath).toBe('/uploads/burger.png');
+    expect(capturedRequest?.url).toContain('/admin/products/9/media?replace_existing=true');
+    expect(result.media.originalUrl).toBe('/uploads/products/PRD-009/burger-original.webp');
   });
 });

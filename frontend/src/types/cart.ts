@@ -1,3 +1,5 @@
+import type { ProductMedia } from './product';
+
 export interface GuestCartItem {
   productId: number;
   quantity: number;
@@ -69,7 +71,7 @@ export interface CartItem {
   quantity: number;
   available: boolean;
   unavailableReason?: string | null;
-  imagePath?: string | null;
+  media?: ProductMedia | null;
   customization?: ItemCustomization | null;
   subtotal: number;
 }

@@ -16,6 +16,7 @@ import {
 } from "../utils/loyaltyCoupon";
 import { applyApiImageFallback, productImageFallback, resolveProductImageUrl } from "../utils/imageFallback";
 import { formatEuro } from "../utils/money";
+import { primaryProductMediaUrl } from "../utils/productMedia";
 
 
 type CategorySummary = {
@@ -205,7 +206,7 @@ const HomePage = () => {
     return Array.from(counts, ([name, count]) => ({ count, name })).slice(0, 7);
   }, [visibleProducts]);
 
-  const featuredDish = availableProducts.find((product) => product.image) ?? availableProducts[0] ?? visibleProducts[0];
+  const featuredDish = availableProducts.find((product) => product.media.length > 0) ?? availableProducts[0] ?? visibleProducts[0];
   const sortedPopularProducts = [...availableProducts]
     .sort((a, b) => {
       if (a.highlighted !== b.highlighted) return a.highlighted ? -1 : 1;
@@ -392,7 +393,7 @@ const HomePage = () => {
                   onError={(event) => {
                     applyApiImageFallback(event.currentTarget, fallbackDishImage);
                   }}
-                  src={resolveImage(heroDish.image)}
+                  src={resolveImage(primaryProductMediaUrl(heroDish.media, "card"))}
                 />
                 <FeaturedMeta>
                   <span>{heroDish.category}</span>
@@ -508,7 +509,7 @@ const HomePage = () => {
             onError={(event) => {
               applyApiImageFallback(event.currentTarget, fallbackDishImage);
             }}
-            src={resolveImage(chefSpecial?.image)}
+            src={resolveImage(primaryProductMediaUrl(chefSpecial?.media, "card"))}
           />
         </ChefImageWrap>
         <ChefCopy>

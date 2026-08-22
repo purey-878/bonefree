@@ -70,6 +70,16 @@ def _ensure_test_user(db: DBSession, seed: TestUserSeed) -> bool:
     return changed
 
 
+def seed_test_users_in_session(db: DBSession) -> int:
+    """Ensure development test users exist in an existing transaction."""
+
+    changed_count = 0
+    for seed in TEST_USERS:
+        if _ensure_test_user(db, seed):
+            changed_count += 1
+    return changed_count
+
+
 def seed_test_users() -> None:
     """Ensure development test users exist for every system role.
 
@@ -80,11 +90,7 @@ def seed_test_users() -> None:
 
     db = SessionLocal()
     try:
-        changed_count = 0
-
-        for seed in TEST_USERS:
-            if _ensure_test_user(db, seed):
-                changed_count += 1
+        changed_count = seed_test_users_in_session(db)
 
         db.commit()
 

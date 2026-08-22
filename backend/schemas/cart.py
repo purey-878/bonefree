@@ -5,6 +5,7 @@ from typing import List, Optional
 from decimal import Decimal
 from .customization import ItemCustomization
 from .id_types import ProductId
+from .media import ProductMediaResponse
 
 
 class CartItemOut(BaseModel):
@@ -17,7 +18,7 @@ class CartItemOut(BaseModel):
     quantity: int = Field(..., ge=1, le=99)
     available: bool
     unavailable_reason: Optional[str] = None
-    image_path: Optional[str] = None
+    media: Optional[ProductMediaResponse] = None
     customization: Optional[ItemCustomization] = None
     subtotal: Decimal
 

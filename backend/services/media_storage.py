@@ -36,7 +36,7 @@ class StoredImageVariant:
 
 
 @dataclass(frozen=True)
-class StoredProductImage:
+class StoredProductMedia:
     original_filename: str | None
     content_type: str
     storage_key: str
@@ -91,29 +91,35 @@ def _save_variant(source: Image.Image, destination: Path, kind: MediaVariantKind
     )
 
 
-def store_product_image_upload(product_id: int, file: UploadFile) -> StoredProductImage:
+def store_product_media_upload(product_id: int, file: UploadFile) -> StoredProductMedia:
     if file.content_type not in ALLOWED_IMAGE_TYPES:
         raise ValueError("unsupported_image_type")
 
     directory = _product_media_directory(product_id)
     directory.mkdir(parents=True, exist_ok=True)
 
-    image_id = uuid.uuid4().hex
-    original_path = directory / f"{image_id}-original.webp"
+    media_token = uuid.uuid4().hex
+    original_path = directory / f"{media_token}-original.webp"
+    output_paths = [
+        original_path,
+        *(directory / f"{media_token}-{kind.value}.webp" for kind in VARIANT_SIZES),
+    ]
 
     try:
         with Image.open(BytesIO(file.file.read())) as opened_image:
             source = ImageOps.exif_transpose(opened_image)
             width, height, size_bytes = _save_original(source, original_path)
             variants = [
-                _save_variant(source, directory / f"{image_id}-{kind.value}.webp", kind, size)
+                _save_variant(source, directory / f"{media_token}-{kind.value}.webp", kind, size)
                 for kind, size in VARIANT_SIZES.items()
             ]
     except Exception as exc:
+        for output_path in output_paths:
+            output_path.unlink(missing_ok=True)
         raise ValueError("invalid_image_file") from exc
 
     storage_key = _relative_key(original_path)
-    return StoredProductImage(
+    return StoredProductMedia(
         original_filename=file.filename,
         content_type="image/webp",
         storage_key=storage_key,
