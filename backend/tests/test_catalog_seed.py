@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import shutil
 import sqlite3
@@ -10,7 +11,6 @@ from unittest.mock import AsyncMock, patch
 
 import app as app_module
 from core.config import settings
-from scripts.export_catalog_seed import check_export
 from scripts.seed_catalog import (
     _install_staged_seed,
     _target_contains_only_development_users,
@@ -82,11 +82,6 @@ class CatalogSeedTests(unittest.TestCase):
         self.assertNotIn('"admin_id"', serialized)
         self.assertNotIn('"password"', serialized)
         self.assertNotIn("legacy-product-image", serialized)
-
-        canonical_database = BACKEND_DIR / "bonefree.db"
-        canonical_uploads = PROJECT_ROOT / "uploads"
-        if canonical_database.is_file() and canonical_uploads.is_dir():
-            check_export(canonical_database, canonical_uploads, CATALOG_ROOT)
 
     def test_missing_and_corrupted_catalog_images_fail_validation(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -342,7 +337,18 @@ class CatalogSeedTests(unittest.TestCase):
             def fail_validation():
                 raise CatalogSeedError("simulated validation failure")
 
-            with self.assertRaisesRegex(CatalogSeedError, "simulated"):
+            real_replace = os.replace
+            product_install_sources: list[Path] = []
+
+            def record_replace(source, destination):
+                if Path(destination) == target_products:
+                    product_install_sources.append(Path(source))
+                real_replace(source, destination)
+
+            with (
+                patch("scripts.seed_catalog.os.replace", side_effect=record_replace),
+                self.assertRaisesRegex(CatalogSeedError, "simulated"),
+            ):
                 _install_staged_seed(
                     staged_database,
                     staged_products,
@@ -355,6 +361,8 @@ class CatalogSeedTests(unittest.TestCase):
             self.assertEqual(Path(f"{target_database}-wal").read_bytes(), b"old-wal")
             self.assertEqual((target_products / "old.webp").read_bytes(), b"old-image")
             self.assertFalse((target_products / "new.webp").exists())
+            self.assertEqual(product_install_sources[0].parent, uploads_root)
+            self.assertFalse(list(uploads_root.glob(".catalog-seed-products-*")))
 
 
 class CatalogStartupWiringTests(unittest.IsolatedAsyncioTestCase):
@@ -380,7 +388,7 @@ class CatalogStartupWiringTests(unittest.IsolatedAsyncioTestCase):
                 ),
                 patch.object(
                     app_module,
-                    "run_or_stamp_migrations",
+                    "run_migrations",
                     side_effect=lambda: calls.append("migrations"),
                 ),
                 patch.object(

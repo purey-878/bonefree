@@ -61,15 +61,6 @@ class Settings(BaseSettings):
         default=60,
         validation_alias="ADMIN_SESSION_INACTIVITY_EXPIRATION_MINUTES",
     )
-    dev_reset_database_on_migration_error: bool = Field(
-        default=False,
-        validation_alias="DEV_RESET_DATABASE_ON_MIGRATION_ERROR",
-    )
-    dev_stamp_existing_database_without_alembic: bool = Field(
-        default=True,
-        validation_alias="DEV_STAMP_EXISTING_DATABASE_WITHOUT_ALEMBIC",
-    )
-
     redis_url_raw: str | None = Field(default=None, validation_alias="REDIS_URL")
     rate_limit_enabled: bool = Field(default=True, validation_alias="RATE_LIMIT_ENABLED")
     rate_limit_auth_ip_requests: int = Field(

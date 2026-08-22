@@ -13,6 +13,7 @@ import subprocess
 import sys
 import tempfile
 from typing import Any, Callable
+from uuid import uuid4
 from zipfile import ZIP_DEFLATED, ZipFile
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
@@ -413,6 +414,24 @@ def _assert_safe_products_target(uploads_root: Path, products_root: Path) -> Non
         raise CatalogSeedError("Unsafe products target")
 
 
+def _assert_products_target_accessible(products_root: Path) -> None:
+    if products_root.exists():
+        return
+    try:
+        entry_exists = any(
+            entry.name == products_root.name for entry in products_root.parent.iterdir()
+        )
+    except OSError as exc:
+        raise CatalogSeedError(
+            f"Cannot inspect uploads directory {products_root.parent}: {exc}"
+        ) from exc
+    if entry_exists:
+        raise CatalogSeedError(
+            f"Product uploads directory {products_root} exists but is not accessible; "
+            "repair its ownership or permissions before running the catalog seed"
+        )
+
+
 def _install_staged_seed(
     staged_database: Path,
     staged_products: Path,
@@ -424,6 +443,17 @@ def _install_staged_seed(
     _assert_safe_products_target(uploads_root, products_root)
     database_path.parent.mkdir(parents=True, exist_ok=True)
     uploads_root.mkdir(parents=True, exist_ok=True)
+    _assert_products_target_accessible(products_root)
+
+    # A directory moved out of TemporaryDirectory retains its private Windows ACL.
+    # Build the install candidate beside the destination so it inherits uploads/ ACLs.
+    install_products = uploads_root / f".catalog-seed-products-{uuid4().hex}"
+    try:
+        shutil.copytree(staged_products, install_products)
+    except BaseException:
+        if install_products.exists():
+            shutil.rmtree(install_products)
+        raise
 
     rollback_root = staged_database.parent / "rollback"
     rollback_root.mkdir()
@@ -444,7 +474,7 @@ def _install_staged_seed(
             os.replace(products_root, rollback_products)
 
         os.replace(staged_database, database_path)
-        os.replace(staged_products, products_root)
+        os.replace(install_products, products_root)
         return validate_installed()
     except BaseException:
         if database_path.exists():
@@ -459,6 +489,9 @@ def _install_staged_seed(
             if rollback.exists():
                 os.replace(rollback, original)
         raise
+    finally:
+        if install_products.exists():
+            shutil.rmtree(install_products)
 
 
 def seed_catalog(

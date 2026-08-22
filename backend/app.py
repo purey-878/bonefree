@@ -19,7 +19,7 @@ from core.exception_handlers import (
     request_validation_exception_handler,
     unexpected_exception_handler,
 )
-from migrations import run_or_stamp_migrations
+from migrations import run_migrations
 from database import engine as database_engine
 from routers.admin import router as admin_router
 from routers.auth import router as auth_router
@@ -73,7 +73,7 @@ def create_app(
 
         try:
             if run_startup_tasks:
-                run_or_stamp_migrations()
+                run_migrations()
                 if settings.environment == "development":
                     database_engine.dispose()
                     seed_catalog_on_development_startup(uploads_root=resolved_uploads)

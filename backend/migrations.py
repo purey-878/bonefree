@@ -2,27 +2,17 @@ from pathlib import Path
 
 from alembic import command as alembic_command
 from alembic.config import Config
+from alembic.script import ScriptDirectory
+from alembic.script.revision import ResolutionError
 from alembic.util.exc import CommandError
 from sqlalchemy import inspect as sa_inspect, text
-from sqlalchemy.engine import Connection, make_url
+from sqlalchemy.engine import Connection
 
-from core.config import Settings, settings
+from core.config import settings
 from database import engine
 
 ALEMBIC_INI_PATH = Path(__file__).parent / "alembic.ini"
-
-REQUIRED_SCHEMA_OBJECTS: dict[str, set[str]] = {
-    "product": set(),
-    "site_setting": {"key", "value"},
-    "session": {"user_id", "token_hash"},
-    "user": {"email", "password", "role"},
-}
-
-LEGACY_PORTUGUESE_BASELINE_REVISION = "20260819_0001"
-LEGACY_PORTUGUESE_SCHEMA_TABLES = {
-    "categoria",
-    "produto",
-}
+BASELINE_REVISION = "20260822_0001"
 
 
 def _alembic_config(connection: Connection) -> Config:
@@ -33,97 +23,10 @@ def _alembic_config(connection: Connection) -> Config:
     return config
 
 
-def is_sqlite_database_url(database_url: str) -> bool:
-    return make_url(database_url).get_backend_name() == "sqlite"
-
-
-def can_stamp_existing_database_without_alembic(app_settings: Settings, database_url: str) -> bool:
-    return (
-        app_settings.environment in {"development", "test"}
-        and app_settings.dev_stamp_existing_database_without_alembic
-        and is_sqlite_database_url(database_url)
-    )
-
-
-def _missing_required_schema_objects(connection: Connection) -> list[str]:
-    inspector = sa_inspect(connection)
-    table_names = set(inspector.get_table_names())
-    missing_objects: list[str] = []
-
-    for table_name, required_columns in REQUIRED_SCHEMA_OBJECTS.items():
-        if table_name not in table_names:
-            missing_objects.append(f"table {table_name!r}")
-            continue
-
-        column_names = {column["name"] for column in inspector.get_columns(table_name)}
-        for column_name in sorted(required_columns - column_names):
-            missing_objects.append(f"column {table_name}.{column_name}")
-
-    return missing_objects
-
-
-def existing_database_matches_current_baseline(connection: Connection) -> bool:
-    return not _missing_required_schema_objects(connection)
-
-
-def existing_database_matches_legacy_portuguese_baseline(connection: Connection) -> bool:
-    """Return true for pre-Alembic databases that can be migrated by the PT->EN rename migration.
-
-    The initial Alembic revision is a baseline of the current English schema and
-    uses ``create_all``. Legacy databases already contain the same application
-    data in the old Portuguese schema, so they must be stamped at the baseline
-    revision first; otherwise Alembic would create empty English tables before
-    the rename migration has a chance to preserve the existing rows.
-    """
-    table_names = set(sa_inspect(connection).get_table_names())
-    return LEGACY_PORTUGUESE_SCHEMA_TABLES.issubset(table_names)
-
-
-def can_recreate_incompatible_sqlite_database(app_settings: Settings, database_url: str) -> bool:
-    return (
-        app_settings.environment in {"development", "test"}
-        and app_settings.dev_reset_database_on_migration_error
-        and is_sqlite_database_url(database_url)
-    )
-
-
-def _drop_sqlite_database_schema(connection: Connection) -> None:
-    inspector = sa_inspect(connection)
-    table_names = inspector.get_table_names()
-    if not table_names:
-        return
-
-    connection.execute(text("PRAGMA foreign_keys=OFF"))
-    try:
-        for table_name in table_names:
-            escaped_table_name = table_name.replace('"', '""')
-            connection.execute(text(f'DROP TABLE IF EXISTS "{escaped_table_name}"'))
-    finally:
-        connection.execute(text("PRAGMA foreign_keys=ON"))
-
-
-def _unsafe_migration_error(reason: str) -> RuntimeError:
-    return RuntimeError(
-        f"Database schema preparation failed: {reason}. "
-        "Automatic migration is enabled, but the database cannot be prepared safely. "
-        "For an existing database that already matches the current models, run "
-        "`alembic stamp head` manually or enable "
-        "DEV_STAMP_EXISTING_DATABASE_WITHOUT_ALEMBIC=true only in development/test with SQLite."
-    )
-
-
 def _upgrade_database(connection: Connection, alembic_config: Config) -> None:
-    """Upgrade a database while allowing legacy SQLite FK remapping.
+    """Upgrade while allowing future SQLite migrations to rebuild FK tables."""
 
-    The application SQLite engine enables foreign-key enforcement on connect.
-    Schema inspection starts SQLAlchemy's implicit transaction before Alembic
-    runs, which makes a later ``PRAGMA foreign_keys=OFF`` inside a migration a
-    no-op.  Some historical migrations must remap foreign-key values before
-    rebuilding or removing their legacy parent tables, so suspend enforcement
-    before Alembic starts and restore it on every exit path.
-    """
     is_sqlite = connection.dialect.name == "sqlite"
-
     if is_sqlite:
         if connection.in_transaction():
             connection.commit()
@@ -145,65 +48,54 @@ def _upgrade_database(connection: Connection, alembic_config: Config) -> None:
             connection.commit()
 
 
-def run_or_stamp_migrations() -> None:
-    """Apply Alembic migrations safely.
+def _incompatible_database(reason: str) -> RuntimeError:
+    return RuntimeError(
+        f"Database is incompatible with the current Alembic baseline: {reason}. "
+        "Legacy migration history is archived and is not supported by this build. "
+        "Restore with the archived code or recreate the development database with "
+        "`python scripts/seed_catalog.py --apply --reset --confirm-reset`."
+    )
 
-    - Empty databases are upgraded to head.
-    - Databases with alembic_version are upgraded normally.
-    - Existing SQLite development/test databases without alembic_version are
-      stamped as head only when required baseline tables/columns already exist.
-    - Existing pre-Alembic Portuguese-schema databases are stamped at the
-      baseline revision and then upgraded, allowing the PT->EN rename migration
-      to preserve data.
-    - Incompatible SQLite development/test databases without alembic_version are
-      recreated only when the development reset safety flag is enabled.
-    - Existing production databases without alembic_version fail loudly.
-    """
+
+def _current_revision(connection: Connection) -> str | None:
+    rows = connection.execute(text("SELECT version_num FROM alembic_version")).scalars().all()
+    if len(rows) > 1:
+        raise _incompatible_database("alembic_version contains multiple revisions")
+    return rows[0] if rows else None
+
+
+def _assert_known_revision(alembic_config: Config, revision: str) -> None:
+    scripts = ScriptDirectory.from_config(alembic_config)
+    try:
+        resolved_revision = scripts.get_revision(revision)
+    except (ResolutionError, CommandError) as exc:
+        raise _incompatible_database(f"unknown revision {revision!r}") from exc
+    if resolved_revision is None:
+        raise _incompatible_database(f"unknown revision {revision!r}")
+
+
+def run_migrations() -> None:
+    """Upgrade empty or recognized databases and reject every legacy baseline."""
+
     if not settings.auto_apply_migrations:
         return
 
-    # Do not wrap Alembic in engine.begin() here. Some SQLite migrations need to
-    # temporarily toggle PRAGMA foreign_keys, and SQLite only applies that PRAGMA
-    # outside an active transaction. Alembic/migrations still create their own
-    # transaction boundaries where supported.
-    with engine.connect() as conn:
-        alembic_config = _alembic_config(conn)
-        table_names = set(sa_inspect(conn).get_table_names())
-        has_alembic_version = "alembic_version" in table_names
-        has_application_tables = bool(table_names - {"alembic_version"})
+    with engine.connect() as connection:
+        alembic_config = _alembic_config(connection)
+        table_names = set(sa_inspect(connection).get_table_names())
+        application_tables = table_names - {"alembic_version"}
 
-        if not has_alembic_version and has_application_tables:
-            if existing_database_matches_legacy_portuguese_baseline(conn):
-                if not can_stamp_existing_database_without_alembic(settings, settings.database_url):
-                    raise _unsafe_migration_error(
-                        "the alembic_version table is missing and the existing Portuguese legacy "
-                        "schema requires stamping before it can be migrated"
-                    )
-
-                alembic_command.stamp(alembic_config, LEGACY_PORTUGUESE_BASELINE_REVISION)
-                _upgrade_database(conn, alembic_config)
-                return
-
-            missing_schema_objects = _missing_required_schema_objects(conn)
-
-            if missing_schema_objects:
-                missing_description = ", ".join(missing_schema_objects)
-                if not can_recreate_incompatible_sqlite_database(settings, settings.database_url):
-                    raise _unsafe_migration_error(
-                        "the alembic_version table is missing and the existing schema is incomplete "
-                        f"or incompatible; missing: {missing_description}"
-                    )
-
-                _drop_sqlite_database_schema(conn)
-            else:
-                if not can_stamp_existing_database_without_alembic(settings, settings.database_url):
-                    raise _unsafe_migration_error("the alembic_version table is missing")
-
-                alembic_command.stamp(alembic_config, "head")
-                conn.commit()
-                return
+        if "alembic_version" not in table_names:
+            if application_tables:
+                raise _incompatible_database("a non-empty database has no alembic_version")
+        else:
+            revision = _current_revision(connection)
+            if revision is None and application_tables:
+                raise _incompatible_database("a non-empty database has no current revision")
+            if revision is not None:
+                _assert_known_revision(alembic_config, revision)
 
         try:
-            _upgrade_database(conn, alembic_config)
+            _upgrade_database(connection, alembic_config)
         except CommandError as exc:
-            raise _unsafe_migration_error(str(exc)) from exc
+            raise _incompatible_database(str(exc)) from exc

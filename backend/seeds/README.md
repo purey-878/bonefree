@@ -1,6 +1,7 @@
 # Canonical catalog seed
 
-The canonical development catalog is reproducible from Alembic migrations,
+The canonical development catalog is reproducible from the static Alembic
+baseline `20260822_0001`,
 `catalog/catalog.json`, and the WebP files under `catalog/products`.
 Runtime databases and `uploads/` are deliberately not tracked by Git.
 

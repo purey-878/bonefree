@@ -566,7 +566,7 @@ class ProductReview(AppBaseModel):
 
     product_id: Mapped[int] = mapped_column(Integer, ForeignKey('product.id'), nullable=False, index=True)
     customer_id: Mapped[int] = mapped_column(Integer, ForeignKey('user.id'), nullable=False, index=True)
-    order_product_id: Mapped[int] = mapped_column(Integer, ForeignKey('order_product.id'), nullable=True, unique=True)
+    order_product_id: Mapped[int] = mapped_column(Integer, ForeignKey('order_product.id'), nullable=True)
     rating: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     title: Mapped[str] = mapped_column(String(120), nullable=True)
     comment: Mapped[str] = mapped_column(String(1000), nullable=True)
