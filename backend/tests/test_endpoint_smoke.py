@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from decimal import Decimal
 import hashlib
+from io import BytesIO
 from pathlib import Path
 import re
 import tempfile
@@ -11,6 +12,7 @@ from unittest.mock import patch
 
 from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
+from PIL import Image
 from sqlalchemy import create_engine, func, select
 from sqlalchemy.orm import Session as DBSession, sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -644,12 +646,15 @@ class EndpointSmokeTests(unittest.TestCase):
         self.assertGreaterEqual(int(responses[10].headers["Retry-After"]), 1)
 
     def test_multipart_upload_and_review_workflow_serialize_successfully(self):
+        image_buffer = BytesIO()
+        Image.new("RGB", (20, 20), color="red").save(image_buffer, format="PNG")
         upload = self.client.post(
             f"/admin/products/{self.product_id}/image",
             headers=self.admin_headers,
-            files={"file": ("smoke.png", b"not-a-real-image", "image/png")},
+            files={"file": ("smoke.png", image_buffer.getvalue(), "image/png")},
         )
         self.assertEqual(upload.status_code, 200, upload.text)
+        self.assertTrue(upload.json()["filename"].endswith("-original.webp"))
         with self.Session() as db:
             image = db.scalar(select(ProductImage).where(ProductImage.product_id == self.product_id))
             self.assertIsNotNone(image)

@@ -46,7 +46,7 @@ from schemas.enums import (
 
 BACKEND = Path(__file__).resolve().parents[1]
 RESET_REVISION = "c4a8f2e1d9b7"
-HEAD_REVISION = "e8b4c2d6f901"
+HEAD_REVISION = "a2f4c6d8e901"
 PRE_RESET_REVISION = "9b2f4d1a7c8e"
 CLEARED_TABLES = (
     "review_reactions",

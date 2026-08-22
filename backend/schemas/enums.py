@@ -114,6 +114,17 @@ class SiteSettingKey(StrEnum):
     EVENTS = "events"
 
 
+class MediaOwnerType(StrEnum):
+    PRODUCT = "product"
+
+
+class MediaVariantKind(StrEnum):
+    ORIGINAL = "original"
+    THUMB = "thumb"
+    CARD = "card"
+    DETAIL = "detail"
+
+
 class ThemeId(StrEnum):
     NORMAL = "normal"
     PRESENTATION = "presentation"

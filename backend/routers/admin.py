@@ -3,7 +3,6 @@ Admin routes for product management and analytics.
 """
 
 import os
-import uuid
 import logging
 from decimal import Decimal
 from pathlib import Path
@@ -15,11 +14,11 @@ from typing import Dict, List, Optional, Union
 
 from database import get_db
 from dependencies import rate_limit_admin_login, require_role
-from schemas.enums import ADMIN_ROLES, EntityStatus, IngredientType, OrderState, PaymentMethod, PaymentState, PaymentStatus, ReviewStatus, UserRole, UserStatus, normalize_admin_role
+from schemas.enums import ADMIN_ROLES, EntityStatus, IngredientType, MediaOwnerType, MediaVariantKind, OrderState, PaymentMethod, PaymentState, PaymentStatus, ReviewStatus, UserRole, UserStatus, normalize_admin_role
 from models import (
     Admin, Product, Cart, CartProduct as CartItem, Customer, ProductImage,
     Category, Order, OrderProduct, Payment, ProductReview,
-    Ingredient, ProductIngredient, CustomerBillingAddress,
+    Ingredient, ProductIngredient, CustomerBillingAddress, Media, MediaVariant, ProductMedia,
 )
 from services.auth_service import (
     CHEF_ROLE,
@@ -53,6 +52,7 @@ from services.product_availability import (
     unavailable_base_product_ids,
 )
 from services.receipt_email import build_saved_order_receipt_payload, send_purchase_receipt
+from services.media_storage import ALLOWED_IMAGE_TYPES, delete_storage_key, store_product_image_upload
 from utils.id_format import format_category_id, format_product_id, parse_category_id, parse_product_id
 from core.errors import AppHTTPException
 from core.rate_limit import RATE_LIMIT_OPENAPI_RESPONSES
@@ -1393,39 +1393,67 @@ def upload_product_image(
         raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="invalid_image_type", message="Image type is not supported.", details={"content_type": file.content_type, "allowed_types": sorted(allowed_types)})
 
     try:
-        # Generate unique filename
-        file_ext = file.filename.split(".")[-1].lower() if file.filename else "jpg"
-        unique_filename = f"{format_product_id(parsed_product_id)}_{uuid.uuid4().hex}.{file_ext}"
-        filepath = UPLOAD_DIR / unique_filename
-        public_image_path = f"/uploads/images/{unique_filename}"
-
-        # Save file
-        with open(filepath, "wb") as f:
-            f.write(file.file.read())
+        stored_image = store_product_image_upload(parsed_product_id, file)
+        card_variant = next((variant for variant in stored_image.variants if variant.kind == MediaVariantKind.CARD), None)
+        public_image_path = card_variant.public_url if card_variant else stored_image.public_url
 
         if replace_existing:
-            # Delete old images for this product
             old_images = db.scalars(select(ProductImage).where(ProductImage.product_id == parsed_product_id)).all()
             for old_img in old_images:
                 _delete_uploaded_image_file(old_img.image_path)
                 db.delete(old_img)
-            db.commit()
 
-        # Create new image record
-        new_image = ProductImage(
-            product_id=parsed_product_id,
-            image_path=public_image_path
+            old_media_links = db.scalars(
+                select(ProductMedia)
+                .options(selectinload(ProductMedia.media).selectinload(Media.variants))
+                .where(ProductMedia.product_id == parsed_product_id)
+            ).all()
+            for link in old_media_links:
+                media = link.media
+                for variant in media.variants:
+                    delete_storage_key(variant.storage_key)
+                delete_storage_key(media.storage_key)
+                db.delete(media)
+
+        media = Media(
+            owner_type=MediaOwnerType.PRODUCT,
+            original_filename=stored_image.original_filename,
+            content_type=stored_image.content_type,
+            storage_key=stored_image.storage_key,
+            public_url=stored_image.public_url,
+            width=stored_image.width,
+            height=stored_image.height,
+            size_bytes=stored_image.size_bytes,
+            variants=[
+                MediaVariant(
+                    kind=variant.kind,
+                    storage_key=variant.storage_key,
+                    public_url=variant.public_url,
+                    content_type=variant.content_type,
+                    width=variant.width,
+                    height=variant.height,
+                    size_bytes=variant.size_bytes,
+                )
+                for variant in stored_image.variants
+            ],
         )
-        db.add(new_image)
+        db.add(media)
+        db.add(ProductMedia(product_id=parsed_product_id, media=media, sort_order=0, alt_text=product.name, is_primary=True))
+        db.add(ProductImage(product_id=parsed_product_id, image_path=public_image_path))
         db.commit()
 
         return {
             "message": "Image uploaded successfully",
-            "filename": unique_filename,
+            "filename": Path(stored_image.storage_key).name,
             "url": public_image_path,
             "image_path": public_image_path,
         }
 
+    except ValueError as e:
+        db.rollback()
+        if str(e) == "unsupported_image_type":
+            raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="invalid_image_type", message="Image type is not supported.", details={"content_type": file.content_type, "allowed_types": sorted(ALLOWED_IMAGE_TYPES)})
+        raise AppHTTPException(status_code=status.HTTP_400_BAD_REQUEST, error="invalid_image_file", message="Uploaded file is not a valid image.", details={"reason": "request_failed"})
     except Exception as e:
         db.rollback()
         raise AppHTTPException(status_code=500, error="internal_server_error", message="Internal server error.", details={"reason": "request_failed"})
@@ -1452,7 +1480,24 @@ def delete_product_image(
     if not image:
         raise AppHTTPException(status_code=404, error="image_not_found", message="Image not found.", details={"reason": "request_failed"})
 
+    media = db.scalar(
+        select(Media)
+        .options(selectinload(Media.variants))
+        .join(MediaVariant, MediaVariant.media_id == Media.media_id)
+        .join(ProductMedia, ProductMedia.media_id == Media.media_id)
+        .where(
+            ProductMedia.product_id == parsed_product_id,
+            MediaVariant.public_url == image.image_path,
+        )
+        .limit(1)
+    )
+
     _delete_uploaded_image_file(image.image_path)
+    if media:
+        for variant in media.variants:
+            delete_storage_key(variant.storage_key)
+        delete_storage_key(media.storage_key)
+        db.delete(media)
 
     db.delete(image)
     db.commit()

@@ -15,6 +15,8 @@ from schemas.enums import (
     CouponType,
     EntityStatus,
     IngredientType,
+    MediaOwnerType,
+    MediaVariantKind,
     OrderState,
     PaymentMethod,
     PaymentState,
@@ -168,6 +170,7 @@ class Product(AppBaseModel):
     category: Mapped[Category] = relationship('Category', lazy='joined')
     # Parent-side 0..N: a product may exist without any uploaded images.
     images: Mapped[List[ProductImage]] = relationship('ProductImage', back_populates='product', lazy='selectin')
+    media_items: Mapped[List["ProductMedia"]] = relationship("ProductMedia", back_populates="product", lazy="selectin")
     # Parent-side 0..N: a product may exist without any customer reviews.
     reviews: Mapped[List[ProductReview]] = relationship("ProductReview", back_populates="product")
 
@@ -191,6 +194,78 @@ class ProductImage(AppBaseModel):
     image_path: Mapped[str] = mapped_column(String(255), nullable=False)
 
     product: Mapped[Product] = relationship("Product", back_populates="images")
+
+
+class Media(AppBaseModel):
+    __tablename__ = "media"
+
+    media_id = synonym("id")
+
+    owner_type: Mapped[MediaOwnerType] = mapped_column(
+        SAEnum(MediaOwnerType, values_callable=enum_values),
+        nullable=False,
+        index=True,
+    )
+    original_filename: Mapped[str] = mapped_column(String(255), nullable=True)
+    content_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    storage_key: Mapped[str] = mapped_column(String(500), nullable=False, unique=True)
+    public_url: Mapped[str] = mapped_column(String(500), nullable=False)
+    width: Mapped[int] = mapped_column(Integer, nullable=True)
+    height: Mapped[int] = mapped_column(Integer, nullable=True)
+    size_bytes: Mapped[int] = mapped_column(Integer, nullable=True)
+
+    variants: Mapped[List["MediaVariant"]] = relationship(
+        "MediaVariant",
+        back_populates="media",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+    product_links: Mapped[List["ProductMedia"]] = relationship(
+        "ProductMedia",
+        back_populates="media",
+        cascade="all, delete-orphan",
+    )
+
+
+class MediaVariant(AppBaseModel):
+    __tablename__ = "media_variant"
+    __table_args__ = (
+        UniqueConstraint("media_id", "kind", name="uq_media_variant_media_kind"),
+    )
+
+    variant_id = synonym("id")
+
+    media_id: Mapped[int] = mapped_column(Integer, ForeignKey("media.id", ondelete="CASCADE"), nullable=False, index=True)
+    kind: Mapped[MediaVariantKind] = mapped_column(
+        SAEnum(MediaVariantKind, values_callable=enum_values),
+        nullable=False,
+    )
+    storage_key: Mapped[str] = mapped_column(String(500), nullable=False, unique=True)
+    public_url: Mapped[str] = mapped_column(String(500), nullable=False)
+    content_type: Mapped[str] = mapped_column(String(100), nullable=False, default="image/webp")
+    width: Mapped[int] = mapped_column(Integer, nullable=False)
+    height: Mapped[int] = mapped_column(Integer, nullable=False)
+    size_bytes: Mapped[int] = mapped_column(Integer, nullable=True)
+
+    media: Mapped[Media] = relationship("Media", back_populates="variants")
+
+
+class ProductMedia(AppBaseModel):
+    __tablename__ = "product_media"
+    __table_args__ = (
+        UniqueConstraint("product_id", "media_id", name="uq_product_media_product_media"),
+    )
+
+    product_media_id = synonym("id")
+
+    product_id: Mapped[int] = mapped_column(Integer, ForeignKey("product.id", ondelete="CASCADE"), nullable=False, index=True)
+    media_id: Mapped[int] = mapped_column(Integer, ForeignKey("media.id", ondelete="CASCADE"), nullable=False, index=True)
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    alt_text: Mapped[str] = mapped_column(String(255), nullable=True)
+    is_primary: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
+
+    product: Mapped[Product] = relationship("Product", back_populates="media_items")
+    media: Mapped[Media] = relationship("Media", back_populates="product_links")
 
 
 Customer = User
