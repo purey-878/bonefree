@@ -104,6 +104,19 @@ def _coerce_row(model: type[Any], row: dict[str, Any], owner_id: int) -> dict[st
     return values
 
 
+def insert_catalog_rows(db: Any, fixture: dict[str, Any], owner_id: int) -> None:
+    """Insert the validated canonical catalog into an existing transaction."""
+
+    for table_name in INSERT_ORDER:
+        model = TABLE_MODELS[table_name]
+        rows = [
+            _coerce_row(model, row, owner_id)
+            for row in fixture["tables"][table_name]
+        ]
+        if rows:
+            db.execute(insert(model), rows)
+
+
 def _run_alembic_upgrade(database_path: Path) -> None:
     environment = os.environ.copy()
     environment["DATABASE_URL"] = _sqlite_url(database_path)
@@ -150,14 +163,7 @@ def _insert_catalog(database_path: Path, fixture: dict[str, Any]) -> None:
             if owner_id is None:
                 raise CatalogSeedError("Development owner was not created")
 
-            for table_name in INSERT_ORDER:
-                model = TABLE_MODELS[table_name]
-                rows = [
-                    _coerce_row(model, row, owner_id)
-                    for row in fixture["tables"][table_name]
-                ]
-                if rows:
-                    db.execute(insert(model), rows)
+            insert_catalog_rows(db, fixture, owner_id)
             db.commit()
 
         migrate_product_images_to_media(
