@@ -135,11 +135,15 @@ def _delete_cart_items(db: Session, cart_id: int) -> None:
 
     db.execute(
         delete(CartProductCustomization).where(
-            CartProductCustomization.cart_product_id.in_(cart_item_ids)
+            CartProductCustomization.cart_product_id.in_(cart_item_ids),
+            CartProductCustomization.organization_id == db.info["organization_id"],
         )
     )
     db.execute(
-        delete(CartProduct).where(CartProduct.cart_product_id.in_(cart_item_ids))
+        delete(CartProduct).where(
+            CartProduct.cart_product_id.in_(cart_item_ids),
+            CartProduct.organization_id == db.info["organization_id"],
+        )
     )
 
 

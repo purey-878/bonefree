@@ -21,7 +21,7 @@ from app import create_app
 from core.config import settings
 from core.redis import InMemoryRedis
 from database import Base, get_db
-from models import Category, Coupon, CustomerLoyalty, Ingredient, Invoice, Media, Order, OrderProduct, Payment, Product, ProductCustomizationOption, ProductIngredient, ProductMedia, ProductReview, Session, User
+from models import Category, Coupon, CustomerLoyalty, Ingredient, Invoice, Media, Order, OrderProduct, Organization, OrganizationDomain, OrganizationProfile, Payment, Product, ProductCustomizationOption, ProductIngredient, ProductMedia, ProductReview, Session, User
 from schemas.enums import EntityStatus, IngredientType, PaymentState, ProductCustomizationOptionType, UserRole, UserStatus
 from services.auth_service import hash_password, hash_session_token
 
@@ -54,6 +54,7 @@ class EndpointSmokeTests(unittest.TestCase):
 
         cls.app.dependency_overrides[get_db] = override_db
         cls.client = TestClient(cls.app, raise_server_exceptions=False)
+        cls.client.headers["X-Organization-Slug"] = "bonefree"
         cls.customer_token = "customer-smoke-token"
         cls.admin_token = "admin-smoke-token"
         cls.manager_token = "manager-smoke-token"
@@ -61,6 +62,32 @@ class EndpointSmokeTests(unittest.TestCase):
         cls.waiter_token = "waiter-smoke-token"
 
         with cls.Session() as db:
+            organization = Organization(
+                name="Bonefree",
+                slug="bonefree",
+                email="hello@bonefree.test",
+            )
+            db.add(organization)
+            db.flush()
+            cls.organization_id = organization.id
+            cls.Session.configure(info={"organization_id": organization.id})
+            db.info["organization_id"] = organization.id
+            db.add_all([
+                OrganizationDomain(domain="bonefree.test", is_primary=True, is_verified=True),
+                OrganizationProfile(
+                    display_name="BONEFREE",
+                    legal_name="Bonefree Test, Lda.",
+                    tax_id="501964843",
+                    email="hello@bonefree.test",
+                    phone="912345678",
+                    address_line_1="Test street 1",
+                    city="Lisbon",
+                    postal_code="1000-001",
+                    country="Portugal",
+                    logo_url="/assets/images/bonefree-logo.webp",
+                    currency_code="EUR",
+                ),
+            ])
             admin = User(
                 name="Smoke",
                 last_name="Owner",

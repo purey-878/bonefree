@@ -294,7 +294,7 @@ def validate_email_config() -> list[str]:
         if not _present(settings.smtp_password):
             missing.append("SMTP_PASSWORD/SMTP_PASS")
         if not _present(settings.effective_email_from):
-            missing.append("AUTH_EMAIL_FROM/EMAIL_FROM/RECEIPT_FROM_EMAIL/RECEIPT_COMPANY_EMAIL/SMTP_USER")
+            missing.append("AUTH_EMAIL_FROM/EMAIL_FROM/SMTP_USER")
         return missing
 
     missing.append(f"Unsupported EMAIL_PROVIDER: {settings.email_provider}")

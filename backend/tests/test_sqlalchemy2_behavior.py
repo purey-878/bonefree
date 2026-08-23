@@ -16,6 +16,7 @@ from models import (
     MediaVariant,
     Order,
     OrderProduct,
+    Organization,
     Product,
     ProductIngredient,
     ProductMedia,
@@ -56,6 +57,10 @@ class SqlAlchemy2BehaviorTests(unittest.TestCase):
         self.engine = create_engine("sqlite:///:memory:")
         Base.metadata.create_all(self.engine)
         self.db = Session(self.engine)
+        organization = Organization(name="Bonefree", slug="bonefree", email="hello@bonefree.test")
+        self.db.add(organization)
+        self.db.flush()
+        self.db.info["organization_id"] = organization.id
 
         self.admin = User(
             name="Admin",

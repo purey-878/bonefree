@@ -97,12 +97,26 @@ def create_admin_session(
 
 
 def revoke_all_customer_sessions(db: DBSession, customer_id: int) -> None:
-    db.execute(update(Session).where(Session.customer_id == customer_id).values(revoked=True))
+    db.execute(
+        update(Session)
+        .where(
+            Session.customer_id == customer_id,
+            Session.organization_id == db.info["organization_id"],
+        )
+        .values(revoked=True)
+    )
     db.commit()
 
 
 def revoke_all_admin_sessions(db: DBSession, admin_id: int) -> None:
-    db.execute(update(Session).where(Session.admin_id == admin_id).values(revoked=True))
+    db.execute(
+        update(Session)
+        .where(
+            Session.admin_id == admin_id,
+            Session.organization_id == db.info["organization_id"],
+        )
+        .values(revoked=True)
+    )
     db.commit()
 
 

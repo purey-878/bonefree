@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from datetime import datetime
 from decimal import Decimal
+import json
 import os
 from pathlib import Path
 import shutil
@@ -30,15 +31,18 @@ from sqlalchemy import (
     event,
     insert,
     select,
+    update,
 )
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import sessionmaker
 
 from core.config import settings
+from core.organizations import bind_session_to_organization
 from database import build_engine_kwargs
 from models import (
     Category,
     Ingredient,
+    OrganizationProfile,
     Product,
     ProductCustomizationOption,
     ProductIngredient,
@@ -81,8 +85,14 @@ def _sqlite_url(database_path: Path) -> str:
     return f"sqlite:///{database_path.resolve().as_posix()}"
 
 
-def _coerce_row(model: type[Any], row: dict[str, Any], owner_id: int) -> dict[str, Any]:
+def _coerce_row(
+    model: type[Any],
+    row: dict[str, Any],
+    owner_id: int,
+    organization_id: int,
+) -> dict[str, Any]:
     values = dict(row)
+    values["organization_id"] = organization_id
     if "admin_email" in values:
         if values.pop("admin_email") != CATALOG_OWNER_EMAIL:
             raise CatalogSeedError("Unexpected catalog administrator")
@@ -134,11 +144,17 @@ def _create_seed_engine(database_path: Path):
     return engine
 
 
-def _insert_catalog(database_path: Path, fixture: dict[str, Any]) -> None:
+def _insert_catalog(
+    database_path: Path,
+    fixture: dict[str, Any],
+    *,
+    preserve_organization_profile: bool = False,
+) -> None:
     engine = _create_seed_engine(database_path)
     session_factory = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     try:
         with session_factory() as db:
+            organization_id = bind_session_to_organization(db, "bonefree")
             seed_test_users_in_session(db)
             db.flush()
             owner_id = db.scalar(
@@ -153,11 +169,42 @@ def _insert_catalog(database_path: Path, fixture: dict[str, Any]) -> None:
             for table_name in INSERT_ORDER:
                 model = TABLE_MODELS[table_name]
                 rows = [
-                    _coerce_row(model, row, owner_id)
+                    _coerce_row(model, row, owner_id, organization_id)
                     for row in fixture["tables"][table_name]
                 ]
                 if rows:
                     db.execute(insert(model), rows)
+            settings_by_key = {
+                row["key"]: row.get("value")
+                for row in fixture["tables"]["site_setting"]
+            }
+            company_details = json.loads(settings_by_key.get("company_details") or "{}")
+            social_media = json.loads(settings_by_key.get("social_media") or "{}")
+            profile_values = {
+                "display_name": company_details.get("brand_name") or "BONEFREE",
+                "description": company_details.get("description"),
+                "email": company_details.get("email"),
+                "phone": company_details.get("phone"),
+                "address_line_1": company_details.get("address"),
+                "social_links": social_media or None,
+            }
+            if preserve_organization_profile:
+                profile = db.scalar(
+                    select(OrganizationProfile).where(
+                        OrganizationProfile.organization_id == organization_id
+                    )
+                )
+                if profile is None:
+                    raise CatalogSeedError("Bonefree organization profile is missing")
+                for field, value in profile_values.items():
+                    if getattr(profile, field) in (None, "") and value not in (None, ""):
+                        setattr(profile, field, value)
+            else:
+                db.execute(
+                    update(OrganizationProfile)
+                    .where(OrganizationProfile.organization_id == organization_id)
+                    .values(**profile_values)
+                )
             db.commit()
 
         migrate_product_images_to_media(
@@ -274,11 +321,28 @@ def _build_staged_seed(
     catalog_root: Path,
     staged_root: Path,
     fixture: dict[str, Any],
+    source_database_path: Path | None = None,
 ) -> tuple[Path, Path, dict[str, int | str]]:
     _copy_seed_products(catalog_root, staged_root)
     database_path = staged_root / "bonefree-seed.db"
-    _run_alembic_upgrade(database_path)
-    _insert_catalog(database_path, fixture)
+    if source_database_path is None:
+        _run_alembic_upgrade(database_path)
+    else:
+        source = sqlite3.connect(
+            f"file:{source_database_path.resolve().as_posix()}?mode=ro",
+            uri=True,
+        )
+        destination = sqlite3.connect(database_path)
+        try:
+            source.backup(destination)
+        finally:
+            destination.close()
+            source.close()
+    _insert_catalog(
+        database_path,
+        fixture,
+        preserve_organization_profile=source_database_path is not None,
+    )
     counts = _validate_seeded_state(database_path, staged_root / "uploads", fixture)
     return database_path, staged_root / "uploads" / "products", counts
 
@@ -333,6 +397,29 @@ def _catalog_has_data(database_path: Path) -> bool:
         connection.close()
 
 
+def _has_tenancy_bootstrap_schema(database_path: Path) -> bool:
+    if not database_path.exists() or database_path.stat().st_size == 0:
+        return False
+    connection = sqlite3.connect(
+        f"file:{database_path.resolve().as_posix()}?mode=ro",
+        uri=True,
+    )
+    try:
+        tables = {
+            row[0]
+            for row in connection.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table'"
+            )
+        }
+        return {
+            "organization",
+            "organization_domain",
+            "organization_profile",
+        }.issubset(tables)
+    finally:
+        connection.close()
+
+
 def _target_contains_only_development_users(database_path: Path) -> bool:
     if not database_path.exists() or database_path.stat().st_size == 0:
         return True
@@ -356,7 +443,56 @@ def _target_contains_only_development_users(database_path: Path) -> bool:
             if not emails.issubset(allowed_emails):
                 return False
 
-        ignored_tables = {"alembic_version", "sqlite_sequence", "user"}
+        tenancy_tables = {
+            "organization",
+            "organization_domain",
+            "organization_profile",
+        }
+        present_tenancy_tables = tenancy_tables & tables
+        if present_tenancy_tables:
+            if present_tenancy_tables != tenancy_tables:
+                return False
+            organizations = connection.execute(
+                "SELECT id, slug FROM organization"
+            ).fetchall()
+            if len(organizations) != 1 or organizations[0][1] != "bonefree":
+                return False
+            organization_id = organizations[0][0]
+            domains = {
+                (row[0], bool(row[1]), bool(row[2]), row[3])
+                for row in connection.execute(
+                    "SELECT domain, is_primary, is_verified, organization_id "
+                    "FROM organization_domain"
+                )
+            }
+            expected_domains = {
+                ("bonefree.pt", True, True, organization_id),
+                ("www.bonefree.pt", False, True, organization_id),
+                ("bonefree.localhost", False, True, organization_id),
+                ("127.0.0.1", False, True, organization_id),
+            }
+            if domains != expected_domains:
+                return False
+            profiles = connection.execute(
+                "SELECT organization_id FROM organization_profile"
+            ).fetchall()
+            if profiles != [(organization_id,)]:
+                return False
+            user_columns = {
+                row[1] for row in connection.execute('PRAGMA table_info("user")')
+            }
+            if "organization_id" in user_columns and connection.execute(
+                'SELECT EXISTS(SELECT 1 FROM "user" WHERE organization_id != ?)',
+                (organization_id,),
+            ).fetchone()[0]:
+                return False
+
+        ignored_tables = {
+            "alembic_version",
+            "sqlite_sequence",
+            "user",
+            *tenancy_tables,
+        }
         for table_name in tables - ignored_tables:
             if connection.execute(
                 f'SELECT EXISTS(SELECT 1 FROM "{table_name}" LIMIT 1)'
@@ -512,10 +648,18 @@ def seed_catalog(
     fixture, fixture_counts = validate_catalog_bundle(catalog_root)
     products_root = uploads_root / "products"
     target_has_data = _target_has_data(database_path)
-    if allow_existing_development_users and _target_contains_only_development_users(
-        database_path
-    ):
+    safe_development_bootstrap = (
+        allow_existing_development_users
+        and _target_contains_only_development_users(database_path)
+    )
+    if safe_development_bootstrap:
         target_has_data = False
+    preserve_source_database = (
+        database_path
+        if safe_development_bootstrap
+        and _has_tenancy_bootstrap_schema(database_path)
+        else None
+    )
     target_has_uploads = _products_have_files(products_root)
 
     if not apply:
@@ -542,6 +686,7 @@ def seed_catalog(
             catalog_root,
             staged_root,
             fixture,
+            preserve_source_database,
         )
         backup_path = None
         if reset and (database_path.exists() or products_root.exists()):

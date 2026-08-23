@@ -23,7 +23,8 @@ try:
 except ModuleNotFoundError:
     certifi = None
 
-from models import Order
+from core.config import settings
+from models import Invoice, Order
 from schemas.checkout import CheckoutRequest
 from services.order_customization import customization_lines
 
@@ -39,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 TEMPLATE_PATH = Path(__file__).resolve().parents[1] / "templates" / "purchase_receipt.html"
 
-RECEIPT_REQUIRED_FIELDS = (
+TEMPLATE_FIELDS = (
     "company_name",
     "company_logo_url",
     "company_address",
@@ -57,6 +58,12 @@ RECEIPT_REQUIRED_FIELDS = (
     "tax",
     "shipping",
     "total_amount",
+)
+
+REQUIRED_FIELDS = tuple(
+    field
+    for field in TEMPLATE_FIELDS
+    if field not in {"company_logo_url", "company_address", "company_email", "company_phone"}
 )
 
 PAYMENT_LABELS = {
@@ -123,25 +130,20 @@ def build_order_receipt_payload(
     subtotal = _order_subtotal(order)
     payment_date = _payment_datetime(order)
     customer = order.customer
+    invoice = _invoice_snapshot(order)
+    currency_code = invoice.issuer_currency_code
+    iva_rate = Decimal(str(invoice.vat_percentage))
 
     return {
-        "company_name": _company_name(),
-        "company_logo_url": _company_logo_url(),
-        "company_nif": os.getenv("RECEIPT_COMPANY_NIF", ""),
-        "company_address": os.getenv(
-            "RECEIPT_COMPANY_ADDRESS",
-            "Bonefree\nR. Eng. Henrique Mendia 28A\n2825-450 Costa da Caparica\nPortugal",
-        ),
-        "company_email": os.getenv("RECEIPT_COMPANY_EMAIL", "carambolarubra@gmail.com"),
-        "company_phone": os.getenv("RECEIPT_COMPANY_PHONE", "+351 968 107 703"),
-        "customer_name": customer_name,
-        "customer_nif": _order_customer_value(order, "customer_tax_id", "tax_id"),
+        **_invoice_identity(invoice),
+        "customer_name": invoice.customer_name or customer_name,
+        "customer_nif": invoice.customer_tax_id or _order_customer_value(order, "customer_tax_id", "tax_id"),
         "customer_email": customer_email,
         "customer_phone": _order_customer_value(order, "customer_phone", "phone") or checkout.customer.phone,
-        "customer_address": _invoice_address(customer),
+        "customer_address": invoice.customer_address or _invoice_address(customer),
         "order_id": f"ENC-{order.order_id:06d}",
-        "document_number": _document_number(order),
-        "issue_datetime": _format_datetime_pt(order.ordered_at),
+        "document_number": invoice.invoice_number,
+        "issue_datetime": _format_datetime_pt(invoice.issued_at),
         "payment_date": _format_datetime_pt(payment_date),
         "order_reference": f"ENC-{order.order_id:06d}",
         "order_date": _format_datetime_pt(order.ordered_at),
@@ -150,22 +152,24 @@ def build_order_receipt_payload(
         "payment_reference": _payment_reference(order),
         "coupon_code": _order_coupon_code(order),
         "billing_address": _customer_address(customer_name, checkout, customer),
-        "shipping_address": _shipping_address(checkout),
-        "items": _receipt_items(order, coupon_discount, subtotal),
+        "shipping_address": _shipping_address(checkout, invoice),
+        "items": _receipt_items(order, coupon_discount, subtotal, currency_code),
         "subtotal_amount": subtotal,
         "discount_amount": coupon_discount,
         "shipping_amount": Decimal(str(delivery_fee)),
         "service_fee_amount": service_fee_amount,
         "total_amount_value": Decimal(str(order.total)),
-        "subtotal": _format_money(subtotal),
-        "discount": _format_money(coupon_discount) if coupon_discount > 0 else None,
-        "tax": os.getenv("RECEIPT_TAX_LABEL", "Incluído"),
-        "shipping": _format_money(delivery_fee),
-        "service_fee": _format_money(service_fee_amount) if service_fee_amount > 0 else None,
-        "total_amount": _format_money(order.total),
-        "iva_rate": _iva_rate(),
-        "iva_exemption_reason": _iva_exemption_reason(),
-        "public_base_url": _public_base_url(),
+        "subtotal": _format_money(subtotal, currency_code),
+        "discount": _format_money(coupon_discount, currency_code) if coupon_discount > 0 else None,
+        "tax": _tax_label(iva_rate),
+        "shipping": _format_money(delivery_fee, currency_code),
+        "service_fee": _format_money(service_fee_amount, currency_code) if service_fee_amount > 0 else None,
+        "total_amount": _format_money(order.total, currency_code),
+        "iva_rate": iva_rate,
+        "vat_amount_value": Decimal(str(invoice.vat_amount)),
+        "iva_exemption_reason": invoice.issuer_vat_exemption_reason if iva_rate == 0 else "",
+        "currency_code": currency_code,
+        "public_base_url": invoice.issuer_website or "",
     }
 
 
@@ -182,25 +186,20 @@ def build_saved_order_receipt_payload(order: Order) -> dict[str, Any]:
     coupon_discount = _order_discount(order)
     service_fee = Decimal(str(order.total)) + coupon_discount - subtotal
     payment_date = _payment_datetime(order)
+    invoice = _invoice_snapshot(order)
+    currency_code = invoice.issuer_currency_code
+    iva_rate = Decimal(str(invoice.vat_percentage))
 
     return {
-        "company_name": _company_name(),
-        "company_logo_url": _company_logo_url(),
-        "company_nif": os.getenv("RECEIPT_COMPANY_NIF", ""),
-        "company_address": os.getenv(
-            "RECEIPT_COMPANY_ADDRESS",
-            "Bonefree\nR. Eng. Henrique Mendia 28A\n2825-450 Costa da Caparica\nPortugal",
-        ),
-        "company_email": os.getenv("RECEIPT_COMPANY_EMAIL", "carambolarubra@gmail.com"),
-        "company_phone": os.getenv("RECEIPT_COMPANY_PHONE", "+351 968 107 703"),
-        "customer_name": customer_name,
-        "customer_nif": _order_customer_value(order, "customer_tax_id", "tax_id"),
+        **_invoice_identity(invoice),
+        "customer_name": invoice.customer_name or customer_name,
+        "customer_nif": invoice.customer_tax_id or _order_customer_value(order, "customer_tax_id", "tax_id"),
         "customer_email": customer_email,
         "customer_phone": _order_customer_value(order, "customer_phone", "phone"),
-        "customer_address": _invoice_address(customer),
+        "customer_address": invoice.customer_address or _invoice_address(customer),
         "order_id": f"ENC-{order.order_id:06d}",
-        "document_number": _document_number(order),
-        "issue_datetime": _format_datetime_pt(order.ordered_at),
+        "document_number": invoice.invoice_number,
+        "issue_datetime": _format_datetime_pt(invoice.issued_at),
         "payment_date": _format_datetime_pt(payment_date),
         "order_reference": f"ENC-{order.order_id:06d}",
         "order_date": _format_datetime_pt(order.ordered_at),
@@ -209,22 +208,24 @@ def build_saved_order_receipt_payload(order: Order) -> dict[str, Any]:
         "payment_reference": _payment_reference(order),
         "coupon_code": _order_coupon_code(order),
         "billing_address": _saved_customer_address(customer_name, customer),
-        "shipping_address": _saved_shipping_address(order),
-        "items": _receipt_items(order, coupon_discount, subtotal),
+        "shipping_address": _saved_shipping_address(order, invoice),
+        "items": _receipt_items(order, coupon_discount, subtotal, currency_code),
         "subtotal_amount": subtotal,
         "discount_amount": coupon_discount,
         "shipping_amount": Decimal("0"),
         "service_fee_amount": service_fee if service_fee > 0 else Decimal("0"),
         "total_amount_value": Decimal(str(order.total)),
-        "subtotal": _format_money(subtotal),
-        "discount": _format_money(coupon_discount) if coupon_discount > 0 else None,
-        "tax": os.getenv("RECEIPT_TAX_LABEL", "Incluído"),
-        "shipping": _format_money(Decimal("0")),
-        "service_fee": _format_money(service_fee) if service_fee > 0 else None,
-        "total_amount": _format_money(order.total),
-        "iva_rate": _iva_rate(),
-        "iva_exemption_reason": _iva_exemption_reason(),
-        "public_base_url": _public_base_url(),
+        "subtotal": _format_money(subtotal, currency_code),
+        "discount": _format_money(coupon_discount, currency_code) if coupon_discount > 0 else None,
+        "tax": _tax_label(iva_rate),
+        "shipping": _format_money(Decimal("0"), currency_code),
+        "service_fee": _format_money(service_fee, currency_code) if service_fee > 0 else None,
+        "total_amount": _format_money(order.total, currency_code),
+        "iva_rate": iva_rate,
+        "vat_amount_value": Decimal(str(invoice.vat_amount)),
+        "iva_exemption_reason": invoice.issuer_vat_exemption_reason if iva_rate == 0 else "",
+        "currency_code": currency_code,
+        "public_base_url": invoice.issuer_website or "",
     }
 
 
@@ -234,7 +235,7 @@ def render_receipt_email(receipt: Mapping[str, Any]) -> str:
     template = Template(TEMPLATE_PATH.read_text(encoding="utf-8"))
     values = {
         key: _html_lines(receipt[key]) if "address" in key else _html_text(receipt[key])
-        for key in RECEIPT_REQUIRED_FIELDS
+        for key in TEMPLATE_FIELDS
         if key != "items"
     }
     values["items_rows"] = _render_items(receipt["items"])
@@ -399,7 +400,7 @@ def _smtp_login(server: smtplib.SMTP) -> None:
 def _validate_receipt(receipt: Mapping[str, Any]) -> None:
     missing = [
         field
-        for field in RECEIPT_REQUIRED_FIELDS
+        for field in REQUIRED_FIELDS
         if field not in receipt or receipt[field] in (None, "")
     ]
     if missing:
@@ -520,27 +521,34 @@ def _render_plain_text(receipt: Mapping[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def _company_name() -> str:
-    return os.getenv("RECEIPT_COMPANY_NAME", "BONEFREE")
+def _invoice_snapshot(order: Order) -> Invoice:
+    invoice = getattr(order, "invoice", None)
+    if invoice is None:
+        raise ValueError("A paid order must have an invoice snapshot before rendering a receipt.")
+    return invoice
 
 
-def _company_logo_url() -> str:
-    explicit = os.getenv("RECEIPT_COMPANY_LOGO_URL")
-    if explicit:
-        return explicit
-
-    base_url = os.getenv("PUBLIC_BASE_URL") or os.getenv("APP_BASE_URL") or "http://localhost:8000"
-    return f"{base_url.rstrip('/')}/assets/images/bonefree-logo.webp"
+def _invoice_identity(invoice: Invoice) -> dict[str, str]:
+    logo_url = str(invoice.issuer_logo_url or "").strip()
+    website = str(invoice.issuer_website or "").rstrip("/")
+    if logo_url.startswith("/") and website:
+        logo_url = f"{website}{logo_url}"
+    return {
+        "company_name": invoice.issuer_display_name,
+        "company_legal_name": invoice.issuer_legal_name or "",
+        "company_logo_url": logo_url,
+        "company_nif": invoice.issuer_tax_id or "",
+        "company_address": invoice.issuer_address or "",
+        "company_email": invoice.issuer_email or "",
+        "company_phone": invoice.issuer_phone or "",
+    }
 
 
 def _sender_email(receipt: Mapping[str, Any]) -> str:
-    return (
-        os.getenv("RECEIPT_FROM_EMAIL")
-        or os.getenv("EMAIL_FROM")
-        or os.getenv("AUTH_EMAIL_FROM")
-        or os.getenv("SMTP_USER")
-        or str(receipt["company_email"])
-    )
+    sender = settings.effective_email_from
+    if sender is None:
+        raise ValueError("EMAIL_FROM, AUTH_EMAIL_FROM, or SMTP_USER must be configured.")
+    return sender
 
 
 def _customer_address(customer_name: str, checkout: CheckoutRequest, customer: Any) -> str:
@@ -553,11 +561,8 @@ def _customer_address(customer_name: str, checkout: CheckoutRequest, customer: A
     return "\n".join(line for line in lines if line)
 
 
-def _shipping_address(checkout: CheckoutRequest) -> str:
-    address = os.getenv(
-        "RECEIPT_PICKUP_ADDRESS",
-        "Comer no restaurante BONEFREE\nR. Eng. Henrique Mendia 28A\n2825-450 Costa da Caparica\nPortugal",
-    )
+def _shipping_address(checkout: CheckoutRequest, invoice: Invoice) -> str:
+    address = _pickup_address(invoice)
     if checkout.customer.table_number is None:
         return address
 
@@ -600,11 +605,8 @@ def _invoice_address(customer: Any) -> str:
     )
 
 
-def _saved_shipping_address(order: Order) -> str:
-    address = os.getenv(
-        "RECEIPT_PICKUP_ADDRESS",
-        "Comer no restaurante BONEFREE\nR. Eng. Henrique Mendia 28A\n2825-450 Costa da Caparica\nPortugal",
-    )
+def _saved_shipping_address(order: Order, invoice: Invoice) -> str:
+    address = _pickup_address(invoice)
     table_number = _note_value(order.notes, "table_number")
     if not table_number:
         return address
@@ -612,11 +614,21 @@ def _saved_shipping_address(order: Order) -> str:
     return f"Mesa {table_number}\n{address}"
 
 
+def _pickup_address(invoice: Invoice) -> str:
+    address = str(invoice.issuer_address or "").strip()
+    return f"Levantamento em loja\n{address}" if address else "Levantamento em loja"
+
+
 def _address_lines(checkout: CheckoutRequest) -> list[str]:
     return []
 
 
-def _receipt_items(order: Order, discount: Decimal, subtotal: Decimal) -> list[dict[str, Any]]:
+def _receipt_items(
+    order: Order,
+    discount: Decimal,
+    subtotal: Decimal,
+    currency_code: str,
+) -> list[dict[str, Any]]:
     allocations = _allocate_discount(order.items, discount, subtotal)
     receipt_items = []
 
@@ -634,8 +646,8 @@ def _receipt_items(order: Order, discount: Decimal, subtotal: Decimal) -> list[d
                 "line_gross_amount": line_gross,
                 "discount_amount": line_discount,
                 "line_total_amount": line_total,
-                "unit_price": _format_money(unit_price),
-                "price": _format_money(line_gross),
+                "unit_price": _format_money(unit_price, currency_code),
+                "price": _format_money(line_gross, currency_code),
                 "customizations": customization_lines(item.customization),
             }
         )
@@ -733,11 +745,6 @@ def _customer_field(customer: Any, field: str) -> str:
     return str(value).strip() if value not in (None, "") else ""
 
 
-def _document_number(order: Order) -> str:
-    year = order.ordered_at.year if order.ordered_at else datetime.utcnow().year
-    return f"FR {year}/{order.order_id:06d}"
-
-
 def _payment_datetime(order: Order) -> Any:
     payment = getattr(order, "payment", None)
     if payment and payment.paid_at:
@@ -751,26 +758,15 @@ def _format_datetime_pt(value: Any) -> str:
     return value.strftime("%d/%m/%Y %H:%M")
 
 
-def _iva_rate() -> Decimal:
-    raw_rate = os.getenv("RECEIPT_IVA_RATE", "13")
-    try:
-        return Decimal(str(raw_rate).replace(",", ".")).quantize(Decimal("0.01"))
-    except Exception:
-        return Decimal("23.00")
+def _tax_label(iva_rate: Decimal) -> str:
+    if iva_rate == 0:
+        return "IVA isento"
+    normalized = iva_rate.quantize(Decimal("0.01"))
+    rate = str(int(normalized)) if normalized == normalized.to_integral() else str(normalized)
+    return f"IVA incluído ({rate.replace('.', ',')}%)"
 
 
-def _iva_exemption_reason() -> str:
-    return os.getenv(
-        "RECEIPT_IVA_EXEMPTION_REASON",
-        "IVA - Isento nos termos do artigo aplicável do CIVA.",
-    ).strip()
-
-
-def _public_base_url() -> str:
-    return (os.getenv("PUBLIC_BASE_URL") or os.getenv("APP_BASE_URL") or "http://localhost:8000").rstrip("/")
-
-
-def _format_money(value: Any) -> str:
+def _format_money(value: Any, currency_code: str) -> str:
     amount = Decimal(str(value)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     sign = "-" if amount < 0 else ""
     amount = abs(amount)
@@ -780,9 +776,7 @@ def _format_money(value: Any) -> str:
         groups.insert(0, whole[-3:])
         whole = whole[:-3]
     formatted = f"{'.'.join(groups)},{cents}"
-    currency = os.getenv("RECEIPT_CURRENCY_SYMBOL", "€")
-    if currency.upper() == "EUR":
-        currency = "€"
+    currency = "€" if currency_code.upper() == "EUR" else currency_code.upper()
     return f"{sign}{formatted} {currency}"
 
 

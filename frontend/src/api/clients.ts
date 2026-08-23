@@ -31,6 +31,13 @@ export const adminApiClient = configureClient(createClient({
   auth: () => getStoredToken('admin_token'),
 }));
 
+export function setOrganizationSlug(slug: string): void {
+  const headers = { 'X-Organization-Slug': slug };
+  for (const client of [publicApiClient, customerApiClient, adminApiClient]) {
+    client.setConfig({ headers });
+  }
+}
+
 export async function apiData<T>(request: Promise<{ data: T }>): Promise<T> {
   return (await request).data;
 }

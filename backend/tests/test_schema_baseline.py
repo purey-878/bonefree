@@ -1,4 +1,5 @@
 import os
+import json
 from pathlib import Path
 import subprocess
 import sys
@@ -18,6 +19,7 @@ import models  # noqa: F401 - register every model in Base.metadata.
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 BASELINE_REVISION = "20260822_0001"
+HEAD_REVISION = "20260823_0002"
 LEGACY_HEAD_REVISION = "b6d8f0a2c4e7"
 
 
@@ -71,7 +73,7 @@ class SchemaBaselineTests(unittest.TestCase):
         finally:
             engine.dispose()
 
-    def test_history_contains_only_the_static_baseline(self):
+    def test_history_preserves_the_static_baseline_and_adds_tenancy(self):
         engine = create_engine("sqlite://")
         connection = engine.connect()
         config = migrations._alembic_config(connection)
@@ -82,9 +84,13 @@ class SchemaBaselineTests(unittest.TestCase):
             connection.close()
             engine.dispose()
 
-        self.assertEqual([revision.revision for revision in revisions], [BASELINE_REVISION])
-        self.assertIsNone(revisions[0].down_revision)
-        baseline_source = Path(revisions[0].path).read_text(encoding="utf-8")
+        self.assertEqual(
+            [revision.revision for revision in revisions],
+            [HEAD_REVISION, BASELINE_REVISION],
+        )
+        self.assertEqual(revisions[0].down_revision, BASELINE_REVISION)
+        self.assertIsNone(revisions[1].down_revision)
+        baseline_source = Path(revisions[1].path).read_text(encoding="utf-8")
         self.assertNotIn("Base.metadata", baseline_source)
         self.assertNotIn("product_image", baseline_source)
 
@@ -98,7 +104,7 @@ class SchemaBaselineTests(unittest.TestCase):
                 inspector = inspect(connection)
                 self.assertEqual(
                     connection.scalar(text("SELECT version_num FROM alembic_version")),
-                    BASELINE_REVISION,
+                    HEAD_REVISION,
                 )
                 self.assertEqual(
                     set(inspector.get_table_names()) - {"alembic_version"},
@@ -162,7 +168,7 @@ class SchemaBaselineTests(unittest.TestCase):
             with engine.connect() as connection:
                 self.assertEqual(
                     connection.scalar(text("SELECT version_num FROM alembic_version")),
-                    BASELINE_REVISION,
+                    HEAD_REVISION,
                 )
         finally:
             engine.dispose()
@@ -178,6 +184,112 @@ class SchemaBaselineTests(unittest.TestCase):
                     migrations.run_migrations()
         finally:
             engine.dispose()
+
+    def test_tenancy_upgrade_preserves_legacy_profile_and_backfills_rows(self):
+        self._alembic("upgrade", BASELINE_REVISION)
+        engine = create_engine(self.database_url)
+        now = "2026-08-23 12:00:00"
+        try:
+            with engine.begin() as connection:
+                connection.execute(
+                    text(
+                        "INSERT INTO company_config "
+                        "(company_name, company_tax_id, address, postal_code, city, country, email, phone, created_at, updated_at) "
+                        "VALUES (:name, :tax_id, :address, :postal_code, :city, :country, :email, :phone, :now, :now)"
+                    ),
+                    {
+                        "name": "Bonefree Legacy, Lda.",
+                        "tax_id": "501964843",
+                        "address": "Legacy street 1",
+                        "postal_code": "1000-001",
+                        "city": "Lisbon",
+                        "country": "Portugal",
+                        "email": "legacy@example.com",
+                        "phone": "912345678",
+                        "now": now,
+                    },
+                )
+                connection.execute(
+                    text(
+                        "INSERT INTO site_setting (key, value, created_at, updated_at) "
+                        "VALUES (:key, :value, :now, :now)"
+                    ),
+                    {
+                        "key": "company_details",
+                        "value": json.dumps({
+                            "brand_name": "BONEFREE",
+                            "email": "site@example.com",
+                            "phone": "999999999",
+                            "address": "Site street 2",
+                            "description": "Restaurant description",
+                        }),
+                        "now": now,
+                    },
+                )
+                connection.execute(
+                    text(
+                        "INSERT INTO ingredient "
+                        "(name, type, status, available, created_at, updated_at) "
+                        "VALUES ('Legacy ingredient', 'base', 'active', 1, :now, :now)"
+                    ),
+                    {"now": now},
+                )
+        finally:
+            engine.dispose()
+
+        self._alembic("upgrade", "head")
+        engine = create_engine(self.database_url)
+        try:
+            with engine.connect() as connection:
+                profile = connection.execute(
+                    text(
+                        "SELECT display_name, legal_name, tax_id, address_line_1, email, description, currency_code "
+                        "FROM organization_profile"
+                    )
+                ).mappings().one()
+                self.assertEqual(profile["display_name"], "BONEFREE")
+                self.assertEqual(profile["legal_name"], "Bonefree Legacy, Lda.")
+                self.assertEqual(profile["tax_id"], "501964843")
+                self.assertEqual(profile["address_line_1"], "Legacy street 1")
+                self.assertEqual(profile["email"], "legacy@example.com")
+                self.assertEqual(profile["description"], "Restaurant description")
+                self.assertEqual(profile["currency_code"], "EUR")
+                domains = set(connection.scalars(text("SELECT domain FROM organization_domain")))
+                self.assertEqual(
+                    domains,
+                    {"bonefree.pt", "www.bonefree.pt", "bonefree.localhost", "127.0.0.1"},
+                )
+                self.assertEqual(connection.scalar(text("SELECT COUNT(*) FROM ingredient")), 1)
+                self.assertEqual(connection.scalar(text("SELECT COUNT(*) FROM ingredient WHERE organization_id IS NULL")), 0)
+                self.assertEqual(connection.execute(text("PRAGMA foreign_key_check")).fetchall(), [])
+        finally:
+            engine.dispose()
+
+    def test_tenancy_upgrade_aborts_when_multiple_company_profiles_exist(self):
+        self._alembic("upgrade", BASELINE_REVISION)
+        engine = create_engine(self.database_url)
+        try:
+            with engine.begin() as connection:
+                connection.execute(
+                    text(
+                        "INSERT INTO company_config "
+                        "(company_name, company_tax_id, country, created_at, updated_at) "
+                        "VALUES (:name, :tax, 'Portugal', :now, :now)"
+                    ),
+                    [
+                        {"name": "First", "tax": "111", "now": "2026-08-23 12:00:00"},
+                        {"name": "Second", "tax": "222", "now": "2026-08-23 12:00:00"},
+                    ],
+                )
+        finally:
+            engine.dispose()
+
+        result = self._alembic("upgrade", "head", check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "more than one legacy row exists",
+            f"{result.stdout}\n{result.stderr}",
+        )
 
     @unittest.skipUnless(
         os.environ.get("TEST_POSTGRES_DATABASE_URL"),
@@ -205,7 +317,7 @@ class SchemaBaselineTests(unittest.TestCase):
             with engine.connect() as connection:
                 self.assertEqual(
                     connection.scalar(text("SELECT version_num FROM alembic_version")),
-                    BASELINE_REVISION,
+                    HEAD_REVISION,
                 )
         finally:
             engine.dispose()

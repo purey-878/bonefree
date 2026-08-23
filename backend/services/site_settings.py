@@ -7,12 +7,14 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from models import SiteSetting
+from models import OrganizationDomain, OrganizationProfile, SiteSetting
 from schemas.site_settings import (
     ChefSpecialSettings,
     CompanyDetailsSettings,
     EventsSettings,
     LoyaltyCouponSettings,
+    OrganizationProfileResponse,
+    OrganizationProfileUpdate,
     SiteThemeResponse,
     SiteThemeSettings,
     SocialMediaSettings,
@@ -295,49 +297,115 @@ def save_loyalty_coupon_settings(db: Session, settings: LoyaltyCouponSettings) -
 
 
 def get_company_details_settings(db: Session) -> CompanyDetailsSettings:
-    row = _get_setting_row(db, COMPANY_DETAILS_KEY)
-    if not row or not row.value:
+    profile = _get_organization_profile(db)
+    if profile is None:
         return DEFAULT_COMPANY_DETAILS
-    try:
-        payload = json.loads(row.value)
-        return CompanyDetailsSettings(**payload)
-    except Exception:
-        return DEFAULT_COMPANY_DETAILS
+    return CompanyDetailsSettings(
+        brand_name=profile.display_name or profile.legal_name or DEFAULT_COMPANY_DETAILS.brand_name,
+        description=profile.description or DEFAULT_COMPANY_DETAILS.description,
+        address=_profile_address(profile) or DEFAULT_COMPANY_DETAILS.address,
+        phone=profile.phone or "",
+        email=profile.email or "",
+    )
 
 
 def save_company_details_settings(db: Session, settings: CompanyDetailsSettings) -> CompanyDetailsSettings:
-    row = _get_setting_row(db, COMPANY_DETAILS_KEY)
-    encoded = settings.model_dump_json()
-    if row:
-        row.value = encoded
-    else:
-        row = SiteSetting(key=COMPANY_DETAILS_KEY, value=encoded)
-        db.add(row)
+    profile = _require_organization_profile(db)
+    profile.display_name = settings.brand_name
+    profile.description = settings.description
+    profile.address_line_1 = settings.address
+    profile.address_line_2 = None
+    profile.phone = settings.phone
+    profile.email = settings.email
     db.commit()
     return settings
 
 
 def get_social_media_settings(db: Session) -> SocialMediaSettings:
-    row = _get_setting_row(db, SOCIAL_MEDIA_KEY)
-    if not row or not row.value:
+    profile = _get_organization_profile(db)
+    if profile is None or not profile.social_links:
         return DEFAULT_SOCIAL_MEDIA
     try:
-        payload = json.loads(row.value)
-        return SocialMediaSettings(**payload)
+        return SocialMediaSettings(**profile.social_links)
     except Exception:
         return DEFAULT_SOCIAL_MEDIA
 
 
 def save_social_media_settings(db: Session, settings: SocialMediaSettings) -> SocialMediaSettings:
-    row = _get_setting_row(db, SOCIAL_MEDIA_KEY)
-    encoded = settings.model_dump_json()
-    if row:
-        row.value = encoded
-    else:
-        row = SiteSetting(key=SOCIAL_MEDIA_KEY, value=encoded)
-        db.add(row)
+    profile = _require_organization_profile(db)
+    profile.social_links = settings.model_dump(mode="json")
     db.commit()
     return settings
+
+
+def get_organization_profile(db: Session) -> OrganizationProfileResponse:
+    profile = _require_organization_profile(db)
+    primary_domain = db.scalar(
+        select(OrganizationDomain.domain).where(
+            OrganizationDomain.is_primary.is_(True),
+            OrganizationDomain.is_verified.is_(True),
+        )
+    )
+    return OrganizationProfileResponse(
+        display_name=profile.display_name,
+        legal_name=profile.legal_name,
+        tax_id=profile.tax_id,
+        description=profile.description,
+        about_text=profile.about_text,
+        email=profile.email,
+        phone=profile.phone,
+        address_line_1=profile.address_line_1,
+        address_line_2=profile.address_line_2,
+        city=profile.city,
+        postal_code=profile.postal_code,
+        country=profile.country,
+        logo_url=profile.logo_url,
+        currency_code=profile.currency_code,
+        vat_exemption_reason=profile.vat_exemption_reason,
+        opening_hours=profile.opening_hours,
+        social_links=profile.social_links,
+        website=(
+            f"{'http' if primary_domain in {'bonefree.localhost', '127.0.0.1'} else 'https'}://{primary_domain}"
+            if primary_domain
+            else None
+        ),
+    )
+
+
+def save_organization_profile(
+    db: Session,
+    settings: OrganizationProfileUpdate,
+) -> OrganizationProfileResponse:
+    profile = _require_organization_profile(db)
+    for field, value in settings.model_dump(exclude_unset=True).items():
+        setattr(profile, field, value)
+    db.commit()
+    return get_organization_profile(db)
+
+
+def _get_organization_profile(db: Session) -> OrganizationProfile | None:
+    return db.scalar(select(OrganizationProfile))
+
+
+def _require_organization_profile(db: Session) -> OrganizationProfile:
+    profile = _get_organization_profile(db)
+    if profile is None:
+        raise RuntimeError("The current organization does not have a profile.")
+    return profile
+
+
+def _profile_address(profile: OrganizationProfile) -> str:
+    locality = " ".join(part for part in (profile.postal_code, profile.city) if part)
+    return "\n".join(
+        part
+        for part in (
+            profile.address_line_1,
+            profile.address_line_2,
+            locality,
+            profile.country,
+        )
+        if part
+    )
 
 
 def get_events_settings(db: Session) -> EventsSettings:

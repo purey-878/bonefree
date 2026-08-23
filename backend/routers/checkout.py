@@ -115,10 +115,16 @@ def _clear_user_cart(db: Session, current_user: Optional[Customer]) -> None:
 
     db.execute(
         delete(CartProductCustomization).where(
-            CartProductCustomization.cart_product_id.in_(cart_item_ids)
+            CartProductCustomization.cart_product_id.in_(cart_item_ids),
+            CartProductCustomization.organization_id == db.info["organization_id"],
         )
     )
-    db.execute(delete(CartProduct).where(CartProduct.cart_product_id.in_(cart_item_ids)))
+    db.execute(
+        delete(CartProduct).where(
+            CartProduct.cart_product_id.in_(cart_item_ids),
+            CartProduct.organization_id == db.info["organization_id"],
+        )
+    )
 
 
 def _update_authenticated_checkout_customer(

@@ -4,6 +4,10 @@ from enum import StrEnum
 from typing import TypeVar, cast
 
 
+class OrganizationType(StrEnum):
+    RESTAURANT = "restaurant"
+
+
 class UserRole(StrEnum):
     OWNER = "owner"
     MANAGER = "manager"

@@ -110,7 +110,10 @@ def _header(receipt: Mapping[str, Any], styles: dict[str, ParagraphStyle]) -> Ta
     )
     identity.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("LEFTPADDING", (0, 0), (-1, -1), 0)]))
 
-    total = _money(_amount(receipt.get("total_amount_value"), receipt.get("total_amount")))
+    total = _money(
+        _amount(receipt.get("total_amount_value"), receipt.get("total_amount")),
+        _currency_code(receipt),
+    )
     document_number = _xml(receipt.get("document_number") or receipt.get("order_id"))
     title = Paragraph(
         f"<b>FATURA / RECIBO</b><br/><font size='9' color='#5F6673'>{document_number}</font><br/>"
@@ -134,7 +137,8 @@ def _header(receipt: Mapping[str, Any], styles: dict[str, ParagraphStyle]) -> Ta
 def _company_and_document_section(receipt: Mapping[str, Any], styles: dict[str, ParagraphStyle]) -> Table:
     company_rows = _visible_rows(
         [
-            ("Empresa", receipt.get("company_name")),
+            ("Marca", receipt.get("company_name")),
+            ("Nome legal", receipt.get("company_legal_name")),
             ("NIF", receipt.get("company_nif")),
             ("Morada", _company_address(receipt)),
             ("Telefone", receipt.get("company_phone")),
@@ -149,7 +153,7 @@ def _company_and_document_section(receipt: Mapping[str, Any], styles: dict[str, 
             ("Emissão", receipt.get("issue_datetime") or receipt.get("order_date")),
             ("Payment", receipt.get("payment_date")),
             ("Método", receipt.get("payment_method")),
-            ("Moeda", "EUR (€)"),
+            ("Moeda", _currency_label(receipt)),
         ]
     )
     return _two_column_section(
@@ -238,19 +242,20 @@ def _promotions_section(receipt: Mapping[str, Any], styles: dict[str, ParagraphS
         [
             ("Promoção", "Cupão BONEFREE" if coupon_code else "Desconto aplicado"),
             ("Código", coupon_code),
-            ("Total poupado", _money(discount)),
+            ("Total poupado", _money(discount, _currency_code(receipt))),
         ]
     )
     return _single_section("Descontos e Promoções", rows, styles, accent=WARNING)
 
 
 def _summary_and_payment_section(receipt: Mapping[str, Any], totals: Mapping[str, Decimal], styles: dict[str, ParagraphStyle]) -> Table:
+    currency_code = _currency_code(receipt)
     summary_rows = [
-        ("Subtotal sem discounts", _money(totals["subtotal_gross"])),
-        ("Total de discounts", f"-{_money(totals['discount_gross'])}" if totals["discount_gross"] > 0 else _money(Decimal("0"))),
-        ("Valor tributável", _money(totals["taxable_amount"])),
-        (f"IVA ({_rate_label(_iva_rate(receipt))})", _money(totals["iva_total"])),
-        ("Total pago", _money(totals["total_paid"])),
+        ("Subtotal sem discounts", _money(totals["subtotal_gross"], currency_code)),
+        ("Total de discounts", f"-{_money(totals['discount_gross'], currency_code)}" if totals["discount_gross"] > 0 else _money(Decimal("0"), currency_code)),
+        ("Valor tributável", _money(totals["taxable_amount"], currency_code)),
+        (f"IVA ({_rate_label(_iva_rate(receipt))})", _money(totals["iva_total"], currency_code)),
+        ("Total pago", _money(totals["total_paid"], currency_code)),
     ]
     payment_rows = _visible_rows(
         [
@@ -277,14 +282,14 @@ def _summary_and_payment_section(receipt: Mapping[str, Any], totals: Mapping[str
 
 def _legal_notes(receipt: Mapping[str, Any], styles: dict[str, ParagraphStyle]) -> Table:
     iva_rate = _iva_rate(receipt)
-    notes = [
-        "Documento emitido após payment confirmado.",
-        "Os preços apresentados incluem IVA. A parcela de IVA foi calculada a partir do value final pago.",
-    ]
+    notes = ["Documento emitido após payment confirmado."]
     if iva_rate > 0:
+        notes.append("Os preços apresentados incluem IVA.")
         notes.append(f"IVA aplicado à taxa de {_rate_label(iva_rate)}.")
     else:
-        notes.append(_text(receipt.get("iva_exemption_reason")) or "IVA - Isento nos termos aplicáveis do CIVA.")
+        reason = _text(receipt.get("iva_exemption_reason"))
+        if reason:
+            notes.append(reason)
 
     text = "<br/>".join(_xml(note) for note in notes if note)
     table = Table([[Paragraph(text, styles["Note"])]], colWidths=[CONTENT_WIDTH])
@@ -325,6 +330,7 @@ def _footer(receipt: Mapping[str, Any], styles: dict[str, ParagraphStyle]) -> Ta
 
 def _invoice_rows(receipt: Mapping[str, Any]) -> tuple[list[dict[str, Any]], dict[str, Decimal]]:
     iva_rate = _iva_rate(receipt)
+    currency_code = _currency_code(receipt)
     rows = []
     subtotal_gross = Decimal("0.00")
     discount_gross_total = Decimal("0.00")
@@ -354,12 +360,12 @@ def _invoice_rows(receipt: Mapping[str, Any]) -> tuple[list[dict[str, Any]], dic
                 "description": _text(item.get("name")) or "Product",
                 "customizations": [str(value) for value in item.get("customizations") or [] if str(value).strip()],
                 "quantity": _quantity_label(quantity),
-                "unit_gross": _money(unit_gross),
-                "final_unit_gross": _money(final_unit_gross),
-                "discount_gross": f"-{_money(discount_gross)}" if discount_gross > 0 else "-",
+                "unit_gross": _money(unit_gross, currency_code),
+                "final_unit_gross": _money(final_unit_gross, currency_code),
+                "discount_gross": f"-{_money(discount_gross, currency_code)}" if discount_gross > 0 else "-",
                 "discount_gross_amount": discount_gross,
                 "iva_rate": _rate_label(iva_rate) if iva_rate > 0 else "Isento",
-                "line_total": _money(line_total_gross),
+                "line_total": _money(line_total_gross, currency_code),
             }
         )
 
@@ -376,12 +382,12 @@ def _invoice_rows(receipt: Mapping[str, Any]) -> tuple[list[dict[str, Any]], dic
                 "description": "Taxas e serviços",
                 "customizations": [],
                 "quantity": "1",
-                "unit_gross": _money(extra_gross),
-                "final_unit_gross": _money(extra_gross),
+                "unit_gross": _money(extra_gross, currency_code),
+                "final_unit_gross": _money(extra_gross, currency_code),
                 "discount_gross": "-",
                 "discount_gross_amount": Decimal("0.00"),
                 "iva_rate": _rate_label(iva_rate) if iva_rate > 0 else "Isento",
-                "line_total": _money(extra_gross),
+                "line_total": _money(extra_gross, currency_code),
             }
         )
 
@@ -389,7 +395,11 @@ def _invoice_rows(receipt: Mapping[str, Any]) -> tuple[list[dict[str, Any]], dic
     if expected_total > 0:
         total_paid = expected_total
 
-    taxable_amount = _net_from_gross(total_paid, iva_rate)
+    if "vat_amount_value" in receipt:
+        iva_total = _amount(receipt.get("vat_amount_value"), "0")
+        taxable_amount = max(Decimal("0.00"), total_paid - iva_total)
+    else:
+        taxable_amount = _net_from_gross(total_paid, iva_rate)
     return rows, {
         "subtotal_gross": subtotal_gross.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
         "discount_gross": discount_gross_total.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
@@ -597,7 +607,16 @@ def _amount(primary: Any, fallback: Any = None) -> Decimal:
         return Decimal("0.00")
 
 
-def _money(value: Decimal) -> str:
+def _currency_code(receipt: Mapping[str, Any]) -> str:
+    return _text(receipt.get("currency_code") or "EUR").upper()
+
+
+def _currency_label(receipt: Mapping[str, Any]) -> str:
+    code = _currency_code(receipt)
+    return "EUR (€)" if code == "EUR" else code
+
+
+def _money(value: Decimal, currency_code: str = "EUR") -> str:
     amount = Decimal(str(value)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     sign = "-" if amount < 0 else ""
     amount = abs(amount)
@@ -606,7 +625,8 @@ def _money(value: Decimal) -> str:
     while whole:
         groups.insert(0, whole[-3:])
         whole = whole[:-3]
-    return f"{sign}{'.'.join(groups)},{cents} €"
+    currency = "€" if currency_code.upper() == "EUR" else currency_code.upper()
+    return f"{sign}{'.'.join(groups)},{cents} {currency}"
 
 
 def _rate_label(value: Decimal) -> str:

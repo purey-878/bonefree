@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Union
 
 from database import get_db
-from dependencies import rate_limit_admin_login, require_role
+from dependencies import rate_limit_admin_login, require_organization_header_context, require_role
 from schemas.enums import ADMIN_ROLES, EntityStatus, IngredientType, MediaOwnerType, OrderState, PaymentMethod, PaymentState, PaymentStatus, ReviewStatus, UserRole, UserStatus, normalize_admin_role
 from models import (
     Admin, Product, Cart, CartProduct as CartItem, Customer,
@@ -78,7 +78,7 @@ STAFF_ALLOWED_STATES = {
 SalesStats = Dict[str, Union[float, int]]
 
 
-@router.post("/login", response_model=AdminTokenResponse, operation_id="admin_management_admin_login")
+@router.post("/login", response_model=AdminTokenResponse, operation_id="admin_management_admin_login", dependencies=[Depends(require_organization_header_context)])
 def admin_login(
     request: Request,
     credentials: AdminLogin = Depends(rate_limit_admin_login),
@@ -551,7 +551,10 @@ def _find_or_create_ingredient(db: Session, payload: ProductIngredientPayload) -
 
 def _sync_product_ingredients(db: Session, product_id: int, ingredients: List[ProductIngredientPayload]) -> None:
     db.execute(
-        ProductIngredient.__table__.delete().where(ProductIngredient.product_id == product_id)
+        ProductIngredient.__table__.delete().where(
+            ProductIngredient.product_id == product_id,
+            ProductIngredient.organization_id == db.info["organization_id"],
+        )
     )
     seen_ingredient_ids: set[int] = set()
     for payload in ingredients:

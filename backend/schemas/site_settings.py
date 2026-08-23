@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 from schemas.enums import (
@@ -174,7 +174,7 @@ class CompanyDetailsSettings(BaseModel):
         "Bonefree is a vegan restaurant and bar in Costa da Caparica. We serve 100% plant-based dishes, artisanal cocktails, and provide a relaxed atmosphere.",
         max_length=500,
     )
-    address: str = Field("Bonefree, R. Eng. Henrique Mendia 28A, 2825-450 Costa da Caparica", max_length=240)
+    address: str = Field("Bonefree, R. Eng. Henrique Mendia 28A, 2825-450 Costa da Caparica", max_length=700)
     phone: str = Field("+351 968 107 703", max_length=60)
     email: str = Field("carambolarubra@gmail.com", max_length=160)
 
@@ -198,6 +198,62 @@ class SocialLinkSettings(BaseModel):
 
 class SocialMediaSettings(BaseModel):
     links: List[SocialLinkSettings] = Field(default_factory=list)
+
+
+class OrganizationProfileResponse(BaseModel):
+    display_name: Optional[str] = None
+    legal_name: Optional[str] = None
+    tax_id: Optional[str] = None
+    description: Optional[str] = None
+    about_text: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    address_line_1: Optional[str] = None
+    address_line_2: Optional[str] = None
+    city: Optional[str] = None
+    postal_code: Optional[str] = None
+    country: str = "Portugal"
+    logo_url: Optional[str] = None
+    currency_code: str = "EUR"
+    vat_exemption_reason: Optional[str] = None
+    opening_hours: Optional[Dict[str, Any]] = None
+    social_links: Optional[Dict[str, Any]] = None
+    website: Optional[str] = None
+
+
+class OrganizationProfileUpdate(BaseModel):
+    display_name: Optional[str] = Field(default=None, max_length=150)
+    legal_name: Optional[str] = Field(default=None, max_length=150)
+    tax_id: Optional[str] = Field(default=None, max_length=20)
+    description: Optional[str] = Field(default=None, max_length=500)
+    about_text: Optional[str] = None
+    email: Optional[str] = Field(default=None, max_length=150)
+    phone: Optional[str] = Field(default=None, max_length=30)
+    address_line_1: Optional[str] = Field(default=None, max_length=255)
+    address_line_2: Optional[str] = Field(default=None, max_length=255)
+    city: Optional[str] = Field(default=None, max_length=100)
+    postal_code: Optional[str] = Field(default=None, max_length=20)
+    country: Optional[str] = Field(default=None, max_length=100)
+    logo_url: Optional[str] = Field(default=None, max_length=500)
+    currency_code: Optional[str] = Field(default=None, min_length=3, max_length=3)
+    vat_exemption_reason: Optional[str] = Field(default=None, max_length=500)
+    opening_hours: Optional[Dict[str, Any]] = None
+    social_links: Optional[Dict[str, Any]] = None
+
+    @field_validator(
+        "display_name", "legal_name", "tax_id", "description", "about_text",
+        "email", "phone", "address_line_1", "address_line_2", "city",
+        "postal_code", "country", "logo_url", "vat_exemption_reason",
+    )
+    @classmethod
+    def normalize_optional_text(cls, value: Optional[str]) -> Optional[str]:
+        normalized = (value or "").strip()
+        return normalized or None
+
+    @field_validator("currency_code")
+    @classmethod
+    def normalize_currency_code(cls, value: Optional[str]) -> Optional[str]:
+        return value.strip().upper() if value is not None else None
 
 
 class EventItemSettings(BaseModel):

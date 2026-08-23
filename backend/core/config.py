@@ -133,6 +133,8 @@ class Settings(BaseSettings):
         default=(
             "http://127.0.0.1:8000,"
             "http://localhost:5173,"
+            "http://bonefree.localhost:5173,"
+            "http://bonefree.localhost:5174,"
             "http://127.0.0.1,"
             "http://127.0.0.1:5174,"
             "https://bonefree.pt,"
@@ -186,8 +188,6 @@ class Settings(BaseSettings):
         return (
             self.auth_email_from
             or self.email_from
-            or self.receipt_from_email
-            or self.receipt_company_email
             or self.smtp_user
         )
 
@@ -205,37 +205,6 @@ class Settings(BaseSettings):
 
     auth_email_from: str | None = Field(default=None, validation_alias="AUTH_EMAIL_FROM")
     auth_email_from_name: str = Field(default="Bonefree", validation_alias="AUTH_EMAIL_FROM_NAME")
-
-    receipt_company_name: str = Field(default="BONEFREE", validation_alias="RECEIPT_COMPANY_NAME")
-    receipt_company_nif: str = Field(default="", validation_alias="RECEIPT_COMPANY_NIF")
-    receipt_company_address: str = Field(
-        default="Av. Frei Miguel Contreiras 54B, 1700-213 Lisboa, Portugal",
-        validation_alias="RECEIPT_COMPANY_ADDRESS",
-    )
-    receipt_company_email: str = Field(
-        default="carambolarubra@gmail.com",
-        validation_alias="RECEIPT_COMPANY_EMAIL",
-    )
-    receipt_company_phone: str = Field(default="+351 968 107 703", validation_alias="RECEIPT_COMPANY_PHONE")
-    receipt_from_email: str | None = Field(default=None, validation_alias="RECEIPT_FROM_EMAIL")
-    receipt_tax_label: str = Field(default="Incluído", validation_alias="RECEIPT_TAX_LABEL")
-    receipt_pickup_address: str = Field(
-        default="Levantamento em loja - Av. Frei Miguel Contreiras 54B, 1700-213 Lisboa",
-        validation_alias="RECEIPT_PICKUP_ADDRESS",
-    )
-    receipt_iva_rate: str = Field(default="13", validation_alias="RECEIPT_IVA_RATE")
-    receipt_iva_exemption_reason: str = Field(
-        default="Isento ao abrigo do artigo 53.º do CIVA",
-        validation_alias="RECEIPT_IVA_EXEMPTION_REASON",
-    )
-    receipt_currency_symbol: str = Field(default="€", validation_alias="RECEIPT_CURRENCY_SYMBOL")
-    receipt_company_logo_url: str | None = Field(default=None, validation_alias="RECEIPT_COMPANY_LOGO_URL")
-
-    @property
-    def effective_receipt_company_logo_url(self) -> str:
-        if self.receipt_company_logo_url:
-            return self.receipt_company_logo_url
-        return f"{self.public_base_url}/assets/images/bonefree-logo.webp"
 
     model_config = SettingsConfigDict(
         env_file=(ENV_FILE, BACKEND_ENV_FILE),

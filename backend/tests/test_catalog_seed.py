@@ -13,6 +13,7 @@ import app as app_module
 from core.config import settings
 from scripts.seed_catalog import (
     _install_staged_seed,
+    _run_alembic_upgrade,
     _target_contains_only_development_users,
     seed_catalog,
     seed_catalog_on_development_startup,
@@ -284,6 +285,62 @@ class CatalogSeedTests(unittest.TestCase):
             finally:
                 connection.close()
             self.assertFalse(_target_contains_only_development_users(database_path))
+
+    def test_automatic_seed_accepts_migrated_bonefree_bootstrap_and_preserves_profile(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            database_path = root / "bonefree.db"
+            uploads_root = root / "uploads"
+            database_url = f"sqlite:///{database_path.as_posix()}"
+            _run_alembic_upgrade(database_path)
+
+            connection = sqlite3.connect(database_path)
+            try:
+                connection.execute(
+                    "UPDATE organization_profile SET legal_name = ?, tax_id = ?",
+                    ("Preserved Bonefree, Lda.", "501964843"),
+                )
+                connection.commit()
+            finally:
+                connection.close()
+
+            self.assertTrue(_target_contains_only_development_users(database_path))
+            with (
+                patch.object(settings, "environment", "development"),
+                patch.object(settings, "database_url", database_url),
+            ):
+                self.assertTrue(
+                    seed_catalog_on_development_startup(
+                        uploads_root=uploads_root,
+                        catalog_root=CATALOG_ROOT,
+                        backup_root=root / "backups",
+                    )
+                )
+
+            connection = sqlite3.connect(database_path)
+            try:
+                self.assertEqual(connection.execute("SELECT COUNT(*) FROM product").fetchone()[0], 54)
+                profile = connection.execute(
+                    "SELECT legal_name, tax_id FROM organization_profile"
+                ).fetchone()
+                self.assertEqual(profile, ("Preserved Bonefree, Lda.", "501964843"))
+                domains = {
+                    row[0]
+                    for row in connection.execute(
+                        "SELECT domain FROM organization_domain"
+                    )
+                }
+                self.assertEqual(
+                    domains,
+                    {
+                        "bonefree.pt",
+                        "www.bonefree.pt",
+                        "bonefree.localhost",
+                        "127.0.0.1",
+                    },
+                )
+            finally:
+                connection.close()
 
     def test_development_startup_rebuilds_a_missing_database_with_existing_uploads(self):
         with tempfile.TemporaryDirectory() as temporary_directory:

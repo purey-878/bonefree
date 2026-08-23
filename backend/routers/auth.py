@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session as DBSession
 from dependencies import (
     get_current_user,
     get_db,
+    require_organization_context,
+    require_organization_header_context,
     get_session_token_optional,
     rate_limit_login,
     rate_limit_register,
@@ -52,6 +54,7 @@ def _send_welcome_email_background(email: str, name: str | None = None) -> None:
     "/register",
     response_model=TokenResponse,
     responses=RATE_LIMIT_OPENAPI_RESPONSES,
+    dependencies=[Depends(require_organization_header_context)],
     operation_id="auth_register",
 )
 def register(
@@ -113,7 +116,7 @@ def register(
     }
 
 
-@router.post("/password/forgot", response_model=MessageResponse, operation_id="auth_forgot_password")
+@router.post("/password/forgot", response_model=MessageResponse, operation_id="auth_forgot_password", dependencies=[Depends(require_organization_header_context)])
 def forgot_password(body: ForgotPasswordRequest, db: DBSession = Depends(get_db)):
     """Start a password reset and email a six-digit code."""
     generic_message = "If an account exists for this email, a password reset code has been sent."
@@ -131,7 +134,7 @@ def forgot_password(body: ForgotPasswordRequest, db: DBSession = Depends(get_db)
     return {"message": generic_message}
 
 
-@router.post("/password/verify-otp", response_model=VerifyOTPResponse, operation_id="auth_verify_password_otp")
+@router.post("/password/verify-otp", response_model=VerifyOTPResponse, operation_id="auth_verify_password_otp", dependencies=[Depends(require_organization_header_context)])
 def verify_password_otp(body: VerifyOTPRequest, db: DBSession = Depends(get_db)):
     """Verify a password reset code and return a short-lived reset token."""
     db_user = db.scalar(select(Customer).where(Customer.email == body.email))
@@ -156,7 +159,7 @@ def verify_password_otp(body: VerifyOTPRequest, db: DBSession = Depends(get_db))
     return {"message": message, "reset_token": reset_token}
 
 
-@router.post("/password/reset", response_model=MessageResponse, operation_id="auth_reset_password")
+@router.post("/password/reset", response_model=MessageResponse, operation_id="auth_reset_password", dependencies=[Depends(require_organization_header_context)])
 def reset_password(body: ResetPasswordRequest, db: DBSession = Depends(get_db)):
     """Reset a password after OTP verification."""
     db_user = db.scalar(select(Customer).where(Customer.email == body.email))
@@ -188,6 +191,7 @@ def reset_password(body: ResetPasswordRequest, db: DBSession = Depends(get_db)):
     "/login",
     response_model=TokenResponse,
     responses=RATE_LIMIT_OPENAPI_RESPONSES,
+    dependencies=[Depends(require_organization_header_context)],
     operation_id="auth_login",
 )
 def login(
@@ -213,6 +217,7 @@ def login(
     operation_id="auth_logout",
 )
 def logout(
+    _organization_id: int = Depends(require_organization_context),
     token: str | None = Depends(get_session_token_optional),
     db: DBSession = Depends(get_db),
 ) -> Response:

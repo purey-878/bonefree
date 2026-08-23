@@ -13,7 +13,7 @@ from sqlalchemy import create_engine, func, select
 from sqlalchemy.orm import Session
 
 from database import Base
-from models import Category, Media, MediaVariant, Product, ProductMedia, User
+from models import Category, Media, MediaVariant, Organization, Product, ProductMedia, User
 from schemas.enums import EntityStatus, MediaOwnerType, MediaVariantKind, UserRole, UserStatus
 from scripts import migrate_product_images_to_media as migration
 
@@ -33,6 +33,11 @@ class ProductMediaMigrationTests(unittest.TestCase):
         )
         Base.metadata.create_all(self.engine)
         self.db = Session(self.engine)
+        organization = Organization(name="Bonefree", slug="bonefree", email="hello@bonefree.test")
+        self.db.add(organization)
+        self.db.flush()
+        self.organization_id = organization.id
+        self.db.info["organization_id"] = organization.id
 
         self.admin = User(
             name="Admin",
@@ -51,6 +56,7 @@ class ProductMediaMigrationTests(unittest.TestCase):
         )
         self.db.add(self.category)
         self.db.flush()
+        self.db.commit()
 
     def tearDown(self):
         self.db.close()
@@ -115,6 +121,7 @@ class ProductMediaMigrationTests(unittest.TestCase):
         self.assertEqual(self._file_state(folder), before)
 
         with Session(self.engine) as db:
+            db.info["organization_id"] = self.organization_id
             media = db.scalar(select(Media))
             variants = db.scalars(select(MediaVariant).order_by(MediaVariant.kind)).all()
             link = db.scalar(select(ProductMedia))
@@ -142,6 +149,7 @@ class ProductMediaMigrationTests(unittest.TestCase):
 
         self.assertEqual(summary, migration.MigrationSummary(0, 0, 0, 0))
         with Session(self.engine) as db:
+            db.info["organization_id"] = self.organization_id
             self.assertEqual(db.scalar(select(func.count()).select_from(ProductMedia)), 0)
 
     def test_folder_without_product_fails_before_database_writes(self):
@@ -152,6 +160,7 @@ class ProductMediaMigrationTests(unittest.TestCase):
                 migration.migrate_product_images_to_media(apply=True)
 
         with Session(self.engine) as db:
+            db.info["organization_id"] = self.organization_id
             self.assertEqual(db.scalar(select(func.count()).select_from(Media)), 0)
 
     def test_missing_or_duplicate_variant_fails(self):
@@ -202,6 +211,7 @@ class ProductMediaMigrationTests(unittest.TestCase):
             migration.migrate_product_images_to_media(apply=False)
 
         with Session(self.engine) as db:
+            db.info["organization_id"] = self.organization_id
             media = db.scalars(select(Media)).all()
             links = db.scalars(select(ProductMedia)).all()
             self.assertEqual(len(media), 1)

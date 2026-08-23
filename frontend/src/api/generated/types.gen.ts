@@ -1460,6 +1460,166 @@ export type OrderStatusUpdate = {
 };
 
 /**
+ * OrganizationProfileResponse
+ */
+export type OrganizationProfileResponse = {
+    /**
+     * About Text
+     */
+    about_text?: string | null;
+    /**
+     * Address Line 1
+     */
+    address_line_1?: string | null;
+    /**
+     * Address Line 2
+     */
+    address_line_2?: string | null;
+    /**
+     * City
+     */
+    city?: string | null;
+    /**
+     * Country
+     */
+    country?: string;
+    /**
+     * Currency Code
+     */
+    currency_code?: string;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Display Name
+     */
+    display_name?: string | null;
+    /**
+     * Email
+     */
+    email?: string | null;
+    /**
+     * Legal Name
+     */
+    legal_name?: string | null;
+    /**
+     * Logo Url
+     */
+    logo_url?: string | null;
+    /**
+     * Opening Hours
+     */
+    opening_hours?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Phone
+     */
+    phone?: string | null;
+    /**
+     * Postal Code
+     */
+    postal_code?: string | null;
+    /**
+     * Social Links
+     */
+    social_links?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Tax Id
+     */
+    tax_id?: string | null;
+    /**
+     * Vat Exemption Reason
+     */
+    vat_exemption_reason?: string | null;
+    /**
+     * Website
+     */
+    website?: string | null;
+};
+
+/**
+ * OrganizationProfileUpdate
+ */
+export type OrganizationProfileUpdate = {
+    /**
+     * About Text
+     */
+    about_text?: string | null;
+    /**
+     * Address Line 1
+     */
+    address_line_1?: string | null;
+    /**
+     * Address Line 2
+     */
+    address_line_2?: string | null;
+    /**
+     * City
+     */
+    city?: string | null;
+    /**
+     * Country
+     */
+    country?: string | null;
+    /**
+     * Currency Code
+     */
+    currency_code?: string | null;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Display Name
+     */
+    display_name?: string | null;
+    /**
+     * Email
+     */
+    email?: string | null;
+    /**
+     * Legal Name
+     */
+    legal_name?: string | null;
+    /**
+     * Logo Url
+     */
+    logo_url?: string | null;
+    /**
+     * Opening Hours
+     */
+    opening_hours?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Phone
+     */
+    phone?: string | null;
+    /**
+     * Postal Code
+     */
+    postal_code?: string | null;
+    /**
+     * Social Links
+     */
+    social_links?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Tax Id
+     */
+    tax_id?: string | null;
+    /**
+     * Vat Exemption Reason
+     */
+    vat_exemption_reason?: string | null;
+};
+
+/**
  * PaymentMethod
  */
 export type PaymentMethod = 'card' | 'mbway' | 'counter';
@@ -2348,6 +2508,20 @@ export type ResetPasswordRequest = {
 };
 
 /**
+ * ResolvedOrganizationResponse
+ */
+export type ResolvedOrganizationResponse = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Slug
+     */
+    slug: string;
+};
+
+/**
  * ReviewReactionCreate
  */
 export type ReviewReactionCreate = {
@@ -3116,6 +3290,12 @@ export type SchemasCheckoutOrderResponse = {
 
 export type AdminManagementGetDashboardAnalyticsData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/admin/analytics/dashboard';
@@ -3169,6 +3349,12 @@ export type AdminManagementGetDashboardAnalyticsResponse = AdminManagementGetDas
 
 export type AdminManagementGetPopularProductsData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: {
         /**
@@ -3229,6 +3415,12 @@ export type AdminManagementGetPopularProductsResponse = AdminManagementGetPopula
 
 export type AdminManagementGetSalesPerformanceData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: {
         /**
@@ -3287,6 +3479,12 @@ export type AdminManagementGetSalesPerformanceResponse = AdminManagementGetSales
 
 export type AdminManagementGetAnalyticsSeriesData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query: {
         /**
@@ -3357,6 +3555,12 @@ export type AdminManagementGetAnalyticsSeriesResponse = AdminManagementGetAnalyt
 
 export type AdminManagementListCategoriesData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: {
         /**
@@ -3417,6 +3621,12 @@ export type AdminManagementListCategoriesResponse = AdminManagementListCategorie
 
 export type AdminManagementCreateCategoryData = {
     body: CategoryCreate;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/admin/categories';
@@ -3470,6 +3680,12 @@ export type AdminManagementCreateCategoryResponse = AdminManagementCreateCategor
 
 export type AdminManagementDeleteCategoryData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Category Id
@@ -3528,6 +3744,12 @@ export type AdminManagementDeleteCategoryResponse = AdminManagementDeleteCategor
 
 export type AdminManagementUpdateCategoryData = {
     body: CategoryUpdate;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Category Id
@@ -3586,6 +3808,12 @@ export type AdminManagementUpdateCategoryResponse = AdminManagementUpdateCategor
 
 export type AdminManagementListCustomersData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: {
         /**
@@ -3654,6 +3882,12 @@ export type AdminManagementListCustomersResponse = AdminManagementListCustomersR
 
 export type AdminManagementCreateCustomerData = {
     body: CustomerAdminCreate;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/admin/customers';
@@ -3707,6 +3941,12 @@ export type AdminManagementCreateCustomerResponse = AdminManagementCreateCustome
 
 export type AdminManagementDeleteCustomerData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Customer Id
@@ -3765,6 +4005,12 @@ export type AdminManagementDeleteCustomerResponse = AdminManagementDeleteCustome
 
 export type AdminManagementUpdateCustomerData = {
     body: CustomerAdminUpdate;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Customer Id
@@ -3823,6 +4069,12 @@ export type AdminManagementUpdateCustomerResponse = AdminManagementUpdateCustome
 
 export type AdminManagementListIngredientsData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: {
         /**
@@ -3887,6 +4139,12 @@ export type AdminManagementListIngredientsResponse = AdminManagementListIngredie
 
 export type AdminManagementCreateIngredientData = {
     body: IngredientCreate;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/admin/ingredients';
@@ -3940,6 +4198,12 @@ export type AdminManagementCreateIngredientResponse = AdminManagementCreateIngre
 
 export type AdminManagementDeleteIngredientData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Ingredient Id
@@ -3998,6 +4262,12 @@ export type AdminManagementDeleteIngredientResponse = AdminManagementDeleteIngre
 
 export type AdminManagementUpdateIngredientData = {
     body: IngredientUpdate;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Ingredient Id
@@ -4056,6 +4326,12 @@ export type AdminManagementUpdateIngredientResponse = AdminManagementUpdateIngre
 
 export type AdminManagementSetIngredientAvailabilityData = {
     body: AvailabilityUpdate;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Ingredient Id
@@ -4114,6 +4390,12 @@ export type AdminManagementSetIngredientAvailabilityResponse = AdminManagementSe
 
 export type AdminManagementListKitchenOrdersData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: {
         /**
@@ -4178,6 +4460,12 @@ export type AdminManagementListKitchenOrdersResponse = AdminManagementListKitche
 
 export type AdminManagementGetKitchenOrderData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Order Id
@@ -4236,6 +4524,12 @@ export type AdminManagementGetKitchenOrderResponse = AdminManagementGetKitchenOr
 
 export type AdminManagementAdminLoginData = {
     body: AdminLogin;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/admin/login';
@@ -4289,6 +4583,12 @@ export type AdminManagementAdminLoginResponse = AdminManagementAdminLoginRespons
 
 export type AdminManagementReadCurrentAdminData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/admin/me';
@@ -4342,6 +4642,12 @@ export type AdminManagementReadCurrentAdminResponse = AdminManagementReadCurrent
 
 export type AdminManagementListOrdersData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: {
         /**
@@ -4406,6 +4712,12 @@ export type AdminManagementListOrdersResponse = AdminManagementListOrdersRespons
 
 export type AdminManagementGetOrderData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Order Id
@@ -4464,6 +4776,12 @@ export type AdminManagementGetOrderResponse = AdminManagementGetOrderResponses[k
 
 export type AdminManagementPayCounterOrderData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Order Id
@@ -4522,6 +4840,12 @@ export type AdminManagementPayCounterOrderResponse = AdminManagementPayCounterOr
 
 export type AdminManagementUpdateOrderStatusData = {
     body: OrderStatusUpdate;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Order Id
@@ -4580,6 +4904,12 @@ export type AdminManagementUpdateOrderStatusResponse = AdminManagementUpdateOrde
 
 export type AdminManagementListProductsData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: {
         /**
@@ -4676,6 +5006,12 @@ export type AdminManagementListProductsResponse = AdminManagementListProductsRes
 
 export type AdminManagementCreateProductData = {
     body: ProductCreate;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/admin/products';
@@ -4729,6 +5065,12 @@ export type AdminManagementCreateProductResponse = AdminManagementCreateProductR
 
 export type AdminManagementDeleteProductData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Product Id
@@ -4787,6 +5129,12 @@ export type AdminManagementDeleteProductResponse = AdminManagementDeleteProductR
 
 export type AdminManagementGetProductData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Product Id
@@ -4845,6 +5193,12 @@ export type AdminManagementGetProductResponse = AdminManagementGetProductRespons
 
 export type AdminManagementUpdateProductData = {
     body: ProductUpdate;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Product Id
@@ -4903,6 +5257,12 @@ export type AdminManagementUpdateProductResponse = AdminManagementUpdateProductR
 
 export type AdminManagementGetProductAnalyticsData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Product Id
@@ -4966,6 +5326,12 @@ export type AdminManagementGetProductAnalyticsResponse = AdminManagementGetProdu
 
 export type AdminManagementSetProductAvailabilityData = {
     body: AvailabilityUpdate;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Product Id
@@ -5024,6 +5390,12 @@ export type AdminManagementSetProductAvailabilityResponse = AdminManagementSetPr
 
 export type AdminManagementUploadProductMediaData = {
     body: BodyAdminManagementUploadProductMedia;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Product Id
@@ -5087,6 +5459,12 @@ export type AdminManagementUploadProductMediaResponse = AdminManagementUploadPro
 
 export type AdminManagementDeleteProductMediaData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Product Id
@@ -5149,6 +5527,12 @@ export type AdminManagementDeleteProductMediaResponse = AdminManagementDeletePro
 
 export type AdminManagementToggleProductStatusData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Product Id
@@ -5207,6 +5591,12 @@ export type AdminManagementToggleProductStatusResponse = AdminManagementTogglePr
 
 export type ReviewsDeleteReviewReactionData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Review Id
@@ -5265,6 +5655,12 @@ export type ReviewsDeleteReviewReactionResponse = ReviewsDeleteReviewReactionRes
 
 export type ReviewsUpsertReviewReactionData = {
     body: ReviewReactionCreate;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Review Id
@@ -5323,6 +5719,12 @@ export type ReviewsUpsertReviewReactionResponse = ReviewsUpsertReviewReactionRes
 
 export type ReviewsCreateReviewReplyData = {
     body: ReviewReplyCreate;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Review Id
@@ -5381,6 +5783,12 @@ export type ReviewsCreateReviewReplyResponse = ReviewsCreateReviewReplyResponses
 
 export type ReviewsDeleteReviewReplyData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Review Id
@@ -5443,6 +5851,12 @@ export type ReviewsDeleteReviewReplyResponse = ReviewsDeleteReviewReplyResponses
 
 export type ReviewsUpdateReviewReplyData = {
     body: ReviewReplyCreate;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Review Id
@@ -5505,6 +5919,12 @@ export type ReviewsUpdateReviewReplyResponse = ReviewsUpdateReviewReplyResponses
 
 export type SiteSettingsReadAdminChefSpecialData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/admin/site-settings/chef-special';
@@ -5558,6 +5978,12 @@ export type SiteSettingsReadAdminChefSpecialResponse = SiteSettingsReadAdminChef
 
 export type SiteSettingsUpdateAdminChefSpecialData = {
     body: ChefSpecialSettings;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/admin/site-settings/chef-special';
@@ -5611,6 +6037,12 @@ export type SiteSettingsUpdateAdminChefSpecialResponse = SiteSettingsUpdateAdmin
 
 export type SiteSettingsReadAdminCompanyDetailsData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/admin/site-settings/company-details';
@@ -5664,6 +6096,12 @@ export type SiteSettingsReadAdminCompanyDetailsResponse = SiteSettingsReadAdminC
 
 export type SiteSettingsUpdateAdminCompanyDetailsData = {
     body: CompanyDetailsSettings;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/admin/site-settings/company-details';
@@ -5717,6 +6155,12 @@ export type SiteSettingsUpdateAdminCompanyDetailsResponse = SiteSettingsUpdateAd
 
 export type SiteSettingsReadAdminEventsData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/admin/site-settings/events';
@@ -5770,6 +6214,12 @@ export type SiteSettingsReadAdminEventsResponse = SiteSettingsReadAdminEventsRes
 
 export type SiteSettingsUpdateAdminEventsData = {
     body: EventsSettings;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/admin/site-settings/events';
@@ -5823,6 +6273,12 @@ export type SiteSettingsUpdateAdminEventsResponse = SiteSettingsUpdateAdminEvent
 
 export type SiteSettingsReadAdminLoyaltyCouponSettingsData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/admin/site-settings/loyalty-coupons';
@@ -5876,6 +6332,12 @@ export type SiteSettingsReadAdminLoyaltyCouponSettingsResponse = SiteSettingsRea
 
 export type SiteSettingsUpdateAdminLoyaltyCouponSettingsData = {
     body: LoyaltyCouponSettingsInput;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/admin/site-settings/loyalty-coupons';
@@ -5927,8 +6389,132 @@ export type SiteSettingsUpdateAdminLoyaltyCouponSettingsResponses = {
 
 export type SiteSettingsUpdateAdminLoyaltyCouponSettingsResponse = SiteSettingsUpdateAdminLoyaltyCouponSettingsResponses[keyof SiteSettingsUpdateAdminLoyaltyCouponSettingsResponses];
 
+export type SiteSettingsReadAdminOrganizationProfileData = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/admin/site-settings/organization-profile';
+};
+
+export type SiteSettingsReadAdminOrganizationProfileErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type SiteSettingsReadAdminOrganizationProfileError = SiteSettingsReadAdminOrganizationProfileErrors[keyof SiteSettingsReadAdminOrganizationProfileErrors];
+
+export type SiteSettingsReadAdminOrganizationProfileResponses = {
+    /**
+     * Successful Response
+     */
+    200: OrganizationProfileResponse;
+};
+
+export type SiteSettingsReadAdminOrganizationProfileResponse = SiteSettingsReadAdminOrganizationProfileResponses[keyof SiteSettingsReadAdminOrganizationProfileResponses];
+
+export type SiteSettingsUpdateAdminOrganizationProfileData = {
+    body: OrganizationProfileUpdate;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/admin/site-settings/organization-profile';
+};
+
+export type SiteSettingsUpdateAdminOrganizationProfileErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type SiteSettingsUpdateAdminOrganizationProfileError = SiteSettingsUpdateAdminOrganizationProfileErrors[keyof SiteSettingsUpdateAdminOrganizationProfileErrors];
+
+export type SiteSettingsUpdateAdminOrganizationProfileResponses = {
+    /**
+     * Successful Response
+     */
+    200: OrganizationProfileResponse;
+};
+
+export type SiteSettingsUpdateAdminOrganizationProfileResponse = SiteSettingsUpdateAdminOrganizationProfileResponses[keyof SiteSettingsUpdateAdminOrganizationProfileResponses];
+
 export type SiteSettingsReadAdminSocialMediaData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/admin/site-settings/social-media';
@@ -5982,6 +6568,12 @@ export type SiteSettingsReadAdminSocialMediaResponse = SiteSettingsReadAdminSoci
 
 export type SiteSettingsUpdateAdminSocialMediaData = {
     body: SocialMediaSettings;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/admin/site-settings/social-media';
@@ -6035,6 +6627,12 @@ export type SiteSettingsUpdateAdminSocialMediaResponse = SiteSettingsUpdateAdmin
 
 export type SiteSettingsReadAdminSiteThemeData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/admin/site-settings/theme';
@@ -6088,6 +6686,12 @@ export type SiteSettingsReadAdminSiteThemeResponse = SiteSettingsReadAdminSiteTh
 
 export type SiteSettingsUpdateAdminSiteThemeData = {
     body: SiteThemeSettings;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/admin/site-settings/theme';
@@ -6141,6 +6745,12 @@ export type SiteSettingsUpdateAdminSiteThemeResponse = SiteSettingsUpdateAdminSi
 
 export type AdminManagementListStaffAdminsData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/admin/staff';
@@ -6196,6 +6806,12 @@ export type AdminManagementListStaffAdminsResponse = AdminManagementListStaffAdm
 
 export type AdminManagementCreateStaffAdminData = {
     body: StaffAdminCreate;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/admin/staff';
@@ -6249,6 +6865,12 @@ export type AdminManagementCreateStaffAdminResponse = AdminManagementCreateStaff
 
 export type AdminManagementListStaffOrdersData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: {
         /**
@@ -6313,6 +6935,12 @@ export type AdminManagementListStaffOrdersResponse = AdminManagementListStaffOrd
 
 export type AdminManagementDeleteStaffAdminData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Admin Id
@@ -6371,6 +6999,12 @@ export type AdminManagementDeleteStaffAdminResponse = AdminManagementDeleteStaff
 
 export type AdminManagementUpdateStaffAdminData = {
     body: StaffAdminUpdate;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Admin Id
@@ -6429,6 +7063,12 @@ export type AdminManagementUpdateStaffAdminResponse = AdminManagementUpdateStaff
 
 export type CartGetCartData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/cart/';
@@ -6478,6 +7118,12 @@ export type CartGetCartResponse = CartGetCartResponses[keyof CartGetCartResponse
 
 export type CartAddItemData = {
     body: AddItemSchema;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/cart/add';
@@ -6527,6 +7173,12 @@ export type CartAddItemResponse = CartAddItemResponses[keyof CartAddItemResponse
 
 export type CartClearCartData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/cart/clear';
@@ -6576,6 +7228,12 @@ export type CartClearCartResponse = CartClearCartResponses[keyof CartClearCartRe
 
 export type CartAddCustomizedItemData = {
     body: CustomizedCartItemRequest;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/cart/items/customized';
@@ -6625,6 +7283,12 @@ export type CartAddCustomizedItemResponse = CartAddCustomizedItemResponses[keyof
 
 export type CartMergeCartData = {
     body: MergeCartSchema;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/cart/merge';
@@ -6674,6 +7338,12 @@ export type CartMergeCartResponse = CartMergeCartResponses[keyof CartMergeCartRe
 
 export type CartRemoveItemData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Product Id
@@ -6733,6 +7403,12 @@ export type CartRemoveItemResponse = CartRemoveItemResponses[keyof CartRemoveIte
 
 export type CartUpdateItemData = {
     body: UpdateItemSchema;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/cart/update';
@@ -6782,6 +7458,12 @@ export type CartUpdateItemResponse = CartUpdateItemResponses[keyof CartUpdateIte
 
 export type CheckoutListAvailableCouponsData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/checkout/coupons';
@@ -6833,6 +7515,12 @@ export type CheckoutListAvailableCouponsResponse = CheckoutListAvailableCouponsR
 
 export type CheckoutValidateCouponData = {
     body: CouponValidationRequest;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/checkout/coupons/validate';
@@ -6882,6 +7570,12 @@ export type CheckoutValidateCouponResponse = CheckoutValidateCouponResponses[key
 
 export type CheckoutCreateOrderData = {
     body: CheckoutRequest;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/checkout/orders';
@@ -6935,6 +7629,12 @@ export type CheckoutCreateOrderResponse = CheckoutCreateOrderResponses[keyof Che
 
 export type CheckoutListOrderHistoryData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/checkout/orders/history';
@@ -6986,6 +7686,12 @@ export type CheckoutListOrderHistoryResponse = CheckoutListOrderHistoryResponses
 
 export type CheckoutGetOrderData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Order Id
@@ -7040,6 +7746,12 @@ export type CheckoutGetOrderResponse = CheckoutGetOrderResponses[keyof CheckoutG
 
 export type CheckoutCancelOrderData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Order Id
@@ -7094,6 +7806,12 @@ export type CheckoutCancelOrderResponse = CheckoutCancelOrderResponses[keyof Che
 
 export type CheckoutDownloadOrderReceiptPdfData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Order Id
@@ -7197,6 +7915,12 @@ export type HealthHealthCheckResponse = HealthHealthCheckResponses[keyof HealthH
 
 export type AuthLoginData = {
     body: UserAuth;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/login';
@@ -7250,6 +7974,12 @@ export type AuthLoginResponse = AuthLoginResponses[keyof AuthLoginResponses];
 
 export type AuthLogoutData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/logout';
@@ -7299,6 +8029,12 @@ export type AuthLogoutResponse = AuthLogoutResponses[keyof AuthLogoutResponses];
 
 export type AuthGetMeData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/me';
@@ -7348,6 +8084,12 @@ export type AuthGetMeResponse = AuthGetMeResponses[keyof AuthGetMeResponses];
 
 export type AuthForgotPasswordData = {
     body: ForgotPasswordRequest;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/password/forgot';
@@ -7397,6 +8139,12 @@ export type AuthForgotPasswordResponse = AuthForgotPasswordResponses[keyof AuthF
 
 export type AuthResetPasswordData = {
     body: ResetPasswordRequest;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/password/reset';
@@ -7446,6 +8194,12 @@ export type AuthResetPasswordResponse = AuthResetPasswordResponses[keyof AuthRes
 
 export type AuthVerifyPasswordOtpData = {
     body: VerifyOtpRequest;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/password/verify-otp';
@@ -7495,6 +8249,12 @@ export type AuthVerifyPasswordOtpResponse = AuthVerifyPasswordOtpResponses[keyof
 
 export type ProductsListProductsData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/products/';
@@ -7546,6 +8306,12 @@ export type ProductsListProductsResponse = ProductsListProductsResponses[keyof P
 
 export type ProductsGetProductData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Product Id
@@ -7600,6 +8366,12 @@ export type ProductsGetProductResponse = ProductsGetProductResponses[keyof Produ
 
 export type ProductsGetAvailabilitySuggestionsData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Product Id
@@ -7659,6 +8431,12 @@ export type ProductsGetAvailabilitySuggestionsResponse = ProductsGetAvailability
 
 export type ProductsGetProductCustomizationData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Product Id
@@ -7713,6 +8491,12 @@ export type ProductsGetProductCustomizationResponse = ProductsGetProductCustomiz
 
 export type ProductsGetCustomizationOptionsData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Product Id
@@ -7767,6 +8551,12 @@ export type ProductsGetCustomizationOptionsResponse = ProductsGetCustomizationOp
 
 export type ReviewsListProductReviewsData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Product Id
@@ -7823,6 +8613,12 @@ export type ReviewsListProductReviewsResponse = ReviewsListProductReviewsRespons
 
 export type ReviewsCreateProductReviewData = {
     body: ProductReviewCreate;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Product Id
@@ -7877,6 +8673,12 @@ export type ReviewsCreateProductReviewResponse = ReviewsCreateProductReviewRespo
 
 export type ReviewsGetProductReviewEligibilityData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Product Id
@@ -7931,6 +8733,12 @@ export type ReviewsGetProductReviewEligibilityResponse = ReviewsGetProductReview
 
 export type ReviewsGetProductReviewStatsData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Product Id
@@ -7985,6 +8793,12 @@ export type ReviewsGetProductReviewStatsResponse = ReviewsGetProductReviewStatsR
 
 export type ProfileGetProfileData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/profile';
@@ -8034,6 +8848,12 @@ export type ProfileGetProfileResponse = ProfileGetProfileResponses[keyof Profile
 
 export type ProfileUpdateProfileData = {
     body: UserProfileUpdate;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/profile';
@@ -8083,6 +8903,12 @@ export type ProfileUpdateProfileResponse = ProfileUpdateProfileResponses[keyof P
 
 export type ProfileGetPurchaseHistoryData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: {
         /**
@@ -8153,8 +8979,68 @@ export type ProfileGetPurchaseHistoryResponses = {
 
 export type ProfileGetPurchaseHistoryResponse = ProfileGetPurchaseHistoryResponses[keyof ProfileGetPurchaseHistoryResponses];
 
+export type OrganizationsResolveData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Hostname
+         */
+        hostname: string;
+    };
+    url: '/public/organizations/resolve';
+};
+
+export type OrganizationsResolveErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type OrganizationsResolveError = OrganizationsResolveErrors[keyof OrganizationsResolveErrors];
+
+export type OrganizationsResolveResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResolvedOrganizationResponse;
+};
+
+export type OrganizationsResolveResponse = OrganizationsResolveResponses[keyof OrganizationsResolveResponses];
+
 export type AuthRegisterData = {
     body: UserRegister;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/register';
@@ -8208,6 +9094,12 @@ export type AuthRegisterResponse = AuthRegisterResponses[keyof AuthRegisterRespo
 
 export type ReviewsDeleteProductReviewData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Review Id
@@ -8262,6 +9154,12 @@ export type ReviewsDeleteProductReviewResponse = ReviewsDeleteProductReviewRespo
 
 export type ReviewsUpdateProductReviewData = {
     body: ProductReviewUpdate;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path: {
         /**
          * Review Id
@@ -8316,6 +9214,12 @@ export type ReviewsUpdateProductReviewResponse = ReviewsUpdateProductReviewRespo
 
 export type SiteSettingsReadPublicChefSpecialData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/site-settings/chef-special';
@@ -8365,6 +9269,12 @@ export type SiteSettingsReadPublicChefSpecialResponse = SiteSettingsReadPublicCh
 
 export type SiteSettingsReadPublicCompanyDetailsData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/site-settings/company-details';
@@ -8414,6 +9324,12 @@ export type SiteSettingsReadPublicCompanyDetailsResponse = SiteSettingsReadPubli
 
 export type SiteSettingsReadPublicEventsData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/site-settings/events';
@@ -8463,6 +9379,12 @@ export type SiteSettingsReadPublicEventsResponse = SiteSettingsReadPublicEventsR
 
 export type SiteSettingsReadPublicLoyaltyCouponSettingsData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/site-settings/loyalty-coupons';
@@ -8512,6 +9434,12 @@ export type SiteSettingsReadPublicLoyaltyCouponSettingsResponse = SiteSettingsRe
 
 export type SiteSettingsReadPublicSocialMediaData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/site-settings/social-media';
@@ -8561,6 +9489,12 @@ export type SiteSettingsReadPublicSocialMediaResponse = SiteSettingsReadPublicSo
 
 export type SiteSettingsReadPublicSiteThemeData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/site-settings/theme';

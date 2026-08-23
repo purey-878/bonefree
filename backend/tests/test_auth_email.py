@@ -194,8 +194,6 @@ class AuthEmailSMTPTests(unittest.TestCase):
         with (
             patch.object(settings, "auth_email_from", None),
             patch.object(settings, "email_from", None),
-            patch.object(settings, "receipt_from_email", None),
-            patch.object(settings, "receipt_company_email", ""),
             patch.object(settings, "smtp_user", "bonefree@example.com"),
         ):
             self.assertEqual(settings.effective_email_from, "bonefree@example.com")
@@ -216,7 +214,7 @@ class AuthEmailSMTPTests(unittest.TestCase):
                     "SMTP_PORT",
                     "SMTP_USER",
                     "SMTP_PASSWORD/SMTP_PASS",
-                    "AUTH_EMAIL_FROM/EMAIL_FROM/RECEIPT_FROM_EMAIL/RECEIPT_COMPANY_EMAIL/SMTP_USER",
+                    "AUTH_EMAIL_FROM/EMAIL_FROM/SMTP_USER",
                 ],
             )
 

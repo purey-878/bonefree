@@ -16,6 +16,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session, selectinload
 
 from database import SessionLocal
+from core.organizations import bind_session_to_organization
 from models import Media, MediaVariant, Product, ProductMedia
 from schemas.enums import MediaOwnerType, MediaVariantKind
 from services.media_storage import PRODUCT_MEDIA_DIR, UPLOADS_ROOT, public_url_for_storage_key
@@ -255,8 +256,19 @@ def _reconcile_database(db: Session, folders: list[ProductFolderMedia]) -> Migra
         stale_media_statement = stale_media_statement.where(Media.id.not_in(expected_media_ids))
     stale_media_ids = list(db.scalars(stale_media_statement).all())
     if stale_media_ids:
-        db.execute(delete(MediaVariant).where(MediaVariant.media_id.in_(stale_media_ids)))
-        db.execute(delete(Media).where(Media.id.in_(stale_media_ids)))
+        organization_id = db.info["organization_id"]
+        db.execute(
+            delete(MediaVariant).where(
+                MediaVariant.media_id.in_(stale_media_ids),
+                MediaVariant.organization_id == organization_id,
+            )
+        )
+        db.execute(
+            delete(Media).where(
+                Media.id.in_(stale_media_ids),
+                Media.organization_id == organization_id,
+            )
+        )
 
     return MigrationSummary(
         product_folders=len(folders),
@@ -319,6 +331,7 @@ def _audit_database(db: Session, folders: list[ProductFolderMedia]) -> Migration
 def migrate_product_images_to_media(
     *,
     apply: bool,
+    organization_slug: str = "bonefree",
     product_media_dir: Path | None = None,
     uploads_root: Path | None = None,
     session_factory: Callable[[], Session] | None = None,
@@ -334,6 +347,7 @@ def migrate_product_images_to_media(
 
     db = session_factory()
     try:
+        bind_session_to_organization(db, organization_slug)
         if apply:
             summary = _reconcile_database(db, folders)
             db.commit()
@@ -356,9 +370,17 @@ def main() -> None:
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--check", action="store_true", help="Validate files and database without writing.")
     mode.add_argument("--apply", action="store_true", help="Create or repair Media database records.")
+    parser.add_argument(
+        "--organization-slug",
+        default="bonefree",
+        help="Organization whose catalog media will be reconciled.",
+    )
     args = parser.parse_args()
 
-    summary = migrate_product_images_to_media(apply=args.apply)
+    summary = migrate_product_images_to_media(
+        apply=args.apply,
+        organization_slug=args.organization_slug,
+    )
     _log(
         "Summary: "
         f"folders={summary.product_folders}, media={summary.media}, "

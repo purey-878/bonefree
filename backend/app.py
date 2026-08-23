@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import cast
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.routing import APIRoute
 from starlette.types import ExceptionHandler
 from fastapi.exceptions import RequestValidationError
@@ -30,6 +30,8 @@ from routers.profile import router as profile_router
 from routers.reviews import router as reviews_router
 from routers.site_settings import admin_router as site_settings_admin_router
 from routers.site_settings import public_router as site_settings_public_router
+from routers.organizations import router as organizations_router
+from dependencies import require_organization_context, require_organization_header_context
 from seeds import seed_test_users
 from scripts.seed_catalog import seed_catalog_on_development_startup
 from core.email_provider import validate_email_config
@@ -139,14 +141,17 @@ def create_app(
     def health_check() -> HealthResponse:
         return HealthResponse(status="healthy")
 
+    tenant_dependencies = [Depends(require_organization_context)]
+    public_tenant_dependencies = [Depends(require_organization_header_context)]
+    application.include_router(organizations_router)
     application.include_router(auth_router)
-    application.include_router(products_router, prefix="/products", tags=["Products"])
-    application.include_router(cart_router)
-    application.include_router(checkout_router)
+    application.include_router(products_router, prefix="/products", tags=["Products"], dependencies=public_tenant_dependencies)
+    application.include_router(cart_router, dependencies=tenant_dependencies)
+    application.include_router(checkout_router, dependencies=tenant_dependencies)
     application.include_router(profile_router)
-    application.include_router(reviews_router)
+    application.include_router(reviews_router, dependencies=tenant_dependencies)
     application.include_router(admin_router)
-    application.include_router(site_settings_public_router)
+    application.include_router(site_settings_public_router, dependencies=public_tenant_dependencies)
     application.include_router(site_settings_admin_router)
     return application
 

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { adminManagementReadCurrentAdmin, authGetMe, checkoutGetOrder } from './generated';
-import { adminApiClient, customerApiClient, publicApiClient } from './clients';
+import { adminApiClient, customerApiClient, publicApiClient, setOrganizationSlug } from './clients';
 
 class MemoryStorage implements Storage {
   private values = new Map<string, string>();
@@ -64,5 +64,26 @@ describe('generated API clients', () => {
     expect(capturedRequest?.headers.get('X-Order-Token')).toBe('guest-order-secret');
     expect(capturedRequest?.url).toBe('https://api.example.test/checkout/orders/42');
     expect(capturedRequest?.url).not.toContain('guest-order-secret');
+  });
+
+  it('adds the resolved organization slug to every client', async () => {
+    const requests: Request[] = [];
+    const fetchMock = vi.fn(async (request: Request) => {
+      requests.push(request);
+      return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }) as unknown as typeof fetch;
+    for (const client of [publicApiClient, customerApiClient, adminApiClient]) {
+      client.setConfig({ baseUrl: 'https://api.example.test', fetch: fetchMock });
+    }
+
+    setOrganizationSlug('bonefree');
+    await authGetMe({ client: publicApiClient, throwOnError: true });
+    await authGetMe({ client: customerApiClient, throwOnError: true });
+    await adminManagementReadCurrentAdmin({ client: adminApiClient, throwOnError: true });
+
+    expect(requests).toHaveLength(3);
+    for (const request of requests) {
+      expect(request.headers.get('X-Organization-Slug')).toBe('bonefree');
+    }
   });
 });

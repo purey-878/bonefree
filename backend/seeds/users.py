@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session as DBSession
 
 from database import SessionLocal
+from core.organizations import bind_session_to_organization
 from schemas.enums import UserRole, UserStatus
 from models import User
 from services.auth_service import hash_password
@@ -72,6 +73,9 @@ def _ensure_test_user(db: DBSession, seed: TestUserSeed) -> bool:
 
 def seed_test_users_in_session(db: DBSession) -> int:
     """Ensure development test users exist in an existing transaction."""
+
+    if db.info.get("organization_id") is None:
+        bind_session_to_organization(db, "bonefree")
 
     changed_count = 0
     for seed in TEST_USERS:

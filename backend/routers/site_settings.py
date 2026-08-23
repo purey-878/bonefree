@@ -14,6 +14,8 @@ from schemas.site_settings import (
     CompanyDetailsSettings,
     EventsSettings,
     LoyaltyCouponSettings,
+    OrganizationProfileResponse,
+    OrganizationProfileUpdate,
     SiteThemeResponse,
     SiteThemeSettings,
     SocialMediaSettings,
@@ -23,12 +25,14 @@ from services.site_settings import (
     get_company_details_settings,
     get_events_settings,
     get_loyalty_coupon_settings,
+    get_organization_profile,
     get_social_media_settings,
     get_site_theme,
     save_chef_special_settings,
     save_company_details_settings,
     save_events_settings,
     save_loyalty_coupon_settings,
+    save_organization_profile,
     save_social_media_settings,
     save_site_theme,
 )
@@ -229,6 +233,31 @@ def update_admin_social_media(
     db: Session = Depends(get_db),
 ):
     return save_social_media_settings(db, settings)
+
+
+@admin_router.get(
+    "/organization-profile",
+    response_model=OrganizationProfileResponse,
+    operation_id="site_settings_read_admin_organization_profile",
+)
+def read_admin_organization_profile(
+    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
+    db: Session = Depends(get_db),
+):
+    return get_organization_profile(db)
+
+
+@admin_router.patch(
+    "/organization-profile",
+    response_model=OrganizationProfileResponse,
+    operation_id="site_settings_update_admin_organization_profile",
+)
+def update_admin_organization_profile(
+    settings: OrganizationProfileUpdate,
+    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
+    db: Session = Depends(get_db),
+):
+    return save_organization_profile(db, settings)
 
 
 @admin_router.get(

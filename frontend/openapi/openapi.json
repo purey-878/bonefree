@@ -766,7 +766,7 @@
         "properties": {
           "address": {
             "default": "Bonefree, R. Eng. Henrique Mendia 28A, 2825-450 Costa da Caparica",
-            "maxLength": 240,
+            "maxLength": 700,
             "title": "Address",
             "type": "string"
           },
@@ -2657,6 +2657,410 @@
         "title": "OrderStatusUpdate",
         "type": "object"
       },
+      "OrganizationProfileResponse": {
+        "properties": {
+          "about_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "About Text"
+          },
+          "address_line_1": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address Line 1"
+          },
+          "address_line_2": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address Line 2"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "country": {
+            "default": "Portugal",
+            "title": "Country",
+            "type": "string"
+          },
+          "currency_code": {
+            "default": "EUR",
+            "title": "Currency Code",
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "legal_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legal Name"
+          },
+          "logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url"
+          },
+          "opening_hours": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opening Hours"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "postal_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Postal Code"
+          },
+          "social_links": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Social Links"
+          },
+          "tax_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tax Id"
+          },
+          "vat_exemption_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vat Exemption Reason"
+          },
+          "website": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Website"
+          }
+        },
+        "title": "OrganizationProfileResponse",
+        "type": "object"
+      },
+      "OrganizationProfileUpdate": {
+        "properties": {
+          "about_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "About Text"
+          },
+          "address_line_1": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address Line 1"
+          },
+          "address_line_2": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address Line 2"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "country": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          },
+          "currency_code": {
+            "anyOf": [
+              {
+                "maxLength": 3,
+                "minLength": 3,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency Code"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "maxLength": 150,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "maxLength": 150,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "legal_name": {
+            "anyOf": [
+              {
+                "maxLength": 150,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legal Name"
+          },
+          "logo_url": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url"
+          },
+          "opening_hours": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opening Hours"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "maxLength": 30,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "postal_code": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Postal Code"
+          },
+          "social_links": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Social Links"
+          },
+          "tax_id": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tax Id"
+          },
+          "vat_exemption_reason": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vat Exemption Reason"
+          }
+        },
+        "title": "OrganizationProfileUpdate",
+        "type": "object"
+      },
       "PaymentMethod": {
         "enum": [
           "card",
@@ -4224,6 +4628,24 @@
         "title": "ResetPasswordRequest",
         "type": "object"
       },
+      "ResolvedOrganizationResponse": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "name"
+        ],
+        "title": "ResolvedOrganizationResponse",
+        "type": "object"
+      },
       "ReviewReactionCreate": {
         "properties": {
           "type": {
@@ -5650,6 +6072,24 @@
     "/admin/analytics/dashboard": {
       "get": {
         "operationId": "admin_management_get_dashboard_analytics",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -5734,7 +6174,7 @@
               "Retry-After": {
                 "description": "Seconds until another request may be attempted.",
                 "schema": {
-                  "minimum": 1.0,
+                  "minimum": 1,
                   "type": "integer"
                 }
               }
@@ -5776,6 +6216,22 @@
               "minimum": 1,
               "title": "Limit",
               "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
             }
           }
         ],
@@ -5910,6 +6366,22 @@
               "minimum": 1,
               "title": "Days",
               "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
             }
           }
         ],
@@ -6081,6 +6553,22 @@
               ],
               "title": "End Date"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
           }
         ],
         "responses": {
@@ -6208,6 +6696,22 @@
               "title": "Include Inactive",
               "type": "boolean"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
           }
         ],
         "responses": {
@@ -6327,6 +6831,24 @@
       },
       "post": {
         "operationId": "admin_management_create_category",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -6461,6 +6983,22 @@
               "title": "Category Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
           }
         ],
         "responses": {
@@ -6584,6 +7122,22 @@
             "schema": {
               "title": "Category Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
             }
           }
         ],
@@ -6744,6 +7298,22 @@
               "title": "Search",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
           }
         ],
         "responses": {
@@ -6863,6 +7433,24 @@
       },
       "post": {
         "operationId": "admin_management_create_customer",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -6997,6 +7585,22 @@
               "title": "Customer Id",
               "type": "integer"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
           }
         ],
         "responses": {
@@ -7120,6 +7724,22 @@
             "schema": {
               "title": "Customer Id",
               "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
             }
           }
         ],
@@ -7268,6 +7888,22 @@
               "title": "Customization Only",
               "type": "boolean"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
           }
         ],
         "responses": {
@@ -7387,6 +8023,24 @@
       },
       "post": {
         "operationId": "admin_management_create_ingredient",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -7521,6 +8175,22 @@
               "title": "Ingredient Id",
               "type": "integer"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
           }
         ],
         "responses": {
@@ -7644,6 +8314,22 @@
             "schema": {
               "title": "Ingredient Id",
               "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
             }
           }
         ],
@@ -7780,6 +8466,22 @@
             "schema": {
               "title": "Ingredient Id",
               "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
             }
           }
         ],
@@ -7931,6 +8633,22 @@
               "title": "Limit",
               "type": "integer"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
           }
         ],
         "responses": {
@@ -8061,6 +8779,22 @@
               "title": "Order Id",
               "type": "integer"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
           }
         ],
         "responses": {
@@ -8178,6 +8912,24 @@
     "/admin/login": {
       "post": {
         "operationId": "admin_management_admin_login",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -8272,7 +9024,7 @@
               "Retry-After": {
                 "description": "Seconds until another request may be attempted.",
                 "schema": {
-                  "minimum": 1.0,
+                  "minimum": 1,
                   "type": "integer"
                 }
               }
@@ -8298,6 +9050,24 @@
     "/admin/me": {
       "get": {
         "operationId": "admin_management_read_current_admin",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -8382,7 +9152,7 @@
               "Retry-After": {
                 "description": "Seconds until another request may be attempted.",
                 "schema": {
-                  "minimum": 1.0,
+                  "minimum": 1,
                   "type": "integer"
                 }
               }
@@ -8435,6 +9205,22 @@
               "minimum": 1,
               "title": "Limit",
               "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
             }
           }
         ],
@@ -8566,6 +9352,22 @@
               "title": "Order Id",
               "type": "integer"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
           }
         ],
         "responses": {
@@ -8692,6 +9494,22 @@
               "title": "Order Id",
               "type": "integer"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
           }
         ],
         "responses": {
@@ -8817,6 +9635,22 @@
             "schema": {
               "title": "Order Id",
               "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
             }
           }
         ],
@@ -9041,6 +9875,22 @@
               "title": "Include Deleted",
               "type": "boolean"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
           }
         ],
         "responses": {
@@ -9160,6 +10010,24 @@
       },
       "post": {
         "operationId": "admin_management_create_product",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -9294,6 +10162,22 @@
               "title": "Product Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
           }
         ],
         "responses": {
@@ -9418,6 +10302,22 @@
               "title": "Product Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
           }
         ],
         "responses": {
@@ -9541,6 +10441,22 @@
             "schema": {
               "title": "Product Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
             }
           }
         ],
@@ -9690,6 +10606,22 @@
               "title": "Days",
               "type": "integer"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
           }
         ],
         "responses": {
@@ -9815,6 +10747,22 @@
             "schema": {
               "title": "Product Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
             }
           }
         ],
@@ -9962,6 +10910,22 @@
               "title": "Replace Existing",
               "type": "boolean"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
           }
         ],
         "requestBody": {
@@ -10107,6 +11071,22 @@
               "title": "Media Id",
               "type": "integer"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
           }
         ],
         "responses": {
@@ -10232,6 +11212,22 @@
             "schema": {
               "title": "Product Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
             }
           }
         ],
@@ -10359,6 +11355,22 @@
               "title": "Review Id",
               "type": "integer"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
           }
         ],
         "responses": {
@@ -10475,6 +11487,22 @@
             "schema": {
               "title": "Review Id",
               "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
             }
           }
         ],
@@ -10611,6 +11639,22 @@
             "schema": {
               "title": "Review Id",
               "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
             }
           }
         ],
@@ -10757,6 +11801,22 @@
               "title": "Reply Id",
               "type": "integer"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
           }
         ],
         "responses": {
@@ -10882,6 +11942,22 @@
             "schema": {
               "title": "Reply Id",
               "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
             }
           }
         ],
@@ -11010,6 +12086,24 @@
     "/admin/site-settings/chef-special": {
       "get": {
         "operationId": "site_settings_read_admin_chef_special",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -11094,7 +12188,7 @@
               "Retry-After": {
                 "description": "Seconds until another request may be attempted.",
                 "schema": {
-                  "minimum": 1.0,
+                  "minimum": 1,
                   "type": "integer"
                 }
               }
@@ -11123,6 +12217,24 @@
       },
       "put": {
         "operationId": "site_settings_update_admin_chef_special",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -11217,7 +12329,7 @@
               "Retry-After": {
                 "description": "Seconds until another request may be attempted.",
                 "schema": {
-                  "minimum": 1.0,
+                  "minimum": 1,
                   "type": "integer"
                 }
               }
@@ -11248,6 +12360,24 @@
     "/admin/site-settings/company-details": {
       "get": {
         "operationId": "site_settings_read_admin_company_details",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -11332,7 +12462,7 @@
               "Retry-After": {
                 "description": "Seconds until another request may be attempted.",
                 "schema": {
-                  "minimum": 1.0,
+                  "minimum": 1,
                   "type": "integer"
                 }
               }
@@ -11361,6 +12491,24 @@
       },
       "put": {
         "operationId": "site_settings_update_admin_company_details",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -11455,7 +12603,7 @@
               "Retry-After": {
                 "description": "Seconds until another request may be attempted.",
                 "schema": {
-                  "minimum": 1.0,
+                  "minimum": 1,
                   "type": "integer"
                 }
               }
@@ -11486,6 +12634,24 @@
     "/admin/site-settings/events": {
       "get": {
         "operationId": "site_settings_read_admin_events",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -11570,7 +12736,7 @@
               "Retry-After": {
                 "description": "Seconds until another request may be attempted.",
                 "schema": {
-                  "minimum": 1.0,
+                  "minimum": 1,
                   "type": "integer"
                 }
               }
@@ -11599,6 +12765,24 @@
       },
       "put": {
         "operationId": "site_settings_update_admin_events",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -11693,7 +12877,7 @@
               "Retry-After": {
                 "description": "Seconds until another request may be attempted.",
                 "schema": {
-                  "minimum": 1.0,
+                  "minimum": 1,
                   "type": "integer"
                 }
               }
@@ -11724,6 +12908,24 @@
     "/admin/site-settings/loyalty-coupons": {
       "get": {
         "operationId": "site_settings_read_admin_loyalty_coupon_settings",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -11808,7 +13010,7 @@
               "Retry-After": {
                 "description": "Seconds until another request may be attempted.",
                 "schema": {
-                  "minimum": 1.0,
+                  "minimum": 1,
                   "type": "integer"
                 }
               }
@@ -11837,6 +13039,24 @@
       },
       "put": {
         "operationId": "site_settings_update_admin_loyalty_coupon_settings",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -11931,7 +13151,7 @@
               "Retry-After": {
                 "description": "Seconds until another request may be attempted.",
                 "schema": {
-                  "minimum": 1.0,
+                  "minimum": 1,
                   "type": "integer"
                 }
               }
@@ -11959,9 +13179,301 @@
         ]
       }
     },
+    "/admin/site-settings/organization-profile": {
+      "get": {
+        "operationId": "site_settings_read_admin_organization_profile",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationProfileResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limit exceeded",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds until another request may be attempted.",
+                "schema": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Read Admin Organization Profile",
+        "tags": [
+          "Site Settings"
+        ]
+      },
+      "patch": {
+        "operationId": "site_settings_update_admin_organization_profile",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationProfileUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationProfileResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limit exceeded",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds until another request may be attempted.",
+                "schema": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Update Admin Organization Profile",
+        "tags": [
+          "Site Settings"
+        ]
+      }
+    },
     "/admin/site-settings/social-media": {
       "get": {
         "operationId": "site_settings_read_admin_social_media",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -12046,7 +13558,7 @@
               "Retry-After": {
                 "description": "Seconds until another request may be attempted.",
                 "schema": {
-                  "minimum": 1.0,
+                  "minimum": 1,
                   "type": "integer"
                 }
               }
@@ -12075,6 +13587,24 @@
       },
       "put": {
         "operationId": "site_settings_update_admin_social_media",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -12169,7 +13699,7 @@
               "Retry-After": {
                 "description": "Seconds until another request may be attempted.",
                 "schema": {
-                  "minimum": 1.0,
+                  "minimum": 1,
                   "type": "integer"
                 }
               }
@@ -12200,6 +13730,24 @@
     "/admin/site-settings/theme": {
       "get": {
         "operationId": "site_settings_read_admin_site_theme",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -12284,7 +13832,7 @@
               "Retry-After": {
                 "description": "Seconds until another request may be attempted.",
                 "schema": {
-                  "minimum": 1.0,
+                  "minimum": 1,
                   "type": "integer"
                 }
               }
@@ -12313,6 +13861,24 @@
       },
       "put": {
         "operationId": "site_settings_update_admin_site_theme",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -12407,7 +13973,7 @@
               "Retry-After": {
                 "description": "Seconds until another request may be attempted.",
                 "schema": {
-                  "minimum": 1.0,
+                  "minimum": 1,
                   "type": "integer"
                 }
               }
@@ -12438,6 +14004,24 @@
     "/admin/staff": {
       "get": {
         "operationId": "admin_management_list_staff_admins",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -12526,7 +14110,7 @@
               "Retry-After": {
                 "description": "Seconds until another request may be attempted.",
                 "schema": {
-                  "minimum": 1.0,
+                  "minimum": 1,
                   "type": "integer"
                 }
               }
@@ -12555,6 +14139,24 @@
       },
       "post": {
         "operationId": "admin_management_create_staff_admin",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -12649,7 +14251,7 @@
               "Retry-After": {
                 "description": "Seconds until another request may be attempted.",
                 "schema": {
-                  "minimum": 1.0,
+                  "minimum": 1,
                   "type": "integer"
                 }
               }
@@ -12702,6 +14304,22 @@
               "minimum": 1,
               "title": "Limit",
               "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
             }
           }
         ],
@@ -12833,6 +14451,22 @@
               "title": "Admin Id",
               "type": "integer"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
           }
         ],
         "responses": {
@@ -12956,6 +14590,22 @@
             "schema": {
               "title": "Admin Id",
               "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
             }
           }
         ],
@@ -13084,6 +14734,24 @@
     "/cart/": {
       "get": {
         "operationId": "cart_get_cart",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -13180,6 +14848,24 @@
     "/cart/add": {
       "post": {
         "operationId": "cart_add_item",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -13286,6 +14972,24 @@
     "/cart/clear": {
       "delete": {
         "operationId": "cart_clear_cart",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -13382,6 +15086,24 @@
     "/cart/items/customized": {
       "post": {
         "operationId": "cart_add_customized_item",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -13489,6 +15211,24 @@
       "post": {
         "description": "Called immediately after login.\nFrontend sends the items it had in localStorage.\nRules:\n  - If item already exists in the DB cart, add quantities up to 99.\n  - If item is new, add it up to the same technical limit.\n  - If the product is unavailable, skip it.\nReturns lists of merged / capped / skipped product ids so the\nfrontend can show the user what happened.",
         "operationId": "cart_merge_cart",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -13620,6 +15360,22 @@
               ],
               "title": "Cart Product Id"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
           }
         ],
         "responses": {
@@ -13718,6 +15474,24 @@
     "/cart/update": {
       "put": {
         "operationId": "cart_update_item",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -13824,6 +15598,24 @@
     "/checkout/coupons": {
       "get": {
         "operationId": "checkout_list_available_coupons",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -13924,6 +15716,24 @@
     "/checkout/coupons/validate": {
       "post": {
         "operationId": "checkout_validate_coupon",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -14030,6 +15840,24 @@
     "/checkout/orders": {
       "post": {
         "operationId": "checkout_create_order",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -14124,7 +15952,7 @@
               "Retry-After": {
                 "description": "Seconds until another request may be attempted.",
                 "schema": {
-                  "minimum": 1.0,
+                  "minimum": 1,
                   "type": "integer"
                 }
               }
@@ -14155,6 +15983,24 @@
     "/checkout/orders/history": {
       "get": {
         "operationId": "checkout_list_order_history",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -14263,6 +16109,22 @@
             "schema": {
               "title": "Order Id",
               "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
             }
           }
         ],
@@ -14374,6 +16236,22 @@
               "title": "Order Id",
               "type": "integer"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
           }
         ],
         "responses": {
@@ -14483,6 +16361,22 @@
             "schema": {
               "title": "Order Id",
               "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
             }
           }
         ],
@@ -14678,6 +16572,24 @@
       "post": {
         "description": "Login user",
         "operationId": "auth_login",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -14772,7 +16684,7 @@
               "Retry-After": {
                 "description": "Seconds until another request may be attempted.",
                 "schema": {
-                  "minimum": 1.0,
+                  "minimum": 1,
                   "type": "integer"
                 }
               }
@@ -14799,6 +16711,24 @@
       "post": {
         "description": "Revokes the current session token when provided.",
         "operationId": "auth_logout",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "responses": {
           "204": {
             "description": "Successful Response"
@@ -14889,6 +16819,24 @@
       "get": {
         "description": "Get current logged in user",
         "operationId": "auth_get_me",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -14986,6 +16934,24 @@
       "post": {
         "description": "Start a password reset and email a six-digit code.",
         "operationId": "auth_forgot_password",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -15088,6 +17054,24 @@
       "post": {
         "description": "Reset a password after OTP verification.",
         "operationId": "auth_reset_password",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -15190,6 +17174,24 @@
       "post": {
         "description": "Verify a password reset code and return a short-lived reset token.",
         "operationId": "auth_verify_password_otp",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -15292,6 +17294,24 @@
       "get": {
         "description": "Get all active products with their media.",
         "operationId": "products_list_products",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -15396,6 +17416,22 @@
             "schema": {
               "title": "Product Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
             }
           }
         ],
@@ -15511,6 +17547,22 @@
               "title": "Limit",
               "type": "integer"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
           }
         ],
         "responses": {
@@ -15612,6 +17664,22 @@
             "schema": {
               "title": "Product Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
             }
           }
         ],
@@ -15715,6 +17783,22 @@
               "title": "Product Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
           }
         ],
         "responses": {
@@ -15816,6 +17900,22 @@
             "schema": {
               "title": "Product Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
             }
           }
         ],
@@ -15925,6 +18025,22 @@
             "schema": {
               "title": "Product Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
             }
           }
         ],
@@ -16043,6 +18159,22 @@
               "title": "Product Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
           }
         ],
         "responses": {
@@ -16150,6 +18282,22 @@
               "title": "Product Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
           }
         ],
         "responses": {
@@ -16234,6 +18382,11 @@
             "description": "Internal server error"
           }
         },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "summary": "Get Product Review Stats",
         "tags": [
           "Reviews"
@@ -16243,6 +18396,24 @@
     "/profile": {
       "get": {
         "operationId": "profile_get_profile",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -16337,6 +18508,24 @@
       },
       "put": {
         "operationId": "profile_update_profile",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -16525,6 +18714,22 @@
               ],
               "title": "Search"
             }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
           }
         ],
         "responses": {
@@ -16624,10 +18829,130 @@
         ]
       }
     },
+    "/public/organizations/resolve": {
+      "get": {
+        "operationId": "organizations_resolve",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "hostname",
+            "required": true,
+            "schema": {
+              "title": "Hostname",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResolvedOrganizationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "summary": "Resolve Organization",
+        "tags": [
+          "Organizations"
+        ]
+      }
+    },
     "/register": {
       "post": {
         "description": "Register a new user",
         "operationId": "auth_register",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -16722,7 +19047,7 @@
               "Retry-After": {
                 "description": "Seconds until another request may be attempted.",
                 "schema": {
-                  "minimum": 1.0,
+                  "minimum": 1,
                   "type": "integer"
                 }
               }
@@ -16756,6 +19081,22 @@
             "schema": {
               "title": "Review Id",
               "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
             }
           }
         ],
@@ -16854,6 +19195,22 @@
             "schema": {
               "title": "Review Id",
               "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
             }
           }
         ],
@@ -16963,6 +19320,24 @@
     "/site-settings/chef-special": {
       "get": {
         "operationId": "site_settings_read_public_chef_special",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -17054,6 +19429,24 @@
     "/site-settings/company-details": {
       "get": {
         "operationId": "site_settings_read_public_company_details",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -17145,6 +19538,24 @@
     "/site-settings/events": {
       "get": {
         "operationId": "site_settings_read_public_events",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -17236,6 +19647,24 @@
     "/site-settings/loyalty-coupons": {
       "get": {
         "operationId": "site_settings_read_public_loyalty_coupon_settings",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -17327,6 +19756,24 @@
     "/site-settings/social-media": {
       "get": {
         "operationId": "site_settings_read_public_social_media",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -17418,6 +19865,24 @@
     "/site-settings/theme": {
       "get": {
         "operationId": "site_settings_read_public_site_theme",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {

@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 
-from fastapi import Depends, Request, Security, status
+from fastapi import Depends, Header, Request, Security, status
 from fastapi.security import APIKeyHeader
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
@@ -11,12 +11,13 @@ from sqlalchemy.orm import Session as DBSession
 
 from core.config import settings
 from core.errors import AppHTTPException
+from core.organizations import normalize_organization_slug
 from core.rate_limit import enforce_rate_limit, get_client_ip
 from database import get_db
 from schemas.admin import AdminLogin
 from schemas.enums import UserRole, UserStatus, is_admin_role, normalize_admin_role, normalize_user_role
 from schemas.user import UserAuth, UserRegister
-from models import Admin, Customer, Session
+from models import Admin, Customer, Organization, Session
 from services.auth_service import hash_session_token
 from utils.datetime_utils import to_naive_utc
 
@@ -52,7 +53,123 @@ def _current_naive_utc() -> datetime:
     return to_naive_utc(datetime.now(UTC)) or datetime.utcnow()
 
 
+def require_organization_context(
+    request: Request,
+    organization_slug: str | None = Header(default=None, alias="X-Organization-Slug"),
+    token: str | None = Depends(get_session_token_optional),
+    db: DBSession = Depends(get_db),
+) -> int:
+    """Resolve and bind the tenant before any business query is executed."""
+    header_organization: Organization | None = None
+    normalized_slug: str | None = None
+    if organization_slug is not None:
+        try:
+            normalized_slug = normalize_organization_slug(organization_slug)
+        except ValueError as exc:
+            raise AppHTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                error="organization_not_found",
+                message="Organization not found.",
+                details={"organization_slug": organization_slug},
+            ) from exc
+
+        header_organization = db.scalar(
+            select(Organization)
+            .where(Organization.slug == normalized_slug)
+            .execution_options(skip_organization_scope=True)
+        )
+        if header_organization is None:
+            raise AppHTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                error="organization_not_found",
+                message="Organization not found.",
+                details={"organization_slug": normalized_slug},
+            )
+
+    token_organization_id: int | None = None
+    if token is not None:
+        token_organization_id = db.scalar(
+            select(Session.organization_id)
+            .where(Session.token_hash == hash_session_token(token))
+            .execution_options(skip_organization_scope=True)
+        )
+
+    if token_organization_id is not None and header_organization is not None:
+        if token_organization_id != header_organization.id:
+            raise AppHTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                error="organization_context_mismatch",
+                message="The authenticated session belongs to a different organization.",
+            )
+
+    organization_id = token_organization_id or (
+        header_organization.id if header_organization is not None else None
+    )
+    if organization_id is None:
+        if token is not None:
+            raise AppHTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                error="authentication_required",
+                message="Authentication required.",
+                details={"reason": "request_failed"},
+            )
+        raise AppHTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            error="organization_context_required",
+            message="Organization context is required.",
+        )
+
+    db.info["organization_id"] = organization_id
+    request.state.organization_id = organization_id
+    request.state.organization_slug = (
+        header_organization.slug if header_organization is not None else None
+    )
+    return organization_id
+
+
+def require_organization_header_context(
+    request: Request,
+    organization_slug: str | None = Header(default=None, alias="X-Organization-Slug"),
+    db: DBSession = Depends(get_db),
+) -> int:
+    """Bind a guest/public request without declaring bearer authentication."""
+    if organization_slug is None:
+        raise AppHTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            error="organization_context_required",
+            message="Organization context is required.",
+        )
+    try:
+        normalized_slug = normalize_organization_slug(organization_slug)
+    except ValueError as exc:
+        raise AppHTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            error="organization_not_found",
+            message="Organization not found.",
+            details={"organization_slug": organization_slug},
+        ) from exc
+
+    organization = db.scalar(
+        select(Organization)
+        .where(Organization.slug == normalized_slug)
+        .execution_options(skip_organization_scope=True)
+    )
+    if organization is None:
+        raise AppHTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            error="organization_not_found",
+            message="Organization not found.",
+            details={"organization_slug": normalized_slug},
+        )
+
+    db.info["organization_id"] = organization.id
+    request.state.organization_id = organization.id
+    request.state.organization_slug = organization.slug
+    return organization.id
+
+
 def get_current_user(
+    _organization_id: int = Depends(require_organization_context),
     token: str | None = Depends(get_session_token_optional),
     db: DBSession = Depends(get_db),
 ) -> Customer:
@@ -79,6 +196,7 @@ def get_current_user(
 
 
 def get_current_user_optional(
+    _organization_id: int = Depends(require_organization_context),
     token: str | None = Depends(get_session_token_optional),
     db: DBSession = Depends(get_db),
 ) -> Customer | None:
@@ -102,6 +220,7 @@ def get_current_user_optional(
 
 
 def get_current_admin(
+    _organization_id: int = Depends(require_organization_context),
     token: str | None = Depends(get_session_token_optional),
     db: DBSession = Depends(get_db),
 ) -> Admin:

@@ -12,6 +12,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from database import SessionLocal
+from core.organizations import bind_session_to_organization
 from models import (
     CartProduct,
     CartProductCustomization,
@@ -58,9 +59,15 @@ def _delete_storage_files(db: Session, media_ids: list[int]) -> None:
         delete_storage_key(storage_key)
 
 
-def clean_soft_deleted_products(*, apply: bool, delete_files: bool) -> None:
+def clean_soft_deleted_products(
+    *,
+    apply: bool,
+    delete_files: bool,
+    organization_slug: str = "bonefree",
+) -> None:
     db = SessionLocal()
     try:
+        organization_id = bind_session_to_organization(db, organization_slug)
         product_ids = _ids(
             db,
             select(Product.id).where(Product.deleted_at.is_not(None)).order_by(Product.id.asc()),
@@ -118,26 +125,26 @@ def clean_soft_deleted_products(*, apply: bool, delete_files: bool) -> None:
             _delete_storage_files(db, orphan_media_ids)
 
         if product_review_ids:
-            db.execute(delete(ReviewReaction).where(ReviewReaction.review_id.in_(product_review_ids)))
-            db.execute(delete(ReviewReply).where(ReviewReply.review_id.in_(product_review_ids)))
-            db.execute(delete(ProductReview).where(ProductReview.id.in_(product_review_ids)))
+            db.execute(delete(ReviewReaction).where(ReviewReaction.review_id.in_(product_review_ids), ReviewReaction.organization_id == organization_id))
+            db.execute(delete(ReviewReply).where(ReviewReply.review_id.in_(product_review_ids), ReviewReply.organization_id == organization_id))
+            db.execute(delete(ProductReview).where(ProductReview.id.in_(product_review_ids), ProductReview.organization_id == organization_id))
 
         if cart_product_ids:
-            db.execute(delete(CartProductCustomization).where(CartProductCustomization.cart_product_id.in_(cart_product_ids)))
-            db.execute(delete(CartProduct).where(CartProduct.id.in_(cart_product_ids)))
+            db.execute(delete(CartProductCustomization).where(CartProductCustomization.cart_product_id.in_(cart_product_ids), CartProductCustomization.organization_id == organization_id))
+            db.execute(delete(CartProduct).where(CartProduct.id.in_(cart_product_ids), CartProduct.organization_id == organization_id))
 
         if product_option_ids:
-            db.execute(delete(CartProductCustomization).where(CartProductCustomization.option_id.in_(product_option_ids)))
-            db.execute(delete(ProductCustomizationOption).where(ProductCustomizationOption.id.in_(product_option_ids)))
+            db.execute(delete(CartProductCustomization).where(CartProductCustomization.option_id.in_(product_option_ids), CartProductCustomization.organization_id == organization_id))
+            db.execute(delete(ProductCustomizationOption).where(ProductCustomizationOption.id.in_(product_option_ids), ProductCustomizationOption.organization_id == organization_id))
 
-        db.execute(delete(ProductIngredient).where(ProductIngredient.product_id.in_(deletable_product_ids)))
-        db.execute(delete(ProductMedia).where(ProductMedia.product_id.in_(deletable_product_ids)))
+        db.execute(delete(ProductIngredient).where(ProductIngredient.product_id.in_(deletable_product_ids), ProductIngredient.organization_id == organization_id))
+        db.execute(delete(ProductMedia).where(ProductMedia.product_id.in_(deletable_product_ids), ProductMedia.organization_id == organization_id))
 
         if orphan_media_ids:
-            db.execute(delete(MediaVariant).where(MediaVariant.media_id.in_(orphan_media_ids)))
-            db.execute(delete(Media).where(Media.id.in_(orphan_media_ids)))
+            db.execute(delete(MediaVariant).where(MediaVariant.media_id.in_(orphan_media_ids), MediaVariant.organization_id == organization_id))
+            db.execute(delete(Media).where(Media.id.in_(orphan_media_ids), Media.organization_id == organization_id))
 
-        db.execute(delete(Product).where(Product.id.in_(deletable_product_ids)))
+        db.execute(delete(Product).where(Product.id.in_(deletable_product_ids), Product.organization_id == organization_id))
         db.commit()
         _log(f"Hard-deleted {len(deletable_product_ids)} soft-deleted products.")
     except Exception:
@@ -155,10 +162,16 @@ def main() -> None:
         action="store_true",
         help="Keep uploaded media files on disk. Database media rows are still deleted.",
     )
+    parser.add_argument(
+        "--organization-slug",
+        default="bonefree",
+        help="Organization whose soft-deleted products will be cleaned.",
+    )
     args = parser.parse_args()
     clean_soft_deleted_products(
         apply=args.apply,
         delete_files=not args.keep_files,
+        organization_slug=args.organization_slug,
     )
 
 
