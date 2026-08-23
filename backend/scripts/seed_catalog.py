@@ -114,6 +114,67 @@ def _coerce_row(
     return values
 
 
+def insert_catalog_rows(
+    db: Any,
+    fixture: dict[str, Any],
+    owner_id: int,
+    organization_id: int,
+) -> None:
+    """Insert the validated canonical catalog into an existing transaction."""
+
+    for table_name in INSERT_ORDER:
+        model = TABLE_MODELS[table_name]
+        rows = [
+            _coerce_row(model, row, owner_id, organization_id)
+            for row in fixture["tables"][table_name]
+        ]
+        if rows:
+            db.execute(insert(model), rows)
+
+
+def synchronize_catalog_organization_profile(
+    db: Any,
+    fixture: dict[str, Any],
+    organization_id: int,
+    *,
+    preserve_existing: bool,
+) -> None:
+    """Apply catalog branding while preserving authoritative organization data when requested."""
+
+    settings_by_key = {
+        row["key"]: row.get("value")
+        for row in fixture["tables"]["site_setting"]
+    }
+    company_details = json.loads(settings_by_key.get("company_details") or "{}")
+    social_media = json.loads(settings_by_key.get("social_media") or "{}")
+    profile_values = {
+        "display_name": company_details.get("brand_name") or "BONEFREE",
+        "description": company_details.get("description"),
+        "email": company_details.get("email"),
+        "phone": company_details.get("phone"),
+        "address_line_1": company_details.get("address"),
+        "social_links": social_media or None,
+    }
+    if preserve_existing:
+        profile = db.scalar(
+            select(OrganizationProfile).where(
+                OrganizationProfile.organization_id == organization_id
+            )
+        )
+        if profile is None:
+            raise CatalogSeedError("The current organization profile is missing")
+        for field, value in profile_values.items():
+            if getattr(profile, field) in (None, "") and value not in (None, ""):
+                setattr(profile, field, value)
+        return
+
+    db.execute(
+        update(OrganizationProfile)
+        .where(OrganizationProfile.organization_id == organization_id)
+        .values(**profile_values)
+    )
+
+
 def _run_alembic_upgrade(database_path: Path) -> None:
     environment = os.environ.copy()
     environment["DATABASE_URL"] = _sqlite_url(database_path)
@@ -166,45 +227,13 @@ def _insert_catalog(
             if owner_id is None:
                 raise CatalogSeedError("Development owner was not created")
 
-            for table_name in INSERT_ORDER:
-                model = TABLE_MODELS[table_name]
-                rows = [
-                    _coerce_row(model, row, owner_id, organization_id)
-                    for row in fixture["tables"][table_name]
-                ]
-                if rows:
-                    db.execute(insert(model), rows)
-            settings_by_key = {
-                row["key"]: row.get("value")
-                for row in fixture["tables"]["site_setting"]
-            }
-            company_details = json.loads(settings_by_key.get("company_details") or "{}")
-            social_media = json.loads(settings_by_key.get("social_media") or "{}")
-            profile_values = {
-                "display_name": company_details.get("brand_name") or "BONEFREE",
-                "description": company_details.get("description"),
-                "email": company_details.get("email"),
-                "phone": company_details.get("phone"),
-                "address_line_1": company_details.get("address"),
-                "social_links": social_media or None,
-            }
-            if preserve_organization_profile:
-                profile = db.scalar(
-                    select(OrganizationProfile).where(
-                        OrganizationProfile.organization_id == organization_id
-                    )
-                )
-                if profile is None:
-                    raise CatalogSeedError("Bonefree organization profile is missing")
-                for field, value in profile_values.items():
-                    if getattr(profile, field) in (None, "") and value not in (None, ""):
-                        setattr(profile, field, value)
-            else:
-                db.execute(
-                    update(OrganizationProfile)
-                    .where(OrganizationProfile.organization_id == organization_id)
-                    .values(**profile_values)
-                )
+            insert_catalog_rows(db, fixture, owner_id, organization_id)
+            synchronize_catalog_organization_profile(
+                db,
+                fixture,
+                organization_id,
+                preserve_existing=preserve_organization_profile,
+            )
             db.commit()
 
         migrate_product_images_to_media(

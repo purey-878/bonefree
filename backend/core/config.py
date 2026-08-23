@@ -159,6 +159,12 @@ class Settings(BaseSettings):
 
         return [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
 
+    @property
+    def cors_origin_regex(self) -> str | None:
+        if self.environment in {"development", "test"}:
+            return r"^https?://(?:[a-z0-9-]+\.)?localhost(?::\d+)?$"
+        return None
+
     public_base_url_raw: str | None = Field(default=None, validation_alias="PUBLIC_BASE_URL")
     app_base_url: str | None = Field(default=None, validation_alias="APP_BASE_URL")
 

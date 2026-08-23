@@ -5,6 +5,34 @@ baseline `20260822_0001`,
 `catalog/catalog.json`, and the WebP files under `catalog/products`.
 Runtime databases and `uploads/` are deliberately not tracked by Git.
 
+## Production PostgreSQL
+
+Production uses a separate, non-destructive loader. It reads the same validated
+catalog bundle but writes through SQLAlchemy to the configured PostgreSQL database,
+associates categories and products with an existing active owner, and installs the
+media in the persistent uploads volume. It never creates development test users and
+refuses a non-empty catalog or uploads target.
+
+From the production API container, validate the bundle and target:
+
+```bash
+python scripts/seed_production_catalog.py --check
+```
+
+The default organization slug is `bonefree`; pass `--organization-slug your-slug`
+to target another organization.
+
+Apply it once, after creating the first owner:
+
+```bash
+python scripts/seed_production_catalog.py --apply --owner-email admin@example.com
+```
+
+There is deliberately no production reset option. Restore a verified PostgreSQL and
+uploads backup if production data must be replaced.
+
+## Development SQLite
+
 From `backend`, validate the committed seed against the current canonical local
 database and uploads:
 

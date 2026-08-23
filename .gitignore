@@ -37,7 +37,11 @@ examples/
 *.sqlite
 *.sqlite3
 /backend/backups/
+/backups/
 /uploads/
+
+# Local Caddy certificate exported for Docker Desktop testing
+/caddy-local-root.crt
 
 # OS / editor files
 .DS_Store

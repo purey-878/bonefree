@@ -328,6 +328,36 @@ def _audit_database(db: Session, folders: list[ProductFolderMedia]) -> Migration
     )
 
 
+def reconcile_product_media_in_session(
+    db: Session,
+    *,
+    product_media_dir: Path,
+    uploads_root: Path,
+) -> MigrationSummary:
+    """Reconcile product media without committing the caller's transaction."""
+
+    folders = discover_product_folders(
+        product_media_dir=product_media_dir,
+        uploads_root=uploads_root,
+    )
+    return _reconcile_database(db, folders)
+
+
+def audit_product_media_in_session(
+    db: Session,
+    *,
+    product_media_dir: Path,
+    uploads_root: Path,
+) -> MigrationSummary:
+    """Audit product media without owning or closing the caller's session."""
+
+    folders = discover_product_folders(
+        product_media_dir=product_media_dir,
+        uploads_root=uploads_root,
+    )
+    return _audit_database(db, folders)
+
+
 def migrate_product_images_to_media(
     *,
     apply: bool,
@@ -339,22 +369,25 @@ def migrate_product_images_to_media(
     product_media_dir = product_media_dir or PRODUCT_MEDIA_DIR
     uploads_root = uploads_root or UPLOADS_ROOT
     session_factory = session_factory or SessionLocal
-    folders = discover_product_folders(
-        product_media_dir=product_media_dir,
-        uploads_root=uploads_root,
-    )
-    _log(f"Discovered {len(folders)} product media folders in {product_media_dir}.")
-
     db = session_factory()
     try:
         bind_session_to_organization(db, organization_slug)
         if apply:
-            summary = _reconcile_database(db, folders)
+            summary = reconcile_product_media_in_session(
+                db,
+                product_media_dir=product_media_dir,
+                uploads_root=uploads_root,
+            )
             db.commit()
             _log("Media database records reconciled successfully.")
         else:
-            summary = _audit_database(db, folders)
+            summary = audit_product_media_in_session(
+                db,
+                product_media_dir=product_media_dir,
+                uploads_root=uploads_root,
+            )
             _log("Media database records match the upload folders.")
+        _log(f"Discovered {summary.product_folders} product media folders in {product_media_dir}.")
         return summary
     except Exception:
         db.rollback()
