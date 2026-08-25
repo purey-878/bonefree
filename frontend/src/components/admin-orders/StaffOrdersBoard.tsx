@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import type { AdminOrder } from "../../types/admin";
 import { formatEuro } from "../../utils/money";
@@ -24,33 +25,33 @@ type Props = {
 const columns = [
   {
     id: "needs-payment",
-    title: "A aguardar pagamento / pendente",
+    titleKey: "orders.staff.columns.paymentTitle",
     statuses: ["pending"],
-    empty: "Nenhum pedido à espera de pagamento",
+    emptyKey: "orders.staff.columns.paymentEmpty",
   },
   {
     id: "in-kitchen",
-    title: "Na cozinha / em preparação",
+    titleKey: "orders.staff.columns.kitchenTitle",
     statuses: ["confirmed", "in_preparation"],
-    empty: "Nenhum pedido ativo na cozinha",
+    emptyKey: "orders.staff.columns.kitchenEmpty",
   },
   {
     id: "ready",
-    title: "Pronto para entrega",
+    titleKey: "orders.staff.columns.readyTitle",
     statuses: ["ready"],
-    empty: "Nada pronto agora",
+    emptyKey: "orders.staff.columns.readyEmpty",
   },
   {
     id: "completed",
-    title: "Concluídos hoje",
+    titleKey: "orders.staff.columns.completedTitle",
     statuses: ["delivered"],
-    empty: "Nenhuma entrega concluída hoje",
+    emptyKey: "orders.staff.columns.completedEmpty",
   },
   {
     id: "cancelled",
-    title: "Cancelados",
+    titleKey: "orders.staff.columns.cancelledTitle",
     statuses: ["cancelled"],
-    empty: "Nenhum pedido cancelado",
+    emptyKey: "orders.staff.columns.cancelledEmpty",
   },
 ];
 
@@ -63,6 +64,7 @@ const defaultStaffOrderFilters = {
 };
 
 export default function StaffOrdersBoard({ orders, onRefresh, onMarkPaid, onUpdateStatus }: Props) {
+  const { t } = useTranslation("admin");
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [quickFilter, setQuickFilter] = useState("all");
   const [collapsedOrderIds, setCollapsedOrderIds] = useState<Set<number>>(new Set());
@@ -157,29 +159,29 @@ export default function StaffOrdersBoard({ orders, onRefresh, onMarkPaid, onUpda
     <div className="orders-workspace">
       <div className="orders-toolbar">
         <div>
-          <h2 className="ad-section-title">Painel de pedidos da equipa</h2>
-          <p className="orders-toolbar-copy">Pagamento, progresso da cozinha e entrega num só olhar.</p>
+          <h2 className="ad-section-title">{t("orders.staff.title")}</h2>
+          <p className="orders-toolbar-copy">{t("orders.staff.subtitle")}</p>
         </div>
         <div className="orders-toolbar-actions">
           <button className="ad-btn ad-btn-ghost" onClick={handleToggleAllCards} disabled={visibleOrderIds.length === 0}>
-            {allVisibleCollapsed ? "Expandir tudo" : "Recolher tudo"}
+            {allVisibleCollapsed ? t("orders.common.expandAll") : t("orders.common.collapseAll")}
           </button>
-          <button className="ad-btn ad-btn-ghost" onClick={onRefresh}>Atualizar</button>
+          <button className="ad-btn ad-btn-ghost" onClick={onRefresh}>{t("orders.common.refresh")}</button>
         </div>
       </div>
 
-      <div className="order-quick-filters" role="group" aria-label="Filtros de pedidos da equipa">
+      <div className="order-quick-filters" role="group" aria-label={t("orders.staff.filters")}>
         {[
-          ["all", "Todos"],
-          ["needs-payment", "A aguardar pagamento"],
-          ["queued", "Na fila"],
-          ["preparing", "Em preparação"],
-          ["ready", "Prontos"],
-          ["cancelled", "Cancelados"],
-          ["customized", "Com personalizações"],
-        ].map(([value, label]) => (
+          ["all", "orders.common.all"],
+          ["needs-payment", "orders.staff.columns.paymentTitle"],
+          ["queued", "orders.common.queued"],
+          ["preparing", "orders.common.preparing"],
+          ["ready", "orders.common.ready"],
+          ["cancelled", "orders.common.cancelled"],
+          ["customized", "orders.common.customised"],
+        ].map(([value, labelKey]) => (
           <button key={value} className={quickFilter === value ? "active" : ""} onClick={() => setQuickFilter(value)}>
-            {label}
+            {t(labelKey)}
           </button>
         ))}
       </div>
@@ -187,29 +189,29 @@ export default function StaffOrdersBoard({ orders, onRefresh, onMarkPaid, onUpda
       <div className="ad-card order-admin-filters staff-order-filters">
         <div className="ad-filter-grid">
           <div className="ad-form-group">
-            <label>Pesquisar</label>
-            <input value={filters.search} onChange={(e) => setFilters({ ...filters, search: e.target.value })} placeholder="ID do pedido, cliente, telefone..." />
+            <label>{t("orders.common.search")}</label>
+            <input value={filters.search} onChange={(e) => setFilters({ ...filters, search: e.target.value })} placeholder={t("orders.common.searchPlaceholder")} />
           </div>
           <div className="ad-form-group">
-            <label>Estado</label>
+            <label>{t("orders.common.state")}</label>
             <select value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}>
-              <option value="">Todos os estados</option>
+              <option value="">{t("orders.status.all")}</option>
               {["pending", "confirmed", "in_preparation", "ready", "delivered", "cancelled"].map((status) => (
                 <option key={status} value={status}>{formatOrderStatus(status)}</option>
               ))}
             </select>
           </div>
           <div className="ad-form-group">
-            <label>Pagamento</label>
+            <label>{t("orders.common.payment")}</label>
             <select value={filters.paymentMethod} onChange={(e) => setFilters({ ...filters, paymentMethod: e.target.value })}>
-              <option value="">Todos os métodos</option>
+              <option value="">{t("orders.payment.allMethods")}</option>
               {paymentMethods.map((method) => <option key={method} value={method}>{method}</option>)}
             </select>
           </div>
-          <div className="ad-form-group"><label>Data desde</label><input type="date" value={filters.dateFrom} onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })} /></div>
-          <div className="ad-form-group"><label>Data até</label><input type="date" value={filters.dateTo} onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })} /></div>
+          <div className="ad-form-group"><label>{t("orders.common.dateFrom")}</label><input type="date" value={filters.dateFrom} onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })} /></div>
+          <div className="ad-form-group"><label>{t("orders.common.dateTo")}</label><input type="date" value={filters.dateTo} onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })} /></div>
           <button type="button" className="ad-btn ad-btn-ghost ad-order-clear" onClick={clearAllFilters}>
-            Clear all filters
+            {t("orders.common.clearFilters")}
           </button>
         </div>
       </div>
@@ -218,7 +220,7 @@ export default function StaffOrdersBoard({ orders, onRefresh, onMarkPaid, onUpda
         {columns.map((column) => (
           <section key={column.id} className={`orders-column orders-column-${column.id}`}>
             <header className="orders-column-header">
-              <h3>{column.title}</h3>
+              <h3>{t(column.titleKey)}</h3>
               <span>{grouped[column.id].length}</span>
             </header>
 
@@ -244,12 +246,12 @@ export default function StaffOrdersBoard({ orders, onRefresh, onMarkPaid, onUpda
                   } : undefined}
                   role={isCollapsed ? "button" : undefined}
                   tabIndex={isCollapsed ? 0 : undefined}
-                  aria-label={isCollapsed ? `Expandir pedido ${order.orderId}` : undefined}
+                  aria-label={isCollapsed ? t("orders.staff.expandOrder", { id: order.orderId }) : undefined}
                 >
                   <header className="order-card-v2-header">
                     <div>
                       <h4>#{order.orderId}</h4>
-                      <p>{order.customerName || "Cliente"}</p>
+                      <p>{order.customerName || t("orders.common.customer")}</p>
                     </div>
                     <div className="order-card-v2-header-actions">
                       <OrderStatusBadge status={order.state} />
@@ -261,8 +263,8 @@ export default function StaffOrdersBoard({ orders, onRefresh, onMarkPaid, onUpda
                           handleToggleOrderCard(order.orderId);
                         }}
                         aria-expanded={!isCollapsed}
-                        aria-label={`${isCollapsed ? "Expandir" : "Recolher"} pedido ${order.orderId}`}
-                        title={isCollapsed ? "Expandir pedido" : "Recolher pedido"}
+                        aria-label={isCollapsed ? t("orders.staff.expandOrder", { id: order.orderId }) : t("orders.staff.collapseOrder", { id: order.orderId })}
+                        title={isCollapsed ? t("orders.staff.expandOrder", { id: order.orderId }) : t("orders.staff.collapseOrder", { id: order.orderId })}
                       >
                         {isCollapsed ? <ChevronDown size={16} strokeWidth={2.4} /> : <ChevronUp size={16} strokeWidth={2.4} />}
                       </button>
@@ -272,13 +274,13 @@ export default function StaffOrdersBoard({ orders, onRefresh, onMarkPaid, onUpda
                   <div className="order-card-v2-meta">
                     <OrderAgeBadge order={order} />
                     <span className="order-table-chip">{handoffLabel(order)}</span>
-                    <span>{order.totalItems} itens</span>
+                    <span>{t("orders.common.items", { count: order.totalItems })}</span>
                     <strong className="order-card-v2-price">{formatEuro(order.total ?? 0)}</strong>
                   </div>
 
                   {!isCollapsed && (
                     <div className="order-card-v2-lines">
-                      <span>{order.customerPhone || order.customerEmail || "Sem contacto"}</span>
+                      <span>{order.customerPhone || order.customerEmail || t("orders.common.noContact")}</span>
                       <span>{fulfillmentLabel(order)}</span>
                       <span>{paymentLabel(order)}</span>
                     </div>
@@ -287,28 +289,28 @@ export default function StaffOrdersBoard({ orders, onRefresh, onMarkPaid, onUpda
                   {!isCollapsed && order.notes && <p className="order-note-inline">{order.notes}</p>}
 
                   {!isCollapsed && customizations.length > 0 && (
-                    <p className="order-custom-summary">{customizations.length} item(ns) personalizado(s)</p>
+                    <p className="order-custom-summary">{t("orders.customization.summary", { count: customizations.length })}</p>
                   )}
 
                   {!isCollapsed && (
                   <div className="order-card-actions">
                     {order.state === "pending" && order.paymentMethod === "counter" && order.paymentStatus !== "paid" && (
-                      <button className="ad-btn ad-btn-primary" onClick={() => onMarkPaid(order.orderId)}>Confirmar pagamento</button>
+                      <button className="ad-btn ad-btn-primary" onClick={() => onMarkPaid(order.orderId)}>{t("orders.staff.confirmPayment")}</button>
                     )}
                     {order.state === "pending" && order.paymentStatus === "paid" && (
-                      <button className="ad-btn ad-btn-primary" onClick={() => onUpdateStatus(order.orderId, "confirmed")}>Enviar para a cozinha</button>
+                      <button className="ad-btn ad-btn-primary" onClick={() => onUpdateStatus(order.orderId, "confirmed")}>{t("orders.staff.sendKitchen")}</button>
                     )}
                     {order.state === "ready" && (
-                      <button className="ad-btn ad-btn-primary" onClick={() => onUpdateStatus(order.orderId, "delivered")}>Concluir entrega</button>
+                      <button className="ad-btn ad-btn-primary" onClick={() => onUpdateStatus(order.orderId, "delivered")}>{t("orders.staff.completeHandoff")}</button>
                     )}
-                    <button className="ad-btn ad-btn-ghost" onClick={() => setSelectedOrderId(order.orderId)}>Ver detalhes</button>
+                    <button className="ad-btn ad-btn-ghost" onClick={() => setSelectedOrderId(order.orderId)}>{t("orders.common.viewDetails")}</button>
                   </div>
                   )}
                 </article>
                 );
               })}
 
-              {grouped[column.id].length === 0 && <p className="orders-column-empty">{column.empty}</p>}
+              {grouped[column.id].length === 0 && <p className="orders-column-empty">{t(column.emptyKey)}</p>}
             </div>
           </section>
         ))}

@@ -6,8 +6,10 @@ import { useAuth } from '../hooks'
 import { validateEmail } from '../utils/validation'
 import './Auth.css'
 import Footer from '../components/Footer'
+import { useTranslation } from 'react-i18next'
 
 function Login() {
+  const { t } = useTranslation(['account', 'common'])
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -23,11 +25,11 @@ function Login() {
     setError('')
     const errors = {
       email: validateEmail(email),
-      password: password.trim() ? '' : 'A palavra-passe é obrigatória.',
+      password: password.trim() ? '' : t('passwordRequired'),
     }
     setFieldErrors(errors)
     if (errors.email || errors.password) {
-      setError('Corrija os campos assinalados.')
+      setError(t('fixFields'))
       return
     }
     setLoading(true)
@@ -36,7 +38,7 @@ function Login() {
       await login(email.trim(), password)
       navigate(from, { replace: true })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao iniciar sessão')
+      setError(err instanceof Error ? err.message : t('loginFailed'))
     } finally {
       setLoading(false)
     }
@@ -57,15 +59,15 @@ function Login() {
         <div className="auth-card-stack">
           <button type="button" className="auth-back-button py-3 fw-semibold" onClick={() => navigate(-1)}>
             <ArrowLeft size={15} aria-hidden="true" />
-            Voltar
+            {t('back')}
           </button>
         <div className="auth-card glass-panel auth-flow-card auth-login-card">
-          <div className="auth-mode-switch" aria-label="Modo de autenticação">
-            <Link className="active" to="/login" aria-current="page">Entrar</Link>
-            <Link to="/register" state={{ from }}>Criar conta</Link>
+          <div className="auth-mode-switch" aria-label={t('authMode')}>
+            <Link className="active" to="/login" aria-current="page">{t('signIn')}</Link>
+            <Link to="/register" state={{ from }}>{t('createAccount')}</Link>
           </div>
           <h1 className="auth-title fw-extrabold">
-            Bem-vindo  <br/> de volta <span className="green">.</span>
+            {t('welcomeTitle')} <span className="green">.</span>
           </h1>
 
 
@@ -74,13 +76,13 @@ function Login() {
           <form onSubmit={handleSubmit} className="auth-form">
             <div className="form-group">
               <label htmlFor="email" className="form-label">
-                Email
+                {t('fields.email', { ns: 'common' })}
               </label>
               <input
                 id="email"
                 type="email"
                 className={`form-input ${fieldErrors.email ? 'is-invalid' : ''}`}
-                placeholder="nome@exemplo.pt"
+                placeholder={t('emailPlaceholder')}
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value)
@@ -93,13 +95,13 @@ function Login() {
 
             <div className="form-group">
               <label htmlFor="password" className="form-label">
-                Palavra-passe
+                {t('fields.password', { ns: 'common' })}
               </label>
               <input
                 id="password"
                 type="password"
                 className={`form-input ${fieldErrors.password ? 'is-invalid' : ''}`}
-                placeholder="Palavra-passe"
+                placeholder={t('fields.password', { ns: 'common' })}
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value)
@@ -111,20 +113,20 @@ function Login() {
             </div>
 
             <button type="submit" className="auth-btn bonefree-button fw-bold letter-spacing-2 " disabled={loading}>
-              {loading ? 'A entrar...' : 'Entrar'}
+              {loading ? t('signingIn') : t('signIn')}
             </button>
           </form>
 
           <div className="auth-inline-action">
             <Link to="/forgot-password" className="auth-link text-secondary opacity-100">
-              Esqueceu-se da palavra-passe?
+              {t('forgotPassword')}
             </Link>
           </div>
 
           <p className="auth-footer ">
-            Novo por aqui?{' '}
+            {t('newHere')}{' '}
             <Link to="/register" className="auth-link  text-secondary  opacity-75">
-              Criar conta
+              {t('createAccount')}
             </Link>
           </p>
         </div>

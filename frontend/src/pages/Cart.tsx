@@ -10,6 +10,7 @@ import type { CartItem, GuestCartItem, ItemCustomization } from "../types/cart"
 import { applyApiImageFallback, resolveProductImageUrl } from "../utils/imageFallback"
 import { formatEuro } from "../utils/money"
 import { productMediaUrl } from "../utils/productMedia"
+import { useTranslation } from "react-i18next"
 
 function isCartItem(item: CartItem | GuestCartItem): item is CartItem {
   return "name" in item
@@ -34,6 +35,7 @@ function locationPath(location?: Location) {
 }
 
 function Cart({ overlay = false }: CartProps) {
+  const { t } = useTranslation("storefront")
   const [updatingItem, setUpdatingItem] = useState<string | null>(null)
   const navigate = useNavigate()
   const location = useLocation()
@@ -101,15 +103,15 @@ function Cart({ overlay = false }: CartProps) {
   return (
     <section className={`cart-page${overlay ? " cart-page-overlay" : " site-page"}`}>
       {!overlay && <Navbar />}
-      <button className="cart-drawer-backdrop" type="button" aria-label="Fechar carrinho" onClick={closeCart} />
+      <button className="cart-drawer-backdrop" type="button" aria-label={t("cart.close")} onClick={closeCart} />
 
-      <aside className="cart-drawer" role="dialog" aria-label="O seu pedido">
+      <aside className="cart-drawer" role="dialog" aria-label={t("cart.dialogLabel")}>
         <header className="cart-drawer-header">
           <div>
-            <p>Carrinho</p>
-            <h1>O seu pedido</h1>
+            <p>{t("cart.eyebrow")}</p>
+            <h1>{t("cart.title")}</h1>
           </div>
-          <button type="button" className="cart-close" onClick={closeCart} aria-label="Fechar carrinho">
+          <button type="button" className="cart-close" onClick={closeCart} aria-label={t("cart.close")}>
             x
           </button>
         </header>
@@ -117,18 +119,18 @@ function Cart({ overlay = false }: CartProps) {
         {error && (
           <div className="cart-alert" role="alert">
             <span>{error}</span>
-            <button type="button" onClick={clearError}>Ignorar</button>
+            <button type="button" onClick={clearError}>{t("cart.dismissError")}</button>
           </div>
         )}
 
         <div className="cart-drawer-body">
           {showInitialLoading ? (
-            <div className="cart-state">A carregar carrinho...</div>
+            <div className="cart-state">{t("cart.loading")}</div>
           ) : items.length === 0 ? (
             <div className="cart-empty">
-              <h2>O carrinho está vazio</h2>
-              <p>Adicione algo do menu e aparece aqui.</p>
-              <Link to="/menu" className="bonefree-button">Ver menu</Link>
+              <h2>{t("cart.emptyTitle")}</h2>
+              <p>{t("cart.emptyText")}</p>
+              <Link to="/menu" className="bonefree-button">{t("cart.viewMenu")}</Link>
             </div>
           ) : (
             <div className="cart-items">
@@ -148,7 +150,7 @@ function Cart({ overlay = false }: CartProps) {
                     }
                   : {
                       id: item.productId,
-                      name: "Produto",
+                      name: t("cart.fallbackProduct"),
                       price: 0,
                       quantity: item.quantity,
                       image: null,
@@ -178,10 +180,10 @@ function Cart({ overlay = false }: CartProps) {
                       <div className="cart-item-top">
                         <div>
                           <h2>{itemData.name}</h2>
-                          <p>{formatEuro(itemData.price)} cada</p>
+                          <p>{formatEuro(itemData.price)} {t("cart.each")}</p>
                           {!itemData.available && (
                             <p className="cart-item-unavailable">
-                              {itemData.unavailableReason || "Atualmente indisponível"}
+                              {itemData.unavailableReason || t("cart.unavailable")}
                             </p>
                           )}
                           {customizationLines.length > 0 && (
@@ -195,7 +197,7 @@ function Cart({ overlay = false }: CartProps) {
                       </div>
 
                       <div className="cart-item-actions">
-                        <div className="cart-quantity" aria-label={`Quantidade de ${itemData.name}`}>
+                        <div className="cart-quantity" aria-label={t("cart.quantityOf", { name: itemData.name })}>
                           <button
                             type="button"
                             onClick={() => handleUpdateQuantity(
@@ -206,13 +208,13 @@ function Cart({ overlay = false }: CartProps) {
                               itemData.customization,
                             )}
                             disabled={isUpdating}
-                            aria-label="Diminuir quantidade"
+                            aria-label={t("cart.decrease")}
                           >
                             -
                           </button>
                           <span aria-live="polite">
                             {isUpdating ? (
-                              <span className="cart-quantity-loading" aria-label="A atualizar quantidade" />
+                              <span className="cart-quantity-loading" aria-label={t("cart.updating")} />
                             ) : (
                               itemData.quantity
                             )}
@@ -227,7 +229,7 @@ function Cart({ overlay = false }: CartProps) {
                               itemData.customization,
                             )}
                             disabled={isUpdating || !canIncrease}
-                            aria-label="Aumentar quantidade"
+                            aria-label={t("cart.increase")}
                           >
                             +
                           </button>
@@ -244,7 +246,7 @@ function Cart({ overlay = false }: CartProps) {
                           )}
                           disabled={isUpdating}
                         >
-                          Remover
+                          {t("cart.remove")}
                         </button>
                       </div>
                     </div>
@@ -258,13 +260,13 @@ function Cart({ overlay = false }: CartProps) {
         <footer className="cart-drawer-footer">
           <div className="cart-price-breakdown">
             <div className="cart-total-row">
-              <span>Subtotal</span>
+              <span>{t("cart.subtotal")}</span>
               <strong>{formatEuro(total)}</strong>
             </div>
-            <p className="cart-footer-note">Taxas e serviço são confirmados no checkout.</p>
+            <p className="cart-footer-note">{t("cart.fees")}</p>
           </div>
           {hasUnavailableItems && (
-            <p className="cart-footer-note">Remova os itens indisponíveis para continuar.</p>
+            <p className="cart-footer-note">{t("cart.removeUnavailable")}</p>
           )}
           <Link
             aria-disabled={items.length === 0 || hasUnavailableItems}
@@ -274,7 +276,7 @@ function Cart({ overlay = false }: CartProps) {
             }}
             to="/checkout"
           >
-            Fazer pedido
+            {t("cart.checkout")}
           </Link>
         </footer>
       </aside>

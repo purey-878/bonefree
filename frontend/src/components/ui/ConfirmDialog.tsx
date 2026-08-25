@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react"
 import { AlertTriangle, X } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import "./ConfirmDialog.css"
 
 type ConfirmDialogProps = {
@@ -18,13 +19,14 @@ export default function ConfirmDialog({
   open,
   title,
   description,
-  confirmText = "Confirmar",
-  cancelText = "Cancelar",
+  confirmText,
+  cancelText,
   danger = false,
   loading = false,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const { t } = useTranslation("common")
   const dialogRef = useRef<HTMLDivElement | null>(null)
   const confirmButtonRef = useRef<HTMLButtonElement | null>(null)
 
@@ -71,7 +73,7 @@ export default function ConfirmDialog({
       <button
         type="button"
         className="confirm-dialog-backdrop"
-        aria-label="Fechar diálogo"
+        aria-label={t("dialog.close")}
         disabled={loading}
         onClick={onCancel}
       />
@@ -89,7 +91,7 @@ export default function ConfirmDialog({
         <button
           type="button"
           className="confirm-dialog-close"
-          aria-label="Fechar diálogo"
+          aria-label={t("dialog.close")}
           disabled={loading}
           onClick={onCancel}
         >
@@ -101,7 +103,7 @@ export default function ConfirmDialog({
         </div>
         <div className="confirm-dialog-actions">
           <button type="button" className="confirm-dialog-cancel" disabled={loading} onClick={onCancel}>
-            {cancelText}
+            {cancelText ?? t("actions.cancel")}
           </button>
           <button
             ref={confirmButtonRef}
@@ -110,7 +112,7 @@ export default function ConfirmDialog({
             disabled={loading}
             onClick={onConfirm}
           >
-            {loading ? "A processar..." : confirmText}
+            {loading ? t("actions.processing") : (confirmText ?? t("actions.confirm"))}
           </button>
         </div>
       </div>

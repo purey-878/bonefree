@@ -17,33 +17,22 @@ import { toDomain, toDto } from '../api/mappers';
 import type { Product } from '../types/product';
 import type { Cart, CartItem, CustomizedCartItemRequest, GuestCartItem, ItemCustomization, MergeResult } from '../types/cart';
 import { productService } from './productService';
+import i18n from '../i18n';
 
 const GUEST_CART_KEY = 'guest_cart';
 const LEGACY_CART_KEY = 'cart';
 
-const customizationLabelTranslations: Record<string, string> = {
-  remove: 'Remover',
-  add: 'Adicionar',
-  preferences: 'Preferências',
-  note: 'Nota',
+const customizationLabelKeys: Record<string, string> = {
+  remove: 'remove', add: 'add', preferences: 'preferences', note: 'note',
 };
 
-const customizationValueTranslations: Record<string, string> = {
-  'extra sauce': 'Molho extra',
-  'extra vegan cheese': 'Queijo vegan extra',
-  'extra pickles': 'Pickles extra',
-  'extra jalapenos': 'Jalapeños extra',
-  'extra jalapeños': 'Jalapeños extra',
-  'extra salad': 'Salada extra',
-  'extra crispy onions': 'Cebola crocante extra',
-  'light sauce': 'Pouco molho',
-  'sauce on the side': 'Molho à parte',
-  'extra spicy': 'Mais picante',
-  'no spice': 'Sem picante',
-  'cut in half': 'Cortado ao meio',
-  pickles: 'Pickles', onion: 'Cebola', tomato: 'Tomate', lettuce: 'Alface', sauce: 'Molho',
-  slaw: 'Couve marinada', coriander: 'Coentros', spice: 'Picante', berries: 'Frutos vermelhos',
-  seeds: 'Sementes', syrup: 'Calda',
+const customizationValueKeys: Record<string, string> = {
+  'extra sauce': 'extraSauce', 'extra vegan cheese': 'extraVeganCheese', 'extra pickles': 'extraPickles',
+  'extra jalapenos': 'extraJalapenos', 'extra jalapeños': 'extraJalapenos', 'extra salad': 'extraSalad',
+  'extra crispy onions': 'extraCrispyOnions', 'light sauce': 'lightSauce', 'sauce on the side': 'sauceOnSide',
+  'extra spicy': 'extraSpicy', 'no spice': 'noSpice', 'cut in half': 'cutInHalf', pickles: 'pickles',
+  onion: 'onion', tomato: 'tomato', lettuce: 'lettuce', sauce: 'sauce', slaw: 'slaw', coriander: 'coriander',
+  spice: 'spice', berries: 'berries', seeds: 'seeds', syrup: 'syrup',
 };
 
 export function dispatchCartUpdate(): void {
@@ -118,12 +107,16 @@ export function customizationSummary(customization?: ItemCustomization | null): 
   const normalized = normalizeCustomization(customization);
   if (!normalized) return [];
   const translated = (values: string[]) => values
-    .map((value) => customizationValueTranslations[value.trim().toLowerCase()] ?? value).join(', ');
+    .map((value) => {
+      const key = customizationValueKeys[value.trim().toLowerCase()];
+      return key ? i18n.t(`customization.values.${key}`, { ns: 'storefront' }) : value;
+    }).join(', ');
+  const label = (key: keyof typeof customizationLabelKeys) => i18n.t(`customization.labels.${customizationLabelKeys[key]}`, { ns: 'storefront' });
   const lines: string[] = [];
-  if (normalized.remove.length) lines.push(`${customizationLabelTranslations.remove}: ${translated(normalized.remove)}`);
-  if (normalized.add.length) lines.push(`${customizationLabelTranslations.add}: ${translated(normalized.add)}`);
-  if (normalized.preferences.length) lines.push(`${customizationLabelTranslations.preferences}: ${translated(normalized.preferences)}`);
-  if (normalized.note) lines.push(`${customizationLabelTranslations.note}: ${normalized.note}`);
+  if (normalized.remove.length) lines.push(`${label('remove')}: ${translated(normalized.remove)}`);
+  if (normalized.add.length) lines.push(`${label('add')}: ${translated(normalized.add)}`);
+  if (normalized.preferences.length) lines.push(`${label('preferences')}: ${translated(normalized.preferences)}`);
+  if (normalized.note) lines.push(`${label('note')}: ${normalized.note}`);
   return lines;
 }
 

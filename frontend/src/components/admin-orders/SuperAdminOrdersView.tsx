@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Clock, CreditCard, Store } from "lucide-react";
 import type { AdminOrder } from "../../types/admin";
 import { formatEuro } from "../../utils/money";
@@ -39,6 +40,7 @@ function paymentParts(order: AdminOrder): { method: string; status: string } {
 }
 
 export default function SuperAdminOrdersView({ orders, onRefresh, onUpdateStatus }: Props) {
+  const { t } = useTranslation("admin");
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [quickFilter, setQuickFilter] = useState("all");
   const [ordersSectionCollapsed, setOrdersSectionCollapsed] = useState(false);
@@ -116,37 +118,37 @@ export default function SuperAdminOrdersView({ orders, onRefresh, onUpdateStatus
     <div className="orders-workspace">
       <div className="orders-toolbar">
         <div>
-          <h2 className="ad-section-title">Gestão de pedidos</h2>
-          <p className="orders-toolbar-copy">Controlos completos de pedidos, filtros, pagamento e estados.</p>
+          <h2 className="ad-section-title">{t("orders.super.title")}</h2>
+          <p className="orders-toolbar-copy">{t("orders.super.subtitle")}</p>
         </div>
         <div className="orders-toolbar-actions">
           <button className="ad-btn ad-btn-ghost" onClick={() => setOrdersSectionCollapsed((value) => !value)}>
-            {ordersSectionCollapsed ? "Expandir tudo" : "Recolher tudo"}
+            {ordersSectionCollapsed ? t("orders.common.expandAll") : t("orders.common.collapseAll")}
           </button>
-          <button className="ad-btn ad-btn-ghost" onClick={onRefresh}>Atualizar</button>
+          <button className="ad-btn ad-btn-ghost" onClick={onRefresh}>{t("orders.common.refresh")}</button>
         </div>
       </div>
 
       <div className="order-summary-grid">
-        <div className="order-summary-card"><span>Pendentes</span><strong>{summary.pending}</strong></div>
-        <div className="order-summary-card"><span>Em preparação</span><strong>{summary.preparing}</strong></div>
-        <div className="order-summary-card"><span>Prontos</span><strong>{summary.ready}</strong></div>
-        <div className="order-summary-card"><span>Concluídos hoje</span><strong>{summary.completedToday}</strong></div>
-        <div className="order-summary-card"><span>Receita hoje</span><strong>{formatEuro(summary.revenueToday)}</strong></div>
+        <div className="order-summary-card"><span>{t("orders.super.summary.pending")}</span><strong>{summary.pending}</strong></div>
+        <div className="order-summary-card"><span>{t("orders.super.summary.preparing")}</span><strong>{summary.preparing}</strong></div>
+        <div className="order-summary-card"><span>{t("orders.super.summary.ready")}</span><strong>{summary.ready}</strong></div>
+        <div className="order-summary-card"><span>{t("orders.super.summary.completedToday")}</span><strong>{summary.completedToday}</strong></div>
+        <div className="order-summary-card"><span>{t("orders.super.summary.revenueToday")}</span><strong>{formatEuro(summary.revenueToday)}</strong></div>
       </div>
 
-      <div className="order-quick-filters" role="group" aria-label="Filtros rápidos de super admin">
+      <div className="order-quick-filters" role="group" aria-label={t("orders.super.quickFilters")}>
         {[
-          ["all", "Todos"],
-          ["needs-payment", "A aguardar pagamento"],
-          ["queued", "Na fila"],
-          ["preparing", "Em preparação"],
-          ["ready", "Prontos"],
-          ["cancelled", "Cancelados"],
-          ["customized", "Com personalizações"],
-        ].map(([value, label]) => (
+          ["all", "orders.common.all"],
+          ["needs-payment", "orders.staff.columns.paymentTitle"],
+          ["queued", "orders.common.queued"],
+          ["preparing", "orders.common.preparing"],
+          ["ready", "orders.common.ready"],
+          ["cancelled", "orders.common.cancelled"],
+          ["customized", "orders.common.customised"],
+        ].map(([value, labelKey]) => (
           <button key={value} className={quickFilter === value ? "active" : ""} onClick={() => setQuickFilter(value)}>
-            {label}
+            {t(labelKey)}
           </button>
         ))}
       </div>
@@ -154,36 +156,36 @@ export default function SuperAdminOrdersView({ orders, onRefresh, onUpdateStatus
       <div className="ad-card order-admin-filters">
         <div className="ad-filter-grid">
           <div className="ad-form-group">
-            <label>Pesquisar</label>
-            <input value={filters.search} onChange={(e) => setFilters({ ...filters, search: e.target.value })} placeholder="ID do pedido, cliente, telefone, produto..." />
+            <label>{t("orders.common.search")}</label>
+            <input value={filters.search} onChange={(e) => setFilters({ ...filters, search: e.target.value })} placeholder={t("orders.common.searchPlaceholderFull")} />
           </div>
           <div className="ad-form-group">
-            <label>Estado</label>
-            <CustomSelect className="ad-select" value={filters.status} onChange={(nextValue) => setFilters({ ...filters, status: String(nextValue) })} options={[{ value: "", label: "Todos os estados" }, ...allStatuses.map((status) => ({ value: status, label: formatOrderStatus(status) }))]} />
+            <label>{t("orders.common.state")}</label>
+            <CustomSelect className="ad-select" value={filters.status} onChange={(nextValue) => setFilters({ ...filters, status: String(nextValue) })} options={[{ value: "", label: t("orders.status.all") }, ...allStatuses.map((status) => ({ value: status, label: formatOrderStatus(status) }))]} />
           </div>
           <div className="ad-form-group">
-            <label>Método de pagamento</label>
-            <CustomSelect className="ad-select" value={filters.paymentMethod} onChange={(nextValue) => setFilters({ ...filters, paymentMethod: String(nextValue) })} options={[{ value: "", label: "Todos os métodos" }, ...paymentMethods.map((method) => ({ value: method, label: method }))]} />
+            <label>{t("orders.common.paymentMethod")}</label>
+            <CustomSelect className="ad-select" value={filters.paymentMethod} onChange={(nextValue) => setFilters({ ...filters, paymentMethod: String(nextValue) })} options={[{ value: "", label: t("orders.payment.allMethods") }, ...paymentMethods.map((method) => ({ value: method, label: method }))]} />
           </div>
           <div className="ad-form-group">
-            <label>Estado do pagamento</label>
-            <CustomSelect className="ad-select" value={filters.paymentStatus} onChange={(nextValue) => setFilters({ ...filters, paymentStatus: String(nextValue) })} options={[{ value: "", label: "Todos os pagamentos" }, ...paymentStatuses.map((status) => ({ value: status, label: status }))]} />
+            <label>{t("orders.common.paymentStatus")}</label>
+            <CustomSelect className="ad-select" value={filters.paymentStatus} onChange={(nextValue) => setFilters({ ...filters, paymentStatus: String(nextValue) })} options={[{ value: "", label: t("orders.payment.allPayments") }, ...paymentStatuses.map((status) => ({ value: status, label: status }))]} />
           </div>
-          <div className="ad-form-group"><label>Data desde</label><input type="date" value={filters.dateFrom} onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })} /></div>
-          <div className="ad-form-group"><label>Data até</label><input type="date" value={filters.dateTo} onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })} /></div>
+          <div className="ad-form-group"><label>{t("orders.common.dateFrom")}</label><input type="date" value={filters.dateFrom} onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })} /></div>
+          <div className="ad-form-group"><label>{t("orders.common.dateTo")}</label><input type="date" value={filters.dateTo} onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })} /></div>
           <div className="ad-form-group">
-            <label>Personalização</label>
-            <CustomSelect className="ad-select" value={filters.customization} onChange={(nextValue) => setFilters({ ...filters, customization: String(nextValue) })} options={[{ value: "all", label: "Todos os pedidos" }, { value: "customized", label: "Com personalizações" }, { value: "plain", label: "Sem personalizações" }]} />
+            <label>{t("orders.super.customization")}</label>
+            <CustomSelect className="ad-select" value={filters.customization} onChange={(nextValue) => setFilters({ ...filters, customization: String(nextValue) })} options={[{ value: "all", label: t("orders.super.allOrders") }, { value: "customized", label: t("orders.super.withCustomisations") }, { value: "plain", label: t("orders.super.withoutCustomisations") }]} />
           </div>
           <button type="button" className="ad-btn ad-btn-ghost ad-order-clear" onClick={clearAllFilters}>
-            Limpar filtros
+            {t("orders.common.clearFilters")}
           </button>
         </div>
       </div>
 
       <div className="ad-card order-admin-table-card">
         {ordersSectionCollapsed ? (
-          <p className="ad-empty">Os pedidos estão recolhidos. Expanda tudo para ver os cartões e as ações.</p>
+          <p className="ad-empty">{t("orders.super.collapsed")}</p>
         ) : (
         <>
         <div className="order-admin-card-list row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-3">
@@ -194,8 +196,8 @@ export default function SuperAdminOrdersView({ orders, onRefresh, onUpdateStatus
               <div key={order.orderId} className="col d-flex">
                 <article className="order-admin-card">
                 <header className="order-admin-card-head">
-                  <h3>Pedido #{order.orderId}</h3>
-                  <strong>{order.totalItems} {order.totalItems === 1 ? "item" : "itens"}</strong>
+                  <h3>{t("orders.super.order", { id: order.orderId })}</h3>
+                  <strong>{t("orders.common.items", { count: order.totalItems })}</strong>
                 </header>
 
                 <div className="order-admin-card-chips">
@@ -211,7 +213,7 @@ export default function SuperAdminOrdersView({ orders, onRefresh, onUpdateStatus
                 <div className="order-admin-card-customer">
                   <span className="order-admin-avatar">{customerInitials(order)}</span>
                   <div>
-                    <strong>{order.customerName || "Cliente"}</strong>
+                    <strong>{order.customerName || t("orders.common.customer")}</strong>
                     {order.customerPhone && <span>{order.customerPhone}</span>}
                     {order.customerEmail && <small>{order.customerEmail}</small>}
                   </div>
@@ -226,21 +228,21 @@ export default function SuperAdminOrdersView({ orders, onRefresh, onUpdateStatus
                 {shouldShowOrderAge(order) && (
                   <div className="order-admin-card-line order-admin-wait-line">
                     <Clock size={16} />
-                    <span>À espera {formatOrderAge(order)}</span>
+                    <span>{t("orders.super.waiting", { age: formatOrderAge(order) })}</span>
                   </div>
                 )}
 
                 <div className="order-admin-card-total">
-                  <span>Total</span>
+                  <span>{t("orders.common.total")}</span>
                   <strong>{formatEuro(order.total ?? 0)}</strong>
                 </div>
 
                 <div className="order-admin-card-actions">
                   <CustomSelect className="ad-select" value={order.state} onChange={(nextValue) => onUpdateStatus(order.orderId, String(nextValue))} options={allStatuses.map((status) => ({ value: status, label: formatOrderStatus(status) }))} />
                   {order.state !== "cancelled" && (
-                    <button className="ad-btn ad-btn-danger" onClick={() => onUpdateStatus(order.orderId, "cancelled")}>Cancelar</button>
+                    <button className="ad-btn ad-btn-danger" onClick={() => onUpdateStatus(order.orderId, "cancelled")}>{t("orders.common.cancel")}</button>
                   )}
-                  <button className="ad-btn ad-btn-ghost" onClick={() => setSelectedOrderId(order.orderId)}>Detalhes</button>
+                  <button className="ad-btn ad-btn-ghost" onClick={() => setSelectedOrderId(order.orderId)}>{t("orders.common.details")}</button>
                 </div>
                 </article>
               </div>
@@ -250,27 +252,27 @@ export default function SuperAdminOrdersView({ orders, onRefresh, onUpdateStatus
         <table className="ad-table order-admin-table">
           <thead>
             <tr>
-              <th>Pedido</th>
-              <th>Entrega</th>
-              <th>Cliente</th>
-              <th>Estado</th>
-              <th>Pagamento</th>
-              <th>Tempo</th>
-              <th>Total</th>
-              <th>Ações</th>
+              <th>{t("orders.super.table.order")}</th>
+              <th>{t("orders.super.table.delivery")}</th>
+              <th>{t("orders.super.table.customer")}</th>
+              <th>{t("orders.super.table.status")}</th>
+              <th>{t("orders.super.table.payment")}</th>
+              <th>{t("orders.super.table.time")}</th>
+              <th>{t("orders.super.table.total")}</th>
+              <th>{t("orders.super.table.actions")}</th>
             </tr>
           </thead>
           <tbody>
             {filteredOrders.map((order) => (
               <tr key={order.orderId}>
-                <td><strong>#{order.orderId}</strong><br /><span>{order.totalItems} itens</span></td>
+                <td><strong>#{order.orderId}</strong><br /><span>{t("orders.common.items", { count: order.totalItems })}</span></td>
                 <td>
                   <span className="order-table-chip">{fulfillmentLabel(order)}</span>
                   <br />
                   <span>{handoffLabel(order)}</span>
                 </td>
                 <td>
-                  {order.customerName || "Cliente"}
+                  {order.customerName || t("orders.common.customer")}
                   <br />
                   <span>{[order.customerPhone, order.customerEmail].filter(Boolean).join(" / ") || "-"}</span>
                 </td>
@@ -282,16 +284,16 @@ export default function SuperAdminOrdersView({ orders, onRefresh, onUpdateStatus
                   <div className="order-admin-actions">
                     <CustomSelect className="ad-select" value={order.state} onChange={(nextValue) => onUpdateStatus(order.orderId, String(nextValue))} options={allStatuses.map((status) => ({ value: status, label: formatOrderStatus(status) }))} />
                     {order.state !== "cancelled" && (
-                      <button className="ad-btn ad-btn-sm ad-btn-danger" onClick={() => onUpdateStatus(order.orderId, "cancelled")}>Cancelar</button>
+                      <button className="ad-btn ad-btn-sm ad-btn-danger" onClick={() => onUpdateStatus(order.orderId, "cancelled")}>{t("orders.common.cancel")}</button>
                     )}
-                    <button className="ad-btn ad-btn-sm ad-btn-ghost" onClick={() => setSelectedOrderId(order.orderId)}>Detalhes</button>
+                    <button className="ad-btn ad-btn-sm ad-btn-ghost" onClick={() => setSelectedOrderId(order.orderId)}>{t("orders.common.details")}</button>
                   </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        {filteredOrders.length === 0 && <p className="ad-empty">Nenhum pedido corresponde a estes filtros</p>}
+        {filteredOrders.length === 0 && <p className="ad-empty">{t("orders.super.empty")}</p>}
         </>
         )}
       </div>

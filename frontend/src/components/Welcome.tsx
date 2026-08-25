@@ -1,6 +1,8 @@
 import { ASSETS } from "../constants/assets";
+import { useTranslation } from "react-i18next";
 
 const WelcomeSection = () => {
+  const { t } = useTranslation("storefront");
   return (
     <section className="welcome container section-mt">
       <div className="container">
@@ -15,25 +17,25 @@ const WelcomeSection = () => {
           >
             <div className="d-flex align-items-center mb-2">
               <h4 className="fs-5 fs-md-4 text-uppercase mb-0 green">
-                Vegano, delicioso e com boa energia.
+                {t("welcome.kicker")}
 
               </h4>
               <i className="bi bi-leaf-fill fs-4 ms-2 text-success"></i>
             </div>
 
             <h1 className="display-4 display-md-1 fw-normal mb-3">
-              Bonefree Sabores Veganos na Costa da Caparica
+              {t("welcome.title")}
             </h1>
 
             <h6 className="lh-lg mb-4 text-muted">
-             Bem-vindo ao Bonefree, um restaurante e bar vegan na Costa da Caparica. Aqui encontras nachos latinos, hambúrgueres vegan e pratos criativos à base de plantas, acompanhados por cocktails refrescantes, num ambiente descontraído.
+             {t("welcome.description")}
             </h6>
 
             <h4 className="fw-semi-bold fs-4 green">
-              Google Reviews
+              {t("welcome.reviews")}
             </h4>
             <p className="text-muted">
-              ⭐ 4.8 / 5 - 1,200 avaliações
+              {t("welcome.reviewScore")}
             </p>
           </div>
 
@@ -52,7 +54,7 @@ const WelcomeSection = () => {
               <img
                 src={ASSETS.images.hero.burgerGirl.replace('.webp', '.jpg')}
                 className="img-fluid rounded"
-                alt="Cliente a saborear um hambúrguer"
+                alt={t("welcome.imageAlt")}
                 loading="lazy"
                 decoding="async"
               />

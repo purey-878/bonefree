@@ -4,32 +4,31 @@ import { Heart, Leaf, MapPin, Sparkles, Star, UtensilsCrossed, Users } from "luc
 import styled from "styled-components";
 import FloatingAboutIcons from "../components/FloatingAboutIcons";
 import Navbar from "../components/Navbar";
+import { useTranslation } from "react-i18next";
 
 const stats = [
-  { value: "431", label: "avaliações" },
-  { value: "30+", label: "pratos plant-based" },
-  { value: "12k+", label: "pedidos servidos" },
+  { value: "431", labelKey: "about.stats.reviews" },
+  { value: "30+", labelKey: "about.stats.dishes" },
+  { value: "12k+", labelKey: "about.stats.orders" },
 ];
 
 const values = [
   {
-    title: "Energia local",
-    text: "Criado na Costa da Caparica com ritmo de praia, serviço próximo e noites que se prolongam.",
+    titleKey: "about.values.localTitle", textKey: "about.values.localText",
     Icon: MapPin,
   },
   {
-    title: "Vegetal primeiro",
-    text: "Comida vegan com cor, crocância, conforto e apetite verdadeiro para a noite.",
+    titleKey: "about.values.plantTitle", textKey: "about.values.plantText",
     Icon: Leaf,
   },
   {
-    title: "Feito para partilhar",
-    text: "Bowls, burgers, acompanhamentos, cocktails e pratos pensados para a mesa inteira.",
+    titleKey: "about.values.shareTitle", textKey: "about.values.shareText",
     Icon: Users,
   },
 ];
 
 const About: React.FC = () => {
+  const { t } = useTranslation("storefront");
   return (
     <AboutPage>
       <FloatingAboutIcons />
@@ -39,86 +38,79 @@ const About: React.FC = () => {
           <HeroCopy>
             <HeroKicker>
               <Sparkles size={16} />
-              Sobre a BONEFREE
+              {t("about.kicker")}
             </HeroKicker>
-            <h1>Comida vegan com pulso costeiro.</h1>
-            <p>
-              A BONEFREE é um restaurante de cozinha vegetal na Costa da Caparica, feito para pratos cheios,
-              bebidas com carácter, pedidos simples à mesa e uma sala viva do almoço até tarde.
-            </p>
+            <h1>{t("about.heroTitle")}</h1>
+            <p>{t("about.heroDescription")}</p>
             <HeroActions>
               <Link to="/menu">
                 <UtensilsCrossed size={18} />
-                Abrir menu
+                {t("about.openMenu")}
               </Link>
-              <Link to="/contact">Encontrar-nos</Link>
+              <Link to="/contact">{t("about.findUs")}</Link>
             </HeroActions>
           </HeroCopy>
 
           <HeroPhoto>
-            <img src="/assets/images/about-us-photo-1.webp" alt="Ambiente do restaurante BONEFREE" />
+            <img src="/assets/images/about-us-photo-1.webp" alt={t("about.heroAlt")} />
             <PhotoTag>
               <Star size={16} />
-              Avaliação Google 4,7
+              {t("about.googleRating")}
             </PhotoTag>
           </HeroPhoto>
         </HeroInner>
       </AboutHero>
 
-      <AboutBento aria-label="Sobre a BONEFREE">
+      <AboutBento aria-label={t("about.sectionLabel")}>
         <StoryTile>
-          <span>A nossa história</span>
-          <h2>Vegetal, mas nunca discreto.</h2>
-          <p>
-            A BONEFREE nasceu de uma ideia simples: a comida vegan deve ser generosa, ousada e social.
-            O menu transforma ingredientes frescos em pratos com textura, calor, cor e alma
-            suficiente para juntar todos à mesma mesa.
-          </p>
+          <span>{t("about.storyLabel")}</span>
+          <h2>{t("about.storyTitle")}</h2>
+          <p>{t("about.story")}</p>
         </StoryTile>
 
         <ImageTile className="large">
-          <img src="/assets/images/about-image-2.jpg" alt="Comida vegetal da BONEFREE" />
+          <img src="/assets/images/about-image-2.jpg" alt={t("about.foodAlt")} />
         </ImageTile>
 
         {stats.map((stat) => (
-          <StatTile key={stat.label}>
+          <StatTile key={stat.labelKey}>
             <strong>{stat.value}</strong>
-            <span>{stat.label}</span>
+            <span>{t(stat.labelKey)}</span>
           </StatTile>
         ))}
 
         <ImageTile>
-          <img src="/assets/images/about-us-3.jpg" alt="Detalhe da sala da BONEFREE" />
+          <img src="/assets/images/about-us-3.jpg" alt={t("about.roomAlt")} />
         </ImageTile>
 
         <MissionTile>
           <Heart size={26} />
-          <span>Missão</span>
-          <h2>Fazer com que comer vegan seja simples, social e cheio de sabor.</h2>
+          <span>{t("about.mission")}</span>
+          <h2>{t("about.missionText")}</h2>
         </MissionTile>
 
         <ImageTile>
-          <img src="/assets/images/index-about-tap.jpeg" alt="Bebidas e detalhe do bar da BONEFREE" />
+          <img src="/assets/images/index-about-tap.jpeg" alt={t("about.barAlt")} />
         </ImageTile>
 
-        {values.map(({ title, text, Icon }) => (
-          <ValueTile key={title}>
+        {values.map(({ titleKey, textKey, Icon }) => (
+          <ValueTile key={titleKey}>
             <IconWrap>
               <Icon size={22} />
             </IconWrap>
             <div>
-              <span>{title}</span>
-              <p>{text}</p>
+              <span>{t(titleKey)}</span>
+              <p>{t(textKey)}</p>
             </div>
           </ValueTile>
         ))}
 
         <WideCta>
           <div>
-            <span>Costa da Caparica</span>
-            <h2>Venha com fome. Saia convertido.</h2>
+            <span>{t("about.location")}</span>
+            <h2>{t("about.ctaTitle")}</h2>
           </div>
-          <Link to="/contact">Visitar a BONEFREE</Link>
+          <Link to="/contact">{t("about.visit")}</Link>
         </WideCta>
       </AboutBento>
     </AboutPage>

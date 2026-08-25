@@ -4,16 +4,18 @@ import { Link } from "react-router-dom"
 import styled from "styled-components"
 
 import Navbar from "../components/Navbar"
+import { useTranslation } from "react-i18next"
 
 const NotFound = () => {
+  const { t } = useTranslation("storefront")
   useEffect(() => {
     const previousTitle = document.title
-    document.title = "Página não encontrada | Bonefree"
+    document.title = t("notFound.documentTitle")
 
     return () => {
       document.title = previousTitle
     }
-  }, [])
+  }, [t])
 
   return (
     <NotFoundPage className="not-found-page">
@@ -23,31 +25,30 @@ const NotFound = () => {
         <Copy>
           <Eyebrow>
             <Leaf aria-hidden="true" size={16} />
-            Erro 404
+            {t("notFound.eyebrow")}
           </Eyebrow>
 
           <h1>
-            Este prato não está <span>no menu.</span>
+            {t("notFound.title")}
           </h1>
           <p>
-            Parece que esta página saiu da cozinha. Confirme o endereço ou volte a
-            explorar os sabores da Bonefree.
+            {t("notFound.description")}
           </p>
 
           <Actions>
             <PrimaryLink to="/">
               <Home aria-hidden="true" size={18} />
-              Voltar ao início
+              {t("notFound.home")}
             </PrimaryLink>
             <SecondaryLink to="/menu">
-              Ver o menu
+              {t("notFound.menu")}
               <ArrowRight aria-hidden="true" size={18} />
             </SecondaryLink>
           </Actions>
         </Copy>
 
-        <ErrorArtwork aria-label="Erro 404: página não encontrada">
-          <ArtworkLabel>Página não encontrada</ArtworkLabel>
+        <ErrorArtwork aria-label={t("notFound.artworkAria")}>
+          <ArtworkLabel>{t("notFound.artworkLabel")}</ArtworkLabel>
           <ErrorNumber aria-hidden="true">
             <span>4</span>
             <Plate>
@@ -59,7 +60,7 @@ const NotFound = () => {
           </ErrorNumber>
           <ArtworkNote>
             <UtensilsCrossed aria-hidden="true" size={18} />
-            Nada servido por aqui
+            {t("notFound.note")}
           </ArtworkNote>
           <AccentDot $position="top" aria-hidden="true" />
           <AccentDot $position="bottom" aria-hidden="true" />

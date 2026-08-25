@@ -14,8 +14,10 @@ import {
 import type { FieldErrors } from '../utils/validation'
 import './Auth.css'
 import Footer from '../components/Footer'
+import { useTranslation } from 'react-i18next'
 
 function Register() {
+  const { t } = useTranslation(['account', 'common'])
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -61,11 +63,11 @@ function Register() {
     if (passwordError) errors.password = passwordError
     if (phoneError) errors.phone = phoneError
     if (formData.password !== formData.confirmPassword) {
-      errors.confirmPassword = 'As palavras-passe não coincidem'
+      errors.confirmPassword = t('passwordMismatch')
     }
     setFieldErrors(errors)
     if (Object.keys(errors).length > 0) {
-      setError('Corrija os campos assinalados.')
+      setError(t('fixFields'))
       return
     }
 
@@ -82,7 +84,7 @@ function Register() {
       })
       navigate(redirectAfterRegister(from, hadGuestCart), { replace: true })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao criar conta')
+      setError(err instanceof Error ? err.message : t('accountCreateFailed'))
     } finally {
       setLoading(false)
     }
@@ -108,36 +110,36 @@ function Register() {
         <div className="auth-card-stack auth-register-stack">
                <button type="button" className="auth-back-button py-3 fw-semibold" onClick={() => navigate(-1)}>
             <ArrowLeft size={15} aria-hidden="true" />
-            Voltar
+            {t('back')}
           </button>
 
 
         <div className="auth-card glass-panel auth-flow-card auth-register-card">
 
 
-          <div className="auth-mode-switch" aria-label="Modo de autenticação">
-            <Link to="/login" state={{ from }}>Entrar</Link>
-            <Link className="active" to="/register" aria-current="page">Criar conta</Link>
+          <div className="auth-mode-switch" aria-label={t('authMode')}>
+            <Link to="/login" state={{ from }}>{t('signIn')}</Link>
+            <Link className="active" to="/register" aria-current="page">{t('createAccount')}</Link>
           </div>
 
           <h1 className="auth-title">
-            Criar conta.
+            {t('registerTitle')}
           </h1>
-          <p className="auth-subtitle">Guarde os seus dados e avance pelo checkout sem esforço.</p>
+          <p className="auth-subtitle">{t('registerSubtitle')}</p>
 
           {error && <div className="alert alert-danger">{error}</div>}
 
           <form onSubmit={handleSubmit} className="auth-form">
             <div className="form-group">
               <label htmlFor="email" className="form-label">
-                Email <span className="required">*</span>
+                {t('fields.email', { ns: 'common' })} <span className="required">*</span>
               </label>
               <input
                 id="email"
                 type="email"
                 name="email"
                 className={`form-input ${fieldErrors.email ? 'is-invalid' : ''}`}
-                placeholder="nome@exemplo.pt"
+                placeholder={t('emailPlaceholder')}
                 value={formData.email}
                 onChange={handleChange}
                 required
@@ -148,7 +150,7 @@ function Register() {
             <div className="form-row">
               <div className="form-group">
                 <label htmlFor="name" className="form-label">
-                  Nome <span className="required">*</span>
+                  {t('fields.firstName', { ns: 'common' })} <span className="required">*</span>
                 </label>
                 <input
                   id="name"
@@ -165,7 +167,7 @@ function Register() {
 
               <div className="form-group">
                 <label htmlFor="lastName" className="form-label">
-                  Apelido <span className="required">*</span>
+                  {t('fields.lastName', { ns: 'common' })} <span className="required">*</span>
                 </label>
                 <input
                   id="lastName"
@@ -183,7 +185,7 @@ function Register() {
 
             <div className="form-group">
               <label htmlFor="phone" className="form-label">
-                Telefone
+                {t('fields.phone', { ns: 'common' })}
               </label>
               <input
                 id="phone"
@@ -200,7 +202,7 @@ function Register() {
 
             <div className="form-group">
               <label htmlFor="password" className="form-label">
-                Palavra-passe <span className="required">*</span>
+                {t('fields.password', { ns: 'common' })} <span className="required">*</span>
               </label>
               <input
                 id="password"
@@ -217,7 +219,7 @@ function Register() {
 
             <div className="form-group">
               <label htmlFor="confirmPassword" className="form-label">
-                Confirmar palavra-passe <span className="required">*</span>
+                {t('fields.passwordConfirmation', { ns: 'common' })} <span className="required">*</span>
               </label>
               <input
                 id="confirmPassword"
@@ -233,14 +235,14 @@ function Register() {
             </div>
 
             <button type="submit" className="auth-btn bonefree-button" disabled={loading}>
-              {loading ? 'A criar conta...' : 'Criar conta'}
+              {loading ? t('creatingAccount') : t('createAccount')}
             </button>
           </form>
                  </div>
           <p className="auth-footer">
-            Já tem conta?{' '}
+            {t('alreadyRegistered')}{' '}
             <Link to="/login" className="auth-link">
-              Entrar
+              {t('signIn')}
             </Link>
           </p>
         </div>

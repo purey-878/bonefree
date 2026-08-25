@@ -2,6 +2,7 @@ import { forwardRef, useState } from 'react'
 import type { ComponentPropsWithoutRef, ReactNode } from 'react'
 import styled, { css } from 'styled-components'
 import { formatEuro } from '../../utils/money'
+import { useTranslation } from 'react-i18next'
 
 type ButtonVariant = 'primary' | 'secondary'
 type ButtonSize = 'sm' | 'md' | 'lg'
@@ -326,18 +327,19 @@ export const AddToCartButton = forwardRef<
   },
   ref,
 ) {
+  const { t } = useTranslation('storefront')
   const [popperKey, setPopperKey] = useState(0)
   void currencySymbol
   const total = typeof price === 'number' ? price * quantity : null
   const label =
     children ??
     (isLoading
-      ? 'A adicionar...'
+      ? t('productCard.adding')
       : unavailable
-        ? 'Indisponível'
+        ? t('productCard.unavailable')
         : total === null
-          ? 'Adicionar ao carrinho'
-          : `Adicionar ao carrinho - ${formatEuro(total)}`)
+          ? t('productCard.addToCart')
+          : t('productCard.addWithPrice', { price: formatEuro(total) }))
   const handleClick: ButtonProps['onClick'] = (event) => {
     if (!disabled && !unavailable && !isLoading) {
       setPopperKey((current) => current + 1)

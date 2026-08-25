@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ArrowRight, Clock, Sparkles, Star, UtensilsCrossed } from "lucide-react";
 import styled from "styled-components";
 
@@ -17,6 +18,7 @@ import {
 import { applyApiImageFallback, productImageFallback, resolveProductImageUrl } from "../utils/imageFallback";
 import { formatEuro } from "../utils/money";
 import { primaryProductMediaUrl } from "../utils/productMedia";
+import i18n, { resolvedLocale } from "../i18n";
 
 
 type CategorySummary = {
@@ -96,7 +98,7 @@ function resolveImage(image: string | null | undefined) {
 }
 
 function productDescription(product?: Product | null) {
-  return product?.description || "Vegetal, cheio de camadas e acabado de preparar na cozinha.";
+  return product?.description || i18n.t("home.fallbackDescription", { ns: "storefront" });
 }
 
 function isHiddenHomeProduct(product: Product) {
@@ -112,6 +114,7 @@ function hasMeaningfulReviewCopy(review: ProductReview) {
 }
 
 const HomePage = () => {
+  const { t } = useTranslation("storefront");
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [homeReviews, setHomeReviews] = useState<HomeReview[]>([]);
@@ -175,7 +178,7 @@ const HomePage = () => {
         setLoyaltyCouponSettings(couponSettings);
         void fetchHomeReviews(data);
       } catch (fetchError) {
-        setError("Não foi possível carregar os destaques do menu de hoje.");
+        setError(t("home.loadError"));
         setReviewsLoading(false);
         console.error(fetchError);
       } finally {
@@ -184,7 +187,7 @@ const HomePage = () => {
     };
 
     fetchHomeData();
-  }, []);
+  }, [t]);
 
   const visibleProducts = useMemo(
     () => products.filter((product) => !isHiddenHomeProduct(product)),
@@ -199,12 +202,12 @@ const HomePage = () => {
   const categories = useMemo<CategorySummary[]>(() => {
     const counts = new Map<string, number>();
     visibleProducts.forEach((product) => {
-      const name = product.category || "House plates";
+      const name = product.category || t("home.fallbackCategory");
       counts.set(name, (counts.get(name) ?? 0) + 1);
     });
 
     return Array.from(counts, ([name, count]) => ({ count, name })).slice(0, 7);
-  }, [visibleProducts]);
+  }, [t, visibleProducts]);
 
   const featuredDish = availableProducts.find((product) => product.media.length > 0) ?? availableProducts[0] ?? visibleProducts[0];
   const sortedPopularProducts = [...availableProducts]
@@ -327,40 +330,38 @@ const HomePage = () => {
           <HeroCopy>
             <Eyebrow>
               <Sparkles size={16} />
-              Restaurante e bar vegan na Costa da Caparica
+              {t("home.heroEyebrow")}
             </Eyebrow>
-            <HeroTitle>Pratos vegetais com alma de restaurante de noite.</HeroTitle>
-            <HeroText>
-              Sente-se, leia o menu na mesa e peça pratos vegan cheios de cor e cocktails feitos para partilhar.
-            </HeroText>
+            <HeroTitle>{t("home.heroTitle")}</HeroTitle>
+            <HeroText>{t("home.heroText")}</HeroText>
             <HeroActions>
               <PrimaryCta className="fw-semibold" to="/menu">
-                Abrir menu
+                {t("home.openMenu")}
                 <ArrowRight size={18} />
               </PrimaryCta>
               <SecondaryCta className="fw-semibold" to="/contact">
-                Encontrar o restaurante
+                {t("home.findRestaurant")}
               </SecondaryCta>
             </HeroActions>
-            <TrustStrip aria-label="Restaurant highlights">
+            <TrustStrip aria-label={t("home.highlights")}>
               <TrustItem>
                 <Star size={17} />
-                Avaliação 4,8
+                {t("home.rating")}
               </TrustItem>
               <TrustItem>
                 <UtensilsCrossed size={17} />
-                Pedidos à mesa
+                {t("home.tableOrders")}
               </TrustItem>
               <TrustItem>
                 <Clock size={17} />
-                Ritmo fresco de cozinha
+                {t("home.kitchenRhythm")}
               </TrustItem>
             </TrustStrip>
 
           </HeroCopy>
 
           <FeaturedDishCard
-            aria-label="Prato em destaque"
+            aria-label={t("home.featuredDish")}
             onFocusCapture={pauseHeroCarousel}
             onClick={() => {
               if (skipHeroCardClickRef.current) {
@@ -401,13 +402,13 @@ const HomePage = () => {
                 </FeaturedMeta>
                 <FeaturedTitle>{heroDish.name}</FeaturedTitle>
                 <FeaturedText>{productDescription(heroDish)}</FeaturedText>
-                <HeroCarouselDots aria-label="Escolher prato em destaque">
+                <HeroCarouselDots aria-label={t("home.chooseFeatured")}>
                   {popularProducts.map((product, index) => (
                     <button
                       key={product.id}
                       type="button"
                       className={index === activeHeroProductIndex ? "active" : ""}
-                      aria-label={`Mostrar ${product.name}`}
+                      aria-label={t("home.showProduct", { name: product.name })}
                       aria-current={index === activeHeroProductIndex ? "true" : undefined}
                       onClick={(event) => {
                         event.stopPropagation();
@@ -419,14 +420,14 @@ const HomePage = () => {
                 </HeroCarouselDots>
               </>
             ) : (
-              <FeaturedEmpty>{error ?? "Os destaques do menu estão a ser preparados."}</FeaturedEmpty>
+              <FeaturedEmpty>{error ?? t("home.highlightsPreparing")}</FeaturedEmpty>
             )}
           </FeaturedDishCard>
         </HeroContent>
       </HeroSection>
 
 
-      <CategorySection aria-label="Categorias do menu">
+      <CategorySection aria-label={t("home.categories")}>
         <CategoryTrack>
           {loading
             ? Array.from({ length: 6 }, (_, index) => (
@@ -443,14 +444,14 @@ const HomePage = () => {
 
 
       {loyaltyCouponSettings.enabled && (
-        <LoyaltyRewardBanner aria-label="Recompensa de fidelização BONEFREE" className="mt-5">
+        <LoyaltyRewardBanner aria-label={t("home.loyaltyAria")} className="mt-5">
           <div>
-            <SectionKicker>Recompensas BONEFREE</SectionKicker>
+            <SectionKicker>{t("home.loyaltyTitle")}</SectionKicker>
             <h2>{loyaltyCouponHeadline(loyaltyCouponSettings)}</h2>
             <p>{loyaltyCouponDetail(loyaltyCouponSettings)}</p>
           </div>
           <PrimaryCta to="/profile">
-            Ver cupões
+            {t("home.viewCoupons")}
             <ArrowRight size={18} />
           </PrimaryCta>
         </LoyaltyRewardBanner>
@@ -458,15 +459,13 @@ const HomePage = () => {
 
       <FavoritesSection>
         <SectionHeader>
-          <SectionKicker className="fw-bold">Mais populares</SectionKicker>
-          <h2>Quatro favoritos para provar</h2>
-          <p>
-            Um carousel rápido com os pratos que mais puxam os clientes de volta à mesa.
-          </p>
+          <SectionKicker className="fw-bold">{t("home.popular")}</SectionKicker>
+          <h2>{t("home.popularTitle")}</h2>
+          <p>{t("home.popularText")}</p>
         </SectionHeader>
 
         <PopularCarousel
-          aria-label="Pratos populares do menu"
+          aria-label={t("home.popularAria")}
           onScroll={handlePopularCarouselScroll}
           ref={popularCarouselRef}
         >
@@ -487,13 +486,13 @@ const HomePage = () => {
               ))}
         </PopularCarousel>
         {!loading && popularProducts.length > 1 && (
-          <PopularCarouselDots aria-label="Escolher prato popular">
+          <PopularCarouselDots aria-label={t("home.choosePopular")}>
             {popularProducts.map((product, index) => (
               <button
                 key={product.id}
                 type="button"
                 className={index === activePopularIndex ? "active" : ""}
-                aria-label={`Mostrar ${product.name}`}
+                aria-label={t("home.showProduct", { name: product.name })}
                 aria-current={index === activePopularIndex ? "true" : undefined}
                 onClick={() => scrollToPopularProduct(index)}
               />
@@ -502,10 +501,10 @@ const HomePage = () => {
         )}
       </FavoritesSection>
 
-      <ChefSpecialBanner aria-label="Especial do chef">
+      <ChefSpecialBanner aria-label={t("home.chefAria")}>
         <ChefImageWrap>
           <ChefImage
-            alt={chefSpecial?.name ?? "Especial de hoje"}
+            alt={chefSpecial?.name ?? t("home.todaySpecial")}
             onError={(event) => {
               applyApiImageFallback(event.currentTarget, fallbackDishImage);
             }}
@@ -514,24 +513,24 @@ const HomePage = () => {
         </ChefImageWrap>
         <ChefCopy>
           <ChefHeader>
-            <SectionKicker>Especial de hoje</SectionKicker>
+            <SectionKicker>{t("home.todaySpecial")}</SectionKicker>
             {chefSpecial && <ChefCategory>{chefSpecial.category}</ChefCategory>}
           </ChefHeader>
-          <h2>{chefSpecial?.name ?? "Especial vegetal desta noite"}</h2>
+          <h2>{chefSpecial?.name ?? t("home.plantSpecial")}</h2>
           <p>
             {chefSpecial
               ? productDescription(chefSpecial)
-              : "Pergunte à equipa o que sai hoje da cozinha com os sabores mais vivos."}
+              : t("home.askTeam")}
           </p>
           <ChefDetails>
 
             {chefSpecial && <strong>{formatEuro(chefSpecial.price)}</strong>}
             {chefSpecial && (
-              <span>{chefSpecial.available ? "Disponível" : "Atualmente indisponível"}</span>
+              <span>{chefSpecial.available ? t("home.available") : t("home.unavailable")}</span>
             )}
           </ChefDetails>
           <PrimaryCta className="fw-semibold" to={chefSpecial ? `/product/${chefSpecial.id}` : "/menu"}>
-            Ver especial
+            {t("home.viewSpecial")}
             <ArrowRight size={18} />
           </PrimaryCta>
         </ChefCopy>
@@ -539,11 +538,11 @@ const HomePage = () => {
 
       <TestimonialsSection>
         <SectionHeader>
-          <SectionKicker>Notas dos clientes</SectionKicker>
-          <h2>O que a sala recorda</h2>
+          <SectionKicker>{t("home.reviewsLabel")}</SectionKicker>
+          <h2>{t("home.reviewsTitle")}</h2>
         </SectionHeader>
         {reviewsLoading ? (
-          <TestimonialGrid aria-label="A carregar notes dos clientes">
+          <TestimonialGrid aria-label={t("home.loadingReviews")}>
             {Array.from({ length: 3 }, (_, index) => (
               <TestimonialSkeleton key={index}>
                 <Skeleton width="42%" height="18px" />
@@ -553,21 +552,21 @@ const HomePage = () => {
             ))}
           </TestimonialGrid>
         ) : (
-          <TestimonialGrid aria-label="Avaliações dos clientes">
+          <TestimonialGrid aria-label={t("home.reviewsAria")}>
             {displayedHomeReviews.map((review) => (
               <TestimonialCard key={review.reviewId}>
-                <ReviewStars aria-label={`${review.rating} em 5 estrelas`}>
+                <ReviewStars aria-label={t("home.stars", { rating: review.rating })}>
                   {Array.from({ length: 5 }, (_, index) => (
                     <Star key={index} size={15} fill={index < review.rating ? "currentColor" : "none"} />
                   ))}
                 </ReviewStars>
                 <blockquote>{reviewCopy(review)}</blockquote>
                 <ReviewMeta>
-                  <span>{review.customerName || "Cliente BONEFREE"}</span>
+                  <span>{review.customerName || t("home.customer")}</span>
                   <small>
                     <ProductReviewLink to={review.productPath ?? `/product/${review.productId}`}>{review.productName}</ProductReviewLink>
                     {" | "}
-                    {new Date(review.createdAt).toLocaleDateString("en-GB")}
+                    {new Date(review.createdAt).toLocaleDateString(resolvedLocale())}
                   </small>
                 </ReviewMeta>
               </TestimonialCard>

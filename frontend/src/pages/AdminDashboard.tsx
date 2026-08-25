@@ -121,6 +121,9 @@ import { formatEuro } from "../utils/money"
 import { translateUserMessage } from "../utils/messages"
 import { persistOptimisticUpdate } from "../utils/optimisticUpdate"
 import { primaryProductMediaUrl, productMediaUrl } from "../utils/productMedia"
+import LanguageSwitcher from "../components/LanguageSwitcher"
+import AdminI18nBoundary from "../components/AdminI18nBoundary"
+import { resolvedLocale } from "../i18n"
 
 function getImageUrl(imagePath: string): string {
   return resolveProductImageUrl(imagePath)
@@ -305,7 +308,7 @@ function nullableNumberFromInput(value: string): number | null {
 
 function formatCalories(value: number | null | undefined): string {
   if (value === null || value === undefined || !Number.isFinite(value)) return "-"
-  return value.toLocaleString("pt-PT", { maximumFractionDigits: 1 })
+  return value.toLocaleString(resolvedLocale(), { maximumFractionDigits: 1 })
 }
 
 function hasIngredientQuantity(ingredient: AdminProductIngredient): boolean {
@@ -376,7 +379,7 @@ function formatSalesTick(value: string, period: SalesChartPeriod): string {
     const date = new Date(`${value}-01T00:00:00`)
     return Number.isNaN(date.getTime())
       ? value
-      : date.toLocaleDateString("en-US", { month: "short" })
+      : date.toLocaleDateString(resolvedLocale(), { month: "short" })
   }
   return value
 }
@@ -401,11 +404,13 @@ function SalesChartTooltip({
   if (!active || !point) return null
 
   return (
-    <div className="ad-recharts-tooltip">
-      <strong>{point.period}</strong>
-      <span>{EURO_FORMATTER.format(point.totalSales)}</span>
-      <small>{point.orderCount} pedidos | {point.quantitySold} itens vendidos</small>
-    </div>
+    <AdminI18nBoundary>
+      <div className="ad-recharts-tooltip">
+        <strong>{point.period}</strong>
+        <span>{EURO_FORMATTER.format(point.totalSales)}</span>
+        <small>{point.orderCount} pedidos | {point.quantitySold} itens vendidos</small>
+      </div>
+    </AdminI18nBoundary>
   )
 }
 
@@ -420,16 +425,18 @@ function AnalyticsTooltip({
 }) {
   const point = payload?.[0]?.payload
   if (!active || !point) return null
-  const value = metric === "sales" ? EURO_FORMATTER.format(point.value) : point.value.toLocaleString("pt-PT")
+  const value = metric === "sales" ? EURO_FORMATTER.format(point.value) : point.value.toLocaleString(resolvedLocale())
 
   return (
-    <div className="ad-recharts-tooltip">
-      <strong>{point.period}</strong>
-      <span>{value}</span>
-      {metric !== "clients" && (
-        <small>{point.orderCount} pedidos | {point.quantitySold} itens</small>
-      )}
-    </div>
+    <AdminI18nBoundary>
+      <div className="ad-recharts-tooltip">
+        <strong>{point.period}</strong>
+        <span>{value}</span>
+        {metric !== "clients" && (
+          <small>{point.orderCount} pedidos | {point.quantitySold} itens</small>
+        )}
+      </div>
+    </AdminI18nBoundary>
   )
 }
 
@@ -459,6 +466,7 @@ function SalesOverviewChart({
   }))
 
   return (
+    <AdminI18nBoundary>
     <div className="ad-sales-chart">
       <div className="ad-sales-chart-head">
         <div>
@@ -513,6 +521,7 @@ function SalesOverviewChart({
         <span>Pico {peakPoint ? EURO_FORMATTER.format(peakPoint.totalSales) : EURO_FORMATTER.format(0)}</span>
       </div>
     </div>
+    </AdminI18nBoundary>
   )
 }
 
@@ -544,10 +553,11 @@ function AnalyticsChartCard({
   const total = series?.total ?? 0
   const totalLabel = config.metric === "sales"
     ? EURO_FORMATTER.format(total)
-    : total.toLocaleString("en-US")
+    : total.toLocaleString(resolvedLocale())
   const gradientId = `analytics-${config.metric}-gradient`
 
   return (
+    <AdminI18nBoundary>
     <article className="ad-analytics-card">
       <div className="ad-analytics-card-head">
         <div>
@@ -602,7 +612,7 @@ function AnalyticsChartCard({
                 tickLine={false}
                 width={54}
                 tick={{ fill: "#94a3b8", fontSize: 11, fontWeight: 700 }}
-                tickFormatter={(value: number) => config.metric === "sales" ? EURO_FORMATTER.format(value) : value.toLocaleString("en-US")}
+                tickFormatter={(value: number) => config.metric === "sales" ? EURO_FORMATTER.format(value) : value.toLocaleString(resolvedLocale())}
               />
               <Tooltip content={<AnalyticsTooltip metric={config.metric} />} cursor={{ stroke: config.color, strokeWidth: 1.4, strokeDasharray: "4 4" }} />
               <Area
@@ -620,6 +630,7 @@ function AnalyticsChartCard({
         )}
       </div>
     </article>
+    </AdminI18nBoundary>
   )
 }
 
@@ -653,6 +664,7 @@ function ProductAnalyticsDrawer({
   const selectedRange = PRODUCT_ANALYTICS_RANGE_OPTIONS.find((option) => option.days === rangeDays) ?? PRODUCT_ANALYTICS_RANGE_OPTIONS[2]
 
   return (
+    <AdminI18nBoundary>
     <>
       <div className="ad-drawer-backdrop" onClick={onClose} />
       <aside className="ad-product-drawer" aria-label={`Análises de ${product.name}`}>
@@ -759,6 +771,7 @@ function ProductAnalyticsDrawer({
         )}
       </aside>
     </>
+    </AdminI18nBoundary>
   )
 }
 
@@ -897,6 +910,7 @@ function SiteSettingsPanel({
   }
 
   return (
+    <AdminI18nBoundary>
     <div className="ad-content">
       <div className="ad-section-bar">
         <div>
@@ -1339,6 +1353,7 @@ function SiteSettingsPanel({
       )}
 
     </div>
+    </AdminI18nBoundary>
   )
 }
 
@@ -3267,6 +3282,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
+    <AdminI18nBoundary>
     <div className={adminShellClassName}>
       <header className="ad-topbar">
         <div className="ad-topbar-left">
@@ -3297,10 +3313,11 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
         <div className="ad-topbar-title">
           <p className="ad-page-kicker">{shellTitle}</p>
           <h1 className="ad-page-title">{currentNavLabel}</h1>
-          <p className="ad-page-sub">{new Date().toLocaleDateString("pt-PT", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
+          <p className="ad-page-sub">{new Date().toLocaleDateString(resolvedLocale(), { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
         </div>
 
         <div className="ad-topbar-actions">
+          <LanguageSwitcher className="admin-language-switcher" />
           <button className="ad-theme-switch" onClick={() => setAdminTheme((theme) => theme === "dark" ? "light" : "dark")} title={`Mudar para tema ${adminTheme === "dark" ? "claro" : "escuro"}`} aria-label={`Mudar para tema ${adminTheme === "dark" ? "claro" : "escuro"}`}>
             <span className="ad-theme-switch-track">
               <span className="ad-theme-switch-thumb">
@@ -3668,7 +3685,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
             <div className="ad-section-bar">
               <div>
                 <p className="ad-section-kicker">
-                  Admin Console · {new Date().toLocaleDateString("en-GB", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+                  Admin Console · {new Date().toLocaleDateString(resolvedLocale(), { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
                 </p>
                 <h2 className="ad-section-title">Ingredientes</h2>
                 <p className="ad-section-sub">Gerir os ingredientes removíveis que os clientes veem ao personalizar produtos.</p>
@@ -5225,7 +5242,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                           <div className="ad-review-meta">
                             <strong>{review.customerName || "Cliente"}</strong>
                             <span>{review.productName || review.productDisplayId || formatProductId(review.productId)}</span>
-                            <span>{new Date(review.createdAt).toLocaleDateString("pt-PT")}</span>
+                            <span>{new Date(review.createdAt).toLocaleDateString(resolvedLocale())}</span>
                           </div>
                           <div className="ad-review-rating" aria-label={`${review.rating} de 5 na avaliação`}>
                             {Array.from({ length: 5 }, (_, index) => (
@@ -5613,5 +5630,6 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
         onCancel={handleConfirmCancel}
       />
     </div>
+    </AdminI18nBoundary>
   )
 }

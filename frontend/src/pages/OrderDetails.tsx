@@ -14,21 +14,24 @@ import { checkoutService, customizationSummary } from "../services"
 import type { OrderResponse } from "../types/checkout"
 import { formatEuro } from "../utils/money"
 import "./OrderDetails.css"
+import { useTranslation } from "react-i18next"
+import i18n, { resolvedLocale } from "../i18n"
 
 const TERMINAL_STATUSES = new Set(["delivered", "cancelled"])
 
 function statusLabel(status: string) {
   return ({
-    pending: "A aguardar pagamento",
-    confirmed: "Recebido",
-    in_preparation: "Em preparação",
-    ready: "Pronto",
-    delivered: "Entregue",
-    cancelled: "Cancelado",
+    pending: i18n.t("order.status.pending", { ns: "storefront" }),
+    confirmed: i18n.t("order.status.confirmed", { ns: "storefront" }),
+    in_preparation: i18n.t("order.status.inPreparation", { ns: "storefront" }),
+    ready: i18n.t("order.status.ready", { ns: "storefront" }),
+    delivered: i18n.t("order.status.delivered", { ns: "storefront" }),
+    cancelled: i18n.t("order.status.cancelled", { ns: "storefront" }),
   } as Record<string, string>)[status] ?? status.replace(/_/g, " ")
 }
 
 export default function OrderDetails() {
+  const { t } = useTranslation("storefront")
   const { orderId: orderIdParam } = useParams()
   const orderId = Number(orderIdParam)
   const navigate = useNavigate()
@@ -50,14 +53,14 @@ export default function OrderDetails() {
   const loadOrder = useCallback(async () => {
     if (!Number.isInteger(orderId) || orderId <= 0) {
       setNotFoundOrderId(null)
-      setError("Pedido inválido.")
+      setError(t("order.invalid"))
       return
     }
     if (!guestToken && authLoading) return
     if (!guestToken && !isAuthenticated) {
       setOrder(null)
       setNotFoundOrderId(null)
-      setError("Este pedido só está disponível com a sessão do cliente ou com o acesso guest guardado neste navegador.")
+      setError(t("order.accessRequired"))
       return
     }
 
@@ -82,9 +85,9 @@ export default function OrderDetails() {
         return
       }
       setNotFoundOrderId(null)
-      setError(requestError instanceof Error ? requestError.message : "Não foi possível carregar este pedido.")
+      setError(requestError instanceof Error ? requestError.message : t("order.loadFailed"))
     }
-  }, [authLoading, guestToken, isAuthenticated, orderId])
+  }, [authLoading, guestToken, isAuthenticated, orderId, t])
 
   useEffect(() => {
     const refreshAccess = () => setAccessVersion((current) => current + 1)
@@ -106,7 +109,7 @@ export default function OrderDetails() {
       setError(null)
       setOrder(await checkoutService.cancelOrder(order.orderId, guestToken))
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Não foi possível cancelar este pedido.")
+      setError(requestError instanceof Error ? requestError.message : t("order.cancelFailed"))
     } finally {
       setIsCancelling(false)
     }
@@ -127,7 +130,7 @@ export default function OrderDetails() {
       anchor.remove()
       URL.revokeObjectURL(blobUrl)
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Não foi possível baixar o recibo.")
+      setError(requestError instanceof Error ? requestError.message : t("order.receiptFailed"))
     } finally {
       setIsDownloading(false)
     }
@@ -147,27 +150,27 @@ export default function OrderDetails() {
       <Navbar />
       <main className="order-details-shell">
         <div className="order-details-topbar">
-          <Link to="/orders" className="order-details-back"><ArrowLeft size={17} /> Voltar</Link>
-          <Link to="/menu">Ver menu</Link>
+          <Link to="/orders" className="order-details-back"><ArrowLeft size={17} /> {t("order.back")}</Link>
+          <Link to="/menu">{t("order.viewMenu")}</Link>
         </div>
 
         {waitingForAccess ? (
-          <div className="order-details-state"><LoaderCircle className="order-details-spinner" /> A validar a sessão...</div>
+          <div className="order-details-state"><LoaderCircle className="order-details-spinner" /> {t("order.validating")}</div>
         ) : error && !order ? (
           <section className="order-details-state">
             <ReceiptText size={32} />
-            <h1>Pedido indisponível</h1>
+            <h1>{t("order.unavailable")}</h1>
             <p>{error}</p>
-            {!isAuthenticated && <Link to="/login" state={{ from: `/orders/${orderId}` }}>Entrar na conta</Link>}
-            <Link to="/menu">Voltar ao menu</Link>
+            {!isAuthenticated && <Link to="/login" state={{ from: `/orders/${orderId}` }}>{t("order.accountSignIn")}</Link>}
+            <Link to="/menu">{t("order.backMenu")}</Link>
           </section>
         ) : order ? (
           <>
             <header className="order-details-header">
               <div>
-                <p>Pedido atual</p>
+                <p>{t("order.current")}</p>
                 <h1>{order.orderNumber}</h1>
-                <span><Clock size={16} /> {new Date(order.createdAt).toLocaleString("pt-PT")}</span>
+                <span><Clock size={16} /> {new Date(order.createdAt).toLocaleString(resolvedLocale())}</span>
               </div>
               <strong className={`order-details-status status-${order.status}`}>{statusLabel(order.status)}</strong>
             </header>
@@ -176,7 +179,7 @@ export default function OrderDetails() {
 
             <div className="order-details-grid">
               <section className="order-details-card">
-                <h2>Itens</h2>
+                <h2>{t("order.items")}</h2>
                 <div className="order-details-items">
                   {order.items.map((item, index) => {
                     const customizations = customizationSummary(item.customization)
@@ -194,31 +197,31 @@ export default function OrderDetails() {
               </section>
 
               <aside className="order-details-card order-details-summary">
-                <h2>Resumo</h2>
-                <div><span>Subtotal</span><strong>{formatEuro(order.subtotal)}</strong></div>
-                {order.discount > 0 && <div><span>Desconto</span><strong>-{formatEuro(order.discount)}</strong></div>}
-                <div><span>Pagamento</span><strong>{order.paymentStatus === "paid" ? "Pago" : "Ao balcão"}</strong></div>
-                <div className="order-details-total"><span>Total</span><strong>{formatEuro(order.total)}</strong></div>
+                <h2>{t("order.summary")}</h2>
+                <div><span>{t("order.subtotal")}</span><strong>{formatEuro(order.subtotal)}</strong></div>
+                {order.discount > 0 && <div><span>{t("order.discount")}</span><strong>-{formatEuro(order.discount)}</strong></div>}
+                <div><span>{t("order.payment")}</span><strong>{order.paymentStatus === "paid" ? t("common:status.paid") : t("order.counter")}</strong></div>
+                <div className="order-details-total"><span>{t("order.total")}</span><strong>{formatEuro(order.total)}</strong></div>
 
                 <div className="order-details-actions">
                   {order.canCancel && (
                     <button type="button" className="order-details-danger" onClick={cancelOrder} disabled={isCancelling}>
-                      <X size={17} /> {isCancelling ? "A cancelar..." : "Cancelar pedido"}
+                      <X size={17} /> {isCancelling ? t("order.cancelling") : t("order.cancel")}
                     </button>
                   )}
                   {order.paymentStatus === "paid" && (
                     <button type="button" onClick={downloadReceipt} disabled={isDownloading}>
-                      <Download size={17} /> {isDownloading ? "A preparar..." : "Baixar recibo"}
+                      <Download size={17} /> {isDownloading ? t("order.preparingReceipt") : t("order.downloadReceipt")}
                     </button>
                   )}
                   {TERMINAL_STATUSES.has(order.status) && activeAccess && (
-                    <button type="button" onClick={dismissOrder}>Fechar acompanhamento</button>
+                    <button type="button" onClick={dismissOrder}>{t("order.closeTracking")}</button>
                   )}
                 </div>
 
                 {guestToken && (
                   <p className="order-details-guest-note">
-                    Este acesso guest fica apenas neste navegador e expira em 24 horas. O pedido não será associado automaticamente a uma conta.
+                    {t("order.guestNote")}
                   </p>
                 )}
               </aside>

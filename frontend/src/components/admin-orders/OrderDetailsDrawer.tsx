@@ -1,4 +1,5 @@
 import type { AdminOrder } from "../../types/admin";
+import { useTranslation } from "react-i18next";
 import { formatEuro } from "../../utils/money";
 import OrderAgeBadge from "./OrderAgeBadge";
 import OrderStatusBadge from "./OrderStatusBadge";
@@ -11,18 +12,19 @@ type Props = {
 };
 
 export default function OrderDetailsDrawer({ order, kitchenMode = false, onClose }: Props) {
+  const { t } = useTranslation("admin");
   if (!order) return null;
 
   return (
     <>
       <div className="order-drawer-backdrop" onClick={onClose} />
-      <aside className="order-drawer" aria-label={`Detalhes do pedido ${order.orderId}`}>
+      <aside className="order-drawer" aria-label={t("orders.drawer.aria", { id: order.orderId })}>
         <header className="order-drawer-header">
           <div>
-            <p className="order-drawer-kicker">Pedido #{order.orderId}</p>
-            <h3>Detalhes</h3>
+            <p className="order-drawer-kicker">{t("orders.drawer.order", { id: order.orderId })}</p>
+            <h3>{t("orders.drawer.title")}</h3>
           </div>
-          <button className="ad-btn ad-btn-sm ad-btn-ghost" onClick={onClose}>Fechar</button>
+          <button className="ad-btn ad-btn-sm ad-btn-ghost" onClick={onClose}>{t("orders.drawer.close")}</button>
         </header>
 
         <div className="order-drawer-meta">
@@ -35,15 +37,15 @@ export default function OrderDetailsDrawer({ order, kitchenMode = false, onClose
 
         {!kitchenMode && (
           <section className="order-drawer-section">
-            <h4>Cliente</h4>
-            <p>{order.customerName || "Cliente"}</p>
-            <p>{order.customerPhone || "Sem telefone"}</p>
-            <p>{order.customerEmail || "Sem email"}</p>
+            <h4>{t("orders.drawer.customer")}</h4>
+            <p>{order.customerName || t("orders.common.customer")}</p>
+            <p>{order.customerPhone || t("orders.drawer.noPhone")}</p>
+            <p>{order.customerEmail || t("orders.drawer.noEmail")}</p>
           </section>
         )}
 
         <section className="order-drawer-section">
-          <h4>Itens</h4>
+          <h4>{t("orders.drawer.items")}</h4>
           <div className="order-drawer-items">
             {order.items.map((item, index) => {
               const lines = visibleCustomizationLines(item.customizationSummary);
@@ -73,7 +75,7 @@ export default function OrderDetailsDrawer({ order, kitchenMode = false, onClose
 
         {!kitchenMode && (
           <footer className="order-drawer-total">
-            <span>Total</span>
+            <span>{t("orders.drawer.total")}</span>
             <strong>{formatEuro(order.total ?? 0)}</strong>
           </footer>
         )}

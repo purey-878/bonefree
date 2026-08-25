@@ -2,6 +2,7 @@ import { useEffect } from "react"
 import { ArrowRight, Home, ReceiptText, UtensilsCrossed } from "lucide-react"
 import { Link } from "react-router-dom"
 import styled from "styled-components"
+import { useTranslation } from "react-i18next"
 
 import Navbar from "./Navbar"
 
@@ -13,47 +14,32 @@ type ResourceNotFoundProps = {
 
 const resourceCopy = {
   product: {
-    eyebrow: "Item indisponível",
-    title: "Este item não existe ou foi removido.",
-    description:
-      "Talvez tenha saído do menu ou o endereço já não esteja atualizado. Há muitas outras opções à sua espera.",
-    ticketLabel: "Fora do menu",
-    ticketNote: "Item removido",
+    key: "product",
     primaryHref: "/menu",
-    primaryLabel: "Explorar o menu",
     secondaryHref: "/",
-    secondaryLabel: "Voltar ao início",
-    documentTitle: "Item não encontrado | Bonefree",
     Icon: UtensilsCrossed,
   },
   order: {
-    eyebrow: "Pedido indisponível",
-    title: "Este pedido não foi encontrado.",
-    description:
-      "O pedido pode já não estar disponível ou o link de acesso pode ter expirado. Consulte os seus pedidos ou volte ao menu.",
-    ticketLabel: "Pedido ausente",
-    ticketNote: "Sem registo",
+    key: "order",
     primaryHref: "/orders",
-    primaryLabel: "Ver os meus pedidos",
     secondaryHref: "/menu",
-    secondaryLabel: "Voltar ao menu",
-    documentTitle: "Pedido não encontrado | Bonefree",
     Icon: ReceiptText,
   },
 } as const
 
 export default function ResourceNotFound({ kind }: ResourceNotFoundProps) {
+  const { t } = useTranslation("storefront")
   const copy = resourceCopy[kind]
   const Icon = copy.Icon
 
   useEffect(() => {
     const previousTitle = document.title
-    document.title = copy.documentTitle
+    document.title = t(`resourceNotFound.${copy.key}.documentTitle`)
 
     return () => {
       document.title = previousTitle
     }
-  }, [copy.documentTitle])
+  }, [copy.key, t])
 
   return (
     <Page className="resource-not-found-page">
@@ -62,7 +48,7 @@ export default function ResourceNotFound({ kind }: ResourceNotFoundProps) {
       <Content>
         <Ticket aria-hidden="true">
           <TicketTop>
-            <span>{copy.ticketLabel}</span>
+            <span>{t(`resourceNotFound.${copy.key}.ticketLabel`)}</span>
             <strong>404</strong>
           </TicketTop>
           <TicketBody>
@@ -73,26 +59,26 @@ export default function ResourceNotFound({ kind }: ResourceNotFoundProps) {
               <i />
               <i />
             </TicketRows>
-            <TicketStatus>{copy.ticketNote}</TicketStatus>
+            <TicketStatus>{t(`resourceNotFound.${copy.key}.ticketNote`)}</TicketStatus>
           </TicketBody>
         </Ticket>
 
         <Copy>
           <Eyebrow>
             <Icon aria-hidden="true" size={16} />
-            {copy.eyebrow}
+            {t(`resourceNotFound.${copy.key}.eyebrow`)}
           </Eyebrow>
-          <h1>{copy.title}</h1>
-          <p>{copy.description}</p>
+          <h1>{t(`resourceNotFound.${copy.key}.title`)}</h1>
+          <p>{t(`resourceNotFound.${copy.key}.description`)}</p>
 
           <Actions>
             <PrimaryLink to={copy.primaryHref}>
-              {copy.primaryLabel}
+              {t(`resourceNotFound.${copy.key}.primaryLabel`)}
               <ArrowRight aria-hidden="true" size={18} />
             </PrimaryLink>
             <SecondaryLink to={copy.secondaryHref}>
               <Home aria-hidden="true" size={17} />
-              {copy.secondaryLabel}
+              {t(`resourceNotFound.${copy.key}.secondaryLabel`)}
             </SecondaryLink>
           </Actions>
         </Copy>

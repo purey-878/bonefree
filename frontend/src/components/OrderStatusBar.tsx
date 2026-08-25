@@ -12,6 +12,8 @@ import {
   rememberActiveOrder,
 } from "./orderStatusStorage"
 import "./OrderStatusBar.css"
+import { useTranslation } from "react-i18next"
+import i18n from "../i18n"
 
 const SERVED_STATUSES = new Set(["delivered"])
 const TERMINAL_STATUSES = new Set(["delivered", "cancelled"])
@@ -20,12 +22,12 @@ const STATUS_STEPS = ["confirmed", "in_preparation", "ready", "delivered"]
 
 function statusLabel(status: string) {
   const labels: Record<string, string> = {
-    pending: "A aguardar confirmação",
-    confirmed: "Recebida",
-    in_preparation: "Em preparação",
-    ready: "Pronta",
-    delivered: "Servido",
-    cancelled: "Cancelada",
+    pending: i18n.t("order.tracker.pending", { ns: "storefront" }),
+    confirmed: i18n.t("order.tracker.confirmed", { ns: "storefront" }),
+    in_preparation: i18n.t("order.tracker.inPreparation", { ns: "storefront" }),
+    ready: i18n.t("order.tracker.ready", { ns: "storefront" }),
+    delivered: i18n.t("order.tracker.delivered", { ns: "storefront" }),
+    cancelled: i18n.t("order.tracker.cancelled", { ns: "storefront" }),
   }
 
   return labels[status] ?? status.replace(/_/g, " ")
@@ -79,18 +81,19 @@ function isPaymentConfirmed(order: OrderResponse) {
 
 function statusMessage(order: OrderResponse, cancelError: string | null, ongoingCount: number) {
   if (cancelError) return cancelError
-  if (SERVED_STATUSES.has(order.status)) return "Servido. Bom apetite."
-  if (order.status === "cancelled") return "Este pedido foi cancelado."
+  if (SERVED_STATUSES.has(order.status)) return i18n.t("order.tracker.served", { ns: "storefront" })
+  if (order.status === "cancelled") return i18n.t("order.tracker.cancelledMessage", { ns: "storefront" })
   if (ongoingCount > 1) {
-    return "A barra mostra o pedido mais antigo em curso. Veja todos os pedidos em Perfil > Pedidos."
+    return i18n.t("order.tracker.multiple", { ns: "storefront" })
   }
   if (isPaymentConfirmed(order)) {
-    return "Para assistência após o pagamento, fale com um membro da equipa ao balcão."
+    return i18n.t("order.tracker.paidHelp", { ns: "storefront" })
   }
-  return "Vamos manter esta barra atualizada até o seu pedido ser servido."
+  return i18n.t("order.tracker.updating", { ns: "storefront" })
 }
 
 export default function OrderStatusBar() {
+  const { t } = useTranslation("storefront")
   const { isAuthenticated, loading: authLoading } = useAuth()
   const location = useLocation()
   const [order, setOrder] = useState<OrderResponse | null>(null)
@@ -137,7 +140,7 @@ export default function OrderStatusBar() {
         false,
       )
     } catch (error) {
-      setCancelError(error instanceof Error ? error.message : "Não foi possível cancelar este pedido.")
+      setCancelError(error instanceof Error ? error.message : t("order.cancelFailed"))
     } finally {
       setIsCancelling(false)
     }
@@ -252,9 +255,9 @@ export default function OrderStatusBar() {
       <div className={`order-status-mini ${statusClass}`}>
         <span>{order.orderNumber}</span>
         <strong>{statusLabel(order.status)}</strong>
-        <button type="button" onClick={() => setIsCollapsed(false)} aria-label="Mostrar estado do pedido">
+        <button type="button" onClick={() => setIsCollapsed(false)} aria-label={t("order.tracker.showLabel")}>
           <Eye size={14} />
-          Mostrar
+          {t("order.tracker.show")}
         </button>
       </div>
     )
@@ -281,27 +284,27 @@ export default function OrderStatusBar() {
         </div>
 
         <div className="order-status-actions">
-          <Link to={`/orders/${order.orderId}`}>Detalhes</Link>
+          <Link to={`/orders/${order.orderId}`}>{t("order.tracker.details")}</Link>
           {order.canCancel && (
             <button
               type="button"
               className="order-status-cancel"
               onClick={handleCancelOrder}
               disabled={isCancelling}
-              aria-label="Cancelar pedido"
+              aria-label={t("order.tracker.cancelLabel")}
             >
               <X size={16} />
-              {isCancelling ? "A cancelar" : "Cancelar"}
+              {isCancelling ? t("order.tracker.cancelling") : t("order.tracker.cancel")}
             </button>
           )}
-          <button type="button" onClick={() => setIsCollapsed(true)} aria-label="Ocultar estado do pedido">
+          <button type="button" onClick={() => setIsCollapsed(true)} aria-label={t("order.tracker.hideLabel")}>
             <EyeOff size={15} />
-            Ocultar
+            {t("order.tracker.hide")}
           </button>
           {canDismiss && (
-          <button type="button" onClick={dismissOrder} aria-label="Fechar estado do pedido">
+          <button type="button" onClick={dismissOrder} aria-label={t("order.tracker.closeLabel")}>
             <X size={16} />
-            Fechar
+            {t("order.tracker.close")}
           </button>
           )}
         </div>
