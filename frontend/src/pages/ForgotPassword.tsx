@@ -7,10 +7,12 @@ import { validateEmail, validatePassword } from "../utils/validation"
 import "./Auth.css"
 import Navbar from "../components/Navbar"
 import Footer from "../components/Footer"
+import { useTranslation } from "react-i18next"
 
 type ResetStep = "email" | "otp" | "password" | "done"
 
 function ForgotPassword() {
+  const { t } = useTranslation(["account", "common"])
   const [step, setStep] = useState<ResetStep>("email")
   const [email, setEmail] = useState("")
   const [code, setCode] = useState("")
@@ -30,17 +32,17 @@ function ForgotPassword() {
     const emailError = validateEmail(email)
     setFieldErrors({ email: emailError || undefined })
     if (emailError) {
-      setError("Corrija os campos assinalados.")
+      setError(t("fixFields"))
       return
     }
     setLoading(true)
 
     try {
-      const result = await authService.requestPasswordReset(email)
-      setMessage(result.message)
+      await authService.requestPasswordReset(email)
+      setMessage(t("reset.codeSent"))
       setStep("otp")
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Não foi possível enviar o código de reposição")
+      setError(err instanceof Error ? err.message : t("reset.sendFailed"))
     } finally {
       setLoading(false)
     }
@@ -51,8 +53,8 @@ function ForgotPassword() {
     setError("")
     setMessage("")
     if (!/^\d{6}$/.test(code)) {
-      setFieldErrors({ code: "O código de reposição deve conter exatamente 6 dígitos." })
-      setError("Corrija os campos assinalados.")
+      setFieldErrors({ code: t("reset.codeLength") })
+      setError(t("fixFields"))
       return
     }
     setLoading(true)
@@ -60,10 +62,10 @@ function ForgotPassword() {
     try {
       const result = await authService.verifyPasswordOtp(email, code)
       setResetToken(result.resetToken)
-      setMessage(result.message)
+      setMessage(t("reset.codeVerified"))
       setStep("password")
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Código de reposição inválido")
+      setError(err instanceof Error ? err.message : t("reset.invalidCode"))
     } finally {
       setLoading(false)
     }
@@ -75,23 +77,23 @@ function ForgotPassword() {
     setMessage("")
 
     const passwordError = validatePassword(password)
-    const confirmPasswordError = password === confirmPassword ? "" : "As palavras-passe não coincidem"
+    const confirmPasswordError = password === confirmPassword ? "" : t("passwordMismatch")
     setFieldErrors({
       password: passwordError || undefined,
       confirmPassword: confirmPasswordError || undefined,
     })
     if (passwordError || confirmPasswordError) {
-      setError("Corrija os campos assinalados.")
+      setError(t("fixFields"))
       return
     }
 
     setLoading(true)
     try {
-      const result = await authService.resetPassword(email, resetToken, password)
-      setMessage(result.message)
+      await authService.resetPassword(email, resetToken, password)
+      setMessage(t("reset.passwordUpdated"))
       setStep("done")
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Não foi possível repor a palavra-passe")
+      setError(err instanceof Error ? err.message : t("reset.resetFailed"))
     } finally {
       setLoading(false)
     }
@@ -105,10 +107,10 @@ function ForgotPassword() {
       <div className="auth-card-stack">
         <button type="button" className="auth-back-button py-3 fw-semibold" onClick={() => navigate(-1)}>
           <ArrowLeft size={15} aria-hidden="true" />
-          Voltar
+          {t("back")}
         </button>
       <div className="auth-card glass-panel">
-        <div className="auth-stepper" aria-label="Progresso da reposição da palavra-passe">
+        <div className="auth-stepper" aria-label={t("reset.progress")}>
           {["email", "otp", "password"].map((item, index) => (
             <span
               key={item}
@@ -120,13 +122,13 @@ function ForgotPassword() {
         </div>
 
         <h1 className="auth-title">
-          Repor <span className="green">palavra-passe</span>
+          {t("reset.title")}
         </h1>
         <p className="auth-subtitle">
-          {step === "email" && "Introduza o email da conta e enviamos um código único."}
-          {step === "otp" && "Introduza o código de seis dígitos enviado por email."}
-          {step === "password" && "Escolha uma nova palavra-passe para a sua conta."}
-          {step === "done" && "A sua palavra-passe foi atualizada."}
+          {step === "email" && t("reset.emailIntro")}
+          {step === "otp" && t("reset.codeIntro")}
+          {step === "password" && t("reset.passwordIntro")}
+          {step === "done" && t("reset.doneIntro")}
         </p>
 
         {error && <div className="alert alert-danger">{error}</div>}
@@ -135,7 +137,7 @@ function ForgotPassword() {
         {step === "email" && (
           <form onSubmit={requestCode} className="auth-form">
             <div className="form-group">
-              <label htmlFor="reset-email" className="form-label">Email</label>
+              <label htmlFor="reset-email" className="form-label">{t("fields.email", { ns: "common" })}</label>
               <input
                 id="reset-email"
                 type="email"
@@ -151,7 +153,7 @@ function ForgotPassword() {
               {fieldErrors.email && <small className="field-error">{fieldErrors.email}</small>}
             </div>
             <button type="submit" className="auth-btn bonefree-button" disabled={loading}>
-              {loading ? "A enviar código..." : "Enviar código"}
+              {loading ? t("reset.sendingCode") : t("reset.sendCode")}
             </button>
           </form>
         )}
@@ -159,7 +161,7 @@ function ForgotPassword() {
         {step === "otp" && (
           <form onSubmit={verifyCode} className="auth-form">
             <div className="form-group">
-              <label htmlFor="reset-code" className="form-label">Código de reposição</label>
+              <label htmlFor="reset-code" className="form-label">{t("reset.codeLabel")}</label>
               <input
                 id="reset-code"
                 type="text"
@@ -178,10 +180,10 @@ function ForgotPassword() {
               {fieldErrors.code && <small className="field-error">{fieldErrors.code}</small>}
             </div>
             <button type="submit" className="auth-btn bonefree-button" disabled={loading}>
-              {loading ? "A verificar..." : "Verificar código"}
+              {loading ? t("reset.verifyingCode") : t("reset.verifyCode")}
             </button>
             <button type="button" className="auth-secondary-action" onClick={() => setStep("email")}>
-              Usar outro email
+              {t("reset.otherEmail")}
             </button>
           </form>
         )}
@@ -189,7 +191,7 @@ function ForgotPassword() {
         {step === "password" && (
           <form onSubmit={resetPassword} className="auth-form">
             <div className="form-group">
-              <label htmlFor="new-password" className="form-label">Nova palavra-passe</label>
+              <label htmlFor="new-password" className="form-label">{t("fields.newPassword", { ns: "common" })}</label>
               <input
                 id="new-password"
                 type="password"
@@ -205,12 +207,12 @@ function ForgotPassword() {
               {fieldErrors.password && <small className="field-error">{fieldErrors.password}</small>}
             </div>
             <div className="form-group">
-              <label htmlFor="confirm-new-password" className="form-label">Confirmar palavra-passe</label>
+              <label htmlFor="confirm-new-password" className="form-label">{t("fields.passwordConfirmation", { ns: "common" })}</label>
               <input
                 id="confirm-new-password"
                 type="password"
                 className={`form-input ${fieldErrors.confirmPassword ? "is-invalid" : ""}`}
-                placeholder="senha"
+                placeholder={t("fields.password", { ns: "common" })}
                 value={confirmPassword}
                 onChange={(event) => {
                   setConfirmPassword(event.target.value)
@@ -221,19 +223,19 @@ function ForgotPassword() {
               {fieldErrors.confirmPassword && <small className="field-error">{fieldErrors.confirmPassword}</small>}
             </div>
             <button type="submit" className="auth-btn bonefree-button" disabled={loading}>
-              {loading ? "A guardar..." : "Repor palavra-passe"}
+              {loading ? t("actions.saving", { ns: "common" }) : t("reset.resetPassword")}
             </button>
           </form>
         )}
 
         {step === "done" && (
           <Link to="/login" className="auth-btn bonefree-button auth-done-link">
-            Voltar ao login
+            {t("reset.backToLogin")}
           </Link>
         )}
 
         <p className="auth-footer">
-          Lembra-se da palavra-passe? <Link to="/login" className="auth-link">Entrar</Link>
+          {t("reset.remember")} <Link to="/login" className="auth-link">{t("signIn")}</Link>
         </p>
       </div>
       </div>

@@ -17,6 +17,8 @@ import {
 import { applyApiImageFallback, resolveProductImageUrl } from "../utils/imageFallback";
 import { formatEuro } from "../utils/money";
 import { primaryProductMediaUrl } from "../utils/productMedia";
+import { useTranslation } from "react-i18next";
+import { resolvedLocale } from "../i18n";
 
 interface CategoryCount {
   name: string;
@@ -26,11 +28,11 @@ interface CategoryCount {
 type SortOption = "default" | "price-asc" | "price-desc" | "name-asc";
 type SpecialFilter = "all" | "gluten-free" | "alcohol";
 
-const sortLabels: Record<SortOption, string> = {
-  default: "Destaques",
-  "price-asc": "Preço: baixo a alto",
-  "price-desc": "Preço: alto a baixo",
-  "name-asc": "Nome A-Z",
+const sortLabelKeys: Record<SortOption, string> = {
+  default: "menu.sort.default",
+  "price-asc": "menu.sort.priceAsc",
+  "price-desc": "menu.sort.priceDesc",
+  "name-asc": "menu.sort.nameAsc",
 };
 
 const LOYALTY_BANNER_DISMISSED_KEY = "bonefree-loyalty-banner-dismissed";
@@ -58,7 +60,7 @@ const defaultMenuFilters: SavedMenuFilters = {
 };
 
 function isSortOption(value: unknown): value is SortOption {
-  return typeof value === "string" && value in sortLabels;
+  return typeof value === "string" && value in sortLabelKeys;
 }
 
 function isSpecialFilter(value: unknown): value is SpecialFilter {
@@ -121,7 +123,7 @@ function sortMenuCategories(categories: CategoryCount[]) {
 
 function formatMenuCalories(calories: number | null | undefined) {
   if (calories == null || !Number.isFinite(Number(calories))) return null;
-  return Number(calories).toLocaleString("en-US", { maximumFractionDigits: 0 });
+  return Number(calories).toLocaleString(resolvedLocale(), { maximumFractionDigits: 0 });
 }
 
 function clampPrice(value: number, maxPrice: number) {
@@ -144,6 +146,7 @@ function isDrinkProduct(product: Product) {
 }
 
 function Menu() {
+  const { t } = useTranslation("storefront");
   const [initialFilters] = useState(readSavedMenuFilters);
   const [categories, setCategories] = useState<CategoryCount[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -263,18 +266,18 @@ function Menu() {
       setSuccessMessage(null);
 
       if (!product.available) {
-        setErrorMessage(product.unavailableReason || `${product.name} está atualmente indisponível.`);
+        setErrorMessage(product.unavailableReason || t("menu.unavailableNamed", { name: product.name }));
         setAddingToCart(null);
         return;
       }
 
       await cartService.addItem(product.id, 1);
-      setSuccessMessage("Adicionado ao carrinho");
+      setSuccessMessage(t("menu.added"));
 
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
       const errorMsg =
-        err instanceof Error ? err.message : "Não foi possível adicionar o item ao carrinho";
+        err instanceof Error ? err.message : t("menu.addFailed");
       setErrorMessage(errorMsg);
       console.error("Erro ao adicionar ao carrinho:", err);
     } finally {
@@ -346,8 +349,10 @@ function Menu() {
   };
 
   return (
-    <section className="menu-page mt-5 ">
+    <>
       <Navbar />
+
+      <section className="menu-page mt-5 ">
 
       <div className="menu-floating-food-bg" aria-hidden="true">
         <span className="menu-food-float menu-food-float-salad"><Salad /></span>
@@ -371,7 +376,7 @@ function Menu() {
           <button
             type="button"
             onClick={() => setSuccessMessage(null)}
-            aria-label="Fechar"
+            aria-label={t("menu.close")}
             className="toast-close"
           >
             <X size={15} strokeWidth={2.5} />
@@ -386,7 +391,7 @@ function Menu() {
           <button
             type="button"
             onClick={() => setErrorMessage(null)}
-            aria-label="Fechar"
+            aria-label={t("menu.close")}
             className="toast-close"
           >
             <X size={15} strokeWidth={2.5} />
@@ -396,29 +401,28 @@ function Menu() {
 
       <header className="menu-page-hero">
         <div>
-          <p className="menu-eyebrow">Balcão de pedidos</p>
-          <h1>Escolha, toque, aproveite.</h1>
+          <p className="menu-eyebrow">{t("menu.eyebrow")}</p>
+          <h1>{t("menu.title")}</h1>
         </div>
         <p>
-          Veja primeiro os destaques e depois percorra o menu completo com
-          categorias rápidas e etiquetas de oferta claras.
+          {t("menu.description")}
         </p>
       </header>
 
       {showLoyaltyBanner && loyaltyCouponSettings.enabled && (
-        <section className="menu-loyalty-banner" aria-label="Cupão de fidelização BONEFREE">
+        <section className="menu-loyalty-banner" aria-label={t("menu.loyaltyLabel")}>
           <div>
-            <p className="menu-eyebrow">Recompensas BONEFREE</p>
+            <p className="menu-eyebrow">{t("menu.rewards")}</p>
             <h2>{loyaltyCouponHeadline(loyaltyCouponSettings)}</h2>
             <span>{loyaltyCouponDetail(loyaltyCouponSettings)}</span>
           </div>
           <div className="menu-loyalty-actions">
-            <Link to="/profile" className="menu-loyalty-link">Ver cupões</Link>
+            <Link to="/profile" className="menu-loyalty-link">{t("menu.viewCoupons")}</Link>
             <button
               type="button"
               className="menu-loyalty-dismiss"
               onClick={dismissLoyaltyBanner}
-              aria-label="Ocultar banner de cupão"
+              aria-label={t("menu.hideCoupon")}
             >
               <X size={18} strokeWidth={2.4} />
             </button>
@@ -427,13 +431,13 @@ function Menu() {
       )}
 
       {popularProducts.length > 0 && (
-        <section className="menu-popular-strip" aria-label="Itens mais populares">
+        <section className="menu-popular-strip" aria-label={t("menu.popularLabel")}>
           <div className="menu-section-heading">
             <div>
-              <p className="menu-eyebrow">Mais populares</p>
-              <h2>Escolhas da casa</h2>
+              <p className="menu-eyebrow">{t("menu.popular")}</p>
+              <h2>{t("menu.houseChoices")}</h2>
             </div>
-            <span>{popularProducts.length} em destaque</span>
+            <span>{t("menu.featured", { count: popularProducts.length })}</span>
           </div>
           <div className="menu-popular-grid">
             {popularProducts.map((product) => (
@@ -477,25 +481,25 @@ function Menu() {
       <div className="menu-shell">
         <div className="menu-results-summary">
           <div>
-            <span>A mostrar</span>
+            <span>{t("menu.showing")}</span>
             <strong className="fw-bold">{filteredProducts.length}</strong>
-            <span>{filteredProducts.length === 1 ? "prato" : "pratos"}</span>
+            <span>{t("menu.dish", { count: filteredProducts.length })}</span>
           </div>
 
         </div>
 
-        <section className="menu-filter-bar" aria-label="Filtros do menu">
+        <section className="menu-filter-bar" aria-label={t("menu.filtersLabel")}>
           <div className="menu-filter-top">
             <div className="menu-filter-group menu-filter-search">
               <label htmlFor="menu-search " className=" ">
-                Pesquisar no menu
+                {t("menu.searchLabel")}
               </label>
               <div className="menu-search-field">
                 <Search size={18} />
                 <input
                   id="menu-search"
                   type="text"
-                  placeholder="Pesquisar pratos..."
+                  placeholder={t("menu.searchPlaceholder")}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -503,7 +507,7 @@ function Menu() {
                   <button
                     type="button"
                     onClick={() => setSearchTerm("")}
-                    aria-label="Limpar pesquisa"
+                    aria-label={t("menu.clearSearch")}
                   >
                     <X size={16} />
                   </button>
@@ -512,7 +516,7 @@ function Menu() {
             </div>
 
             <div className="menu-filter-group menu-filter-price">
-              <label htmlFor="menu-price">Preço máximo</label>
+              <label htmlFor="menu-price">{t("menu.maxPrice")}</label>
               <div className="menu-price-control">
                 <input
                   id="menu-price"
@@ -531,35 +535,35 @@ function Menu() {
             </div>
 
             <div className="menu-filter-group">
-              <label>Filtro</label>
-              <div className="menu-segmented-filter menu-segmented-filter-3" aria-label="Filtro especial do menu">
+              <label>{t("menu.filter")}</label>
+              <div className="menu-segmented-filter menu-segmented-filter-3" aria-label={t("menu.specialFilter")}>
                 <button
                   type="button"
                   className={specialFilter === "all" ? "active" : ""}
                   onClick={() => setSpecialFilter("all")}
                 >
-                   <span className="fw-bold">Todos</span>
+                   <span className="fw-bold">{t("menu.all")}</span>
                 </button>
                 <button
                   type="button"
                   className={specialFilter === "gluten-free" ? "active" : ""}
                   onClick={() => setSpecialFilter("gluten-free")}
                 >
-                <span className="fw-bold">Sem glúten</span>
+                <span className="fw-bold">{t("menu.glutenFree")}</span>
                 </button>
                 <button
                   type="button"
                   className={specialFilter === "alcohol" ? "active" : ""}
                   onClick={() => setSpecialFilter("alcohol")}
                 >
-                  <span className="fw-bold">Álcool</span>
+                  <span className="fw-bold">{t("menu.alcohol")}</span>
                 </button>
               </div>
             </div>
 
             <div className={`menu-sort-control ${sortMenuOpen ? "open" : ""}`} ref={sortMenuRef}>
               <SlidersHorizontal size={17} />
-              <span>Ordenar</span>
+              <span>{t("menu.sortLabel")}</span>
               <button
                 type="button"
                 className="menu-sort-trigger"
@@ -567,12 +571,12 @@ function Menu() {
                 aria-expanded={sortMenuOpen}
                 onClick={() => setSortMenuOpen((current) => !current)}
               >
-                <strong className="fw-bold">{sortLabels[sortBy]}</strong>
+                <strong className="fw-bold">{t(sortLabelKeys[sortBy])}</strong>
                 <ChevronDown size={16} strokeWidth={2.4} />
               </button>
               {sortMenuOpen && (
-                <div className="menu-sort-dropdown" role="listbox" aria-label="Ordenar menu">
-                  {Object.entries(sortLabels).map(([value, label]) => {
+                <div className="menu-sort-dropdown" role="listbox" aria-label={t("menu.sortMenu")}>
+                  {Object.entries(sortLabelKeys).map(([value, labelKey]) => {
                     const option = value as SortOption;
                     const selected = option === sortBy;
 
@@ -588,7 +592,7 @@ function Menu() {
                           setSortMenuOpen(false);
                         }}
                       >
-                        <span>{label}</span>
+                        <span>{t(labelKey)}</span>
                         {selected && <Check size={16} strokeWidth={2.4} />}
                       </button>
                     );
@@ -602,19 +606,19 @@ function Menu() {
               type="button"
               onClick={handleResetFilters}
             >
-              Repor
+              {t("menu.reset")}
               {activeFilterCount > 0 && <span>{activeFilterCount}</span>}
             </button>
           </div>
 
-          <div className="menu-category-list fw-semibold" aria-label="Categorias">
+          <div className="menu-category-list fw-semibold" aria-label={t("menu.categories")}>
             <button
               type="button"
               className={selectedCategory === "" ? "active" : ""}
               onClick={() => selectCategory("")}
             >
 
-              <span className=" fw-bold">Todos</span>
+              <span className=" fw-bold">{t("menu.all")}</span>
               <strong className="fw-bold">{products.length}</strong>
             </button>
             {categories.map((cat) => (
@@ -666,11 +670,11 @@ function Menu() {
                 </div>
               ) : (
                 <div className="menu-empty-state">
-                  <span>Sem resultados</span>
-                  <h2>Nenhum prato encontrado</h2>
-                  <p>Experimente outra category, termo de pesquisa ou intervalo de preço.</p>
+                  <span>{t("menu.noResults")}</span>
+                  <h2>{t("menu.noResultsTitle")}</h2>
+                  <p>{t("menu.noResultsText")}</p>
                   <button type="button"  onClick={handleResetFilters}>
-                    Repor filtros
+                    {t("menu.resetFilters")}
                   </button>
                 </div>
 
@@ -681,7 +685,8 @@ function Menu() {
         </div>
       </div>
 
-    </section>
+      </section>
+    </>
   );
 }
 

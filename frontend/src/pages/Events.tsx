@@ -9,17 +9,19 @@ import Navbar from "../components/Navbar"
 import { getPublicEventsSettings } from "../services/siteSettingsService"
 import type { EventItemSettings } from "../types/siteSettings"
 import { defaultEventsSettings } from "../utils/eventSettings"
+import { useTranslation } from "react-i18next"
+import { resolvedLocale } from "../i18n"
 
 const galleryImages = [
-  { src: "/assets/images/about-us-3.jpg", alt: "Ambiente de eventos na sala da BONEFREE" },
-  { src: "/assets/images/about-img-1.webp", alt: "Mesa vegan para partilhar na BONEFREE" },
-  { src: "/assets/images/about-img-2.webp", alt: "Detalhe noturno do restaurante BONEFREE" },
+  { src: "/assets/images/about-us-3.jpg", altKey: "events.galleryAlt1" },
+  { src: "/assets/images/about-img-1.webp", altKey: "events.galleryAlt2" },
+  { src: "/assets/images/about-img-2.webp", altKey: "events.galleryAlt3" },
 ]
 
 function formatEventDate(value: string) {
   const date = new Date(`${value}T12:00:00`)
   if (Number.isNaN(date.getTime())) return value
-  return new Intl.DateTimeFormat("en-GB", {
+  return new Intl.DateTimeFormat(resolvedLocale(), {
     day: "2-digit",
     month: "short",
     weekday: "short",
@@ -41,6 +43,7 @@ function EventMeta({ icon, children }: { icon: ReactNode; children: ReactNode })
 }
 
 export default function Events() {
+  const { t } = useTranslation("storefront")
   const [eventsSettings, setEventsSettings] = useState(defaultEventsSettings)
 
   useEffect(() => {
@@ -76,8 +79,8 @@ export default function Events() {
             <HeroScrim />
             <HeroContent>
               <EventKicker>{featuredEvent.kicker}</EventKicker>
-              <h1>Eventos na BONEFREE</h1>
-              <p>Noites de DJ, pratos vegetais, cocktails e energia costeira até tarde na Costa da Caparica.</p>
+              <h1>{t("events.heroTitle")}</h1>
+              <p>{t("events.heroDescription")}</p>
               <HeroMeta>
                 <EventMeta icon={<CalendarDays size={16} />}>{formatEventDate(featuredEvent.date)}</EventMeta>
                 <EventMeta icon={<Clock size={16} />}>{featuredEvent.startTime} - {featuredEvent.endTime}</EventMeta>
@@ -87,24 +90,24 @@ export default function Events() {
 
           <EventCard>
             <TileIcon><Music2 size={19} /></TileIcon>
-            <span>A seguir</span>
+            <span>{t("events.next")}</span>
             <h2>{featuredEvent.title}</h2>
             <p>{featuredEvent.description}</p>
           </EventCard>
 
           <ImageTile className="image-tall">
-            <img src="/assets/images/dj_khalil.jpg" alt="DJ Khalil a atuar na BONEFREE" />
+            <img src="/assets/images/dj_khalil.jpg" alt={t("events.djAlt")} />
           </ImageTile>
 
           <DateTile>
             <span>{formatEventDate(featuredEvent.date)}</span>
             <strong>{featuredEvent.startTime}</strong>
-            <small>portas e cozinha no mesmo ritmo</small>
+            <small>{t("events.doors")}</small>
           </DateTile>
 
           <LocationTile>
             <MapPin size={22} />
-            <span>Costa da Caparica</span>
+            <span>{t("events.location")}</span>
             <strong>R. Eng. Henrique Mendia 28A</strong>
           </LocationTile>
 
@@ -121,16 +124,16 @@ export default function Events() {
 
           {galleryImages.map((image, index) => (
             <ImageTile key={image.src} className={index === 0 ? "image-wide" : ""}>
-              <img src={image.src} alt={image.alt} />
+              <img src={image.src} alt={t(image.altKey)} />
             </ImageTile>
           ))}
 
           <BottomCtaTile>
             <div>
-              <span>Acompanhe a próxima noite</span>
-              <h2>Música, comida, cocktails, repetir.</h2>
+              <span>{t("events.follow")}</span>
+              <h2>{t("events.ctaTitle")}</h2>
             </div>
-            <Link to="/contact">Encontrar o restaurante</Link>
+            <Link to="/contact">{t("events.findRestaurant")}</Link>
           </BottomCtaTile>
         </EventsBento>
       </EventsShell>

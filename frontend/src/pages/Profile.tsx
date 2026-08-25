@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import type { FormEvent } from "react"
 import { createPortal } from "react-dom"
 import { Link, useNavigate, useSearchParams } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import {
   CalendarDays,
   ChevronRight,
@@ -53,6 +54,7 @@ import {
 } from "../utils/validation"
 import type { FieldErrors } from "../utils/validation"
 import { formatEuro } from "../utils/money"
+import i18n, { resolvedLocale } from "../i18n"
 import { primaryProductMediaUrl, productMediaUrl } from "../utils/productMedia"
 import "./Profile.css"
 
@@ -86,20 +88,20 @@ const emptyFilters: HistoryFilters = {
 }
 
 const statusOptions = [
-  { value: "", label: "Todos os estados" },
-  { value: "pending", label: "Pendente" },
-  { value: "confirmed", label: "Confirmada" },
-  { value: "in_preparation", label: "Em preparação" },
-  { value: "ready", label: "Pronta" },
-  { value: "delivered", label: "Servido" },
-  { value: "cancelled", label: "Cancelada" },
+  { value: "", labelKey: "profile.status.all" },
+  { value: "pending", labelKey: "profile.status.pending" },
+  { value: "confirmed", labelKey: "profile.status.confirmed" },
+  { value: "in_preparation", labelKey: "profile.status.inPreparation" },
+  { value: "ready", labelKey: "profile.status.ready" },
+  { value: "delivered", labelKey: "profile.status.delivered" },
+  { value: "cancelled", labelKey: "profile.status.cancelled" },
 ]
 
-const tabs: Array<{ id: ProfileTab; label: string; icon: typeof ReceiptText }> = [
-  { id: "overview", label: "Visão geral", icon: Sparkles },
-  { id: "orders", label: "Pedidos", icon: ReceiptText },
-  { id: "coupons", label: "Cupões", icon: WalletCards },
-  { id: "personal", label: "Dados pessoais", icon: UserRound },
+const tabs: Array<{ id: ProfileTab; labelKey: string; icon: typeof ReceiptText }> = [
+  { id: "overview", labelKey: "profile.tabs.overview", icon: Sparkles },
+  { id: "orders", labelKey: "profile.tabs.orders", icon: ReceiptText },
+  { id: "coupons", labelKey: "profile.tabs.coupons", icon: WalletCards },
+  { id: "personal", labelKey: "profile.tabs.personal", icon: UserRound },
 ]
 
 const orderTerminalStatuses = new Set(["delivered", "cancelled"])
@@ -110,7 +112,7 @@ function profileTabFromParam(value: string | null): ProfileTab | null {
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("pt-PT", {
+  return new Intl.DateTimeFormat(resolvedLocale(), {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value))
@@ -121,15 +123,15 @@ function formatCurrency(value: number | string) {
 }
 
 function formatFulfillment(value: string) {
-  if (value === "dine_in") return "Comer no restaurante"
-  if (value === "pickup") return "Recolha"
-  if (value === "takeaway") return "Para levar"
-  if (value === "delivery") return "Entrega"
+  if (value === "dine_in") return i18n.t("profile.fulfillment.dineIn", { ns: "account" })
+  if (value === "pickup") return i18n.t("profile.fulfillment.pickup", { ns: "account" })
+  if (value === "takeaway") return i18n.t("profile.fulfillment.takeaway", { ns: "account" })
+  if (value === "delivery") return i18n.t("profile.fulfillment.delivery", { ns: "account" })
   return value
 }
 
 function formatPayment(value: string) {
-  if (value === "counter") return "Pagar ao balcão"
+  if (value === "counter") return i18n.t("profile.payment.counter", { ns: "account" })
   return value
 }
 
@@ -139,12 +141,12 @@ function resolveImage(image?: string | null) {
 
 function formatStatus(value: string) {
   const labels: Record<string, string> = {
-    pending: "Pendente",
-    confirmed: "Confirmada",
-    in_preparation: "Em preparação",
-    ready: "Pronta",
-    delivered: "Servido",
-    cancelled: "Cancelada",
+    pending: i18n.t("profile.status.pending", { ns: "account" }),
+    confirmed: i18n.t("profile.status.confirmed", { ns: "account" }),
+    in_preparation: i18n.t("profile.status.inPreparation", { ns: "account" }),
+    ready: i18n.t("profile.status.ready", { ns: "account" }),
+    delivered: i18n.t("profile.status.delivered", { ns: "account" }),
+    cancelled: i18n.t("profile.status.cancelled", { ns: "account" }),
   }
 
   return labels[value] ?? value
@@ -205,10 +207,10 @@ function customizedCartBody(item: OrderItem) {
 }
 
 function customerTier(orderCount: number, totalSpent: number) {
-  if (orderCount >= 20 || totalSpent >= 600) return "Diamante"
-  if (orderCount >= 10 || totalSpent >= 300) return "Ouro"
-  if (orderCount >= 4 || totalSpent >= 120) return "Habitual"
-  return "Novo cliente"
+  if (orderCount >= 20 || totalSpent >= 600) return i18n.t("profile.tier.diamond", { ns: "account" })
+  if (orderCount >= 10 || totalSpent >= 300) return i18n.t("profile.tier.gold", { ns: "account" })
+  if (orderCount >= 4 || totalSpent >= 120) return i18n.t("profile.tier.regular", { ns: "account" })
+  return i18n.t("profile.tier.new", { ns: "account" })
 }
 
 function orderItemsCount(order: OrderResponse) {
@@ -259,11 +261,11 @@ function numericSetting(value: number | string | null | undefined, fallback = 0)
 
 function loyaltyProfileHeadline(settings: LoyaltyCouponSettings) {
   const orderCount = Math.max(1, Math.round(numericSetting(settings.qualifyingOrderCount, 3)))
-  const orderLabel = orderCount === 1 ? "pedido" : "pedidos"
-  return `Faça ${orderCount} ${orderLabel} acima de ${formatCurrency(settings.qualifyingOrderMinimum)} e ganhe um cupão no próximo pedido.`
+  return i18n.t("profile.coupons.headline", { ns: "account", count: orderCount, minimum: formatCurrency(settings.qualifyingOrderMinimum) })
 }
 
 function Profile() {
+  const { t } = useTranslation(["account", "common"])
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { user, isAuthenticated, loading: authLoading, refreshUser } = useAuth()
@@ -338,14 +340,14 @@ function Profile() {
         setAvailableCoupons(coupons)
         setLoyaltySettings(couponSettings)
       } catch (err) {
-        setError(translateUserMessage(err instanceof Error ? err.message : "Não foi possível carregar os dados do perfil."))
+        setError(translateUserMessage(err instanceof Error ? err.message : t("profile.errors.profileData")))
       } finally {
         setLoadingCoupons(false)
       }
     }
 
     void loadProfileData()
-  }, [isAuthenticated])
+  }, [isAuthenticated, t])
 
   useEffect(() => {
     if (!isAuthenticated) return
@@ -358,7 +360,7 @@ function Profile() {
         const history = await authService.getPurchaseHistory(serverFilters)
         setOrders(history.filter((order) => orderMatchesSearch(order, search)))
       } catch (err) {
-        setError(translateUserMessage(err instanceof Error ? err.message : "Não foi possível carregar o histórico de compras."))
+        setError(translateUserMessage(err instanceof Error ? err.message : t("profile.errors.history")))
       } finally {
         setLoadingOrders(false)
       }
@@ -366,7 +368,7 @@ function Profile() {
 
     const timeout = window.setTimeout(() => void loadHistory(), 220)
     return () => window.clearTimeout(timeout)
-  }, [filters, isAuthenticated])
+  }, [filters, isAuthenticated, t])
 
   const totalSpent = useMemo(
     () => allOrders.reduce((sum, order) => sum + Number(order.total), 0),
@@ -399,10 +401,10 @@ function Profile() {
     return Array.from(items.values()).sort((a, b) => b.quantity - a.quantity).slice(0, 6)
   }, [allOrders])
 
-  const favoriteItem = favoriteMeals[0]?.name ?? "Discovering"
+  const favoriteItem = favoriteMeals[0]?.name ?? t("profile.discovering")
   const latestOrder = allOrders[0]
   const activeFilterCount = Object.values(filters).filter(Boolean).length
-  const displayName = `${form.name} ${form.lastName}`.trim() || user?.email || "Cliente BONEFREE"
+  const displayName = `${form.name} ${form.lastName}`.trim() || user?.email || t("profile.defaultCustomer")
   const tier = customerTier(allOrders.length, totalSpent)
   const couponStreak = useMemo(() => {
     const requiredOrders = Math.max(1, Math.round(numericSetting(loyaltySettings.qualifyingOrderCount, 3)))
@@ -464,7 +466,7 @@ function Profile() {
     const product = await getProduct(item.productId)
 
     if (!product.available) {
-      throw new Error(product.unavailableReason || `${item.productName} está atualmente indisponível.`)
+      throw new Error(product.unavailableReason || t("profile.errors.unavailableNamed", { name: item.productName }))
     }
 
     if (hasStructuredCustomization(item.customization)) {
@@ -485,10 +487,10 @@ function Profile() {
       setActionError(null)
       setSuccessMessage(null)
       await addHistoricalItem(item)
-      setSuccessMessage(`${item.quantity}x ${item.productName} adicionado ao carrinho.`)
-      toast.success("Item adicionado ao carrinho.")
+      setSuccessMessage(t("profile.messages.itemAdded", { count: item.quantity, name: item.productName }))
+      toast.success(t("profile.messages.itemAddedToast"))
     } catch (err) {
-      const message = translateUserMessage(err instanceof Error ? err.message : "Unable to add this item.")
+      const message = translateUserMessage(err instanceof Error ? err.message : t("errors:messages.itemAdd"))
       setActionError(message)
       toast.error(message)
     } finally {
@@ -511,12 +513,12 @@ function Profile() {
           await addHistoricalItem(item)
           addedCount += item.quantity
         } catch (err) {
-          failures.push(translateUserMessage(err instanceof Error ? err.message : `Não foi possível adicionar ${item.productName}.`))
+          failures.push(translateUserMessage(err instanceof Error ? err.message : t("errors:messages.couldNotAdd", { item: item.productName })))
         }
       }
 
       if (addedCount > 0) {
-        const message = `${addedCount} ${addedCount === 1 ? "item adicionado" : "itens adicionados"} ao carrinho.`
+        const message = t("profile.messages.itemsAdded", { count: addedCount })
         setSuccessMessage(message)
         toast.success(message)
       }
@@ -526,7 +528,7 @@ function Profile() {
         toast.error(message)
       }
       if (addedCount === 0 && failures.length === 0) {
-        const message = "Não foi possível adicionar itens deste pedido."
+        const message = t("profile.errors.addNone")
         setActionError(message)
         toast.error(message)
       }
@@ -539,7 +541,7 @@ function Profile() {
     rememberActiveOrder(order.orderId)
     window.dispatchEvent(new Event("order-status-highlight"))
     setActionError(null)
-    setSuccessMessage(`A acompanhar ${order.orderNumber}.`)
+    setSuccessMessage(t("profile.messages.tracking", { order: order.orderNumber }))
   }
 
   const handleViewReceipt = async (order: OrderResponse) => {
@@ -567,7 +569,7 @@ function Profile() {
       window.setTimeout(() => URL.revokeObjectURL(receiptUrl), 60_000)
     } catch (err) {
       receiptWindow?.close()
-      const message = translateUserMessage(err instanceof Error ? err.message : "Não foi possível abrir este recibo.")
+      const message = translateUserMessage(err instanceof Error ? err.message : t("profile.errors.receipt"))
       setActionError(message)
       toast.error(message)
     } finally {
@@ -593,8 +595,8 @@ function Profile() {
       if (postalCodeError) errors.postalCode = postalCodeError
       setFieldErrors(errors)
       if (Object.keys(errors).length > 0) {
-        setError("Please fix the highlighted fields.")
-        toast.warning("Corrija os campos assinalados.")
+        setError(t("errors:messages.fixFields"))
+        toast.warning(t("errors:messages.fixFields"))
         return
       }
 
@@ -619,10 +621,10 @@ function Profile() {
 
       await authService.updateProfile(payload)
       await refreshUser()
-        setMessage("Perfil atualizado.")
-        toast.success("Perfil guardado com sucesso.")
+        setMessage(t("profile.messages.updated"))
+        toast.success(t("profile.messages.saved"))
     } catch (err) {
-      const message = translateUserMessage(err instanceof Error ? err.message : "Não foi possível guardar as alterações.")
+      const message = translateUserMessage(err instanceof Error ? err.message : t("profile.errors.save"))
       setError(message)
       toast.error(message)
     } finally {
@@ -650,7 +652,7 @@ function Profile() {
         <FloatingProfileIcons />
         <Navbar />
         <main className="profile-shell">
-          <div className="profile-loading">A carregar perfil...</div>
+          <div className="profile-loading">{t("profile.loading")}</div>
         </main>
       </section>
     )
@@ -669,7 +671,7 @@ function Profile() {
             <div className="profile-identity-copy">
               <div className="profile-kicker-row">
                 <span className="profile-tier-badge"><Sparkles size={14} /> {tier}</span>
-                <span className="profile-muted-chip">Perfil de cliente</span>
+                <span className="profile-muted-chip">{t("profile.hero.customerProfile")}</span>
               </div>
               <h1>{displayName}</h1>
               <p><Mail size={15} /> {form.email}</p>
@@ -679,25 +681,25 @@ function Profile() {
           <div className="profile-hero-actions">
             <button type="button" className="profile-primary-cta" onClick={jumpToOrders}>
               <RefreshCw size={18} />
-              Pedir novamente
+              {t("profile.hero.reorder")}
             </button>
             <button type="button" className="profile-secondary-cta" onClick={jumpToPersonal}>
               <Pencil size={17} />
-              Editar perfil
+              {t("profile.hero.edit")}
             </button>
           </div>
 
           <div className="profile-stat-strip">
             <div>
-              <span>Pedidos</span>
+              <span>{t("profile.hero.orders")}</span>
               <strong>{allOrders.length}</strong>
             </div>
             <div>
-              <span>Total gasto</span>
+              <span>{t("profile.hero.totalSpent")}</span>
               <strong>{formatCurrency(totalSpent)}</strong>
             </div>
             <div>
-              <span>Item favorito</span>
+              <span>{t("profile.hero.favourite")}</span>
               <strong>{favoriteItem}</strong>
             </div>
           </div>
@@ -705,14 +707,11 @@ function Profile() {
           {showCouponProgress && (
             <div className="profile-coupon-progress-card">
               <div className="profile-coupon-progress-copy">
-                <span><Sparkles size={15} /> Série para cupão</span>
-                <strong>{couponStreak.current} / {couponStreak.required} pedidos elegíveis</strong>
-                <p>
-                  Faltam {couponStreak.remaining} pedido{couponStreak.remaining === 1 ? "" : "s"} acima de{" "}
-                  {formatCurrency(couponStreak.minimumSubtotal)} para desbloquear um cupão.
-                </p>
+                <span><Sparkles size={15} /> {t("profile.streak.label")}</span>
+                <strong>{t("profile.streak.eligible", { count: couponStreak.required, current: couponStreak.current, required: couponStreak.required })}</strong>
+                <p>{t("profile.streak.remaining", { count: couponStreak.remaining, minimum: formatCurrency(couponStreak.minimumSubtotal) })}</p>
               </div>
-              <div className="profile-coupon-progress-track" aria-label={`Série para cupão ${couponStreak.current} de ${couponStreak.required}`}>
+              <div className="profile-coupon-progress-track" aria-label={t("profile.streak.aria", { current: couponStreak.current, required: couponStreak.required })}>
                 <span style={{ width: `${couponStreak.percent}%` }} />
               </div>
             </div>
@@ -726,7 +725,7 @@ function Profile() {
           </div>
         )}
 
-        <nav className="profile-tabs" aria-label="Secções do perfil">
+        <nav className="profile-tabs" aria-label={t("profile.tabs.label")}>
           {tabs.map((tab) => {
             const Icon = tab.icon
             return (
@@ -737,7 +736,7 @@ function Profile() {
                 onClick={() => selectProfileTab(tab.id)}
               >
                 <Icon size={17} />
-                {tab.label}
+                {t(tab.labelKey)}
               </button>
             )
           })}
@@ -748,28 +747,28 @@ function Profile() {
             <section className="profile-panel profile-overview-main">
               <div className="profile-section-heading">
                 <div>
-                  <span>Snapshot</span>
-                  <h2>Visão geral da conta</h2>
+                  <span>{t("profile.overview.label")}</span>
+                  <h2>{t("profile.overview.title")}</h2>
                 </div>
                 <button type="button" className="profile-text-button" onClick={() => selectProfileTab("orders")}>
-                  Ver pedidos <ChevronRight size={16} />
+                  {t("profile.overview.viewOrders")} <ChevronRight size={16} />
                 </button>
               </div>
 
               <div className="profile-metric-grid">
                 <div className="profile-metric-card">
                   <ShoppingBag size={18} />
-                  <span>Items ordered</span>
+                  <span>{t("profile.overview.itemsOrdered")}</span>
                   <strong>{totalItems}</strong>
                 </div>
                 <div className="profile-metric-card">
                   <WalletCards size={18} />
-                  <span>Average order</span>
+                  <span>{t("profile.overview.averageOrder")}</span>
                   <strong>{formatCurrency(allOrders.length ? totalSpent / allOrders.length : 0)}</strong>
                 </div>
                 <div className="profile-metric-card">
                   <Star size={18} />
-                  <span>Favorito</span>
+                  <span>{t("profile.overview.favourite")}</span>
                   <strong>{favoriteItem}</strong>
                 </div>
               </div>
@@ -779,7 +778,7 @@ function Profile() {
                   <div>
                     <span className={`profile-status ${latestOrder.status}`}>{formatStatus(latestOrder.status)}</span>
                     <h3>{latestOrder.orderNumber}</h3>
-                    <p>{formatDate(latestOrder.createdAt)} · {orderItemsCount(latestOrder)} itens · {formatPayment(latestOrder.paymentMethod)}</p>
+                    <p>{formatDate(latestOrder.createdAt)} · {t("profile.overview.orderItems", { count: orderItemsCount(latestOrder) })} · {formatPayment(latestOrder.paymentMethod)}</p>
                   </div>
                   <div className="profile-feature-actions">
                     <strong>{formatCurrency(latestOrder.total)}</strong>
@@ -789,12 +788,12 @@ function Profile() {
                       onClick={() => handleOrderAgain(latestOrder)}
                       disabled={busyKey === `order-${latestOrder.orderId}`}
                     >
-                      {busyKey === `order-${latestOrder.orderId}` ? "A adicionar..." : "Pedir novamente"}
+                      {busyKey === `order-${latestOrder.orderId}` ? t("profile.overview.adding") : t("profile.hero.reorder")}
                     </button>
                   </div>
                 </article>
               ) : (
-                <div className="profile-empty">O seu primeiro pedido concluído aparecerá aqui.</div>
+                <div className="profile-empty">{t("profile.overview.firstOrder")}</div>
               )}
             </section>
 
@@ -802,8 +801,8 @@ function Profile() {
               <section className="profile-panel">
                 <div className="profile-section-heading compact">
                   <div>
-                    <span>Fast reorder</span>
-                    <h2>Refeições favoritas</h2>
+                    <span>{t("profile.overview.fastReorder")}</span>
+                    <h2>{t("profile.overview.favouriteMeals")}</h2>
                   </div>
                 </div>
                 <div className="profile-favorite-list">
@@ -816,18 +815,18 @@ function Profile() {
                       disabled={busyKey === `favorite-${meal.id}`}
                     >
                       <span>{meal.name}</span>
-                      <strong>{busyKey === `favorite-${meal.id}` ? "A adicionar..." : `Repetir · ${meal.quantity}x`}</strong>
+                      <strong>{busyKey === `favorite-${meal.id}` ? t("profile.overview.adding") : t("profile.overview.repeatCount", { count: meal.quantity })}</strong>
                     </button>
                   ))}
-                  {favoriteMeals.length === 0 && <div className="profile-empty compact">Ainda não há favoritos.</div>}
+                  {favoriteMeals.length === 0 && <div className="profile-empty compact">{t("profile.overview.noFavourites")}</div>}
                 </div>
               </section>
 
               <section className="profile-panel profile-contact-card">
                 <div>
                   <Phone size={18} />
-                  <span>Telefone</span>
-                  <strong>{form.phone || "Não definido"}</strong>
+                  <span>{t("profile.overview.phone")}</span>
+                  <strong>{form.phone || t("profile.overview.notDefined")}</strong>
                 </div>
               </section>
             </aside>
@@ -838,12 +837,12 @@ function Profile() {
           <section className="profile-panel profile-orders-section">
             <div className="profile-section-heading profile-orders-heading">
               <div>
-                <span>Centro de pedidos</span>
-                <h2>Histórico de pedidos</h2>
+                <span>{t("profile.orders.label")}</span>
+                <h2>{t("profile.orders.title")}</h2>
               </div>
               <div className="profile-orders-heading-meta">
-                <span>{orders.length} mostrados</span>
-                {activeFilterCount > 0 && <span className="profile-filter-pill">{activeFilterCount} filtros</span>}
+                <span>{t("profile.orders.shown", { count: orders.length })}</span>
+                {activeFilterCount > 0 && <span className="profile-filter-pill">{t("profile.orders.filters", { count: activeFilterCount })}</span>}
               </div>
             </div>
 
@@ -851,7 +850,7 @@ function Profile() {
               <label className="profile-search-control">
                 <Search size={17} />
                 <input
-                  placeholder="Pesquisar produto ou pedido..."
+                  placeholder={t("profile.orders.search")}
                   value={filters.search}
                   onChange={(e) => updateFilter("search", e.target.value)}
                 />
@@ -863,7 +862,7 @@ function Profile() {
                   onChange={(nextValue) => updateFilter("status", String(nextValue))}
                   options={statusOptions.map((status) => ({
                     value: status.value,
-                    label: status.label,
+                    label: t(status.labelKey),
                   }))}
                 />
               </label>
@@ -873,8 +872,8 @@ function Profile() {
                   value={filters.payment}
                   onChange={(nextValue) => updateFilter("payment", String(nextValue))}
                   options={[
-                    { value: "", label: "Todos os pagamentos" },
-                    { value: "counter", label: "Pagar ao balcão" },
+                    { value: "", label: t("profile.payment.all") },
+                    { value: "counter", label: t("profile.payment.counter") },
                   ]}
                 />
               </label>
@@ -888,23 +887,23 @@ function Profile() {
               </label>
               <button type="button" className="profile-clear-filters" onClick={() => setFilters(emptyFilters)}>
                 <Filter size={16} />
-                Limpar filtros
+                {t("profile.orders.clearFilters")}
               </button>
             </div>
 
             {loadingOrders ? (
-              <div className="profile-loading small">A carregar pedidos...</div>
+              <div className="profile-loading small">{t("profile.orders.loading")}</div>
             ) : allOrders.length === 0 ? (
               <div className="profile-empty profile-empty-orders">
-                <h3>Ainda não há pedidos</h3>
-                <p>Os seus pedidos concluídos aparecerão aqui com estado, recibos e opções para repetir.</p>
-                <Link to="/menu" className="profile-order-again">Começar pedido</Link>
+                <h3>{t("profile.orders.emptyTitle")}</h3>
+                <p>{t("profile.orders.emptyText")}</p>
+                <Link to="/menu" className="profile-order-again">{t("profile.orders.start")}</Link>
               </div>
             ) : orders.length === 0 ? (
               <div className="profile-empty profile-empty-orders">
-                <h3>Nenhum pedido corresponde a estes filtros</h3>
-                <p>Experimente limpar a pesquisa, intervalo de datas, pagamento ou estado.</p>
-                <button type="button" className="profile-clear-filters" onClick={() => setFilters(emptyFilters)}>Limpar filtros</button>
+                <h3>{t("profile.orders.noMatchTitle")}</h3>
+                <p>{t("profile.orders.noMatchText")}</p>
+                <button type="button" className="profile-clear-filters" onClick={() => setFilters(emptyFilters)}>{t("profile.orders.clearFilters")}</button>
               </div>
             ) : (
               <div className="profile-order-grid">
@@ -929,41 +928,41 @@ function Profile() {
           <section className="profile-panel profile-coupons-section">
             <div className="profile-section-heading">
               <div>
-                <span>Loyalty</span>
-                <h2>Cupões e recompensas</h2>
+                <span>{t("profile.coupons.label")}</span>
+                <h2>{t("profile.coupons.title")}</h2>
               </div>
               <button type="button" className="profile-text-button" onClick={() => selectProfileTab("orders")}>
-                Pedir novamente <ChevronRight size={16} />
+                {t("profile.coupons.reorder")} <ChevronRight size={16} />
               </button>
             </div>
 
             <div className="profile-loyalty-banner">
               <div>
                 <Sparkles size={20} />
-                <span>Bonefree loyalty</span>
+                <span>{t("profile.coupons.brand")}</span>
                 <h3>{loyaltyProfileHeadline(loyaltySettings)}</h3>
                 <p>{loyaltyCouponDetail(loyaltySettings)}</p>
               </div>
             </div>
 
             {loadingCoupons ? (
-              <div className="profile-loading small">A carregar cupões...</div>
+              <div className="profile-loading small">{t("profile.coupons.loading")}</div>
             ) : availableCoupons.length === 0 ? (
               <div className="profile-empty">
-                Ainda não há cupões ativos. Fique atento a pedidos acima de {formatCurrency(loyaltySettings.qualifyingOrderMinimum)}.
+                {t("profile.coupons.empty", { minimum: formatCurrency(loyaltySettings.qualifyingOrderMinimum) })}
               </div>
             ) : (
               <div className="profile-coupon-grid">
                 {availableCoupons.map((coupon) => (
                   <article key={coupon.couponId} className="profile-coupon-card">
-                    <span>{coupon.type === "fixed_value" ? "Desconto fixo" : "Desconto percentual"}</span>
-                    <h3>{formatCurrency(coupon.value)} off</h3>
-                    <p>Use o código <strong>{coupon.code}</strong></p>
+                    <span>{coupon.type === "fixed_value" ? t("profile.coupons.fixed") : t("profile.coupons.percentage")}</span>
+                    <h3>{t("profile.coupons.discount", { value: formatCurrency(coupon.value) })}</h3>
+                    <p>{t("profile.coupons.useCode", { code: coupon.code })}</p>
                     <small>
-                      Pedido mínimo {formatCurrency(coupon.minimumOrderValue)}
-                      {coupon.expiresAt ? ` · Expira ${formatDate(coupon.expiresAt)}` : ""}
+                      {t("profile.coupons.minimum", { value: formatCurrency(coupon.minimumOrderValue) })}
+                      {coupon.expiresAt ? ` · ${t("profile.coupons.expires", { date: formatDate(coupon.expiresAt) })}` : ""}
                     </small>
-                    <Link to="/checkout" className="profile-order-again">Usar cupão</Link>
+                    <Link to="/checkout" className="profile-order-again">{t("profile.coupons.use")}</Link>
                   </article>
                 ))}
               </div>
@@ -974,54 +973,54 @@ function Profile() {
         {activeTab === "personal" && (
           <form className="profile-settings-layout profile-personal-layout" onSubmit={handleSave}>
             <ProfileFormSection
-              eyebrow="Pessoal"
+              eyebrow={t("profile.personal.label")}
               icon={UserRound}
-              title="Informação pessoal"
-              description="Dados principais de contacto usados no checkout, nos recibos e na recuperação da conta."
+              title={t("profile.personal.title")}
+              description={t("profile.personal.description")}
             >
-              <FormField label="Nome">
+              <FormField label={t("fields.firstName", { ns: "common" })}>
                 <input className={fieldErrors.name ? "is-invalid" : ""} value={form.name} onChange={(e) => updateForm("name", e.target.value)} autoComplete="given-name" />
                 {fieldErrors.name && <small className="field-error">{fieldErrors.name}</small>}
               </FormField>
-              <FormField label="Apelido">
+              <FormField label={t("fields.lastName", { ns: "common" })}>
                 <input className={fieldErrors.lastName ? "is-invalid" : ""} value={form.lastName} onChange={(e) => updateForm("lastName", e.target.value)} autoComplete="family-name" />
                 {fieldErrors.lastName && <small className="field-error">{fieldErrors.lastName}</small>}
               </FormField>
-              <FormField label="Email">
+              <FormField label={t("fields.email", { ns: "common" })}>
                 <input className={fieldErrors.email ? "is-invalid" : ""} type="email" value={form.email} onChange={(e) => updateForm("email", e.target.value)} autoComplete="email" />
                 {fieldErrors.email && <small className="field-error">{fieldErrors.email}</small>}
               </FormField>
-              <FormField label="Telefone">
+              <FormField label={t("fields.phone", { ns: "common" })}>
                 <input className={fieldErrors.phone ? "is-invalid" : ""} value={form.phone} onChange={(e) => updateForm("phone", e.target.value)} autoComplete="tel" inputMode="tel" />
                 {fieldErrors.phone && <small className="field-error">{fieldErrors.phone}</small>}
               </FormField>
             </ProfileFormSection>
 
             <ProfileFormSection
-              eyebrow="Faturação"
+              eyebrow={t("profile.personal.billingLabel")}
               icon={WalletCards}
-              title="Dados fiscais"
-              description="NIF e morada fiscal usados nos recibos e faturas dos seus pedidos."
+              title={t("profile.personal.billingTitle")}
+              description={t("profile.personal.billingDescription")}
             >
-              <FormField label="NIF">
+              <FormField label={t("fields.taxId", { ns: "common" })}>
                 <input className={fieldErrors.taxId ? "is-invalid" : ""} value={form.taxId} onChange={(e) => updateForm("taxId", e.target.value)} maxLength={9} inputMode="numeric" />
                 {fieldErrors.taxId && <small className="field-error">{fieldErrors.taxId}</small>}
               </FormField>
-              <FormField label="Morada fiscal" wide>
+              <FormField label={t("profile.personal.billingAddress")} wide>
                 <input value={form.address} onChange={(e) => updateForm("address", e.target.value)} autoComplete="street-address" />
               </FormField>
-              <FormField label="Código postal">
+              <FormField label={t("fields.postalCode", { ns: "common" })}>
                 <input className={fieldErrors.postalCode ? "is-invalid" : ""} value={form.postalCode} onChange={(e) => updateForm("postalCode", e.target.value)} autoComplete="postal-code" inputMode="numeric" placeholder="0000-000" />
                 {fieldErrors.postalCode && <small className="field-error">{fieldErrors.postalCode}</small>}
               </FormField>
-              <FormField label="Cidade">
+              <FormField label={t("fields.city", { ns: "common" })}>
                 <input value={form.city} onChange={(e) => updateForm("city", e.target.value)} autoComplete="address-level2" />
               </FormField>
             </ProfileFormSection>
 
             <div className="profile-settings-save">
               <button type="submit" className="profile-primary-cta" disabled={saving}>
-                {saving ? "A guardar..." : "Guardar alterações"}
+                {saving ? t("profile.personal.saving") : t("profile.personal.save")}
               </button>
             </div>
           </form>
@@ -1030,7 +1029,7 @@ function Profile() {
         <div className="profile-mobile-reorder">
           <button type="button" onClick={latestOrder ? () => handleOrderAgain(latestOrder) : jumpToOrders} disabled={Boolean(latestOrder && busyKey === `order-${latestOrder.orderId}`)}>
             <RefreshCw size={18} />
-            {latestOrder && busyKey === `order-${latestOrder.orderId}` ? "A adicionar..." : "Pedir novamente"}
+            {latestOrder && busyKey === `order-${latestOrder.orderId}` ? t("profile.overview.adding") : t("profile.hero.reorder")}
           </button>
         </div>
 
@@ -1056,6 +1055,7 @@ function OrderTimelineCard({
   onTrackOrder: (order: OrderResponse) => void
   onViewReceipt: (order: OrderResponse) => void
 }) {
+  const { t } = useTranslation("account")
   const [detailsOpen, setDetailsOpen] = useState(false)
   const previewItems = order.items.slice(0, 3)
   const firstItem = order.items[0]
@@ -1063,9 +1063,9 @@ function OrderTimelineCard({
   const detailsTitleId = `order-details-title-${order.orderId}`
   const previewSummary = firstItem
     ? previewExtraCount > 0
-      ? `${firstItem.productName} +${previewExtraCount} ${previewExtraCount === 1 ? "item" : "itens"}`
+      ? t("profile.orderCard.extraItems", { count: previewExtraCount, name: firstItem.productName })
       : `${firstItem.quantity}x ${firstItem.productName}`
-    : "Nenhum item listado"
+    : t("profile.orderCard.noItems")
   const canTrack = !orderTerminalStatuses.has(order.status)
   const canReorder = order.items.length > 0
 
@@ -1101,19 +1101,19 @@ function OrderTimelineCard({
           >
             <header className="profile-order-modal-head">
               <div>
-                <span>Número do pedido</span>
+                <span>{t("profile.orderCard.number")}</span>
                 <h3 id={detailsTitleId}>{order.orderNumber}</h3>
               </div>
-              <button type="button" onClick={() => setDetailsOpen(false)} aria-label="Fechar detalhes do pedido">
+              <button type="button" onClick={() => setDetailsOpen(false)} aria-label={t("profile.orderCard.close")}>
                 <X size={18} />
               </button>
             </header>
 
             <div className="profile-order-detail-list">
               <div className="profile-order-detail-summary">
-                <span>Status</span>
+                <span>{t("profile.orderCard.status")}</span>
                 <strong>{formatStatus(order.status)}</strong>
-                <span>Pagamento</span>
+                <span>{t("profile.orderCard.payment")}</span>
                 <strong>{formatPayment(order.paymentMethod)}</strong>
               </div>
               {order.items.map((item, index) => {
@@ -1150,7 +1150,7 @@ function OrderTimelineCard({
                         onClick={() => onAddItem(item, `item-${itemKey}`)}
                         disabled={busyKey === `item-${itemKey}`}
                       >
-                        {busyKey === `item-${itemKey}` ? "A adicionar..." : "Adicionar"}
+                        {busyKey === `item-${itemKey}` ? t("profile.orderCard.adding") : t("profile.orderCard.add")}
                       </button>
                     </div>
                   </div>
@@ -1168,7 +1168,7 @@ function OrderTimelineCard({
       <div className="profile-order-card-main">
         <div className="profile-order-title-row">
           <div>
-            <span>Número do pedido</span>
+            <span>{t("profile.orderCard.number")}</span>
             <h3>{order.orderNumber}</h3>
           </div>
           <span className={`profile-status ${order.status}`}>{formatStatus(order.status)}</span>
@@ -1181,7 +1181,7 @@ function OrderTimelineCard({
         </div>
 
         <div className="profile-order-total-row">
-          <span>Valor total</span>
+          <span>{t("profile.orderCard.total")}</span>
           <strong>{formatCurrency(order.total)}</strong>
         </div>
 
@@ -1203,7 +1203,7 @@ function OrderTimelineCard({
           </div>
           <div className="profile-item-preview-copy">
             <strong>{previewSummary}</strong>
-            <p>{orderItemsCount(order)} itens neste pedido</p>
+            <p>{t("profile.orderCard.items", { count: orderItemsCount(order) })}</p>
           </div>
         </div>
       </div>
@@ -1214,7 +1214,7 @@ function OrderTimelineCard({
           className="profile-soft-action fw-semibold"
           onClick={() => setDetailsOpen(true)}
         >
-          <ReceiptText size={16} /> Ver detalhes
+          <ReceiptText size={16} /> {t("profile.orderCard.details")}
         </button>
         {order.paymentStatus === "paid" && (
           <button
@@ -1224,7 +1224,7 @@ function OrderTimelineCard({
             disabled={busyKey === `receipt-${order.orderId}`}
           >
             <ReceiptText size={16} />
-            {busyKey === `receipt-${order.orderId}` ? "A abrir..." : "Ver recibo"}
+            {busyKey === `receipt-${order.orderId}` ? t("profile.orderCard.opening") : t("profile.orderCard.receipt")}
           </button>
         )}
         {canTrack && (
@@ -1234,7 +1234,7 @@ function OrderTimelineCard({
             onClick={() => onTrackOrder(order)}
           >
             <PackageCheck size={16} />
-            Acompanhar pedido
+            {t("profile.orderCard.track")}
           </button>
         )}
         {canReorder && (
@@ -1245,7 +1245,7 @@ function OrderTimelineCard({
             disabled={busyKey === `order-${order.orderId}`}
           >
             <RefreshCw size={14} />
-            {busyKey === `order-${order.orderId}` ? "A adicionar..." : "Repetir pedido"}
+            {busyKey === `order-${order.orderId}` ? t("profile.orderCard.adding") : t("profile.orderCard.repeat")}
           </button>
         )}
       </div>

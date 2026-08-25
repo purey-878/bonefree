@@ -3,34 +3,36 @@ import { Link } from "react-router-dom";
 import { Clock, Mail, MapPin, Phone, Route, UtensilsCrossed } from "lucide-react";
 import styled from "styled-components";
 import Navbar from "../components/Navbar";
+import { useTranslation } from "react-i18next";
 
 const mapsUrl =
   "https://www.google.com/maps/dir//R.+Eng.+Henrique+M%C3%AAndia+28A,+2825-450+Costa+da+Caparica/@38.6849967,-9.2862047,15z/data=!4m8!4m7!1m0!1m5!1m1!1s0xd1ecbd167fb7389:0x4bfb3119d6e98f29!2m2!1d-9.2333178!2d38.6382045?entry=ttu";
 
 const contactCards = [
   {
-    title: "Morada",
+    titleKey: "contact.address",
     text: "R. Eng. Henrique Mendia 28A, 2825-450 Costa da Caparica",
     Icon: MapPin,
   },
   {
-    title: "Telefone",
+    titleKey: "contact.phone",
     text: "+351 968 107 703",
     Icon: Phone,
   },
   {
-    title: "Email",
+    titleKey: "contact.email",
     text: "carambolarubra@gmail.com",
     Icon: Mail,
   },
   {
-    title: "Horário",
-    text: "Segunda a domingo: 12:00 - 23:00",
+    titleKey: "contact.hours",
+    textKey: "contact.hoursValue",
     Icon: Clock,
   },
 ];
 
 const Contact: React.FC = () => {
+  const { t } = useTranslation("storefront");
   return (
     <ContactPage>
       <ContactHero>
@@ -39,16 +41,16 @@ const Contact: React.FC = () => {
         
           <HeroCopy>
               <Navbar />
-            <h1>Encontre a BONEFREE junto à costa.</h1>
-            <p>Pratos vegetais, cocktails, pedidos à mesa e uma sala feita para noites longas e descontraídas.</p>
+            <h1>{t("contact.heroTitle")}</h1>
+            <p>{t("contact.heroDescription")}</p>
             <HeroActions>
               <a href={mapsUrl} target="_blank" rel="noopener noreferrer">
                 <Route size={18} />
-                Obter direções
+                {t("contact.directions")}
               </a>
               <Link to="/menu">
                 <UtensilsCrossed size={18} />
-                Ver menu
+                {t("contact.viewMenu")}
               </Link>
             </HeroActions>
           </HeroCopy>
@@ -57,33 +59,33 @@ const Contact: React.FC = () => {
         </HeroGrid>
       </ContactHero>
 
-      <ContactBento aria-label="Detalhes de contacto da BONEFREE">
+      <ContactBento aria-label={t("contact.detailsLabel")}>
         <FeatureTile>
-          <img src="/assets/images/banner-menu.jpeg" alt="Mesa vegetal da BONEFREE" />
+          <img src="/assets/images/banner-menu.jpeg" alt={t("contact.tableAlt")} />
           <div>
-            <span>Entre com fome</span>
-            <h2>Comida, cocktails, música, costa.</h2>
+            <span>{t("contact.hungry")}</span>
+            <h2>{t("contact.featureTitle")}</h2>
           </div>
         </FeatureTile>
 
-        {contactCards.map(({ title, text, Icon }) => (
-          <ContactCard key={title}>
+        {contactCards.map(({ titleKey, text, textKey, Icon }) => (
+          <ContactCard key={titleKey}>
             <IconWrap>
               <Icon size={22} />
             </IconWrap>
             <div>
-              <span>{title}</span>
-              <strong>{text}</strong>
+              <span>{t(titleKey)}</span>
+              <strong>{textKey ? t(textKey) : text}</strong>
             </div>
           </ContactCard>
         ))}
 
         <DirectionsTile>
           <MapPin size={26} />
-          <span>Bonefree, Costa da Caparica</span>
+          <span>{t("contact.location")}</span>
           <h2>R. Eng. Henrique Mendia 28A</h2>
           <a href={mapsUrl} target="_blank" rel="noopener noreferrer">
-            Abrir no Google Maps
+            {t("contact.openMaps")}
           </a>
         </DirectionsTile>
 
@@ -96,7 +98,7 @@ const Contact: React.FC = () => {
             allowFullScreen
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
-            title="Localização da BONEFREE"
+            title={t("contact.mapTitle")}
           />
         </MapTile>
       </ContactBento>

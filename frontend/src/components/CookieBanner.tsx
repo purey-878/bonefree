@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { useAuth } from "../hooks"
 import "./CookieBanner.css"
+import { useTranslation } from "react-i18next"
 
 const COOKIE_CONSENT_KEY = "bonefree_cookie_consent"
 const COOKIE_CONSENT_VERSION = 1
@@ -32,6 +33,7 @@ function storeAcceptedCookies() {
 }
 
 export default function CookieBanner() {
+  const { t } = useTranslation("storefront")
   const { isAuthenticated, loading } = useAuth()
   const [accepted, setAccepted] = useState(() => hasAcceptedCookies())
 
@@ -51,13 +53,13 @@ export default function CookieBanner() {
   if (!visible) return null
 
   return (
-    <section className="cookie-banner" role="dialog" aria-live="polite" aria-label="Aviso de cookies">
+    <section className="cookie-banner" role="dialog" aria-live="polite" aria-label={t("cookie.label")}>
       <div>
-        <strong>Cookies no BONEFREE</strong>
-        <p>Usamos cookies e armazenamento local para manter a sessao, carrinho, preferencias e melhorar a experiencia.</p>
+        <strong>{t("cookie.title")}</strong>
+        <p>{t("cookie.description")}</p>
       </div>
       <button type="button" onClick={acceptAllCookies}>
-        Aceitar todos os cookies
+        {t("cookie.accept")}
       </button>
     </section>
   )

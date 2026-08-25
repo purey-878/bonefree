@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { AdminOrder } from "../../types/admin";
 import OrderAgeBadge from "./OrderAgeBadge";
 import OrderDetailsDrawer from "./OrderDetailsDrawer";
@@ -19,12 +20,13 @@ type Props = {
 };
 
 const columns = [
-  { id: "confirmed", title: "Na fila", empty: "Nada em fila" },
-  { id: "in_preparation", title: "Em preparação", empty: "Nada em preparação agora" },
-  { id: "ready", title: "Prontos", empty: "Nenhum pedido pronto" },
+  { id: "confirmed", titleKey: "orders.kitchen.columns.queuedTitle", emptyKey: "orders.kitchen.columns.queuedEmpty" },
+  { id: "in_preparation", titleKey: "orders.kitchen.columns.preparingTitle", emptyKey: "orders.kitchen.columns.preparingEmpty" },
+  { id: "ready", titleKey: "orders.kitchen.columns.readyTitle", emptyKey: "orders.kitchen.columns.readyEmpty" },
 ];
 
 export default function KitchenOrdersBoard({ orders, onRefresh, onUpdateStatus }: Props) {
+  const { t } = useTranslation("admin");
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [quickFilter, setQuickFilter] = useState("all");
 
@@ -50,22 +52,22 @@ export default function KitchenOrdersBoard({ orders, onRefresh, onUpdateStatus }
     <div className="orders-workspace kitchen-workspace">
       <div className="orders-toolbar">
         <div>
-          <h2 className="ad-section-title">Ecrã da cozinha</h2>
-          <p className="orders-toolbar-copy">Cartões de preparação grandes, sem ruído de pagamento ou cliente.</p>
+          <h2 className="ad-section-title">{t("orders.kitchen.title")}</h2>
+          <p className="orders-toolbar-copy">{t("orders.kitchen.subtitle")}</p>
         </div>
-        <button className="ad-btn ad-btn-ghost" onClick={onRefresh}>Atualizar</button>
+        <button className="ad-btn ad-btn-ghost" onClick={onRefresh}>{t("orders.common.refresh")}</button>
       </div>
 
-      <div className="order-quick-filters" role="group" aria-label="Filtros de pedidos da cozinha">
+      <div className="order-quick-filters" role="group" aria-label={t("orders.kitchen.filters")}>
         {[
-          ["all", "Todos"],
-          ["confirmed", "Na fila"],
-          ["in_preparation", "Em preparação"],
-          ["ready", "Prontos"],
-          ["customized", "Com personalizações"],
-        ].map(([value, label]) => (
+          ["all", "orders.common.all"],
+          ["confirmed", "orders.common.queued"],
+          ["in_preparation", "orders.common.preparing"],
+          ["ready", "orders.common.ready"],
+          ["customized", "orders.common.customised"],
+        ].map(([value, labelKey]) => (
           <button key={value} className={quickFilter === value ? "active" : ""} onClick={() => setQuickFilter(value)}>
-            {label}
+            {t(labelKey)}
           </button>
         ))}
       </div>
@@ -74,7 +76,7 @@ export default function KitchenOrdersBoard({ orders, onRefresh, onUpdateStatus }
         {columns.map((column) => (
           <section key={column.id} className={`orders-column orders-column-${column.id}`}>
             <header className="orders-column-header">
-              <h3>{column.title}</h3>
+              <h3>{t(column.titleKey)}</h3>
               <span>{grouped[column.id].length}</span>
             </header>
 
@@ -92,7 +94,7 @@ export default function KitchenOrdersBoard({ orders, onRefresh, onUpdateStatus }
 
                   {order.notes && (
                     <div className="order-note-box compact">
-                      <strong>Notas</strong>
+                      <strong>{t("orders.kitchen.notes")}</strong>
                       <p>{order.notes}</p>
                     </div>
                   )}
@@ -125,17 +127,17 @@ export default function KitchenOrdersBoard({ orders, onRefresh, onUpdateStatus }
 
                   <div className="order-card-actions">
                     {order.state === "confirmed" && (
-                      <button className="ad-btn ad-btn-primary" onClick={() => onUpdateStatus(order.orderId, "in_preparation")}>Começar preparação</button>
+                      <button className="ad-btn ad-btn-primary" onClick={() => onUpdateStatus(order.orderId, "in_preparation")}>{t("orders.kitchen.start")}</button>
                     )}
                     {order.state === "in_preparation" && (
-                      <button className="ad-btn ad-btn-primary" onClick={() => onUpdateStatus(order.orderId, "ready")}>Marcar como pronto</button>
+                      <button className="ad-btn ad-btn-primary" onClick={() => onUpdateStatus(order.orderId, "ready")}>{t("orders.kitchen.markReady")}</button>
                     )}
                     <button className="ad-btn ad-btn-ghost" onClick={() => setSelectedOrderId(order.orderId)}>{formatOrderStatus(order.state)}</button>
                   </div>
                 </article>
               ))}
 
-              {grouped[column.id].length === 0 && <p className="orders-column-empty">{column.empty}</p>}
+              {grouped[column.id].length === 0 && <p className="orders-column-empty">{t(column.emptyKey)}</p>}
             </div>
           </section>
         ))}

@@ -7,6 +7,7 @@ import Navbar from "../components/Navbar"
 import Footer from "../components/Footer"
 import { adminLogin } from "../services/adminService"
 import type { AdminRole } from "../types/admin"
+import { useTranslation } from "react-i18next"
 
 function normalizeAdminRole(role: unknown): AdminRole {
   if (role === "owner") return "owner"
@@ -22,6 +23,7 @@ function adminHomeForRole(role: AdminRole): string {
 }
 
 export default function AdminLogin() {
+  const { t } = useTranslation(["account", "common"])
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -44,7 +46,7 @@ export default function AdminLogin() {
 
       navigate(adminHomeForRole(adminRole), { replace: true })
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha ao iniciar sessão")
+      setError(err instanceof Error ? err.message : t("admin.failed"))
     } finally {
       setLoading(false)
     }
@@ -63,21 +65,21 @@ export default function AdminLogin() {
         </div>
 
       <div className="auth-card glass-panel auth-flow-card auth-login-card admin-login-card">
-        <div className="auth-mode-switch" aria-label="Modo de autenticação">
+        <div className="auth-mode-switch" aria-label={t("authMode")}>
           <Link className="active" to="/admin/login" aria-current="page">Admin</Link>
-          <Link to="/login">Login de cliente</Link>
+          <Link to="/login">{t("admin.clientLogin")}</Link>
         </div>
 
 
         <h1 className="auth-title fw-extrabold">
-          Login <br /> admin <span className="green">.</span>
+          {t("admin.title")}
         </h1>
 
         {error && <div className="alert alert-danger">{error}</div>}
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
-            <label htmlFor="admin-email" className="form-label">Email</label>
+            <label htmlFor="admin-email" className="form-label">{t("fields.email", { ns: "common" })}</label>
             <input
               id="admin-email"
               type="email"
@@ -90,27 +92,27 @@ export default function AdminLogin() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="admin-password" className="form-label">Palavra-passe</label>
+            <label htmlFor="admin-password" className="form-label">{t("fields.password", { ns: "common" })}</label>
             <input
               id="admin-password"
               type="password"
               className="form-input"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Palavra-passe"
+              placeholder={t("fields.password", { ns: "common" })}
               required
             />
           </div>
 
           <button type="submit" disabled={loading} className="auth-btn bonefree-button fw-bold letter-spacing-2">
-            {loading ? "A entrar..." : "Entrar como admin"}
+            {loading ? t("admin.signingIn") : t("admin.signIn")}
           </button>
         </form>
 
         <p className="auth-footer admin-auth-footer">
-          Precisa da área de cliente?{" "}
+          {t("admin.needCustomerArea")}{" "}
           <button type="button" onClick={() => navigate("/login")} className="link-button">
-            Abrir login de cliente
+            {t("admin.openCustomerLogin")}
           </button>
         </p>
       </div>

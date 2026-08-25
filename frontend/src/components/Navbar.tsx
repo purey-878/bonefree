@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Home,
@@ -11,23 +12,25 @@ import {
   X,
 } from "lucide-react";
 import styled, { createGlobalStyle, css, keyframes } from "styled-components";
+import { useTranslation } from "react-i18next";
 
 import ConfirmDialog from "./ui/ConfirmDialog";
+import LanguageSwitcher from "./LanguageSwitcher";
 import { useAuth } from "../hooks";
 import { cartService } from "../services";
 
 const desktopLinks = [
-  { path: "/", label: "Início" },
-  { path: "/menu", label: "Menu" },
-  { path: "/about", label: "Sobre nós" },
-  { path: "/events", label: "Eventos" },
-  { path: "/contact", label: "Contacto" },
+  { path: "/", labelKey: "navigation.home" },
+  { path: "/menu", labelKey: "navigation.menu" },
+  { path: "/about", labelKey: "navigation.about" },
+  { path: "/events", labelKey: "navigation.events" },
+  { path: "/contact", labelKey: "navigation.contact" },
 ];
 
 const bottomLinks = [
-  { path: "/", label: "Início", icon: Home },
-  { path: "/menu", label: "Menu", icon: UtensilsCrossed },
-  { path: "/profile", label: "Perfil", icon: User },
+  { path: "/", labelKey: "navigation.home", icon: Home },
+  { path: "/menu", labelKey: "navigation.menu", icon: UtensilsCrossed },
+  { path: "/profile", labelKey: "navigation.profile", icon: User },
 ];
 
 const badgePop = keyframes`
@@ -69,7 +72,7 @@ const TopNav = styled.header<{ $glassDark?: boolean }>`
   top: 0;
   right: 0;
   left: 0;
-  z-index:1200;
+  z-index: 5000;
   height:72px;
 
   --nav-text: ${({ $glassDark }) =>
@@ -142,7 +145,7 @@ const TopNav = styled.header<{ $glassDark?: boolean }>`
 `;
 const NavInner = styled.div`
   display: grid;
-  grid-template-columns: minmax(160px, 1fr) auto minmax(160px, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) auto;
   width: min(100%, 1440px);
   height: 100%;
   align-items: center;
@@ -150,13 +153,13 @@ const NavInner = styled.div`
   margin: 0 auto;
   padding: 0 1.5rem;
 
-  @media (max-width: 1023px) {
+  @media (max-width: 1279px) {
     grid-template-columns: 48px minmax(0, 1fr) auto;
     padding: 0 1rem;
   }
 
   @media (max-width: 767px) {
-    grid-template-columns: 48px minmax(0, 1fr) 48px;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     padding: 0 0.85rem;
   }
 `;
@@ -192,7 +195,7 @@ const Logo = styled(Link)`
     font-size: 1.35rem;
   }
 
-  @media (min-width: 768px) and (max-width: 1023px) {
+  @media (min-width: 768px) and (max-width: 1279px) {
     grid-column: 2;
     justify-self: start;
   }
@@ -201,17 +204,23 @@ const Logo = styled(Link)`
 const CenterNav = styled.nav`
   grid-column: 2;
   display: flex;
+  min-width: 0;
   align-items: center;
   justify-content: center;
   gap: 0.45rem;
 
-  @media (max-width: 1023px) {
+  @media (max-width: 1279px) {
     display: none;
+  }
+
+  @media (min-width: 1280px) and (max-width: 1439px) {
+    gap: 0.12rem;
   }
 `;
 
 const PillLink = styled(Link)<{ $active: boolean }>`
   display: inline-flex;
+  flex: 0 0 auto;
   min-height: 38px;
   align-items: center;
   justify-content: center;
@@ -222,6 +231,7 @@ const PillLink = styled(Link)<{ $active: boolean }>`
   font-size: 0.92rem;
   font-weight: 800;
   text-decoration: none;
+  white-space: nowrap;
   transition:
     background 180ms ease,
     border-color 180ms ease,
@@ -245,6 +255,12 @@ const PillLink = styled(Link)<{ $active: boolean }>`
     background: var(--nav-surface-hover, #f4f8f1);
     color: var(--nav-hover-text);
   }
+
+  @media (min-width: 1280px) and (max-width: 1439px) {
+    min-height: 36px;
+    padding-inline: 0.55rem;
+    font-size: 0.82rem;
+  }
 `;
 
 const NavActions = styled.div`
@@ -254,7 +270,15 @@ const NavActions = styled.div`
   align-items: center;
   justify-content: flex-end;
   gap: 0.65rem;
-  min-width: 0;
+  min-width: max-content;
+
+  > * {
+    flex-shrink: 0;
+  }
+
+  @media (min-width: 1280px) and (max-width: 1439px) {
+    gap: 0.38rem;
+  }
 
   @media (max-width: 767px) {
     display: none;
@@ -264,7 +288,7 @@ const NavActions = styled.div`
 const MobileLeft = styled.div`
   display: none;
 
-  @media (max-width: 1023px) {
+  @media (max-width: 1279px) {
     grid-column: 1;
     display: flex;
     align-items: center;
@@ -280,6 +304,7 @@ const MobileRight = styled.div`
     display: flex;
     align-items: center;
     justify-content: flex-end;
+    gap: 0.4rem;
   }
 `;
 
@@ -287,7 +312,10 @@ const IconAction = styled.button`
   position: relative;
   display: inline-grid;
   width: 44px;
+  min-width: 44px;
   height: 44px;
+  min-height: 44px;
+  flex: 0 0 44px;
   place-items: center;
   border: 1px solid var(--nav-border, var(--glass-border));
   border-radius: var(--radius-sm);
@@ -302,6 +330,13 @@ const IconAction = styled.button`
     color 180ms ease,
     transform 180ms ease;
 
+  svg {
+    width: 22px;
+    min-width: 22px;
+    height: 22px;
+    flex: 0 0 22px;
+  }
+
   &:hover {
     transform: translateY(-1px);
     border-color: rgba(138, 107, 0, 0.45);
@@ -314,7 +349,10 @@ const IconLink = styled(Link)`
   position: relative;
   display: inline-grid;
   width: 44px;
+  min-width: 44px;
   height: 44px;
+  min-height: 44px;
+  flex: 0 0 44px;
   place-items: center;
   border: 1px solid var(--nav-border, var(--glass-border));
   border-radius: var(--radius-sm);
@@ -329,6 +367,13 @@ const IconLink = styled(Link)`
     border-color 180ms ease,
     color 180ms ease,
     transform 180ms ease;
+
+  > svg {
+    width: 21px;
+    min-width: 21px;
+    height: 21px;
+    flex: 0 0 21px;
+  }
 
   &:hover {
     transform: translateY(-1px);
@@ -361,6 +406,7 @@ const CartBadge = styled.span`
 
 const AuthLink = styled(Link)<{ $primary?: boolean }>`
   display: inline-flex;
+  flex: 0 0 auto;
   min-height: 38px;
   align-items: center;
   justify-content: center;
@@ -376,6 +422,7 @@ const AuthLink = styled(Link)<{ $primary?: boolean }>`
   font-size: 0.86rem;
   font-weight: 800;
   text-decoration: none;
+  white-space: nowrap;
   transition:
     transform 180ms ease,
     border-color 180ms ease,
@@ -386,10 +433,23 @@ const AuthLink = styled(Link)<{ $primary?: boolean }>`
     border-color: rgba(138, 107, 0, 0.52);
     color: ${({ $primary }) => ($primary ? "var(--white)" : "var(--nav-strong, var(--brand-ink))")};
   }
+
+  > svg {
+    width: 16px;
+    min-width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+  }
+
+  @media (min-width: 1280px) and (max-width: 1439px) {
+    padding-inline: 0.58rem;
+    font-size: 0.8rem;
+  }
 `;
 
 const AuthButton = styled.button`
   display: inline-flex;
+  flex: 0 0 auto;
   min-height: 38px;
   align-items: center;
   justify-content: center;
@@ -401,6 +461,7 @@ const AuthButton = styled.button`
   color: var(--white);
   font-size: 0.86rem;
   font-weight: 800;
+  white-space: nowrap;
   transition:
     transform 180ms ease,
     border-color 180ms ease;
@@ -409,10 +470,19 @@ const AuthButton = styled.button`
     transform: translateY(-1px);
     border-color: rgba(138, 107, 0, 0.52);
   }
+
+
+  > svg {
+    width: 16px;
+    min-width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+  }
 `;
 
 const AccountMenu = styled.div`
   position: relative;
+  flex: 0 0 auto;
 `;
 
 const AccountButton = styled.button`
@@ -724,6 +794,7 @@ const BottomLink = styled(Link)<{ $active: boolean }>`
 `;
 
 const Navbar = () => {
+  const { t } = useTranslation("common");
   const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuth();
@@ -835,19 +906,19 @@ const Navbar = () => {
   };
 
   const fullName = [user?.name, user?.lastName].filter(Boolean).join(" ").trim();
-  const displayName = fullName || user?.email || "Perfil";
+  const displayName = fullName || user?.email || t("navigation.profile");
   const profileInitial = (fullName || user?.email || "P").trim().charAt(0).toUpperCase();
   const glassDarkNav = location.pathname === "/" || location.pathname === "/contact" || location.pathname === "/about";
   const isAuthRoute = ["/login", "/register", "/forgot-password"].includes(location.pathname);
 
-  return (
+  return createPortal(
     <>
       <NavigationGlobalStyles />
       <TopNav $glassDark={glassDarkNav}>
         <NavInner>
           <MobileLeft>
             <IconAction
-              aria-label="Abrir menu"
+              aria-label={t("navigation.openMenu")}
               onClick={() => setDrawerOpen(true)}
               type="button"
             >
@@ -855,20 +926,21 @@ const Navbar = () => {
             </IconAction>
           </MobileLeft>
 
-          <Logo className="logo-bonefree" aria-label="Início Bonefree" onClick={closeDrawer} to="/">
+          <Logo className="logo-bonefree" aria-label={t("navigation.bonefreeHome")} onClick={closeDrawer} to="/">
             <img src="/assets/images/bonefree-logo.webp" className="img-fluid img-25" alt="Bonefree" />
           </Logo>
 
-          <CenterNav aria-label="Navegação principal">
-            {desktopLinks.map(({ path, label }) => (
+          <CenterNav aria-label={t("navigation.main")}>
+            {desktopLinks.map(({ path, labelKey }) => (
               <PillLink $active={isActive(path)} key={path} to={path}>
-                {label}
+                {t(labelKey)}
               </PillLink>
             ))}
           </CenterNav>
 
           <NavActions>
-            <IconLink aria-label="Carrinho" state={cartLinkState} to="/cart">
+            <LanguageSwitcher />
+            <IconLink aria-label={t("navigation.cart")} state={cartLinkState} to="/cart">
               <ShoppingBag size={21} />
               {cartCount > 0 && <CartBadge key={cartCount}>{cartCount}</CartBadge>}
             </IconLink>
@@ -878,7 +950,7 @@ const Navbar = () => {
                 <AccountButton
                   aria-expanded={accountOpen}
                   aria-haspopup="menu"
-                  aria-label="Abrir menu da conta"
+                  aria-label={t("account.openMenu")}
                   onClick={() => setAccountOpenPath((openPath) => openPath === location.pathname ? null : location.pathname)}
                   type="button"
                 >
@@ -892,11 +964,11 @@ const Navbar = () => {
                     </AccountSummary>
                     <AccountMenuLink onClick={closeAccountMenu} role="menuitem" to="/profile">
                       <User size={16} />
-                      Perfil
+                      {t("navigation.profile")}
                     </AccountMenuLink>
                     <AccountMenuButton onClick={requestLogout} role="menuitem" type="button">
                       <LogOut size={16} />
-                      Terminar sessão
+                      {t("account.signOut")}
                     </AccountMenuButton>
                   </AccountDropdown>
                 )}
@@ -905,17 +977,18 @@ const Navbar = () => {
               <>
                 <AuthLink to="/login">
                   <LogIn size={16} />
-                  Entrar
+                  {t("account.signIn")}
                 </AuthLink>
                 <AuthLink $primary to="/register">
-                  Criar conta
+                  {t("account.create")}
                 </AuthLink>
               </>
             )}
           </NavActions>
 
           <MobileRight>
-            <IconLink aria-label="Carrinho" state={cartLinkState} to="/cart">
+            <LanguageSwitcher className="language-switcher-mobile-nav" />
+            <IconLink aria-label={t("navigation.cart")} state={cartLinkState} to="/cart">
               <ShoppingBag size={22} />
               {cartCount > 0 && <CartBadge key={cartCount}>{cartCount}</CartBadge>}
             </IconLink>
@@ -925,27 +998,27 @@ const Navbar = () => {
 
       {drawerOpen && (
         <>
-          <Backdrop aria-label="Fechar menu" onClick={closeDrawer} type="button" />
-          <MobileDrawer aria-label="Navegação móvel">
+          <Backdrop aria-label={t("navigation.closeMenu")} onClick={closeDrawer} type="button" />
+          <MobileDrawer aria-label={t("navigation.mobile")}>
             <DrawerHeader>
-              <Logo aria-label="Início Bonefree" onClick={closeDrawer} to="/">
+              <Logo aria-label={t("navigation.bonefreeHome")} onClick={closeDrawer} to="/">
                 <img src="/assets/images/bonefree-logo.webp" className="img-fluid img-25" alt="Bonefree" />
               </Logo>
-              <IconAction aria-label="Fechar menu" onClick={closeDrawer} type="button">
+              <IconAction aria-label={t("navigation.closeMenu")} onClick={closeDrawer} type="button">
                 <X size={22} />
               </IconAction>
             </DrawerHeader>
 
             <DrawerBody>
               <DrawerNav>
-                {desktopLinks.map(({ path, label }) => (
+                {desktopLinks.map(({ path, labelKey }) => (
                   <DrawerLink
                     $active={isActive(path)}
                     key={path}
                     onClick={closeDrawer}
                     to={path}
                   >
-                    {label}
+                    {t(labelKey)}
                   </DrawerLink>
                 ))}
               </DrawerNav>
@@ -957,11 +1030,11 @@ const Navbar = () => {
                     <DrawerAuthGrid>
                       <AuthLink onClick={closeDrawer} to="/profile">
                         <User size={16} />
-                        Perfil
+                        {t("navigation.profile")}
                       </AuthLink>
                       <AuthButton onClick={requestLogout} type="button">
                         <LogOut size={16} />
-                        Terminar sessão
+                        {t("account.signOut")}
                       </AuthButton>
                     </DrawerAuthGrid>
                   </>
@@ -969,10 +1042,10 @@ const Navbar = () => {
                   <DrawerAuthGrid>
                     <AuthLink onClick={closeDrawer} to="/login">
                       <LogIn size={16} />
-                      Entrar
+                      {t("account.signIn")}
                     </AuthLink>
                     <AuthLink $primary onClick={closeDrawer} to="/register">
-                      Criar conta
+                      {t("account.create")}
                     </AuthLink>
                   </DrawerAuthGrid>
                 )}
@@ -984,27 +1057,28 @@ const Navbar = () => {
 
       <ConfirmDialog
         open={logoutConfirmOpen}
-        title="Terminar sessão?"
-        description="Vai sair da sua conta e terá de iniciar sessão novamente para continuar."
-        confirmText="Terminar sessão"
-        cancelText="Cancelar"
+        title={t("account.signOutTitle")}
+        description={t("account.signOutDescription")}
+        confirmText={t("account.signOut")}
+        cancelText={t("actions.cancel")}
         onConfirm={handleLogout}
         onCancel={() => setLogoutConfirmOpen(false)}
       />
 
-      <BottomNav aria-label="Navegação inferior móvel" >
-        {bottomLinks.map(({ path, label, icon: Icon }) => (
+      <BottomNav aria-label={t("navigation.mobileBottom")} >
+        {bottomLinks.map(({ path, labelKey, icon: Icon }) => (
           <BottomLink
             $active={isActive(path)}
             key={path}
             to={path}
           >
             <Icon aria-hidden="true" />
-            <span>{label}</span>
+            <span>{t(labelKey)}</span>
           </BottomLink>
         ))}
       </BottomNav>
-    </>
+    </>,
+    document.body,
   );
 };
 

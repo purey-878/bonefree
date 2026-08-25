@@ -1,5 +1,6 @@
 import type { ComponentPropsWithoutRef, ReactNode } from 'react'
 import styled, { css } from 'styled-components'
+import { useTranslation } from 'react-i18next'
 
 type BadgeVariant = 'accent' | 'danger' | 'glass' | 'neutral' | 'success'
 type BadgeSize = 'sm' | 'md'
@@ -97,11 +98,12 @@ type CategoryBadgeProps = Omit<BadgeProps, 'children' | 'variant'> & {
 }
 
 export function CategoryBadge({ count, name, ...props }: CategoryBadgeProps) {
+  const { t } = useTranslation('storefront')
   return (
     <Badge dot={false} size="md" variant="glass" {...props}>
       <span>{name}</span>
       {typeof count === 'number' && (
-        <BadgeCount aria-label={`${count} produtos`}>{count}</BadgeCount>
+        <BadgeCount aria-label={t('productCard.products', { count })}>{count}</BadgeCount>
       )}
     </Badge>
   )
@@ -126,6 +128,7 @@ type AvailabilityBadgeProps = Omit<BadgeProps, 'children' | 'variant'> & {
 }
 
 export function AvailabilityBadge({ available, ...props }: AvailabilityBadgeProps) {
+  const { t } = useTranslation('storefront')
   return (
     <Badge
       dot
@@ -133,7 +136,7 @@ export function AvailabilityBadge({ available, ...props }: AvailabilityBadgeProp
       variant={available ? 'success' : 'danger'}
       {...props}
     >
-      {available ? 'Disponível' : 'Atualmente indisponível'}
+      {available ? t('productCard.available') : t('productCard.currentlyUnavailable')}
     </Badge>
   )
 }

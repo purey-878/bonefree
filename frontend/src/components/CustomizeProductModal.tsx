@@ -13,6 +13,7 @@ import { Button, IconButton, Textarea } from "./ui";
 import CustomSelect from "./ui/CustomSelect";
 import { formatEuro } from "../utils/money";
 import "./CustomizeProductModal.css";
+import { useTranslation } from "react-i18next";
 
 interface CustomizeProductModalProps {
   initialCustomization?: ItemCustomization | null;
@@ -51,11 +52,12 @@ export function CustomizeProductModal({
   initialCustomization,
   initialQuantity = 1,
   product,
-  submitLabel = "Adicionar ao carrinho",
+  submitLabel,
   onAdded,
   onClose,
   onError,
 }: CustomizeProductModalProps) {
+  const { t } = useTranslation("storefront");
   const [details, setDetails] = useState<ProductCustomizationDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -101,7 +103,7 @@ export function CustomizeProductModal({
       })
       .catch((error) => {
         console.error(error);
-        onError("Não foi possível carregar as opções de personalização.");
+        onError(t("productDetail.modal.loadError"));
         onClose();
       })
       .finally(() => {
@@ -111,7 +113,7 @@ export function CustomizeProductModal({
     return () => {
       active = false;
     };
-  }, [initialCustomization, initialQuantity, onClose, onError, product.id]);
+  }, [initialCustomization, initialQuantity, onClose, onError, product.id, t]);
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -209,37 +211,37 @@ export function CustomizeProductModal({
       onAdded(product.name);
       onClose();
     } catch (error) {
-      onError(error instanceof Error ? error.message : "Não foi possível adicionar o item personalizado.");
+      onError(error instanceof Error ? error.message : t("productDetail.modal.addError"));
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="customize-modal" role="dialog" aria-modal="true" aria-label={`Personalizar ${product.name}`}>
-      <button className="customize-backdrop" type="button" onClick={onClose} aria-label="Fechar personalização" />
+    <div className="customize-modal" role="dialog" aria-modal="true" aria-label={t("productDetail.modal.dialog", { name: product.name })}>
+      <button className="customize-backdrop" type="button" onClick={onClose} aria-label={t("productDetail.modal.closeCustomisation")} />
 
       <section className="customize-panel">
         <header className="customize-header">
           <div>
-            <p>Personalizar</p>
+            <p>{t("productDetail.modal.title")}</p>
             <h2>{product.name}</h2>
           </div>
-          <IconButton aria-label="Fechar" onClick={onClose} size="sm">
+          <IconButton aria-label={t("productDetail.modal.close")} onClick={onClose} size="sm">
             <X size={17} />
           </IconButton>
         </header>
 
         {loading || !details ? (
-          <div className="customize-loading">A carregar opções...</div>
+          <div className="customize-loading">{t("productDetail.modal.loading")}</div>
         ) : (
           <>
             <div className="customize-body">
               <p className="customize-price-note">
-                Adicionar um item custa mais 1,00 €. Remover ingredientes não reduz o preço.
+                {t("productDetail.modal.priceNote", { price: formatEuro(addSurcharge) })}
               </p>
               <section className="customize-section">
-                <h3>Ingredientes</h3>
+                <h3>{t("productDetail.modal.ingredients")}</h3>
                 <div className="customize-list">
                   {details.ingredients.map((ingredient) => (
                     <label key={ingredient.ingredientId} className="customize-check">
@@ -257,7 +259,7 @@ export function CustomizeProductModal({
 
               {details.substitutableIngredients.length > 0 && (
                 <section className="customize-section">
-                  <h3>Trocas</h3>
+                  <h3>{t("productDetail.modal.substitutions")}</h3>
                   <div className="customize-list">
                     {details.substitutableIngredients.map((ingredient) => {
                       const options = substitutionOptionsFor(ingredient, details);
@@ -278,7 +280,7 @@ export function CustomizeProductModal({
                               });
                             }}
                             options={[
-                              { value: "", label: "Manter original" },
+                              { value: "", label: t("productDetail.modal.keepOriginal") },
                               ...options.map((option) => ({
                                 value: option.optionId,
                                 label: `${optionLabel(option)}${optionPrice(option) > 0 ? ` (+${formatEuro(optionPrice(option))})` : ""}`,
@@ -294,7 +296,7 @@ export function CustomizeProductModal({
 
               {extraOptions.length > 0 && (
                 <section className="customize-section">
-                  <h3>Extras</h3>
+                  <h3>{t("productDetail.modal.extras")}</h3>
                   <div className="customize-list">
                     {extraOptions.map((option) => (
                       <div key={option.optionId} className="customize-extra-row">
@@ -303,11 +305,11 @@ export function CustomizeProductModal({
                           <span>{formatEuro(addSurcharge)}</span>
                         </div>
                         <div className="customize-stepper">
-                          <button type="button" onClick={() => updateExtra(option, -1)} disabled={!extras[option.optionId]} aria-label={`Diminuir ${option.name}`}>
+                          <button type="button" onClick={() => updateExtra(option, -1)} disabled={!extras[option.optionId]} aria-label={t("productDetail.modal.decreaseItem", { name: option.name })}>
                             <Minus size={15} />
                           </button>
                           <span>{extras[option.optionId] ?? 0}</span>
-                          <button type="button" onClick={() => updateExtra(option, 1)} disabled={(extras[option.optionId] ?? 0) >= option.maxQuantity} aria-label={`Aumentar ${option.name}`}>
+                          <button type="button" onClick={() => updateExtra(option, 1)} disabled={(extras[option.optionId] ?? 0) >= option.maxQuantity} aria-label={t("productDetail.modal.increaseItem", { name: option.name })}>
                             <Plus size={15} />
                           </button>
                         </div>
@@ -318,33 +320,33 @@ export function CustomizeProductModal({
               )}
 
               <section className="customize-section">
-                <h3>Notas</h3>
+                <h3>{t("productDetail.modal.notes")}</h3>
                 <Textarea
                   maxLength={255}
                   rows={3}
                   value={notes}
                   onChange={(event) => setNotes(event.target.value)}
-                  placeholder="Mais crocante, nota de alergia ou pedido para a cozinha"
+                  placeholder={t("productDetail.modal.notesPlaceholder")}
                 />
               </section>
             </div>
 
             <footer className="customize-footer">
               <div>
-                <span>Total</span>
+                <span>{t("productDetail.modal.total")}</span>
                 <strong>{formatEuro(total)}</strong>
               </div>
-              <div className="customize-stepper customize-footer-stepper" aria-label={`Quantidade de ${product.name}`}>
-                <button type="button" onClick={() => setQuantity((value) => Math.max(1, value - 1))} disabled={quantity <= 1} aria-label="Diminuir quantidade">
+              <div className="customize-stepper customize-footer-stepper" aria-label={t("productDetail.modal.quantity", { name: product.name })}>
+                <button type="button" onClick={() => setQuantity((value) => Math.max(1, value - 1))} disabled={quantity <= 1} aria-label={t("productDetail.modal.decrease")}>
                   <Minus size={15} />
                 </button>
                 <span>{quantity}</span>
-                <button type="button" onClick={() => setQuantity((value) => Math.min(99, value + 1))} disabled={quantity >= 99} aria-label="Aumentar quantidade">
+                <button type="button" onClick={() => setQuantity((value) => Math.min(99, value + 1))} disabled={quantity >= 99} aria-label={t("productDetail.modal.increase")}>
                   <Plus size={15} />
                 </button>
               </div>
               <Button onClick={submit} isLoading={submitting} disabled={!details.customizable}>
-                {submitLabel}
+                {submitLabel ?? t("productDetail.addToCart")}
               </Button>
             </footer>
           </>

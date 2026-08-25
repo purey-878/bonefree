@@ -12,6 +12,8 @@ import { applyApiImageFallback, productImageFallback, resolveProductImageUrl } f
 import { formatEuro } from '../../utils/money'
 import { primaryProductMediaUrl } from '../../utils/productMedia'
 import type { ProductMedia as ProductMediaItem } from '../../types/product'
+import { useTranslation } from 'react-i18next'
+import { resolvedLocale } from '../../i18n'
 
 export type ProductCardProduct = {
   category: string
@@ -59,7 +61,7 @@ function formatPrice(price: number | null | undefined, currencySymbol: string) {
 
 function formatCalories(calories: number | null | undefined) {
   if (calories == null || !Number.isFinite(Number(calories))) return null
-  return Number(calories).toLocaleString('pt-PT', { maximumFractionDigits: 0 })
+  return Number(calories).toLocaleString(resolvedLocale(), { maximumFractionDigits: 0 })
 }
 
 const ProductCardShell = styled.article<{ $tone: 'dark' | 'light'; $dimUnavailable: boolean; $clickable: boolean }>`
@@ -389,6 +391,7 @@ export function ProductCard({
   tone = 'light',
   ...props
 }: ProductCardProps) {
+  const { t } = useTranslation('storefront')
   const unavailable = product.available === false
   const baseUnavailable = Boolean(product.unavailableDueToUnavailableBase)
   const dimUnavailable = unavailable && !baseUnavailable
@@ -436,7 +439,7 @@ export function ProductCard({
     >
       {onSelect ? (
         <ProductMediaButton
-          aria-label={`Ver ${product.name}`}
+          aria-label={t('productCard.view', { name: product.name })}
           onClick={handleSelectClick}
           type="button"
         >
@@ -485,7 +488,7 @@ export function ProductCard({
               available={!unavailable}
             />
             {calories && (
-              <ProductCalories title={`${calories} quilocalorias`}>
+              <ProductCalories title={t('productCard.calories', { count: calories })}>
                 <Flame aria-hidden="true" />
                 {calories} kcal
               </ProductCalories>
@@ -504,7 +507,7 @@ export function ProductCard({
 
           <ProductDescription>
             {product.description ||
-              'Um prato cuidadosamente criado com ingredientes de qualidade.'}
+              t('productCard.fallbackDescription')}
           </ProductDescription>
         </ProductTop>
 
@@ -526,12 +529,12 @@ export function ProductCard({
             <ActionRow $split={showDetailsAction}>
               {showDetailsAction && (
                 <DetailsButton onClick={handleSelectClick} type="button" className="rounded-pill fw-normal">
-                 Personalizar
+                 {t('productCard.customise')}
                 </DetailsButton>
               )}
               <AddToCartButton
                className="rounded-pill fw-semibold letter-spacing-1"
-                aria-label={`Adicionar ${product.name} ao carrinho`}
+                aria-label={t('productCard.addLabel', { name: product.name })}
                 disabled={unavailable || addingToCart}
                 fullWidth
                 isLoading={addingToCart}
@@ -540,10 +543,10 @@ export function ProductCard({
               >
                 {addToCartLabel ??
                   (addingToCart
-                    ? 'A adicionar...'
+                    ? t('productCard.adding')
                     : unavailable
-                      ? 'Indisponível'
-                      : 'Adicionar')}
+                      ? t('productCard.unavailable')
+                      : t('productCard.add'))}
               </AddToCartButton>
             </ActionRow>
           )}

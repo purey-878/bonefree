@@ -1,12 +1,13 @@
 import type { AdminOrder, AdminOrderItem } from "../../types/admin";
+import i18n from "../../i18n";
 
-export const ORDER_STATUS_LABELS: Record<string, string> = {
-  pending: "Pendente",
-  confirmed: "Na fila",
-  in_preparation: "Em preparação",
-  ready: "Pronto",
-  delivered: "Concluído",
-  cancelled: "Cancelado",
+const ORDER_STATUS_KEYS: Record<string, string> = {
+  pending: "orders.status.pending",
+  confirmed: "orders.status.confirmed",
+  in_preparation: "orders.status.inPreparation",
+  ready: "orders.status.ready",
+  delivered: "orders.status.delivered",
+  cancelled: "orders.status.cancelled",
 };
 
 export const ORDER_STATUS_TONES: Record<string, string> = {
@@ -19,20 +20,21 @@ export const ORDER_STATUS_TONES: Record<string, string> = {
 };
 
 export function formatOrderStatus(status: string): string {
-  return ORDER_STATUS_LABELS[status] ?? status.replace(/_/g, " ");
+  const key = ORDER_STATUS_KEYS[status];
+  return key ? i18n.t(key, { ns: "admin" }) : status.replace(/_/g, " ");
 }
 
 export function fulfillmentLabel(order: AdminOrder): string {
-  if (order.fulfillmentMethod === "dine_in") return "No restaurante";
-  if (order.fulfillmentMethod === "takeaway") return "Para levar";
-  if (order.fulfillmentMethod === "pickup") return "Recolha";
-  return order.fulfillmentMethod?.replace(/_/g, " ") || "Recolha";
+  if (order.fulfillmentMethod === "dine_in") return i18n.t("orders.fulfillment.dineIn", { ns: "admin" });
+  if (order.fulfillmentMethod === "takeaway") return i18n.t("orders.fulfillment.takeaway", { ns: "admin" });
+  if (order.fulfillmentMethod === "pickup") return i18n.t("orders.fulfillment.pickup", { ns: "admin" });
+  return order.fulfillmentMethod?.replace(/_/g, " ") || i18n.t("orders.fulfillment.pickup", { ns: "admin" });
 }
 
 export function handoffLabel(order: AdminOrder): string {
-  if (order.fulfillmentMethod === "takeaway") return "Balcão para levar";
-  if (order.tableNumber) return `Mesa ${order.tableNumber}`;
-  return "Entrega ao balcão";
+  if (order.fulfillmentMethod === "takeaway") return i18n.t("orders.handoff.takeaway", { ns: "admin" });
+  if (order.tableNumber) return i18n.t("orders.handoff.table", { ns: "admin", number: order.tableNumber });
+  return i18n.t("orders.handoff.counter", { ns: "admin" });
 }
 
 export function parseOrderTimestamp(value?: string | null): number {
@@ -63,7 +65,7 @@ export function orderAgeMinutes(order: AdminOrder): number {
 
 export function formatOrderAge(order: AdminOrder): string {
   const minutes = orderAgeMinutes(order);
-  if (minutes < 1) return "Agora";
+  if (minutes < 1) return i18n.t("orders.age.now", { ns: "admin" });
   if (minutes < 60) return `${minutes} min`;
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;
@@ -99,7 +101,7 @@ export function customizationTone(line: string): string {
 
 export function customizationText(line: string): { label: string; value: string } {
   const separatorIndex = line.indexOf(":");
-  if (separatorIndex < 0) return { label: "Nota", value: line };
+  if (separatorIndex < 0) return { label: i18n.t("orders.customization.note", { ns: "admin" }), value: line };
   const rawLabel = line.slice(0, separatorIndex).trim();
   return {
     label: customizationLabel(rawLabel),
@@ -109,10 +111,10 @@ export function customizationText(line: string): { label: string; value: string 
 
 function customizationLabel(label: string): string {
   const normalized = label.toLowerCase();
-  if (normalized === "remove") return "Remover";
-  if (normalized === "add") return "Adicionar";
-  if (normalized === "preferences") return "Preferências";
-  if (normalized === "note") return "Nota";
+  if (normalized === "remove") return i18n.t("orders.customization.remove", { ns: "admin" });
+  if (normalized === "add") return i18n.t("orders.customization.add", { ns: "admin" });
+  if (normalized === "preferences") return i18n.t("orders.customization.preferences", { ns: "admin" });
+  if (normalized === "note") return i18n.t("orders.customization.note", { ns: "admin" });
   return label;
 }
 
@@ -134,15 +136,15 @@ export function isToday(value?: string | null): boolean {
 
 export function paymentLabel(order: AdminOrder): string {
   if (order.paymentMethod === "counter" && order.paymentStatus === "unpaid") {
-    return "Pagamento: a aguardar pagamento ao balcão";
+    return i18n.t("orders.payment.awaitingCounter", { ns: "admin" });
   }
   const method = order.paymentMethod === "counter"
-    ? "Balcão"
+    ? i18n.t("orders.payment.counter", { ns: "admin" })
     : order.paymentMethod === "card"
-      ? "Cartão"
+      ? i18n.t("orders.payment.card", { ns: "admin" })
       : order.paymentMethod === "mbway"
         ? "MB Way"
         : order.paymentMethod ?? "-";
-  const status = order.paymentStatus === "paid" ? "Pago" : order.paymentStatus ? order.paymentStatus.replace(/_/g, " ") : "-";
+  const status = order.paymentStatus === "paid" ? i18n.t("orders.payment.paid", { ns: "admin" }) : order.paymentStatus ? order.paymentStatus.replace(/_/g, " ") : "-";
   return `${method} / ${status}`;
 }

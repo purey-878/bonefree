@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { productService } from '../services';
 import type { Product } from '../types/product';
+import { useTranslation } from 'react-i18next';
 
 type ProductsByCategory = Record<string, Product[]>;
 
 const MenuSection: React.FC = () => {
+  const { t } = useTranslation('storefront');
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -15,7 +17,7 @@ const MenuSection: React.FC = () => {
         const data = await productService.getAll();
         setProducts(data);
       } catch (fetchError) {
-        setError('Não foi possível carregar os itens do menu.');
+        setError(t('menuSection.loadError'));
         console.error(fetchError);
       } finally {
         setLoading(false);
@@ -23,10 +25,10 @@ const MenuSection: React.FC = () => {
     };
 
     fetchProducts();
-  }, []);
+  }, [t]);
 
   const groupedProducts = products.reduce<ProductsByCategory>((acc, product) => {
-    const category = product.category || 'Uncategorized';
+    const category = product.category || t('menuSection.uncategorised');
     if (!acc[category]) {
       acc[category] = [];
     }
@@ -36,7 +38,7 @@ const MenuSection: React.FC = () => {
 
   return (
     <section className="menu py-5" id="menu">
-      {loading && <p className="text-center">A carregar menu...</p>}
+      {loading && <p className="text-center">{t('menuSection.loading')}</p>}
       {error && <p className="text-center text-danger">{error}</p>}
       {!loading && !error && (
         <div className="menu-columns">
@@ -53,7 +55,7 @@ const MenuSection: React.FC = () => {
               {items.map((item) => (
                 <div key={item.id} className="menu-item">
                   <h3>{item.name}</h3>
-                  <p>{item.description ?? 'No description available.'}</p>
+                  <p>{item.description ?? t('menuSection.noDescription')}</p>
                 </div>
               ))}
             </div>

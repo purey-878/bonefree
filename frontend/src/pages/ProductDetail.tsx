@@ -48,6 +48,9 @@ import type { ItemCustomization, ProductCustomizationOptions } from "../types/ca
 import { applyApiImageFallback, productImageFallback, resolveProductImageUrl } from "../utils/imageFallback"
 import { formatEuro } from "../utils/money"
 import { productMediaUrl } from "../utils/productMedia"
+import { translateUserMessage } from "../utils/messages"
+import { useTranslation } from "react-i18next"
+import i18n, { resolvedLocale } from "../i18n"
 
 type GalleryImage = {
   alt: string
@@ -57,50 +60,21 @@ type GalleryImage = {
 
 type ReviewFilter = "all" | "5" | "4" | "with-text"
 const PUBLIC_REVIEW_REACTIONS = [
-  { type: "like", label: "Gostado pela equipa", Icon: ThumbsUp },
+  { type: "like", labelKey: "productDetail.likedByTeam", Icon: ThumbsUp },
 ] as const
 
 const fallbackImage = productImageFallback
 const recentlyViewedKey = "bonefree_recently_viewed"
 const customizationAddSurcharge = 1
-const customizationOptionTranslations: Record<string, string> = {
-  "extra sauce": "Molho extra",
-  "extra vegan cheese": "Queijo vegan extra",
-  "extra pickles": "Pickles extra",
-  "extra jalapenos": "Jalapeños extra",
-  "extra jalapeños": "Jalapeños extra",
-  "extra salad": "Salada extra",
-  "extra crispy onions": "Cebola crocante extra",
-  "light sauce": "Pouco molho",
-  "sauce on the side": "Molho à parte",
-  "extra spicy": "Mais picante",
-  "no spice": "Sem picante",
-  "cut in half": "Cortado ao meio",
-  pickles: "Pickles",
-  onion: "Cebola",
-  tomato: "Tomate",
-  lettuce: "Alface",
-  sauce: "Molho",
-  slaw: "Couve marinada",
-  coriander: "Coentros",
-  spice: "Picante",
-  berries: "Frutos vermelhos",
-  seeds: "Sementes",
-  syrup: "Calda",
-}
-
-function customizationOptionLabel(field: "remove" | "add" | "preferences", option: string) {
-  const translated = customizationOptionTranslations[option.trim().toLowerCase()]
-  if (translated) return translated
-  if (field === "add") return option.replace(/^Extra\s+/i, "")
+function customizationOptionLabel(_field: "remove" | "add" | "preferences", option: string) {
   return option
 }
 
 const anchoredSections = [
-  { href: "#highlights", label: "Destaques" },
-  { href: "#details", label: "Detalhes" },
-  { href: "#reviews", label: "Avaliações" },
-  { href: "#faq", label: "FAQ" },
+  { href: "#highlights", labelKey: "productDetail.highlights" },
+  { href: "#details", labelKey: "productDetail.details" },
+  { href: "#reviews", labelKey: "productDetail.reviewsSection" },
+  { href: "#faq", labelKey: "FAQ" },
 ]
 
 function getImage(img: string | null | undefined) {
@@ -113,7 +87,7 @@ function formatPrice(price: number | null | undefined) {
 
 function formatCalories(value: number | null | undefined) {
   if (value == null || !Number.isFinite(value)) return null
-  return value.toLocaleString("pt-PT", { maximumFractionDigits: 1 })
+  return value.toLocaleString(resolvedLocale(), { maximumFractionDigits: 1 })
 }
 
 function productCalorieTotal(product: Product) {
@@ -133,12 +107,12 @@ function productCalorieTotal(product: Product) {
 
 function ingredientTypeLabel(type: string) {
   const labels: Record<string, string> = {
-    INGREDIENTES_NORMAIS: "ingrediente normal",
-    MOLHO: "molho",
-    EXTRA: "extra",
-    BEBIDA: "bebida",
-    BASE: "base",
-    ACOMPANHAMENTO: "acompanhamento",
+    INGREDIENTES_NORMAIS: i18n.t("productDetail.ingredientTypes.normal", { ns: "storefront" }),
+    MOLHO: i18n.t("productDetail.ingredientTypes.sauce", { ns: "storefront" }),
+    EXTRA: i18n.t("productDetail.ingredientTypes.extra", { ns: "storefront" }),
+    BEBIDA: i18n.t("productDetail.ingredientTypes.drink", { ns: "storefront" }),
+    BASE: i18n.t("productDetail.ingredientTypes.base", { ns: "storefront" }),
+    ACOMPANHAMENTO: i18n.t("productDetail.ingredientTypes.side", { ns: "storefront" }),
   }
   return labels[type] ?? type.replace("_", " ").toLowerCase()
 }
@@ -153,6 +127,7 @@ function readRecentlyViewed() {
 }
 
 export const ProductDetail = () => {
+  const { t } = useTranslation("storefront")
   const { id } = useParams<{ id: string }>()
   const [product, setProduct] = useState<Product | null>(null)
   const [productsById, setProductsById] = useState<Record<string, Product>>({})
@@ -279,7 +254,7 @@ export const ProductDetail = () => {
           setNotFound(true)
           return
         }
-        setError("Não foi possível carregar os detalhes do produto.")
+        setError(t("productDetail.loadError"))
         console.error(fetchError)
       } finally {
         setLoading(false)
@@ -287,7 +262,7 @@ export const ProductDetail = () => {
     }
 
     fetchProduct()
-  }, [id, token])
+  }, [id, token, t])
 
   useEffect(() => {
     const frame = imageFrameRef.current
@@ -305,7 +280,7 @@ export const ProductDetail = () => {
     if (!product) return
     if (!product.available) {
       setToastError(true)
-      setToastMessage(product.unavailableReason || "Este item está atualmente indisponível.")
+      setToastMessage(product.unavailableReason || t("productDetail.unavailableItem"))
       setTimeout(() => setToastMessage(null), 3000)
       return
     }
@@ -325,7 +300,7 @@ export const ProductDetail = () => {
       )
       window.dispatchEvent(new Event("cartUpdated"))
       setToastError(false)
-      setToastMessage(goToCheckout ? "Adicionado ao carrinho. A levar para o checkout." : "Adicionado ao carrinho")
+      setToastMessage(goToCheckout ? t("productDetail.addedCheckout") : t("productDetail.added"))
       if (goToCheckout) {
         navigate("/checkout")
       } else {
@@ -334,7 +309,7 @@ export const ProductDetail = () => {
       }
     } catch (err) {
       setToastError(true)
-      setToastMessage("Não foi possível adicionar este item.")
+      setToastMessage(t("productDetail.addError"))
       console.error(err)
     } finally {
       setAddingToCart(false)
@@ -384,16 +359,16 @@ export const ProductDetail = () => {
     setReviewError(null)
     if (!reviewEligibility) {
       setToastError(true)
-      setToastMessage("As avaliações ainda estão a carregar. Tente novamente dentro de instantes.")
-      toast.info("As avaliações ainda estão a carregar. Tente novamente dentro de instantes.")
+      setToastMessage(t("productDetail.reviewsLoading"))
+      toast.info(t("productDetail.reviewsLoading"))
       setTimeout(() => setToastMessage(null), 3000)
       return
     }
 
     if (!reviewEligibility.authenticated) {
       setToastError(true)
-      setToastMessage("Inicie sessão para escrever uma avaliação.")
-      toast.warning("Inicie sessão para escrever uma avaliação.")
+      setToastMessage(t("productDetail.reviewLogin"))
+      toast.warning(t("productDetail.reviewLogin"))
       setTimeout(() => setToastMessage(null), 3000)
       return
     }
@@ -401,8 +376,8 @@ export const ProductDetail = () => {
     if (reviewEligibility.existingReview) {
       handleEditReview(reviewEligibility.existingReview)
       setToastError(false)
-      setToastMessage("Já avaliou este produto. Pode editar a sua avaliação.")
-      toast.info("Já avaliou este produto. Pode editar a sua avaliação.")
+      setToastMessage(t("productDetail.alreadyReviewed"))
+      toast.info(t("productDetail.alreadyReviewed"))
       setTimeout(() => setToastMessage(null), 3000)
       return
     }
@@ -431,10 +406,10 @@ export const ProductDetail = () => {
           comment: reviewComment,
         })
         setToastError(false)
-        setToastMessage("Avaliação atualizada.")
-        toast.success("Avaliação atualizada com sucesso.")
+        setToastMessage(t("productDetail.reviewUpdated"))
+        toast.success(t("productDetail.reviewUpdatedSuccess"))
       } else {
-        if (!selectedOrderItemId) throw new Error("Escolha um item comprado para avaliar.")
+        if (!selectedOrderItemId) throw new Error(t("productDetail.choosePurchased"))
         await productService.createReview(product.id, {
           orderProductId: Number(selectedOrderItemId),
           rating: reviewRating,
@@ -442,13 +417,13 @@ export const ProductDetail = () => {
           comment: reviewComment,
         })
         setToastError(false)
-        setToastMessage("Avaliação publicada.")
-        toast.success("Avaliação publicada com sucesso.")
+        setToastMessage(t("productDetail.reviewPublished"))
+        toast.success(t("productDetail.reviewPublishedSuccess"))
       }
       resetReviewForm()
       await reloadReviews(product.id)
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Não foi possível guardar a avaliação."
+      const message = err instanceof Error ? err.message : t("productDetail.reviewSaveError")
       setReviewError(message)
       setToastError(true)
       setToastMessage(message)
@@ -483,11 +458,11 @@ export const ProductDetail = () => {
       if (editingReviewId === review.reviewId) resetReviewForm()
       await reloadReviews(product.id)
       setToastError(false)
-      setToastMessage("Avaliação apagada.")
+      setToastMessage(t("productDetail.reviewDeleted"))
       setReviewToDelete(null)
-      toast.success("Avaliação apagada com sucesso.")
+      toast.success(t("productDetail.reviewDeletedSuccess"))
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Não foi possível apagar a avaliação."
+      const message = err instanceof Error ? err.message : t("productDetail.reviewDeleteError")
       setReviewError(message)
       setToastError(true)
       setToastMessage(message)
@@ -531,10 +506,10 @@ export const ProductDetail = () => {
       .filter((src, index, all) => src && all.indexOf(src) === index)
       .map((src, index) => ({
         alt: index === 0 ? product.name : `${product.name} ${index + 1}`,
-        label: index === 0 ? "imagem principal" : `imagem ${index + 1}`,
+        label: index === 0 ? t("productDetail.mainImage") : t("productDetail.image", { count: index + 1 }),
         src,
       }))
-  }, [product])
+  }, [product, t])
 
   if (loading) return (
     <div className="pd-page">
@@ -552,7 +527,7 @@ export const ProductDetail = () => {
       <Navbar />
       <div className="pd-loading pd-state-card">
         <p className="pd-error">{error}</p>
-        <button className="pd-back-btn" onClick={() => navigate("/menu")}>Voltar ao menu</button>
+        <button className="pd-back-btn" onClick={() => navigate("/menu")}>{t("productDetail.backMenu")}</button>
       </div>
     </div>
   )
@@ -560,9 +535,9 @@ export const ProductDetail = () => {
   if (!product) return null
 
   const canPurchase = product.available
-  const unavailableLabel = "Atualmente indisponível"
-  const addToCartBlockedLabel = canPurchase ? "Adicionar ao carrinho" : unavailableLabel
-  const buyNowBlockedLabel = canPurchase ? "Comprar agora" : unavailableLabel
+  const unavailableLabel = t("productCard.currentlyUnavailable")
+  const addToCartBlockedLabel = canPurchase ? t("productDetail.addToCart") : unavailableLabel
+  const buyNowBlockedLabel = canPurchase ? t("productDetail.buyNow") : unavailableLabel
   const ingredientBreakdown = product.ingredients ?? []
   const inactiveNonBaseIngredients = ingredientBreakdown.filter(
     ingredient => ingredient.status === "inactive" && ingredient.type !== "base",
@@ -594,9 +569,9 @@ export const ProductDetail = () => {
   const customizedUnitPrice =
     Number(product.price ?? 0) + (customization.add.length * customizationAddSurcharge)
   const customizationGroups = [
-    { key: "remove", label: "Remover", options: customizationOptions.remove },
-    { key: "add", label: `Adicionar (+${formatEuro(customizationAddSurcharge)} cada)`, options: customizationOptions.add },
-    { key: "preferences", label: "Preferências", options: customizationOptions.preferences },
+    { key: "remove", label: t("productDetail.remove"), options: customizationOptions.remove },
+    { key: "add", label: t("productDetail.addEach", { price: formatEuro(customizationAddSurcharge) }), options: customizationOptions.add },
+    { key: "preferences", label: t("productDetail.preferences"), options: customizationOptions.preferences },
   ] as const
   const filteredReviews = reviews.filter(review => {
     if (reviewFilter === "5") return review.rating === 5
@@ -678,7 +653,7 @@ export const ProductDetail = () => {
           <button
             type="button"
             onClick={() => setToastMessage(null)}
-            aria-label="Dismiss"
+            aria-label={t("productDetail.dismiss")}
             className="toast-close"
           >
             <X size={15} strokeWidth={2.5} />
@@ -688,10 +663,10 @@ export const ProductDetail = () => {
 
       <ConfirmDialog
         open={Boolean(reviewToDelete)}
-        title="Apagar esta avaliação?"
-        description="Esta avaliação será removida da página do produto."
-        confirmText="Apagar avaliação"
-        cancelText="Cancelar"
+        title={t("productDetail.deleteReviewTitle")}
+        description={t("productDetail.deleteReviewDescription")}
+        confirmText={t("productDetail.deleteReview")}
+        cancelText={t("productDetail.cancel")}
         danger
         loading={reviewSubmitting}
         onConfirm={() => void confirmDeleteReview()}
@@ -701,12 +676,12 @@ export const ProductDetail = () => {
       />
 
       <main className="pd-shell">
-        <nav className="pd-breadcrumb" aria-label="Breadcrumb">
+        <nav className="pd-breadcrumb" aria-label={t("productDetail.breadcrumb")}>
           <button className="pd-back-btn" onClick={handleBack} type="button">
             <ChevronLeft size={17} />
-            Voltar
+            {t("productDetail.back")}
           </button>
-          <Link to="/">Início</Link>
+          <Link to="/">{t("productDetail.home")}</Link>
           <span>/</span>
           <Link to="/menu">Menu</Link>
           <span>/</span>
@@ -734,11 +709,11 @@ export const ProductDetail = () => {
               />
             <div className="pd-gallery-topline ">
               <Badge variant="accent" size="sm">{product.category}</Badge>
-              <span><Leaf size={15} /> 100% vegan</span>
+              <span><Leaf size={15} /> {t("productDetail.vegan")}</span>
             </div>
             </div>
 
-            <div className="pd-thumbnails  " aria-label="Miniaturas da galeria do produto">
+            <div className="pd-thumbnails  " aria-label={t("productDetail.gallery")}>
               {galleryImages.map((image, index) => (
                 <button
 
@@ -746,7 +721,7 @@ export const ProductDetail = () => {
                   type="button"
                   className={activeImageIndex === index ? "active p-1" : "p-2"}
                   onClick={() => setActiveImageIndex(index)}
-                  aria-label={`Mostrar ${image.label}`}
+                  aria-label={t("productDetail.showImage", { label: image.label })}
                 >
                   <img
                     src={image.src}
@@ -760,22 +735,22 @@ export const ProductDetail = () => {
             </div>
 
             <div className="pd-gallery-meta" >
-              <span><Leaf size={16} /> 100% vegan</span>
-              <span><Sprout size={16} /> Ingredientes vegetais</span>
-              <span><BadgeCheck size={16} /> Preparado fresco</span>
+              <span><Leaf size={16} /> {t("productDetail.vegan")}</span>
+              <span><Sprout size={16} /> {t("productDetail.plantIngredients")}</span>
+              <span><BadgeCheck size={16} /> {t("productDetail.freshlyPrepared")}</span>
             </div>
           </div>
 
-          <aside className="pd-buy-panel" aria-label="Opções de compra">
+          <aside className="pd-buy-panel" aria-label={t("productDetail.purchaseOptions")}>
             <div className="pd-badge-row">
               <AvailabilityBadge available={canPurchase} />
-              <Badge variant="glass" size="sm">Vegetal</Badge>
-              <Badge variant="neutral" size="sm">Pedido à mesa</Badge>
+              <Badge variant="glass" size="sm">{t("productDetail.plantBased")}</Badge>
+              <Badge variant="neutral" size="sm">{t("productDetail.tableOrder")}</Badge>
             </div>
 
             <div className="pd-title-row">
               <div>
-                <p className="pd-kicker">Item premium do menu</p>
+                <p className="pd-kicker">{t("productDetail.premium")}</p>
                 <h1>{product.name}</h1>
               </div>
             </div>
@@ -783,17 +758,17 @@ export const ProductDetail = () => {
             <a className="pd-rating-link" href="#reviews">
               <span>
                 <Star size={17} fill="currentColor" />
-                {averageRating?.toFixed(1) ?? "Novo"}
+                {averageRating?.toFixed(1) ?? t("productDetail.new")}
               </span>
-              <strong>{totalReviews} {totalReviews === 1 ? "avaliação" : "avaliações"}</strong>
+              <strong>{t("productDetail.reviews", { count: totalReviews })}</strong>
             </a>
 
             <div className="pd-price-card">
-              {showDiscount && <em>{discountPercent}% desconto</em>}
+              {showDiscount && <em>{t("productDetail.discount", { count: discountPercent })}</em>}
               {showDiscount && <del>{formatPrice(product.originalPrice)}</del>}
               <strong className="red">{formatPrice(product.price)}</strong>
               {productCalories && (
-                <span className="pd-calorie-line" title={`${productCalories} quilocalorias`}>
+                <span className="pd-calorie-line" title={t("productDetail.calories", { count: productCalories })}>
                   <Flame aria-hidden="true" />
                   {productCalories} kcal
                 </span>
@@ -801,16 +776,16 @@ export const ProductDetail = () => {
             </div>
 
             <p className="pd-desc">
-              {product.description || "Um prato preparado cuidadosamente com ingredientes frescos de origem vegetal."}
+              {product.description || t("productDetail.fallbackDescription")}
             </p>
 
             {inactiveNonBaseIngredients.length > 0 && (
               <div className="pd-ingredient-alert" role="status">
                 <TriangleAlert size={18} aria-hidden="true" />
                 <div>
-                  <strong>Ingrediente temporariamente indisponível</strong>
+                  <strong>{t("productDetail.ingredientUnavailable")}</strong>
                   <span>
-                    {inactiveIngredientNames}. A equipa pode ajustar a preparação deste prato.
+                    {t("productDetail.ingredientAdjustment", { ingredients: inactiveIngredientNames })}
                   </span>
                 </div>
               </div>
@@ -819,13 +794,13 @@ export const ProductDetail = () => {
             {canPurchase && product.customizable && (
               <details className="pd-customizer" open>
                 <summary>
-                  <span>Personalizar pedido</span>
-                  <strong>{selectedCustomizationCount} selecionados</strong>
+                  <span>{t("productDetail.customiseOrder")}</span>
+                  <strong>{t("productDetail.selected", { count: selectedCustomizationCount })}</strong>
                   <ChevronDown size={18} />
                 </summary>
                 <div className="pd-customizer-body">
                   <p className="pd-customizer-note">
-                    Adicionar um item custa mais {formatEuro(customizationAddSurcharge)}. Remover ingredientes não reduz o preço.
+                    {t("productDetail.customisationNote", { price: formatEuro(customizationAddSurcharge) })}
                   </p>
                   {customizationGroups.map(group => (
                     group.options.length > 0 && (
@@ -857,13 +832,13 @@ export const ProductDetail = () => {
                     )
                   ))}
                   <label className="pd-custom-note">
-                    Instruções especiais
+                    {t("productDetail.specialInstructions")}
                     <Textarea
                       rows={3}
                       maxLength={280}
                       value={customization.note ?? ""}
                       onChange={event => updateCustomizationNote(event.target.value)}
-                      placeholder="Nota de alergia, preferência de molho ou pedido para a cozinha"
+                      placeholder={t("productDetail.notePlaceholder")}
                     />
                   </label>
                 </div>
@@ -871,13 +846,13 @@ export const ProductDetail = () => {
             )}
 
             <div className="pd-purchase-row">
-              <div className="pd-qty-row" aria-label={`Quantidade de ${product.name}`}>
+              <div className="pd-qty-row" aria-label={t("productDetail.quantity", { name: product.name })}>
                 <button
                   className="pd-qty-btn"
                   type="button"
                   onClick={() => setQuantity(q => Math.max(1, q - 1))}
                   disabled={!canPurchase || quantity <= 1}
-                  aria-label="Diminuir quantidade"
+                  aria-label={t("productDetail.decrease")}
                 >
                   <Minus size={18} />
                 </button>
@@ -887,7 +862,7 @@ export const ProductDetail = () => {
                   type="button"
                   onClick={() => setQuantity(q => Math.min(99, q + 1))}
                   disabled={!canPurchase || quantity >= 99}
-                  aria-label="Aumentar quantidade"
+                  aria-label={t("productDetail.increase")}
                 >
                   <Plus size={18} />
                 </button>
@@ -912,12 +887,12 @@ export const ProductDetail = () => {
               onClick={() => handleAddToCart(true)}
               disabled={!canPurchase || addingToCart}
             >
-              {canPurchase ? "Comprar agora" : buyNowBlockedLabel}
+              {canPurchase ? t("productDetail.buyNow") : buyNowBlockedLabel}
             </button>
 
             <div className="pd-assurance-grid">
-              <div><RotateCcw size={18} /><span>Ajuda fácil</span><strong>Fale com a equipa</strong></div>
-              <div><ShieldCheck size={18} /><span>Promessa de qualidade</span><strong>Preparado fresco</strong></div>
+              <div><RotateCcw size={18} /><span>{t("productDetail.easyHelp")}</span><strong>{t("productDetail.speakTeam")}</strong></div>
+              <div><ShieldCheck size={18} /><span>{t("productDetail.qualityPromise")}</span><strong>{t("productDetail.freshlyPrepared")}</strong></div>
             </div>
           </aside>
         </section>
@@ -925,72 +900,72 @@ export const ProductDetail = () => {
         {hasSuggestions && (
           <section className="pd-section pd-related pd-suggestions pd-suggestions-top">
             <div className="pd-section-heading">
-              <p>Alternativas disponíveis</p>
-              <h2>Pratos semelhantes prontos agora</h2>
+              <p>{t("productDetail.alternatives")}</p>
+              <h2>{t("productDetail.similarReady")}</h2>
             </div>
             {substituteSuggestions.length > 0 && (
               <div className="pd-suggestion-block">
-                <h3>Substitutos</h3>
+                <h3>{t("productDetail.substitutes")}</h3>
                 <div className="pd-related-grid">{substituteSuggestions.map(renderSuggestionCard)}</div>
               </div>
             )}
             {similarDishSuggestions.length > 0 && (
               <div className="pd-suggestion-block">
-                <h3>Pratos semelhantes</h3>
+                <h3>{t("productDetail.similar")}</h3>
                 <div className="pd-related-grid">{similarDishSuggestions.map(renderSuggestionCard)}</div>
               </div>
             )}
           </section>
         )}
 
-        <nav className="pd-anchor-nav" aria-label="Secções de detalhe do produto">
+        <nav className="pd-anchor-nav" aria-label={t("productDetail.sections")}>
           {anchoredSections.map(section => (
-            <a key={section.href} href={section.href}>{section.label}</a>
+            <a key={section.href} href={section.href}>{section.labelKey === "FAQ" ? "FAQ" : t(section.labelKey)}</a>
           ))}
         </nav>
 
         <section className="pd-section pd-highlights" id="highlights">
           <div className="pd-section-heading">
-            <p>Porque convence</p>
-            <h2>Feito para dar confiança antes da primeira garfada</h2>
+            <p>{t("productDetail.why")}</p>
+            <h2>{t("productDetail.confidence")}</h2>
           </div>
           <div className="pd-highlight-grid">
-            <article><PackageCheck size={22} /><h3>Preparação fresca</h3><p>Preparado perto da recolha ou do serviço à mesa para manter textura e sabor.</p></article>
-            <article><BadgeCheck size={22} /><h3>Padrões vegetais</h3><p>Pensado para refeições vegan com controlos claros de personalização e apoio da equipa.</p></article>
-            <article><ShieldCheck size={22} /><h3>Checkout fiável</h3><p>Carrinho e checkout mantêm-se persistentes, previsíveis e otimizados para pedir sem complicações.</p></article>
+            <article><PackageCheck size={22} /><h3>{t("productDetail.freshPreparation")}</h3><p>{t("productDetail.freshPreparationText")}</p></article>
+            <article><BadgeCheck size={22} /><h3>{t("productDetail.plantStandards")}</h3><p>{t("productDetail.plantStandardsText")}</p></article>
+            <article><ShieldCheck size={22} /><h3>{t("productDetail.reliableCheckout")}</h3><p>{t("productDetail.reliableCheckoutText")}</p></article>
           </div>
         </section>
 
         <section className="pd-section pd-details" id="details">
           <div className="pd-section-heading">
-            <p>Informação do produto</p>
-            <h2>Detalhes que facilitam a escolha</h2>
+            <p>{t("productDetail.productInfo")}</p>
+            <h2>{t("productDetail.choiceDetails")}</h2>
           </div>
           <div className="pd-info-grid">
             <article className="pd-copy-card">
-              <h3>Descrição</h3>
-              <p>{product.description || "Um prato vegetal de assinatura, preparado com textura equilibrada, sabor vivo e um acabamento leve."}</p>
+              <h3>{t("productDetail.description")}</h3>
+              <p>{product.description || t("productDetail.signatureDescription")}</p>
               <ul>
-                <li>Porção equilibrada para uma pessoa ou para partilhar à mesa.</li>
-                <li>Notas de preparação personalizáveis para preferências alimentares.</li>
-                <li>Preparado pela cozinha após o pedido para garantir mais frescura.</li>
+                <li>{t("productDetail.portion")}</li>
+                <li>{t("productDetail.personalNotes")}</li>
+                <li>{t("productDetail.madeAfterOrder")}</li>
               </ul>
             </article>
             <article className="pd-spec-card">
-              <h3>Especificações</h3>
+              <h3>{t("productDetail.specifications")}</h3>
               <dl>
-                <div><dt>Categoria</dt><dd>{product.category}</dd></div>
-                <div><dt>Disponibilidade</dt><dd>{canPurchase ? "Disponível" : unavailableLabel}</dd></div>
-                <div><dt>Calorias</dt><dd>{productCalories ? `${productCalories} kcal` : "Não indicado"}</dd></div>
-                <div><dt>Personalização</dt><dd>{product.customizable ? "Disponível" : "Preparação padrão"}</dd></div>
-                <div><dt>Dieta</dt><dd>100% vegan</dd></div>
+                <div><dt>{t("productDetail.category")}</dt><dd>{product.category}</dd></div>
+                <div><dt>{t("productDetail.availability")}</dt><dd>{canPurchase ? t("productCard.available") : unavailableLabel}</dd></div>
+                <div><dt>{t("productDetail.caloriesLabel")}</dt><dd>{productCalories ? `${productCalories} kcal` : t("productDetail.notSpecified")}</dd></div>
+                <div><dt>{t("productDetail.customisation")}</dt><dd>{product.customizable ? t("productCard.available") : t("productDetail.standardPreparation")}</dd></div>
+                <div><dt>{t("productDetail.diet")}</dt><dd>{t("productDetail.vegan")}</dd></div>
               </dl>
             </article>
             <article className="pd-nutrition-card">
               <div className="pd-nutrition-head">
                 <div>
-                  <h3>Calorias por ingrediente</h3>
-                  <p>Estimado a partir das quantidades guardadas e das kcal por grama.</p>
+                  <h3>{t("productDetail.ingredientCalories")}</h3>
+                  <p>{t("productDetail.calorieEstimate")}</p>
                 </div>
                 {productCalories && <strong>{productCalories} kcal</strong>}
               </div>
@@ -1005,12 +980,12 @@ export const ProductDetail = () => {
                         <div>
                           <strong>
                             {ingredient.name}
-                            {inactive && <em>Indisponível</em>}
+                            {inactive && <em>{t("productDetail.ingredientInactive")}</em>}
                           </strong>
-                          <span>{ingredientTypeLabel(ingredient.type)} · {ingredient.quantity || "quantidade não definida"}</span>
+                          <span>{ingredientTypeLabel(ingredient.type)} · {ingredient.quantity || t("productDetail.quantityUndefined")}</span>
                         </div>
                         <div>
-                          <span>{caloriesPerGram ? `${caloriesPerGram} kcal/g` : "kcal/g não definido"}</span>
+                          <span>{caloriesPerGram ? `${caloriesPerGram} kcal/g` : t("productDetail.kcalUndefined")}</span>
                           <strong>{calories ? `${calories} kcal` : "0 kcal"}</strong>
                         </div>
                       </div>
@@ -1018,7 +993,7 @@ export const ProductDetail = () => {
                   })}
                 </div>
               ) : (
-                <p className="pd-nutrition-empty">A discriminação calórica por ingrediente ainda não está listada para este item.</p>
+                <p className="pd-nutrition-empty">{t("productDetail.nutritionEmpty")}</p>
               )}
             </article>
           </div>
@@ -1027,11 +1002,11 @@ export const ProductDetail = () => {
         <section className="pd-section pd-reviews" id="reviews">
           <div className="pd-review-heading">
             <div className="pd-section-heading">
-              <p>Avaliações dos clientes</p>
-              <h2>{totalReviews > 0 ? `${averageRating?.toFixed(1)} de média` : "Seja o primeiro a avaliar"}</h2>
+              <p>{t("productDetail.customerReviews")}</p>
+              <h2>{totalReviews > 0 ? t("productDetail.average", { rating: averageRating?.toFixed(1) }) : t("productDetail.firstReview")}</h2>
             </div>
             <button type="button" className="pd-add-review-btn mb-4" onClick={handleAddReviewClick}>
-              {existingProductReview ? "Editar avaliação" : "Adicionar avaliação"}
+              {existingProductReview ? t("productDetail.editReview") : t("productDetail.addReview")}
             </button>
           </div>
 
@@ -1043,7 +1018,7 @@ export const ProductDetail = () => {
                 className={reviewFilter === filter ? "active" : ""}
                 onClick={() => setReviewFilter(filter)}
               >
-                {filter === "all" ? "Todas" : filter === "with-text" ? "Com texto" : `${filter}+ estrelas`}
+                {filter === "all" ? t("productDetail.allReviews") : filter === "with-text" ? t("productDetail.withText") : t("productDetail.stars", { count: filter })}
               </button>
             ))}
           </div>
@@ -1052,27 +1027,27 @@ export const ProductDetail = () => {
             <div className="pd-review-form">
               <div className="pd-review-form-head">
                 <div>
-                  <p>{editingReviewId ? "Editar a sua avaliação" : "A sua avaliação"}</p>
-                  <h3>{editingReviewId ? "Atualize o que partilhou" : "Avalie um item comprado"}</h3>
+                  <p>{editingReviewId ? t("productDetail.editYours") : t("productDetail.yourReview")}</p>
+                  <h3>{editingReviewId ? t("productDetail.updateShared") : t("productDetail.reviewPurchased")}</h3>
                 </div>
-                {(editingReviewId || reviewFormOpen) && <button type="button" onClick={resetReviewForm}>Cancelar</button>}
+                {(editingReviewId || reviewFormOpen) && <button type="button" onClick={resetReviewForm}>{t("productDetail.cancel")}</button>}
               </div>
 
               {!editingReviewId && reviewableItems.length > 1 && (
                 <label className="pd-review-field">
-                  Item comprado
+                  {t("productDetail.purchasedItem")}
 
                 </label>
               )}
 
-              <div className="pd-review-stars" aria-label="Avaliação">
+              <div className="pd-review-stars" aria-label={t("productDetail.rating")}>
                 {[1, 2, 3, 4, 5].map(value => (
                   <button
                     key={value}
                     type="button"
                     className={value <= reviewRating ? "active" : ""}
                     onClick={() => setReviewRating(value)}
-                    aria-label={`${value} estrelas`}
+                    aria-label={t("productDetail.star", { count: value })}
                   >
                     <Star size={20} fill="currentColor" />
                   </button>
@@ -1080,36 +1055,36 @@ export const ProductDetail = () => {
               </div>
 
               <label className="pd-review-field">
-                Título
-                <input maxLength={120} value={reviewTitle} onChange={event => setReviewTitle(event.target.value)} placeholder="Um título rápido" />
+                {t("productDetail.title")}
+                <input maxLength={120} value={reviewTitle} onChange={event => setReviewTitle(event.target.value)} placeholder={t("productDetail.titlePlaceholder")} />
               </label>
 
               <label className="pd-review-field">
-                Comentário
-                <Textarea rows={4} maxLength={1000} value={reviewComment} onChange={event => setReviewComment(event.target.value)} placeholder="O que se destacou?" />
+                {t("productDetail.comment")}
+                <Textarea rows={4} maxLength={1000} value={reviewComment} onChange={event => setReviewComment(event.target.value)} placeholder={t("productDetail.commentPlaceholder")} />
               </label>
 
               {reviewError && <p className="pd-review-error">{reviewError}</p>}
               <button type="button" className="pd-review-submit" onClick={handleSubmitReview} disabled={reviewSubmitting || (!editingReviewId && !selectedOrderItemId)}>
-                {reviewSubmitting ? "A guardar..." : editingReviewId ? "Guardar avaliação" : "Publicar avaliação"}
+                {reviewSubmitting ? t("productDetail.saving") : editingReviewId ? t("productDetail.saveReview") : t("productDetail.publishReview")}
               </button>
             </div>
           )}
 
-          {!showReviewForm && reviewEligibility?.authenticated && <p className="pd-review-note">{reviewEligibility.message}</p>}
+          {!showReviewForm && reviewEligibility?.authenticated && <p className="pd-review-note">{translateUserMessage(reviewEligibility.message)}</p>}
           {!showReviewForm && reviewEligibility && !reviewEligibility.authenticated && (
             <div className="pd-review-login">
-              <p>{reviewEligibility.message}</p>
-              <Link to="/login">Iniciar sessão para escrever uma avaliação</Link>
+              <p>{translateUserMessage(reviewEligibility.message)}</p>
+              <Link to="/login">{t("productDetail.reviewSignIn")}</Link>
             </div>
           )}
 
           <div className="pd-review-list">
             {filteredReviews.length > 0 ? (
               filteredReviews.map(review => {
-                const adminReactions = PUBLIC_REVIEW_REACTIONS.map(({ type, label, Icon }) => ({
+                const adminReactions = PUBLIC_REVIEW_REACTIONS.map(({ type, labelKey, Icon }) => ({
                   type,
-                  label,
+                  label: t(labelKey),
                   Icon,
                   count: review.reactions?.filter(reaction => reaction.type === type).length ?? 0,
                 })).filter(reaction => reaction.count > 0)
@@ -1118,15 +1093,15 @@ export const ProductDetail = () => {
                   <article key={review.reviewId} className="pd-review-item">
                     <div className="pd-review-item-head">
                       <div>
-                        <strong>{review.customerName ?? "Cliente BONEFREE"}</strong>
-                        <span>{new Date(review.createdAt).toLocaleDateString("pt-PT")}</span>
+                        <strong>{review.customerName ?? t("productDetail.customer")}</strong>
+                        <span>{new Date(review.createdAt).toLocaleDateString(resolvedLocale())}</span>
                       </div>
                       <div className="pd-review-item-rating"><Star size={16} fill="currentColor" />{review.rating}</div>
                     </div>
                     {review.title && <h3>{review.title}</h3>}
                     {review.comment && <p>{review.comment}</p>}
                     {adminReactions.length > 0 && (
-                      <div className="pd-review-reactions" aria-label="Reações da equipa">
+                      <div className="pd-review-reactions" aria-label={t("productDetail.teamReactions")}>
                         {adminReactions.map(({ type, label, Icon, count }) => (
                           <span key={type} title={label}>
                             <Icon size={14} />
@@ -1139,16 +1114,16 @@ export const ProductDetail = () => {
                       <div className="pd-review-admin-reply">
                         <div>
                           <MessageCircle size={16} />
-                          <strong>Resposta da BONEFREE</strong>
-                          <span>{new Date(review.reply.updatedAt || review.reply.createdAt).toLocaleDateString("pt-PT")}</span>
+                          <strong>{t("productDetail.bonefreeReply")}</strong>
+                          <span>{new Date(review.reply.updatedAt || review.reply.createdAt).toLocaleDateString(resolvedLocale())}</span>
                         </div>
                         <p>{review.reply.text}</p>
                       </div>
                     )}
                     {review.isOwner && (
                       <div className="pd-review-actions">
-                        <button type="button" onClick={() => handleEditReview(review)}>Editar</button>
-                        <button type="button" onClick={() => handleDeleteReview(review)} disabled={reviewSubmitting}>Apagar</button>
+                        <button type="button" onClick={() => handleEditReview(review)}>{t("productDetail.edit")}</button>
+                        <button type="button" onClick={() => handleDeleteReview(review)} disabled={reviewSubmitting}>{t("productDetail.delete")}</button>
                       </div>
                     )}
                   </article>
@@ -1156,8 +1131,8 @@ export const ProductDetail = () => {
               })
             ) : (
               <div className="pd-empty-card">
-                <h3>Nenhuma avaliação corresponde a este filtro</h3>
-                <p>Experimente outro filtro ou volte mais tarde depois de mais clientes pedirem.</p>
+                <h3>{t("productDetail.noMatchingReviews")}</h3>
+                <p>{t("productDetail.noMatchingReviewsText")}</p>
               </div>
             )}
           </div>
@@ -1166,21 +1141,21 @@ export const ProductDetail = () => {
         <section className="pd-section pd-faq" id="faq">
           <div className="pd-section-heading">
             <p>FAQ</p>
-            <h2>Respostas antes do checkout</h2>
+            <h2>{t("productDetail.faqTitle")}</h2>
           </div>
           <div className="pd-faq-list">
-            <details open><summary>Posso personalizar este item?<ChevronDown size={18} /></summary><p>{product.customizable ? "Sim. Use o painel de personalização acima para remover, adicionar ou indicar preferências." : "Este item usa preparação padrão, mas pode pedir orientação à equipa."}</p></details>
-            <details><summary>A estimativa de entrega é precisa?<ChevronDown size={18} /></summary><p>A estimativa reflete a janela de preparação atual e pode mudar se a cozinha estiver ocupada.</p></details>
-            <details><summary>E se tiver alergias?<ChevronDown size={18} /></summary><p>Adicione uma nota antes do checkout e fale com a equipa antes de pedir para confirmar ingredientes.</p></details>
-            <details><summary>Posso voltar a pedir isto mais tarde?<ChevronDown size={18} /></summary><p>Sim. O seu histórico de pedidos pode ser usado para rever itens anteriores e voltar a pedir produtos disponíveis.</p></details>
+            <details open><summary>{t("productDetail.faqCustomise")}<ChevronDown size={18} /></summary><p>{product.customizable ? t("productDetail.faqCustomiseYes") : t("productDetail.faqCustomiseNo")}</p></details>
+            <details><summary>{t("productDetail.faqEstimate")}<ChevronDown size={18} /></summary><p>{t("productDetail.faqEstimateText")}</p></details>
+            <details><summary>{t("productDetail.faqAllergies")}<ChevronDown size={18} /></summary><p>{t("productDetail.faqAllergiesText")}</p></details>
+            <details><summary>{t("productDetail.faqReorder")}<ChevronDown size={18} /></summary><p>{t("productDetail.faqReorderText")}</p></details>
           </div>
         </section>
 
         {relatedProducts.length > 0 && (
           <section className="pd-section pd-related pd-popular">
             <div className="pd-section-heading">
-              <p>Mais populares</p>
-              <h2>Favoritos dos clientes em {product.category}</h2>
+              <p>{t("productDetail.popular")}</p>
+              <h2>{t("productDetail.favourites", { category: product.category })}</h2>
             </div>
             <div className="pd-related-grid">
               {relatedProducts.map(rel => (
@@ -1193,8 +1168,8 @@ export const ProductDetail = () => {
         {recentProducts.length > 0 && (
           <section className="pd-section pd-related">
             <div className="pd-section-heading">
-              <p>Vistos recentemente</p>
-              <h2>Continue a comparar</h2>
+              <p>{t("productDetail.recentlyViewed")}</p>
+              <h2>{t("productDetail.compare")}</h2>
             </div>
             <div className="pd-related-grid">
               {recentProducts.map(recent => (
@@ -1205,13 +1180,13 @@ export const ProductDetail = () => {
         )}
       </main>
 
-      <div className="pd-mobile-bar" aria-label="Barra de compra móvel">
+      <div className="pd-mobile-bar" aria-label={t("productDetail.mobileBar")}>
         <div>
           <span>{product.name}</span>
           <strong>{formatPrice(customizedUnitPrice * quantity)}</strong>
         </div>
         <button type="button" onClick={() => handleAddToCart(false)} disabled={!canPurchase || addingToCart}>
-          {canPurchase ? "Adicionar ao carrinho" : addToCartBlockedLabel}
+          {canPurchase ? t("productDetail.addToCart") : addToCartBlockedLabel}
         </button>
       </div>
     </div>

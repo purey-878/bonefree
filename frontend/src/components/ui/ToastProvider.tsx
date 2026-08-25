@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from "react"
 import type { ReactNode } from "react"
 import { AlertCircle, CheckCircle2, Info, X } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { ToastContext } from "./toastContext"
 import type { ToastOptions, ToastType, ToastContextValue } from "./toastContext"
 import { translateUserMessage } from "../../utils/messages"
@@ -20,6 +21,7 @@ const TOAST_ICONS = {
 } satisfies Record<ToastType, typeof CheckCircle2>
 
 export function ToastProvider({ children }: { children: ReactNode }) {
+  const { t } = useTranslation("common")
   const [toasts, setToasts] = useState<Toast[]>([])
   const nextId = useRef(1)
   const timers = useRef(new Map<number, number>())
@@ -67,7 +69,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             >
               <Icon size={18} aria-hidden="true" />
               <p>{translateUserMessage(toast.message)}</p>
-              <button type="button" aria-label="Fechar notificação" onClick={() => dismiss(toast.id)}>
+              <button type="button" aria-label={t("notifications.close")} onClick={() => dismiss(toast.id)}>
                 <X size={16} />
               </button>
             </div>

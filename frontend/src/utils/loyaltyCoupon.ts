@@ -1,5 +1,6 @@
 import type { LoyaltyCouponSettings } from "../types/siteSettings";
 import { formatEuro, formatPercent } from "./money";
+import i18n from "../i18n";
 
 export const defaultLoyaltyCouponSettings: LoyaltyCouponSettings = {
   enabled: true,
@@ -18,24 +19,24 @@ function numericValue(value: number | string | null | undefined, fallback = 0) {
 function formatDiscount(settings: LoyaltyCouponSettings) {
   const value = numericValue(settings.discountValue);
   if (settings.discountType === "percentage") {
-    return `${formatPercent(value)} de desconto`;
+    return i18n.t("loyalty.discount", { ns: "storefront", value: formatPercent(value) });
   }
-  return `${formatEuro(value)} de desconto`;
+  return i18n.t("loyalty.discount", { ns: "storefront", value: formatEuro(value) });
 }
 
 export function loyaltyCouponHeadline(settings: LoyaltyCouponSettings) {
   const orderCount = Math.max(1, Math.round(numericValue(settings.qualifyingOrderCount, 3)));
-  const orderLabel = orderCount === 1 ? "pedido" : "pedidos";
-  return `Faça ${orderCount} ${orderLabel} acima de ${formatEuro(settings.qualifyingOrderMinimum)} e ganhe ${formatDiscount(settings)} no próximo pedido.`;
+  return i18n.t("loyalty.headline", {
+    ns: "storefront", count: orderCount, minimum: formatEuro(settings.qualifyingOrderMinimum), discount: formatDiscount(settings),
+  });
 }
 
 export function loyaltyCouponDetail(settings: LoyaltyCouponSettings) {
   const orderCount = Math.max(1, Math.round(numericValue(settings.qualifyingOrderCount, 3)));
-  const orderLabel = orderCount === 1 ? "pedido elegível" : "pedidos elegíveis";
   const redemptionMinimum = numericValue(settings.couponMinimumOrder);
   const redeemCopy = redemptionMinimum > 0
-    ? ` Os cupões podem ser usados em pedidos acima de ${formatEuro(redemptionMinimum)}.`
+    ? i18n.t("loyalty.redemptionMinimum", { ns: "storefront", minimum: formatEuro(redemptionMinimum) })
     : "";
 
-  return `O seu cupão de recompensa é criado automaticamente após ${orderCount} ${orderLabel} e aparece no perfil.${redeemCopy}`;
+  return i18n.t("loyalty.detail", { ns: "storefront", count: orderCount, redemption: redeemCopy });
 }
