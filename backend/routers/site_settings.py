@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
-from dependencies import require_role
+from dependencies import require_organization_feature, require_role
 from services.auth_service import SUPER_ADMIN_ROLE
 from database import get_db
 from schemas.enums import EntityStatus
@@ -44,6 +44,7 @@ admin_router = APIRouter(
     tags=["Site Settings"],
     responses=RATE_LIMIT_OPENAPI_RESPONSES,
 )
+ADMIN_SITE_SETTINGS_CONTEXT = Depends(require_role(SUPER_ADMIN_ROLE))
 
 
 @public_router.get(
@@ -59,6 +60,7 @@ def read_public_site_theme(db: Session = Depends(get_db)):
     "/chef-special",
     response_model=ChefSpecialSettings,
     operation_id="site_settings_read_public_chef_special",
+    dependencies=[Depends(require_organization_feature("catalog"))],
 )
 def read_public_chef_special(db: Session = Depends(get_db)):
     return get_chef_special_settings(db)
@@ -68,6 +70,7 @@ def read_public_chef_special(db: Session = Depends(get_db)):
     "/loyalty-coupons",
     response_model=LoyaltyCouponSettings,
     operation_id="site_settings_read_public_loyalty_coupon_settings",
+    dependencies=[Depends(require_organization_feature("loyalty"))],
 )
 def read_public_loyalty_coupon_settings(db: Session = Depends(get_db)):
     return get_loyalty_coupon_settings(db)
@@ -95,6 +98,7 @@ def read_public_social_media(db: Session = Depends(get_db)):
     "/events",
     response_model=EventsSettings,
     operation_id="site_settings_read_public_events",
+    dependencies=[Depends(require_organization_feature("events"))],
 )
 def read_public_events(db: Session = Depends(get_db)):
     return get_events_settings(db)
@@ -129,6 +133,7 @@ def update_admin_site_theme(
     "/chef-special",
     response_model=ChefSpecialSettings,
     operation_id="site_settings_read_admin_chef_special",
+    dependencies=[ADMIN_SITE_SETTINGS_CONTEXT, Depends(require_organization_feature("catalog"))],
 )
 def read_admin_chef_special(
     current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
@@ -141,6 +146,7 @@ def read_admin_chef_special(
     "/chef-special",
     response_model=ChefSpecialSettings,
     operation_id="site_settings_update_admin_chef_special",
+    dependencies=[ADMIN_SITE_SETTINGS_CONTEXT, Depends(require_organization_feature("catalog"))],
 )
 def update_admin_chef_special(
     settings: ChefSpecialSettings,
@@ -164,6 +170,7 @@ def update_admin_chef_special(
     "/loyalty-coupons",
     response_model=LoyaltyCouponSettings,
     operation_id="site_settings_read_admin_loyalty_coupon_settings",
+    dependencies=[ADMIN_SITE_SETTINGS_CONTEXT, Depends(require_organization_feature("loyalty"))],
 )
 def read_admin_loyalty_coupon_settings(
     current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
@@ -176,6 +183,7 @@ def read_admin_loyalty_coupon_settings(
     "/loyalty-coupons",
     response_model=LoyaltyCouponSettings,
     operation_id="site_settings_update_admin_loyalty_coupon_settings",
+    dependencies=[ADMIN_SITE_SETTINGS_CONTEXT, Depends(require_organization_feature("loyalty"))],
 )
 def update_admin_loyalty_coupon_settings(
     settings: LoyaltyCouponSettings,
@@ -264,6 +272,7 @@ def update_admin_organization_profile(
     "/events",
     response_model=EventsSettings,
     operation_id="site_settings_read_admin_events",
+    dependencies=[ADMIN_SITE_SETTINGS_CONTEXT, Depends(require_organization_feature("events"))],
 )
 def read_admin_events(
     current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
@@ -276,6 +285,7 @@ def read_admin_events(
     "/events",
     response_model=EventsSettings,
     operation_id="site_settings_update_admin_events",
+    dependencies=[ADMIN_SITE_SETTINGS_CONTEXT, Depends(require_organization_feature("events"))],
 )
 def update_admin_events(
     settings: EventsSettings,

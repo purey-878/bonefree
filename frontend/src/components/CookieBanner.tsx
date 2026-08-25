@@ -2,8 +2,9 @@ import { useEffect, useState } from "react"
 import { useAuth } from "../hooks"
 import "./CookieBanner.css"
 import { useTranslation } from "react-i18next"
+import { organizationStorage } from '../core/storage/organizationStorage'
 
-const COOKIE_CONSENT_KEY = "bonefree_cookie_consent"
+const COOKIE_CONSENT_KEY = "cookie_consent"
 const COOKIE_CONSENT_VERSION = 1
 
 type CookieConsent = {
@@ -14,7 +15,7 @@ type CookieConsent = {
 
 function hasAcceptedCookies() {
   try {
-    const raw = localStorage.getItem(COOKIE_CONSENT_KEY)
+    const raw = organizationStorage.getItem(COOKIE_CONSENT_KEY)
     if (!raw) return false
     const consent = JSON.parse(raw) as Partial<CookieConsent>
     return consent.accepted === true && consent.version === COOKIE_CONSENT_VERSION
@@ -29,7 +30,7 @@ function storeAcceptedCookies() {
     version: COOKIE_CONSENT_VERSION,
     acceptedAt: new Date().toISOString(),
   }
-  localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify(consent))
+  organizationStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify(consent))
 }
 
 export default function CookieBanner() {

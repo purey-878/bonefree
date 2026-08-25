@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
+import re
 
 from fastapi import Depends, Header, Request, Security, status
 from fastapi.security import APIKeyHeader
@@ -17,7 +18,7 @@ from database import get_db
 from schemas.admin import AdminLogin
 from schemas.enums import UserRole, UserStatus, is_admin_role, normalize_admin_role, normalize_user_role
 from schemas.user import UserAuth, UserRegister
-from models import Admin, Customer, Organization, Session
+from models import Admin, Customer, Organization, OrganizationFeatureEntitlement, Session
 from services.auth_service import hash_session_token
 from utils.datetime_utils import to_naive_utc
 
@@ -166,6 +167,42 @@ def require_organization_header_context(
     request.state.organization_id = organization.id
     request.state.organization_slug = organization.slug
     return organization.id
+
+
+def require_organization_feature(feature_key: str) -> Callable:
+    """Require a backend entitlement after organization context has been bound."""
+    normalized_feature_key = feature_key.strip().lower()
+    if re.fullmatch(r"[a-z0-9]+(?:_[a-z0-9]+)*", normalized_feature_key) is None:
+        raise ValueError("Feature key must be lower snake case.")
+
+    def feature_checker(
+        request: Request,
+        db: DBSession = Depends(get_db),
+    ) -> str:
+        organization_id = getattr(request.state, "organization_id", None)
+        if organization_id is None or db.info.get("organization_id") != organization_id:
+            raise AppHTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                error="organization_context_required",
+                message="Organization context is required.",
+            )
+
+        enabled = db.scalar(
+            select(OrganizationFeatureEntitlement.enabled).where(
+                OrganizationFeatureEntitlement.organization_id == organization_id,
+                OrganizationFeatureEntitlement.feature_key == normalized_feature_key,
+            )
+        )
+        if enabled is not True:
+            raise AppHTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                error="organization_feature_not_enabled",
+                message="Organization feature is not enabled.",
+                params={"feature_key": normalized_feature_key},
+            )
+        return normalized_feature_key
+
+    return feature_checker
 
 
 def get_current_user(

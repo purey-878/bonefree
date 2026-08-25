@@ -30,8 +30,13 @@ from routers.profile import router as profile_router
 from routers.reviews import router as reviews_router
 from routers.site_settings import admin_router as site_settings_admin_router
 from routers.site_settings import public_router as site_settings_public_router
+from routers.organizations import experience_router as organization_experience_router
 from routers.organizations import router as organizations_router
-from dependencies import require_organization_context, require_organization_header_context
+from dependencies import (
+    require_organization_context,
+    require_organization_feature,
+    require_organization_header_context,
+)
 from seeds import seed_test_users
 from scripts.seed_catalog import seed_catalog_on_development_startup
 from core.email_provider import validate_email_config
@@ -144,13 +149,34 @@ def create_app(
 
     tenant_dependencies = [Depends(require_organization_context)]
     public_tenant_dependencies = [Depends(require_organization_header_context)]
+    catalog_dependencies = [
+        *public_tenant_dependencies,
+        Depends(require_organization_feature("catalog")),
+    ]
+    customer_account_dependencies = [
+        *tenant_dependencies,
+        Depends(require_organization_feature("customer_accounts")),
+    ]
+    public_customer_account_dependencies = [
+        *public_tenant_dependencies,
+        Depends(require_organization_feature("customer_accounts")),
+    ]
+    ordering_dependencies = [
+        *tenant_dependencies,
+        Depends(require_organization_feature("ordering")),
+    ]
+    review_dependencies = [
+        *tenant_dependencies,
+        Depends(require_organization_feature("reviews")),
+    ]
     application.include_router(organizations_router)
-    application.include_router(auth_router)
-    application.include_router(products_router, prefix="/products", tags=["Products"], dependencies=public_tenant_dependencies)
-    application.include_router(cart_router, dependencies=tenant_dependencies)
-    application.include_router(checkout_router, dependencies=tenant_dependencies)
-    application.include_router(profile_router)
-    application.include_router(reviews_router, dependencies=tenant_dependencies)
+    application.include_router(organization_experience_router)
+    application.include_router(auth_router, dependencies=public_customer_account_dependencies)
+    application.include_router(products_router, prefix="/products", tags=["Products"], dependencies=catalog_dependencies)
+    application.include_router(cart_router, dependencies=ordering_dependencies)
+    application.include_router(checkout_router, dependencies=ordering_dependencies)
+    application.include_router(profile_router, dependencies=customer_account_dependencies)
+    application.include_router(reviews_router, dependencies=review_dependencies)
     application.include_router(admin_router)
     application.include_router(site_settings_public_router, dependencies=public_tenant_dependencies)
     application.include_router(site_settings_admin_router)

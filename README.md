@@ -1,6 +1,6 @@
-# Bonefree backend on Docker and Oracle Cloud
+# Bonefree production deployment
 
-This guide deploys the Bonefree backend to an Ubuntu 24.04 VPS. It is written for readers who have never worked with Docker or servers before.
+This guide deploys the shared multi-tenant Bonefree backend to an Ubuntu 24.04 VPS and the static frontend to an HTTPS hosting service. The frontend can be published as one global/shared application or as one tenant-specific application per tenant. Both modes use the same React code and the same backend.
 
 Before starting, you need:
 
@@ -8,7 +8,8 @@ Before starting, you need:
 - the SSH private key downloaded when the instance was created;
 - a domain or subdomain that you can edit in your DNS provider;
 - the repository URL and permission to clone it;
-- the public HTTPS address of the separately hosted frontend.
+- the public HTTPS address or addresses of the separately hosted frontend;
+- Node.js 24 and npm on the frontend build machine or CI runner.
 
 Run every command in this guide on the VPS over SSH unless a step explicitly says to use the Oracle Cloud or DNS web console. Commands shown in the same code block should be run one line at a time.
 
@@ -20,21 +21,37 @@ Run every command in this guide on the VPS over SSH unless a step explicitly say
 - **Volume**: persistent storage. Recreating a container does not delete a volume.
 - **Domain**: a public name such as `api.yourdomain.com` that points to the VPS IP address.
 - **HTTPS**: an encrypted connection. Caddy automatically obtains and renews its certificate.
+- **Shared frontend build**: one static artifact that can serve every registered tenant domain.
+- **Tenant-specific frontend build**: a smaller static artifact that accepts only one tenant slug.
 
 ```text
-Internet
-   │ ports 80/443
-   ▼
- Caddy (HTTPS)
-   │ Docker edge network
-   ▼
- FastAPI application :8000
-   │ internal Docker network
-   ├── PostgreSQL :5432
-   └── Redis :6379
+Tenant domains ──► static frontend host
+                         │ HTTPS API requests
+                         ▼
+API domain ──────► Caddy ──► FastAPI :8000
+                                  │ internal Docker network
+                                  ├── PostgreSQL :5432
+                                  └── Redis :6379
 ```
 
 Only Caddy publishes ports on the VPS. PostgreSQL, Redis, and the application's port 8000 are not accessible from the internet.
+
+## Choose the frontend deployment mode
+
+| Mode | Build command | Artifact | Use it when |
+| --- | --- | --- | --- |
+| Global/shared (recommended) | `npm run build` | `frontend/dist/` | One deployment should serve multiple tenant domains and tenant configuration should change without rebuilding. |
+| Per tenant/app | `npm run build -- --tenant=tenant-slug` | `frontend/dist/` by default, or a directory selected with `--out-dir` | A tenant needs a physically pruned bundle containing only selected themes and features. |
+
+The modes can coexist. For example, most domains can point to the shared artifact while one customer points to a dedicated artifact. Moving a tenant between modes does not require a database migration.
+
+These rules apply to both modes:
+
+- the backend resolves the browser hostname and remains the authority for tenant identity and feature entitlements;
+- a build target controls only which frontend modules are present; it never grants backend access;
+- the frontend always loads the tenant experience from the backend at runtime;
+- a tenant-specific artifact stops with `deployment_tenant_mismatch` if it is served from a domain that the backend resolves to another tenant;
+- every artifact publishes a non-secret `build-manifest.json` for deployment diagnostics.
 
 ## 1. Create and prepare the VPS
 
@@ -289,7 +306,162 @@ Both commands default to the `bonefree` organization. Use
 
 After the import, open the frontend and confirm that categories, products, and product images appear. If they do not, inspect the browser developer console for CORS errors and the API logs with `docker compose logs --tail=200 api`.
 
-## 8. Everyday commands
+## 8. Configure each production tenant
+
+The migrations create the `bonefree` organization, its current experience and entitlements, and its known domains. For every additional tenant, create the organization and profile first:
+
+```bash
+docker compose exec api python -m scripts.create_organization \
+  --name "Example Restaurant" \
+  --slug example-restaurant \
+  --email hello@example.com
+```
+
+If the tenant needs its own administration account, create its first owner interactively. You can then load that tenant's catalog with the section 7 commands and the same `--organization-slug` value:
+
+```bash
+docker compose exec api python -m scripts.create_first_owner \
+  --organization-slug example-restaurant
+```
+
+Point the tenant's frontend DNS record to the static frontend host. After you have confirmed control of the domain and configured HTTPS there, register the hostname with the backend:
+
+```bash
+docker compose exec api python -m scripts.add_organization_domain \
+  --organization-slug example-restaurant \
+  --domain shop.example.com \
+  --primary \
+  --verified
+```
+
+Register each hostname that can appear in the browser address bar, such as both the apex and `www`, and add each corresponding origin to `CORS_ORIGINS`. Recreate the API container after changing `.env` with `docker compose up -d --force-recreate api`. Do not mark a domain as verified before domain control has actually been checked. The public resolver ignores unverified domains.
+
+Enable only the backend capabilities purchased or required by the tenant. The currently known feature keys are `catalog`, `customer_accounts`, `ordering`, `reviews`, `loyalty`, and `events`:
+
+```bash
+docker compose exec api python -m scripts.set_feature_entitlement \
+  --organization example-restaurant \
+  --feature catalog \
+  --enable
+```
+
+Repeat the command for each enabled feature. Use `--disable` to revoke one. Entitlements are authorization decisions: including a feature in a frontend build does not enable its protected API endpoints.
+
+New organizations start with the neutral `base` theme and an empty page configuration. To apply a richer configuration, create an `experience.json` file on the VPS. This is the smallest valid document:
+
+```json
+{
+  "schema_version": 1,
+  "experience": {
+    "theme": {
+      "key": "base",
+      "token_overrides": {}
+    },
+    "assets": {},
+    "navigation": [],
+    "pages": {},
+    "variant_overrides": {}
+  }
+}
+```
+
+Validate it without storing changes, then apply it:
+
+```bash
+docker compose cp experience.json api:/tmp/experience.json
+docker compose exec api python -m scripts.configure_organization_experience \
+  --organization example-restaurant \
+  --file /tmp/experience.json \
+  --dry-run
+docker compose exec api python -m scripts.configure_organization_experience \
+  --organization example-restaurant \
+  --file /tmp/experience.json
+```
+
+If the experience selects a theme or section, that theme or feature must also exist in the chosen frontend artifact. Test the backend bootstrap before publishing the frontend:
+
+```bash
+curl --fail --show-error \
+  "https://api.yourdomain.com/public/organizations/resolve?hostname=shop.example.com"
+curl --fail --show-error \
+  -H "X-Organization-Slug: example-restaurant" \
+  https://api.yourdomain.com/public/organization-experience
+```
+
+## 9. Build and deploy the frontend
+
+Run the frontend build on a clean build machine or CI runner. `VITE_API_BASE_URL` is compiled into the artifact and must be the public HTTPS API address. `BUILD_ID` is optional but should identify the deployed commit:
+
+```bash
+cd frontend
+npm ci
+export VITE_API_BASE_URL=https://api.yourdomain.com
+export BUILD_ID="$(git rev-parse --short HEAD)"
+```
+
+### Global/shared deployment
+
+Build once:
+
+```bash
+npm run build
+cat dist/build-manifest.json
+```
+
+The manifest must report `"build_mode": "shared"`. Publish the **contents** of `frontend/dist/` as one static site and attach every tenant frontend domain to that deployment. Each hostname must also be registered and verified in the backend as described in section 8.
+
+A new tenant does not require another shared build when its required theme and features are already in the shared registries. Create its backend records, configure its domain, experience and entitlements, then point the domain to the existing artifact.
+
+### Per-tenant/app deployment
+
+Each dedicated build requires a versioned target at `frontend/build/targets/<tenant-slug>.json`. The target describes packaging policy only; it must not contain credentials, database IDs, or authorization state. For example:
+
+```json
+{
+  "tenant": "example-restaurant",
+  "themes": ["base"],
+  "features": ["catalog", "customer_accounts", "ordering"],
+  "configuration_source": "remote"
+}
+```
+
+The available keys come from `frontend/build/catalog/features.mjs` and `frontend/build/catalog/themes.mjs`. Build into a separate directory so multiple tenant artifacts can be retained at the same time:
+
+```bash
+npm run build -- \
+  --tenant=example-restaurant \
+  --out-dir=dist/example-restaurant
+cat dist/example-restaurant/build-manifest.json
+```
+
+The manifest must report `"build_mode": "tenant_specific"` and `"expected_tenant_slug": "example-restaurant"`. Publish only the **contents** of that directory to the static site assigned to this tenant's domain. Do not serve this artifact on another tenant's domain.
+
+The repository already includes `frontend/build/targets/bonefree.json`, so the Bonefree-specific command is:
+
+```bash
+npm run build -- --tenant=bonefree --out-dir=dist/bonefree
+```
+
+### Static host requirements and smoke test
+
+Configure the frontend host to:
+
+- serve every domain through HTTPS;
+- fall back to `index.html` for unknown paths so React routes such as `/menu` and `/orders` work on refresh;
+- serve the generated `assets/` files as static files;
+- avoid long-lived caching for `index.html` and `build-manifest.json`; hashed assets may be cached as immutable.
+
+After publishing, check the artifact and tenant resolution:
+
+```bash
+curl --fail --show-error https://shop.example.com/build-manifest.json
+curl --fail --show-error \
+  "https://api.yourdomain.com/public/organizations/resolve?hostname=shop.example.com"
+```
+
+Then open the frontend, refresh a nested route, and confirm in the browser network panel that API calls use `https://api.yourdomain.com` and send the resolved `X-Organization-Slug` value.
+
+## 10. Everyday commands
 
 Check container status:
 
@@ -321,7 +493,7 @@ After a VPS reboot, Docker starts the containers automatically because the servi
 
 > Never run `docker compose down -v` in production. The `-v` option removes the PostgreSQL, Redis, upload, and certificate volumes.
 
-## 9. Update the application
+## 11. Update the application
 
 Create a backup first. Then run:
 
@@ -336,7 +508,13 @@ curl --fail --show-error https://api.yourdomain.com/health
 
 Recognized migrations are applied automatically when the new application container starts. If a migration fails, inspect the logs before making any manual database change.
 
-## 10. Backup and restore
+Rebuild and publish the frontend after updating the backend:
+
+- for a global/shared deployment, run `npm ci && npm run build` once and replace the shared static artifact;
+- for per-tenant deployments, rebuild every affected target; rebuild all targets when shared frontend code or the build catalogs change;
+- changing only remote experience data or entitlements does not require a frontend rebuild unless the desired theme or feature is absent from that tenant-specific artifact.
+
+## 12. Backup and restore
 
 Create a private directory that will not be committed:
 
@@ -400,7 +578,7 @@ docker volume ls | grep bonefree_uploads_data
 
 Never restore into an unidentified volume. After every restore, run `docker compose ps`, check the API logs, and call the health endpoint.
 
-## 11. Troubleshooting
+## 13. Troubleshooting
 
 ### The domain does not open
 
@@ -439,6 +617,14 @@ Do not delete the PostgreSQL volume and do not manually mark an Alembic migratio
 - Confirm that the exact frontend origin appears in `CORS_ORIGINS`, including its scheme and subdomain.
 - After changing `.env`, recreate the API with `docker compose up -d --force-recreate api`.
 - Test `curl --fail --show-error https://api.yourdomain.com/health` from another computer.
+
+### The frontend reports an organization or build error
+
+- `domain_not_configured`: register the exact browser hostname with `add_organization_domain`, verify it, and test the public resolver. DNS alone does not register a tenant in the application.
+- `deployment_tenant_mismatch`: compare the artifact's `build-manifest.json` with the slug returned by the public resolver. Publish the correct tenant artifact or the shared artifact; do not rename a tenant in the database to fit a mistaken deployment.
+- `theme_not_in_build`: add the experience's theme to the tenant build target and rebuild, use the shared artifact, or intentionally change the remote experience to a theme present in the artifact.
+- `experience_schema_incompatible`: deploy frontend and backend versions that support the same `experience_schema_version` before changing stored experience data.
+- `feature_not_in_build` in the browser console: the backend enabled a capability that was pruned from this tenant artifact. Add the feature to its build target and rebuild, or disable that entitlement if it was enabled by mistake.
 
 ### The HTTPS certificate has not appeared
 

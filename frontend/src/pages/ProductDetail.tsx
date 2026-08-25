@@ -51,6 +51,7 @@ import { productMediaUrl } from "../utils/productMedia"
 import { translateUserMessage } from "../utils/messages"
 import { useTranslation } from "react-i18next"
 import i18n, { resolvedLocale } from "../i18n"
+import { organizationStorage } from '../core/storage/organizationStorage'
 
 type GalleryImage = {
   alt: string
@@ -64,7 +65,7 @@ const PUBLIC_REVIEW_REACTIONS = [
 ] as const
 
 const fallbackImage = productImageFallback
-const recentlyViewedKey = "bonefree_recently_viewed"
+const recentlyViewedKey = "recently_viewed"
 const customizationAddSurcharge = 1
 function customizationOptionLabel(_field: "remove" | "add" | "preferences", option: string) {
   return option
@@ -119,7 +120,7 @@ function ingredientTypeLabel(type: string) {
 
 function readRecentlyViewed() {
   try {
-    const parsed = JSON.parse(localStorage.getItem(recentlyViewedKey) ?? "[]") as Array<string | number>
+    const parsed = JSON.parse(organizationStorage.getItem(recentlyViewedKey) ?? "[]") as Array<string | number>
     return parsed.map((value) => Number(value)).filter((value) => Number.isFinite(value))
   } catch {
     return []
@@ -207,7 +208,7 @@ export const ProductDetail = () => {
             .slice(0, 4),
         )
 
-        localStorage.setItem(
+        organizationStorage.setItem(
           recentlyViewedKey,
           JSON.stringify([data.id, ...readRecentlyViewed().filter(recentId => recentId !== data.id)].slice(0, 8)),
         )

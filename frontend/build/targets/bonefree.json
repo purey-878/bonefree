@@ -1,0 +1,13 @@
+{
+  "tenant": "bonefree",
+  "themes": ["bonefree"],
+  "features": [
+    "catalog",
+    "customer_accounts",
+    "ordering",
+    "reviews",
+    "loyalty",
+    "events"
+  ],
+  "configuration_source": "remote"
+}

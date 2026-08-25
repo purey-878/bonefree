@@ -1727,6 +1727,80 @@
         "title": "EventsSettings",
         "type": "object"
       },
+      "FeaturedProductReviewResponse": {
+        "properties": {
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "customer_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Name"
+          },
+          "product_display_id": {
+            "title": "Product Display Id",
+            "type": "string"
+          },
+          "product_id": {
+            "title": "Product Id",
+            "type": "integer"
+          },
+          "product_name": {
+            "title": "Product Name",
+            "type": "string"
+          },
+          "rating": {
+            "title": "Rating",
+            "type": "integer"
+          },
+          "review_id": {
+            "title": "Review Id",
+            "type": "integer"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "required": [
+          "review_id",
+          "product_id",
+          "product_display_id",
+          "product_name",
+          "rating",
+          "title",
+          "comment",
+          "created_at"
+        ],
+        "title": "FeaturedProductReviewResponse",
+        "type": "object"
+      },
       "ForgotPasswordRequest": {
         "properties": {
           "email": {
@@ -2411,6 +2485,34 @@
         "title": "MessageResponse",
         "type": "object"
       },
+      "NavigationItem": {
+        "properties": {
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "route_id": {
+            "title": "Route Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "route_id",
+          "label"
+        ],
+        "title": "NavigationItem",
+        "type": "object"
+      },
       "OrderCreateResponse": {
         "properties": {
           "can_cancel": {
@@ -3059,6 +3161,19 @@
           }
         },
         "title": "OrganizationProfileUpdate",
+        "type": "object"
+      },
+      "PageConfiguration": {
+        "properties": {
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/SectionDescriptor"
+            },
+            "title": "Sections",
+            "type": "array"
+          }
+        },
+        "title": "PageConfiguration",
         "type": "object"
       },
       "PaymentMethod": {
@@ -4600,6 +4715,277 @@
         "title": "ProductUpdate",
         "type": "object"
       },
+      "PublicExperienceConfiguration": {
+        "properties": {
+          "assets": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Assets",
+            "type": "object"
+          },
+          "navigation": {
+            "items": {
+              "$ref": "#/components/schemas/NavigationItem"
+            },
+            "title": "Navigation",
+            "type": "array"
+          },
+          "pages": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/PageConfiguration"
+            },
+            "title": "Pages",
+            "type": "object"
+          },
+          "theme": {
+            "$ref": "#/components/schemas/PublicThemeConfiguration"
+          },
+          "variant_overrides": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Variant Overrides",
+            "type": "object"
+          }
+        },
+        "required": [
+          "theme"
+        ],
+        "title": "PublicExperienceConfiguration",
+        "type": "object"
+      },
+      "PublicOrganizationExperienceResponse": {
+        "properties": {
+          "capabilities": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Capabilities",
+            "type": "array"
+          },
+          "experience": {
+            "$ref": "#/components/schemas/PublicExperienceConfiguration"
+          },
+          "organization": {
+            "$ref": "#/components/schemas/PublicOrganizationIdentity"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/PublicOrganizationProfile"
+          },
+          "schema_version": {
+            "title": "Schema Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "schema_version",
+          "organization",
+          "profile",
+          "capabilities",
+          "experience"
+        ],
+        "title": "PublicOrganizationExperienceResponse",
+        "type": "object"
+      },
+      "PublicOrganizationIdentity": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "name"
+        ],
+        "title": "PublicOrganizationIdentity",
+        "type": "object"
+      },
+      "PublicOrganizationProfile": {
+        "properties": {
+          "about_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "About Text"
+          },
+          "address_line_1": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address Line 1"
+          },
+          "address_line_2": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address Line 2"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "country": {
+            "title": "Country",
+            "type": "string"
+          },
+          "currency_code": {
+            "title": "Currency Code",
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url"
+          },
+          "opening_hours": {
+            "additionalProperties": true,
+            "title": "Opening Hours",
+            "type": "object"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "postal_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Postal Code"
+          },
+          "social_links": {
+            "additionalProperties": true,
+            "title": "Social Links",
+            "type": "object"
+          }
+        },
+        "required": [
+          "country",
+          "currency_code"
+        ],
+        "title": "PublicOrganizationProfile",
+        "type": "object"
+      },
+      "PublicThemeConfiguration": {
+        "properties": {
+          "decoration_preset": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decoration Preset"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mode"
+          },
+          "token_overrides": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Token Overrides",
+            "type": "object"
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "title": "PublicThemeConfiguration",
+        "type": "object"
+      },
       "ResetPasswordRequest": {
         "properties": {
           "email": {
@@ -4798,6 +5184,67 @@
           "sales_by_day"
         ],
         "title": "SalesPerformanceResponse",
+        "type": "object"
+      },
+      "SectionDescriptor": {
+        "properties": {
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "feature_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feature Key"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "override_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Override Key"
+          },
+          "props": {
+            "additionalProperties": true,
+            "title": "Props",
+            "type": "object"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          },
+          "variant": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Variant"
+          }
+        },
+        "required": [
+          "id",
+          "type"
+        ],
+        "title": "SectionDescriptor",
         "type": "object"
       },
       "SiteThemeResponse": {
@@ -18829,6 +19276,115 @@
         ]
       }
     },
+    "/public/organization-experience": {
+      "get": {
+        "operationId": "organizations_get_public_experience",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicOrganizationExperienceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "summary": "Get Public Organization Experience",
+        "tags": [
+          "Organizations"
+        ]
+      }
+    },
     "/public/organizations/resolve": {
       "get": {
         "operationId": "organizations_resolve",
@@ -19067,6 +19623,136 @@
         "summary": "Register",
         "tags": [
           "Auth"
+        ]
+      }
+    },
+    "/reviews/featured": {
+      "get": {
+        "operationId": "reviews_list_featured_product_reviews",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 3,
+              "maximum": 20,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/FeaturedProductReviewResponse"
+                  },
+                  "title": "Response Reviews List Featured Product Reviews",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "List Featured Product Reviews",
+        "tags": [
+          "Reviews"
         ]
       }
     },

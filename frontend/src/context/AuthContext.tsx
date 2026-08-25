@@ -4,11 +4,12 @@ import { authService } from "../services/authService";
 import { cartService } from "../services/cartService";
 import type { RegisterRequest, User } from "../types/user";
 import { AuthContext } from "./auth-context";
+import { organizationStorage } from '../core/storage/organizationStorage'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'))
-  const [loading, setLoading] = useState(() => Boolean(localStorage.getItem('token')))
+  const [token, setToken] = useState<string | null>(() => organizationStorage.getItem('token'))
+  const [loading, setLoading] = useState(() => Boolean(organizationStorage.getItem('token')))
 
   useEffect(() => {
     if (!token) {
@@ -22,7 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       .catch((error) => {
         console.error('Error fetching user info:', error)
-        localStorage.removeItem('token')
+        organizationStorage.removeItem('token')
         setToken(null)
       })
       .finally(() => {
@@ -34,7 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const data = await authService.login(email, password)
     setToken(data.accessToken)
     setUser(data.user)
-    localStorage.setItem('token', data.accessToken)
+    organizationStorage.setItem('token', data.accessToken)
 
     try {
       await cartService.mergeGuestCartOnLogin()
@@ -47,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const data = await authService.register(payload)
     setToken(data.accessToken)
     setUser(data.user)
-    localStorage.setItem('token', data.accessToken)
+    organizationStorage.setItem('token', data.accessToken)
 
     try {
       await cartService.mergeGuestCartOnLogin()
@@ -64,10 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     setUser(null)
     setToken(null)
-    localStorage.removeItem('token')
-    localStorage.removeItem('admin_token')
-    localStorage.removeItem('admin_role')
-    localStorage.removeItem('admin_name')
+    organizationStorage.removeItem('token')
   }
 
   return (

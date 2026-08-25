@@ -1,4 +1,4 @@
-export type SiteThemeId = "normal" | "presentation" | "christmas" | "halloween";
+export type SiteThemeId = "base" | "normal" | "presentation" | "christmas" | "halloween";
 export type DecorationElement =
   | "snowflake"
   | "santa-hat"

@@ -8,6 +8,7 @@ import {
   readActiveOrder,
   rememberActiveOrder,
 } from './orderStatusStorage';
+import { clearOrganizationStorageContextForTests } from '../core/storage/organizationStorage';
 
 class MemoryStorage implements Storage {
   private values = new Map<string, string>();
@@ -22,6 +23,7 @@ class MemoryStorage implements Storage {
 
 describe('active guest order storage', () => {
   beforeEach(() => {
+    clearOrganizationStorageContextForTests();
     Object.defineProperty(globalThis, 'localStorage', {
       configurable: true,
       value: new MemoryStorage(),

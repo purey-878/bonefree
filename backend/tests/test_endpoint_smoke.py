@@ -21,7 +21,7 @@ from app import create_app
 from core.config import settings
 from core.redis import InMemoryRedis
 from database import Base, get_db
-from models import Category, Coupon, CustomerLoyalty, Ingredient, Invoice, Media, Order, OrderProduct, Organization, OrganizationDomain, OrganizationProfile, Payment, Product, ProductCustomizationOption, ProductIngredient, ProductMedia, ProductReview, Session, User
+from models import Category, Coupon, CustomerLoyalty, Ingredient, Invoice, Media, Order, OrderProduct, Organization, OrganizationDomain, OrganizationFeatureEntitlement, OrganizationProfile, Payment, Product, ProductCustomizationOption, ProductIngredient, ProductMedia, ProductReview, Session, User
 from schemas.enums import EntityStatus, IngredientType, PaymentState, ProductCustomizationOptionType, UserRole, UserStatus
 from services.auth_service import hash_password, hash_session_token
 
@@ -72,6 +72,17 @@ class EndpointSmokeTests(unittest.TestCase):
             cls.organization_id = organization.id
             cls.Session.configure(info={"organization_id": organization.id})
             db.info["organization_id"] = organization.id
+            db.add_all([
+                OrganizationFeatureEntitlement(feature_key=feature_key, enabled=True)
+                for feature_key in (
+                    "catalog",
+                    "customer_accounts",
+                    "events",
+                    "loyalty",
+                    "ordering",
+                    "reviews",
+                )
+            ])
             db.add_all([
                 OrganizationDomain(domain="bonefree.test", is_primary=True, is_verified=True),
                 OrganizationProfile(
@@ -190,6 +201,34 @@ class EndpointSmokeTests(unittest.TestCase):
 
     def role_headers(self, token: str):
         return {"Authorization": f"Bearer {token}"}
+
+    def test_admin_catalog_requires_authentication_and_entitlement(self):
+        with self.Session() as db:
+            entitlement = db.scalar(
+                select(OrganizationFeatureEntitlement).where(
+                    OrganizationFeatureEntitlement.feature_key == "catalog"
+                )
+            )
+            entitlement.enabled = False
+            db.commit()
+
+        try:
+            anonymous = self.client.get("/admin/products")
+            self.assertEqual(anonymous.status_code, 401, anonymous.text)
+
+            disabled = self.client.get("/admin/products", headers=self.admin_headers)
+            self.assertEqual(disabled.status_code, 403, disabled.text)
+            self.assertEqual(disabled.json()["error"], "organization_feature_not_enabled")
+            self.assertEqual(disabled.json()["params"]["feature_key"], "catalog")
+        finally:
+            with self.Session() as db:
+                entitlement = db.scalar(
+                    select(OrganizationFeatureEntitlement).where(
+                        OrganizationFeatureEntitlement.feature_key == "catalog"
+                    )
+                )
+                entitlement.enabled = True
+                db.commit()
 
     def _checkout_payload(self, payment_method: str = "counter") -> dict:
         return {
@@ -738,6 +777,25 @@ class EndpointSmokeTests(unittest.TestCase):
         )
         self.assertEqual(review.status_code, 201, review.text)
         review_id = review.json()["review_id"]
+
+        featured_reviews = self.client.get("/reviews/featured?limit=1")
+        self.assertEqual(featured_reviews.status_code, 200, featured_reviews.text)
+        self.assertEqual(
+            featured_reviews.json(),
+            [
+                {
+                    "review_id": review_id,
+                    "product_id": self.product_id,
+                    "product_display_id": f"PRD-{self.product_id:03d}",
+                    "product_name": "Smoke product",
+                    "customer_name": "Smoke Customer",
+                    "rating": 5,
+                    "title": "Smoke review",
+                    "comment": "Endpoint response is serializable.",
+                    "created_at": review.json()["created_at"],
+                }
+            ],
+        )
 
         reply = self.client.post(
             f"/admin/reviews/{review_id}/reply",

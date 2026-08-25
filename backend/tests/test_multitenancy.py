@@ -7,18 +7,23 @@ from pathlib import Path
 import unittest
 
 from fastapi.testclient import TestClient
+from starlette.requests import Request
 from sqlalchemy import create_engine, func, select
 from sqlalchemy.orm import Session as DBSession, selectinload, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app import create_app
+from core.errors import AppHTTPException
 from database import Base, get_db
+from dependencies import require_organization_feature
 from models import (
     Category,
     Order,
     OrderProduct,
     Organization,
     OrganizationDomain,
+    OrganizationExperience,
+    OrganizationFeatureEntitlement,
     OrganizationProfile,
     Product,
     Session,
@@ -34,7 +39,12 @@ from schemas.enums import (
     UserStatus,
 )
 from scripts.add_organization_domain import add_organization_domain
+from scripts.configure_organization_experience import (
+    OrganizationExperienceDocument,
+    upsert_organization_experience,
+)
 from scripts.create_organization import create_organization
+from scripts.set_feature_entitlement import set_feature_entitlement
 from services.auth_service import hash_session_token
 from services.invoices import ensure_invoice_for_order
 from services.receipt_email import build_saved_order_receipt_payload, render_receipt_email
@@ -99,6 +109,25 @@ class OrganizationScopeTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "Organization context is required"):
             self.db.scalars(select(User)).all()
 
+    def test_feature_guard_uses_only_the_bound_organization_entitlement(self):
+        self.db.info["organization_id"] = self.first.id
+        self.db.add(OrganizationFeatureEntitlement(feature_key="reviews", enabled=True))
+        self.db.commit()
+        request = Request({"type": "http", "method": "GET", "path": "/", "headers": []})
+        request.state.organization_id = self.first.id
+
+        self.assertEqual(
+            require_organization_feature("reviews")(request=request, db=self.db),
+            "reviews",
+        )
+
+        self.db.info["organization_id"] = self.second.id
+        request.state.organization_id = self.second.id
+        with self.assertRaises(AppHTTPException) as raised:
+            require_organization_feature("reviews")(request=request, db=self.db)
+        self.assertEqual(raised.exception.status_code, 403)
+        self.assertEqual(raised.exception.error, "organization_feature_not_enabled")
+
 
 class OrganizationApiTests(unittest.TestCase):
     @classmethod
@@ -118,7 +147,41 @@ class OrganizationApiTests(unittest.TestCase):
             cls.first_id = first.id
             cls.second_id = second.id
             db.info["organization_id"] = first.id
-            db.add(OrganizationDomain(domain="first.example", is_primary=True, is_verified=True))
+            db.add_all([
+                OrganizationDomain(domain="first.example", is_primary=True, is_verified=True),
+                OrganizationProfile(
+                    display_name="First Restaurant",
+                    description="First public profile",
+                    country="Portugal",
+                    currency_code="EUR",
+                ),
+                OrganizationExperience(
+                    schema_version=1,
+                    theme_key="base",
+                    token_overrides={"primary": "#123456"},
+                    assets={"logo": "/first-logo.svg"},
+                    navigation=[
+                        {"id": "menu", "route_id": "menu", "label": "Menu", "enabled": True}
+                    ],
+                    pages={
+                        "home": {
+                            "sections": [
+                                {
+                                    "id": "products",
+                                    "type": "popular_products",
+                                    "enabled": True,
+                                    "feature_key": "catalog",
+                                }
+                            ]
+                        }
+                    },
+                    variant_overrides={},
+                ),
+                OrganizationFeatureEntitlement(feature_key="catalog", enabled=True),
+                OrganizationFeatureEntitlement(feature_key="customer_accounts", enabled=True),
+                OrganizationFeatureEntitlement(feature_key="ordering", enabled=True),
+                OrganizationFeatureEntitlement(feature_key="reviews", enabled=False),
+            ])
             user = User(email="user@example.com", password="hash", role=UserRole.CLIENT, status=UserStatus.ACTIVE)
             db.add(user)
             db.flush()
@@ -153,7 +216,35 @@ class OrganizationApiTests(unittest.TestCase):
             cls.order_id = order.id
             cls.guest_token = guest_token
             db.info["organization_id"] = second.id
-            db.add(OrganizationDomain(domain="second.example", is_primary=True, is_verified=True))
+            db.add_all([
+                OrganizationDomain(domain="second.example", is_primary=True, is_verified=True),
+                OrganizationProfile(
+                    display_name="Second Restaurant",
+                    description="Second public profile",
+                    country="Portugal",
+                    currency_code="EUR",
+                ),
+                OrganizationExperience(
+                    schema_version=1,
+                    theme_key="base",
+                    token_overrides={"primary": "#654321"},
+                    assets={"logo": "/second-logo.svg"},
+                    navigation=[
+                        {"id": "home", "route_id": "home", "label": "Home", "enabled": True}
+                    ],
+                    pages={
+                        "home": {
+                            "sections": [
+                                {"id": "hero", "type": "hero", "enabled": True}
+                            ]
+                        }
+                    },
+                    variant_overrides={},
+                ),
+                OrganizationFeatureEntitlement(feature_key="catalog", enabled=True),
+                OrganizationFeatureEntitlement(feature_key="customer_accounts", enabled=True),
+                OrganizationFeatureEntitlement(feature_key="ordering", enabled=True),
+            ])
             db.commit()
 
         cls.app = create_app(run_startup_tasks=False)
@@ -204,6 +295,54 @@ class OrganizationApiTests(unittest.TestCase):
         self.assertEqual(mismatch.status_code, 403)
         self.assertEqual(mismatch.json()["error"], "organization_context_mismatch")
 
+    def test_public_experience_is_scoped_and_excludes_private_profile_fields(self):
+        response = self.client.get(
+            "/public/organization-experience",
+            headers={"X-Organization-Slug": "first"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["organization"], {"slug": "first", "name": "First"})
+        self.assertEqual(
+            payload["capabilities"],
+            ["catalog", "customer_accounts", "ordering"],
+        )
+        self.assertEqual(payload["experience"]["theme"]["key"], "base")
+        self.assertEqual(
+            payload["experience"]["pages"]["home"]["sections"][0]["feature_key"],
+            "catalog",
+        )
+        self.assertNotIn("tax_id", payload["profile"])
+        self.assertNotIn("legal_name", payload["profile"])
+
+        second = self.client.get(
+            "/public/organization-experience",
+            headers={"X-Organization-Slug": "second"},
+        )
+        self.assertEqual(second.status_code, 200)
+        second_payload = second.json()
+        self.assertEqual(second_payload["organization"], {"slug": "second", "name": "Second"})
+        self.assertEqual(
+            second_payload["capabilities"],
+            ["catalog", "customer_accounts", "ordering"],
+        )
+        self.assertEqual(second_payload["experience"]["theme"]["key"], "base")
+        self.assertEqual(second_payload["experience"]["assets"]["logo"], "/second-logo.svg")
+        self.assertNotEqual(
+            second_payload["experience"]["theme"]["token_overrides"],
+            payload["experience"]["theme"]["token_overrides"],
+        )
+
+    def test_disabled_feature_is_rejected_before_feature_data_is_loaded(self):
+        response = self.client.get(
+            "/products/1/reviews",
+            headers={"X-Organization-Slug": "first"},
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()["error"], "organization_feature_not_enabled")
+        self.assertEqual(response.json()["params"]["feature_key"], "reviews")
+
     def test_guest_order_token_cannot_cross_organization(self):
         response = self.client.get(
             f"/checkout/orders/{self.order_id}",
@@ -236,6 +375,40 @@ class OrganizationScriptsAndInvoiceTests(unittest.TestCase):
             )
             profile = db.scalar(select(OrganizationProfile))
             self.assertEqual(profile.organization_id, organization.id)
+            experience = db.scalar(select(OrganizationExperience))
+            self.assertEqual(experience.theme_key, "base")
+
+            upsert_organization_experience(
+                db,
+                organization_slug="example",
+                document=OrganizationExperienceDocument.model_validate({
+                    "schema_version": 1,
+                    "experience": {
+                        "theme": {"key": "bonefree", "mode": "presentation"},
+                        "pages": {},
+                    },
+                }),
+            )
+            with self.assertRaises(ValueError):
+                OrganizationExperienceDocument.model_validate({
+                    "schema_version": 0,
+                    "experience": {"theme": {"key": "base"}},
+                })
+            set_feature_entitlement(
+                db,
+                organization_slug="example",
+                feature_key="reviews",
+                enabled=True,
+            )
+            db.commit()
+            self.assertEqual(db.scalar(select(OrganizationExperience.theme_key)), "bonefree")
+            self.assertTrue(
+                db.scalar(
+                    select(OrganizationFeatureEntitlement.enabled).where(
+                        OrganizationFeatureEntitlement.feature_key == "reviews"
+                    )
+                )
+            )
 
             first = add_organization_domain(
                 db,

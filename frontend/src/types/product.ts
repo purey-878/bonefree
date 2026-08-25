@@ -117,6 +117,18 @@ export interface ProductReview {
   reactions?: ReviewReaction[];
 }
 
+export interface FeaturedProductReview {
+  reviewId: number;
+  productId: number;
+  productDisplayId: string;
+  productName: string;
+  customerName: string | null;
+  rating: number;
+  title: string | null;
+  comment: string | null;
+  createdAt: string;
+}
+
 export interface ProductReviewStats {
   productId: number;
   productDisplayId: string;

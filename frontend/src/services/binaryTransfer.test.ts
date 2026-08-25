@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { clearOrganizationStorageContextForTests } from '../core/storage/organizationStorage';
 
 import { adminApiClient } from '../api/clients';
 import { uploadProductMedia } from './adminService';
@@ -17,6 +18,7 @@ class MemoryStorage implements Storage {
 
 describe('uploads and downloads', () => {
   beforeEach(() => {
+    clearOrganizationStorageContextForTests();
     Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: new MemoryStorage() });
   });
 

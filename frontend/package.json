@@ -5,10 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "node build/scripts/build.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
-    "api:export": "python ../backend/scripts/export_openapi.py --output ./openapi/openapi.json",
+    "api:export": "node build/scripts/export-openapi.mjs",
     "api:generate": "npm run api:export && openapi-ts",
     "api:check": "npm run api:generate && git diff --exit-code -- openapi/openapi.json src/api/generated",
     "test": "vitest run",

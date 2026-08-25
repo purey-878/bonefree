@@ -19,6 +19,10 @@ import { formatEuro } from "../utils/money";
 import { primaryProductMediaUrl } from "../utils/productMedia";
 import { useTranslation } from "react-i18next";
 import { resolvedLocale } from "../i18n";
+import {
+  organizationSessionStorage,
+  organizationStorage,
+} from '../core/storage/organizationStorage'
 
 interface CategoryCount {
   name: string;
@@ -35,8 +39,8 @@ const sortLabelKeys: Record<SortOption, string> = {
   "name-asc": "menu.sort.nameAsc",
 };
 
-const LOYALTY_BANNER_DISMISSED_KEY = "bonefree-loyalty-banner-dismissed";
-const MENU_FILTERS_STORAGE_KEY = "bonefree-menu-filters";
+const LOYALTY_BANNER_DISMISSED_KEY = "loyalty_banner_dismissed";
+const MENU_FILTERS_STORAGE_KEY = "menu_filters";
 const PRICE_STEP = 0.01;
 
 interface SavedMenuFilters {
@@ -69,7 +73,7 @@ function isSpecialFilter(value: unknown): value is SpecialFilter {
 
 function readSavedMenuFilters(): InitialMenuFilters {
   try {
-    const raw = window.sessionStorage.getItem(MENU_FILTERS_STORAGE_KEY);
+    const raw = organizationSessionStorage.getItem(MENU_FILTERS_STORAGE_KEY);
     if (!raw) return { ...defaultMenuFilters, hasSavedFilters: false };
 
     const parsed = JSON.parse(raw) as Partial<SavedMenuFilters>;
@@ -164,7 +168,7 @@ function Menu() {
   const [loyaltyCouponSettings, setLoyaltyCouponSettings] = useState(defaultLoyaltyCouponSettings);
   const [showLoyaltyBanner, setShowLoyaltyBanner] = useState(() => {
     try {
-      return window.localStorage.getItem(LOYALTY_BANNER_DISMISSED_KEY) !== "true";
+      return organizationStorage.getItem(LOYALTY_BANNER_DISMISSED_KEY) !== "true";
     } catch {
       return true;
     }
@@ -176,7 +180,7 @@ function Menu() {
   const dismissLoyaltyBanner = () => {
     setShowLoyaltyBanner(false);
     try {
-      window.localStorage.setItem(LOYALTY_BANNER_DISMISSED_KEY, "true");
+      organizationStorage.setItem(LOYALTY_BANNER_DISMISSED_KEY, "true");
     } catch {
       // Ignore storage errors; the in-session hide still works.
     }
@@ -228,7 +232,7 @@ function Menu() {
 
   useEffect(() => {
     try {
-      window.sessionStorage.setItem(
+      organizationSessionStorage.setItem(
         MENU_FILTERS_STORAGE_KEY,
         JSON.stringify({ searchTerm, selectedCategory, priceRange, sortBy, specialFilter }),
       );

@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Union
 
 from database import get_db
-from dependencies import rate_limit_admin_login, require_organization_header_context, require_role
+from dependencies import rate_limit_admin_login, require_organization_feature, require_organization_header_context, require_role
 from schemas.enums import ADMIN_ROLES, EntityStatus, IngredientType, MediaOwnerType, OrderState, PaymentMethod, PaymentState, PaymentStatus, ReviewStatus, UserRole, UserStatus, normalize_admin_role
 from models import (
     Admin, Product, Cart, CartProduct as CartItem, Customer,
@@ -62,6 +62,25 @@ router = APIRouter(
     responses=RATE_LIMIT_OPENAPI_RESPONSES,
 )
 logger = logging.getLogger(__name__)
+
+ADMIN_FEATURE_CONTEXT = Depends(require_role(*ADMIN_ROLES))
+CATALOG_FEATURE_DEPENDENCIES = [
+    ADMIN_FEATURE_CONTEXT,
+    Depends(require_organization_feature("catalog")),
+]
+ORDERING_FEATURE_DEPENDENCIES = [
+    ADMIN_FEATURE_CONTEXT,
+    Depends(require_organization_feature("ordering")),
+]
+CUSTOMER_ACCOUNT_FEATURE_DEPENDENCIES = [
+    ADMIN_FEATURE_CONTEXT,
+    Depends(require_organization_feature("customer_accounts")),
+]
+ANALYTICS_FEATURE_DEPENDENCIES = [
+    ADMIN_FEATURE_CONTEXT,
+    Depends(require_organization_feature("catalog")),
+    Depends(require_organization_feature("ordering")),
+]
 
 KITCHEN_VISIBLE_STATES = (OrderState.CONFIRMED, OrderState.IN_PREPARATION, OrderState.READY)
 CHEF_ALLOWED_STATES = {OrderState.CONFIRMED, OrderState.IN_PREPARATION, OrderState.READY}
@@ -759,6 +778,7 @@ def _staff_order_filter():
     "/categories",
     response_model=List[CategoryResponse],
     operation_id="admin_management_list_categories",
+    dependencies=CATALOG_FEATURE_DEPENDENCIES,
 )
 def list_categories(
     include_inactive: bool = Query(False),
@@ -776,6 +796,7 @@ def list_categories(
     response_model=CategoryResponse,
     status_code=status.HTTP_201_CREATED,
     operation_id="admin_management_create_category",
+    dependencies=CATALOG_FEATURE_DEPENDENCIES,
 )
 def create_category(
     category: CategoryCreate,
@@ -798,6 +819,7 @@ def create_category(
     "/categories/{category_id}",
     response_model=CategoryResponse,
     operation_id="admin_management_update_category",
+    dependencies=CATALOG_FEATURE_DEPENDENCIES,
 )
 def update_category(
     category_id: str,
@@ -826,6 +848,7 @@ def update_category(
     "/categories/{category_id}",
     response_model=CategoryResponse,
     operation_id="admin_management_delete_category",
+    dependencies=CATALOG_FEATURE_DEPENDENCIES,
 )
 def delete_category(
     category_id: str,
@@ -863,6 +886,7 @@ def delete_category(
     "/ingredients",
     response_model=List[IngredientResponse],
     operation_id="admin_management_list_ingredients",
+    dependencies=CATALOG_FEATURE_DEPENDENCIES,
 )
 def list_ingredients(
     include_inactive: bool = Query(False),
@@ -898,6 +922,7 @@ def list_ingredients(
     response_model=IngredientResponse,
     status_code=status.HTTP_201_CREATED,
     operation_id="admin_management_create_ingredient",
+    dependencies=CATALOG_FEATURE_DEPENDENCIES,
 )
 def create_ingredient(
     ingredient: IngredientCreate,
@@ -935,6 +960,7 @@ def create_ingredient(
     "/ingredients/{ingredient_id}",
     response_model=IngredientResponse,
     operation_id="admin_management_update_ingredient",
+    dependencies=CATALOG_FEATURE_DEPENDENCIES,
 )
 def update_ingredient(
     ingredient_id: int,
@@ -977,6 +1003,7 @@ def update_ingredient(
     "/ingredients/{ingredient_id}/availability",
     response_model=IngredientResponse,
     operation_id="admin_management_set_ingredient_availability",
+    dependencies=CATALOG_FEATURE_DEPENDENCIES,
 )
 def set_ingredient_availability(
     ingredient_id: int,
@@ -998,6 +1025,7 @@ def set_ingredient_availability(
     "/ingredients/{ingredient_id}",
     response_model=IngredientResponse,
     operation_id="admin_management_delete_ingredient",
+    dependencies=CATALOG_FEATURE_DEPENDENCIES,
 )
 def delete_ingredient(
     ingredient_id: int,
@@ -1019,6 +1047,7 @@ def delete_ingredient(
     response_model=ProductAdminResponse,
     status_code=status.HTTP_201_CREATED,
     operation_id="admin_management_create_product",
+    dependencies=CATALOG_FEATURE_DEPENDENCIES,
 )
 def create_product(
     product: ProductCreate,
@@ -1073,6 +1102,7 @@ def create_product(
     "/products",
     response_model=List[ProductAdminResponse],
     operation_id="admin_management_list_products",
+    dependencies=CATALOG_FEATURE_DEPENDENCIES,
 )
 def list_products(
     skip: int = Query(0, ge=0),
@@ -1132,6 +1162,7 @@ def list_products(
     "/products/{product_id}",
     response_model=ProductAdminResponse,
     operation_id="admin_management_get_product",
+    dependencies=CATALOG_FEATURE_DEPENDENCIES,
 )
 def get_product(
     product_id: str,
@@ -1160,6 +1191,7 @@ def get_product(
     "/products/{product_id}/analytics",
     response_model=ProductAnalyticsResponse,
     operation_id="admin_management_get_product_analytics",
+    dependencies=ANALYTICS_FEATURE_DEPENDENCIES,
 )
 def get_product_analytics(
     product_id: str,
@@ -1228,6 +1260,7 @@ def get_product_analytics(
     "/products/{product_id}",
     response_model=ProductAdminResponse,
     operation_id="admin_management_update_product",
+    dependencies=CATALOG_FEATURE_DEPENDENCIES,
 )
 def update_product(
     product_id: str,
@@ -1292,6 +1325,7 @@ def update_product(
     "/products/{product_id}/availability",
     response_model=ProductAdminResponse,
     operation_id="admin_management_set_product_availability",
+    dependencies=CATALOG_FEATURE_DEPENDENCIES,
 )
 def set_product_availability(
     product_id: str,
@@ -1314,6 +1348,7 @@ def set_product_availability(
     "/products/{product_id}/toggle-status",
     response_model=ProductAdminResponse,
     operation_id="admin_management_toggle_product_status",
+    dependencies=CATALOG_FEATURE_DEPENDENCIES,
 )
 def toggle_product_status(
     product_id: str,
@@ -1343,6 +1378,7 @@ def toggle_product_status(
     "/products/{product_id}",
     response_model=ProductAdminResponse,
     operation_id="admin_management_delete_product",
+    dependencies=CATALOG_FEATURE_DEPENDENCIES,
 )
 def delete_product(
     product_id: str,
@@ -1367,6 +1403,7 @@ def delete_product(
     "/products/{product_id}/media",
     response_model=ProductMediaUploadResponse,
     operation_id="admin_management_upload_product_media",
+    dependencies=CATALOG_FEATURE_DEPENDENCIES,
 )
 def upload_product_media(
     product_id: str,
@@ -1478,6 +1515,7 @@ def upload_product_media(
     "/products/{product_id}/media/{media_id}",
     response_model=MessageResponse,
     operation_id="admin_management_delete_product_media",
+    dependencies=CATALOG_FEATURE_DEPENDENCIES,
 )
 def delete_product_media(
     product_id: str,
@@ -1541,6 +1579,7 @@ def delete_product_media(
     "/orders",
     response_model=List[OrderResponse],
     operation_id="admin_management_list_orders",
+    dependencies=ORDERING_FEATURE_DEPENDENCIES,
 )
 def list_orders(
     skip: int = Query(0, ge=0),
@@ -1562,6 +1601,7 @@ def list_orders(
     "/staff/orders",
     response_model=List[OrderResponse],
     operation_id="admin_management_list_staff_orders",
+    dependencies=ORDERING_FEATURE_DEPENDENCIES,
 )
 def list_staff_orders(
     skip: int = Query(0, ge=0),
@@ -1584,6 +1624,7 @@ def list_staff_orders(
     "/kitchen/orders",
     response_model=List[KitchenOrderResponse],
     operation_id="admin_management_list_kitchen_orders",
+    dependencies=ORDERING_FEATURE_DEPENDENCIES,
 )
 def list_kitchen_orders(
     skip: int = Query(0, ge=0),
@@ -1615,6 +1656,7 @@ def list_kitchen_orders(
     "/kitchen/orders/{order_id}",
     response_model=KitchenOrderResponse,
     operation_id="admin_management_get_kitchen_order",
+    dependencies=ORDERING_FEATURE_DEPENDENCIES,
 )
 def get_kitchen_order(
     order_id: int,
@@ -1631,6 +1673,7 @@ def get_kitchen_order(
     "/orders/{order_id}",
     response_model=OrderResponse,
     operation_id="admin_management_get_order",
+    dependencies=ORDERING_FEATURE_DEPENDENCIES,
 )
 def get_order(
     order_id: int,
@@ -1644,6 +1687,7 @@ def get_order(
     "/orders/{order_id}/status",
     response_model=OrderResponse,
     operation_id="admin_management_update_order_status",
+    dependencies=ORDERING_FEATURE_DEPENDENCIES,
 )
 def update_order_status(
     order_id: int,
@@ -1667,6 +1711,7 @@ def update_order_status(
     "/orders/{order_id}/pay-counter",
     response_model=CounterPaymentResponse,
     operation_id="admin_management_pay_counter_order",
+    dependencies=ORDERING_FEATURE_DEPENDENCIES,
 )
 def pay_counter_order(
     order_id: int,
@@ -1752,6 +1797,7 @@ def _customer_admin_response(customer: Customer) -> dict:
     "/customers",
     response_model=List[CustomerAdminResponse],
     operation_id="admin_management_list_customers",
+    dependencies=CUSTOMER_ACCOUNT_FEATURE_DEPENDENCIES,
 )
 def list_customers(
     skip: int = Query(0, ge=0),
@@ -1773,6 +1819,7 @@ def list_customers(
     response_model=CustomerAdminResponse,
     status_code=status.HTTP_201_CREATED,
     operation_id="admin_management_create_customer",
+    dependencies=CUSTOMER_ACCOUNT_FEATURE_DEPENDENCIES,
 )
 def create_customer(
     body: CustomerAdminCreate,
@@ -1806,6 +1853,7 @@ def create_customer(
     "/customers/{customer_id}",
     response_model=CustomerAdminResponse,
     operation_id="admin_management_update_customer",
+    dependencies=CUSTOMER_ACCOUNT_FEATURE_DEPENDENCIES,
 )
 def update_customer(
     customer_id: int,
@@ -1849,6 +1897,7 @@ def update_customer(
     "/customers/{customer_id}",
     response_model=CustomerAdminResponse,
     operation_id="admin_management_delete_customer",
+    dependencies=CUSTOMER_ACCOUNT_FEATURE_DEPENDENCIES,
 )
 def delete_customer(
     customer_id: int,
@@ -1981,6 +2030,7 @@ def delete_staff_admin(
     "/analytics/dashboard",
     response_model=DashboardAnalytics,
     operation_id="admin_management_get_dashboard_analytics",
+    dependencies=ANALYTICS_FEATURE_DEPENDENCIES,
 )
 def get_dashboard_analytics(
     current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
@@ -2015,6 +2065,7 @@ def get_dashboard_analytics(
     "/analytics/popular-products",
     response_model=List[PopularProduct],
     operation_id="admin_management_get_popular_products",
+    dependencies=ANALYTICS_FEATURE_DEPENDENCIES,
 )
 def get_popular_products(
     limit: int = Query(5, ge=1, le=20),
@@ -2028,6 +2079,7 @@ def get_popular_products(
     "/analytics/series",
     response_model=AnalyticsSeriesResponse,
     operation_id="admin_management_get_analytics_series",
+    dependencies=ANALYTICS_FEATURE_DEPENDENCIES,
 )
 def get_analytics_series(
     metric: str = Query(..., pattern="^(sales|orders|clients|products)$"),
@@ -2104,6 +2156,7 @@ def get_analytics_series(
     "/analytics/sales-performance",
     response_model=SalesPerformanceResponse,
     operation_id="admin_management_get_sales_performance",
+    dependencies=ANALYTICS_FEATURE_DEPENDENCIES,
 )
 def get_sales_performance(
     days: int = Query(7, ge=1, le=90),

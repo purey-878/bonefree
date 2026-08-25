@@ -1,3 +1,5 @@
+import { organizationStorage } from '../core/storage/organizationStorage'
+
 const ACTIVE_ORDER_KEY = "active_order_id"
 const ACTIVE_ORDER_ACCESS_TOKEN_KEY = "active_order_access_token"
 const ACTIVE_ORDER_ACCESS_EXPIRES_AT_KEY = "active_order_access_expires_at"
@@ -9,9 +11,9 @@ export interface ActiveOrderAccess {
 }
 
 export function clearActiveOrder(notify = true) {
-  localStorage.removeItem(ACTIVE_ORDER_KEY)
-  localStorage.removeItem(ACTIVE_ORDER_ACCESS_TOKEN_KEY)
-  localStorage.removeItem(ACTIVE_ORDER_ACCESS_EXPIRES_AT_KEY)
+  organizationStorage.removeItem(ACTIVE_ORDER_KEY)
+  organizationStorage.removeItem(ACTIVE_ORDER_ACCESS_TOKEN_KEY)
+  organizationStorage.removeItem(ACTIVE_ORDER_ACCESS_EXPIRES_AT_KEY)
   if (notify) window.dispatchEvent(new Event("active-order-updated"))
 }
 
@@ -21,20 +23,20 @@ export function rememberActiveOrder(
   accessExpiresAt?: string | null,
   notify = true,
 ) {
-  localStorage.setItem(ACTIVE_ORDER_KEY, String(orderId))
-  if (accessToken) localStorage.setItem(ACTIVE_ORDER_ACCESS_TOKEN_KEY, accessToken)
-  else localStorage.removeItem(ACTIVE_ORDER_ACCESS_TOKEN_KEY)
-  if (accessExpiresAt) localStorage.setItem(ACTIVE_ORDER_ACCESS_EXPIRES_AT_KEY, accessExpiresAt)
-  else localStorage.removeItem(ACTIVE_ORDER_ACCESS_EXPIRES_AT_KEY)
+  organizationStorage.setItem(ACTIVE_ORDER_KEY, String(orderId))
+  if (accessToken) organizationStorage.setItem(ACTIVE_ORDER_ACCESS_TOKEN_KEY, accessToken)
+  else organizationStorage.removeItem(ACTIVE_ORDER_ACCESS_TOKEN_KEY)
+  if (accessExpiresAt) organizationStorage.setItem(ACTIVE_ORDER_ACCESS_EXPIRES_AT_KEY, accessExpiresAt)
+  else organizationStorage.removeItem(ACTIVE_ORDER_ACCESS_EXPIRES_AT_KEY)
   if (notify) window.dispatchEvent(new Event("active-order-updated"))
 }
 
 export function readActiveOrder(): ActiveOrderAccess | null {
-  const orderId = Number(localStorage.getItem(ACTIVE_ORDER_KEY))
+  const orderId = Number(organizationStorage.getItem(ACTIVE_ORDER_KEY))
   if (!Number.isInteger(orderId) || orderId <= 0) return null
 
-  const accessToken = localStorage.getItem(ACTIVE_ORDER_ACCESS_TOKEN_KEY)
-  const accessExpiresAt = localStorage.getItem(ACTIVE_ORDER_ACCESS_EXPIRES_AT_KEY)
+  const accessToken = organizationStorage.getItem(ACTIVE_ORDER_ACCESS_TOKEN_KEY)
+  const accessExpiresAt = organizationStorage.getItem(ACTIVE_ORDER_ACCESS_EXPIRES_AT_KEY)
   if (accessToken && accessExpiresAt) {
     const expiry = new Date(accessExpiresAt).getTime()
     if (!Number.isFinite(expiry) || expiry <= Date.now()) {

@@ -2,8 +2,8 @@
 
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, Response, status
-from sqlalchemy import func, select
+from fastapi import APIRouter, Depends, Query, Response, status
+from sqlalchemy import case, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
 
@@ -13,6 +13,7 @@ from database import get_db
 from schemas.enums import EntityStatus, OrderState, ReviewStatus
 from models import Admin, Customer, Order, OrderProduct, Product, ProductReview, ReviewReaction, ReviewReply
 from schemas.review import (
+    FeaturedProductReviewResponse,
     ProductReviewCreate,
     ProductReviewEligibilityItem,
     ProductReviewEligibilityResponse,
@@ -122,6 +123,66 @@ def _existing_product_review(db: Session, current_user: Customer, product_id: in
             ProductReview.product_id == product_id,
         )
     )
+
+
+@router.get(
+    "/reviews/featured",
+    response_model=list[FeaturedProductReviewResponse],
+    operation_id="reviews_list_featured_product_reviews",
+)
+def list_featured_product_reviews(
+    limit: int = Query(default=3, ge=1, le=20),
+    db: Session = Depends(get_db),
+):
+    review_copy = case(
+        (
+            func.length(func.trim(func.coalesce(ProductReview.comment, ""))) > 0,
+            func.trim(ProductReview.comment),
+        ),
+        else_=func.trim(func.coalesce(ProductReview.title, "")),
+    )
+    rows = db.execute(
+        select(
+            ProductReview.review_id,
+            ProductReview.product_id,
+            Product.name.label("product_name"),
+            Customer.name.label("customer_first_name"),
+            Customer.last_name.label("customer_last_name"),
+            Customer.email.label("customer_email"),
+            ProductReview.rating,
+            ProductReview.title,
+            ProductReview.comment,
+            ProductReview.created_at,
+        )
+        .join(Product, Product.id == ProductReview.product_id)
+        .join(Customer, Customer.id == ProductReview.customer_id)
+        .where(
+            ProductReview.status == ReviewStatus.APPROVED,
+            Product.deleted_at.is_(None),
+            (Product.status == EntityStatus.ACTIVE) | (Product.status.is_(None)),
+            func.length(review_copy) >= 24,
+        )
+        .order_by(ProductReview.created_at.desc(), ProductReview.rating.desc())
+        .limit(limit)
+    ).all()
+
+    return [
+        FeaturedProductReviewResponse(
+            review_id=row.review_id,
+            product_id=row.product_id,
+            product_display_id=format_product_id(row.product_id),
+            product_name=row.product_name,
+            customer_name=(
+                f"{row.customer_first_name or ''} {row.customer_last_name or ''}".strip()
+                or row.customer_email
+            ),
+            rating=row.rating,
+            title=row.title,
+            comment=row.comment,
+            created_at=row.created_at,
+        )
+        for row in rows
+    ]
 
 
 @router.get(

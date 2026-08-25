@@ -64,6 +64,17 @@ class Organization(AppBaseModel):
         cascade="all, delete-orphan",
         uselist=False,
     )
+    experience: Mapped["OrganizationExperience"] = relationship(
+        "OrganizationExperience",
+        back_populates="organization",
+        cascade="all, delete-orphan",
+        uselist=False,
+    )
+    feature_entitlements: Mapped[List["OrganizationFeatureEntitlement"]] = relationship(
+        "OrganizationFeatureEntitlement",
+        back_populates="organization",
+        cascade="all, delete-orphan",
+    )
 
 
 class OrganizationDomain(OrganizationModel):
@@ -115,6 +126,45 @@ class OrganizationProfile(OrganizationModel):
     social_links: Mapped[dict] = mapped_column(JSON, nullable=True)
 
     organization: Mapped[Organization] = relationship("Organization", back_populates="profile")
+
+
+class OrganizationExperience(OrganizationModel):
+    __tablename__ = "organization_experience"
+    __table_args__ = (
+        UniqueConstraint("organization_id", name="uq_organization_experience_organization_id"),
+    )
+
+    schema_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
+    theme_key: Mapped[str] = mapped_column(String(100), nullable=False)
+    theme_mode: Mapped[str] = mapped_column(String(100), nullable=True)
+    decoration_preset: Mapped[str] = mapped_column(String(100), nullable=True)
+    token_overrides: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    assets: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    navigation: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    pages: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    variant_overrides: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+
+    organization: Mapped[Organization] = relationship("Organization", back_populates="experience")
+
+
+class OrganizationFeatureEntitlement(OrganizationModel):
+    __tablename__ = "organization_feature_entitlement"
+    __table_args__ = (
+        UniqueConstraint(
+            "organization_id",
+            "feature_key",
+            name="uq_organization_feature_entitlement_organization_feature",
+        ),
+    )
+
+    feature_key: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
+    configuration: Mapped[dict] = mapped_column(JSON, nullable=True)
+
+    organization: Mapped[Organization] = relationship(
+        "Organization",
+        back_populates="feature_entitlements",
+    )
 
 
 class User(OrganizationModel):

@@ -1,7 +1,7 @@
 import './theme.css'
 import './siteThemes.css'
 import { Navigate, Routes, Route, useLocation } from 'react-router-dom'
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import type { ReactNode } from 'react'
 import type { Location } from 'react-router-dom'
 
@@ -10,37 +10,21 @@ import CookieBanner from './components/CookieBanner'
 import OrderStatusBar from './components/OrderStatusBar'
 import SiteThemeController from './components/SiteThemeController'
 
-import HomePage from './pages/Home'
-import Menu from './pages/Menu'
-import About from './pages/About'
-import Events from './pages/Events'
-import Contact from './pages/Contact'
-import Login from './pages/Login'
-import Register from './pages/Register'
-import ForgotPassword from './pages/ForgotPassword'
-import Cart from './pages/Cart'
-import Checkout from './pages/Checkout'
-import OrderDetails from './pages/OrderDetails'
-import Profile from './pages/Profile'
-import {ProductDetail} from './pages/ProductDetail'
-import NotFound from './pages/NotFound'
-import AdminLogin from './pages/AdminLogin'
-import AdminDashboard from './pages/AdminDashboard'
 import type { AdminRole } from './types/admin'
 import { useAuth } from './hooks'
-import { readActiveOrder } from './components/orderStatusStorage'
+import currentManifest from './app/manifest/currentManifest'
+import type { FeatureRoute } from './app/manifest/types'
+import { useOrganization } from './organization/context/organization-context'
+import { useAdminSession } from './context/admin-session-context'
+
+const AboutPage = lazy(() => import('./pages/About'))
+const ContactPage = lazy(() => import('./pages/Contact'))
+const NotFoundPage = lazy(() => import('./pages/NotFound'))
+const AdminLoginPage = lazy(() => import('./pages/AdminLogin'))
+const AdminDashboardPage = lazy(() => import('./pages/AdminDashboard'))
 
 type CartRouteState = {
   backgroundLocation?: Location
-}
-
-function normalizeAdminRole(role: string | null): AdminRole | null {
-  if (!role) return null
-  if (role === "owner" || role === "super_admin") return "owner"
-  if (role === "chef") return "chef"
-  if (role === "waiter") return "waiter"
-  if (role === "manager" || role === "staff_admin" || role === "admin") return "manager"
-  return null
 }
 
 function ProtectedAdminRoute({
@@ -50,12 +34,10 @@ function ProtectedAdminRoute({
   children: ReactNode
   roles?: AdminRole[]
 }) {
-  const token = localStorage.getItem("admin_token")
-  const adminRole = normalizeAdminRole(localStorage.getItem("admin_role"))
+  const { isAuthenticated, role: adminRole } = useAdminSession()
 
-  if (!token) return <Navigate to="/admin/login" replace />
-  if (adminRole) localStorage.setItem("admin_role", adminRole)
-  if (roles && (!adminRole || !roles.includes(adminRole))) {
+  if (!isAuthenticated) return <Navigate to="/admin/login" replace />
+  if (roles && !roles.includes(adminRole)) {
     if (adminRole === "owner") return <Navigate to="/admin/dashboard" replace />
     if (adminRole === "chef") return <Navigate to="/admin/kitchen" replace />
     return <Navigate to="/admin/staff" replace />
@@ -74,22 +56,33 @@ function ProtectedCustomerRoute({ children }: { children: ReactNode }) {
   return <>{children}</>
 }
 
-function OrdersIndexRedirect() {
-  const { isAuthenticated, loading } = useAuth()
-  const activeOrder = readActiveOrder()
-
-  if (activeOrder?.accessToken) {
-    return <Navigate to={`/orders/${activeOrder.orderId}`} replace />
-  }
-  if (loading) return null
-  return <Navigate to={isAuthenticated ? "/profile?tab=orders" : "/menu"} replace />
+function FeatureRouteElement({ route }: { route: FeatureRoute }) {
+  const Component = route.component
+  const element = (
+    <Suspense fallback={null}>
+      <Component />
+    </Suspense>
+  )
+  return route.customer_protected
+    ? <ProtectedCustomerRoute>{element}</ProtectedCustomerRoute>
+    : element
 }
 
 function App() {
+  const { capabilities } = useOrganization()
   const location = useLocation()
   const state = location.state as CartRouteState | null
   const backgroundLocation = state?.backgroundLocation
   const visibleLocation = backgroundLocation ?? location
+  const availableFeatureRoutes = Object.values(currentManifest.feature_registry)
+    .filter((feature) => capabilities.has(feature.key))
+    .flatMap((feature) => feature.public_routes)
+  const mainFeatureRoutes = availableFeatureRoutes.filter(
+    (route) => route.presentation !== 'overlay',
+  )
+  const overlayFeatureRoutes = availableFeatureRoutes.filter(
+    (route) => route.presentation === 'overlay',
+  )
   const hideFooter = ["/login", "/register", "/forgot-password", "/admin/login", "/admin/dashboard", "/admin/super", "/admin/staff", "/admin/kitchen", "/cart"].includes(visibleLocation.pathname)
 
   useEffect(() => {
@@ -110,31 +103,32 @@ function App() {
       <SiteThemeController />
 
       <Routes location={visibleLocation}>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin/dashboard" element={<ProtectedAdminRoute roles={["owner"]}><AdminDashboard experience="super" /></ProtectedAdminRoute>} />
-        <Route path="/admin/super" element={<ProtectedAdminRoute roles={["owner"]}><AdminDashboard experience="super" /></ProtectedAdminRoute>} />
-        <Route path="/admin/staff" element={<ProtectedAdminRoute roles={["owner", "manager", "waiter"]}><AdminDashboard experience="staff" /></ProtectedAdminRoute>} />
-        <Route path="/admin/kitchen" element={<ProtectedAdminRoute roles={["owner", "manager", "chef"]}><AdminDashboard experience="kitchen" /></ProtectedAdminRoute>} />
-        <Route path="/menu" element={<Menu />} />
-        <Route path="/cart" element={<Cart />} />
-        <Route path="/checkout" element={<Checkout />} />
-        <Route path="/orders" element={<OrdersIndexRedirect />} />
-        <Route path="/orders/:orderId" element={<OrderDetails />} />
-        <Route path="/profile" element={<ProtectedCustomerRoute><Profile /></ProtectedCustomerRoute>} />
-        <Route path="/about" element={<About />} />
-        <Route path="/events" element={<Events />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/product/:id" element={<ProductDetail />} />
-        <Route path="*" element={<NotFound />} />
+        {mainFeatureRoutes.map((route) => (
+          <Route
+            key={route.id}
+            path={route.path}
+            element={<FeatureRouteElement route={route} />}
+          />
+        ))}
+        <Route path="/admin/login" element={<Suspense fallback={null}><AdminLoginPage /></Suspense>} />
+        <Route path="/admin/dashboard" element={<ProtectedAdminRoute roles={["owner"]}><Suspense fallback={null}><AdminDashboardPage experience="super" /></Suspense></ProtectedAdminRoute>} />
+        <Route path="/admin/super" element={<ProtectedAdminRoute roles={["owner"]}><Suspense fallback={null}><AdminDashboardPage experience="super" /></Suspense></ProtectedAdminRoute>} />
+        <Route path="/admin/staff" element={<ProtectedAdminRoute roles={["owner", "manager", "waiter"]}><Suspense fallback={null}><AdminDashboardPage experience="staff" /></Suspense></ProtectedAdminRoute>} />
+        <Route path="/admin/kitchen" element={<ProtectedAdminRoute roles={["owner", "manager", "chef"]}><Suspense fallback={null}><AdminDashboardPage experience="kitchen" /></Suspense></ProtectedAdminRoute>} />
+        <Route path="/about" element={<Suspense fallback={null}><AboutPage /></Suspense>} />
+        <Route path="/contact" element={<Suspense fallback={null}><ContactPage /></Suspense>} />
+        <Route path="*" element={<Suspense fallback={null}><NotFoundPage /></Suspense>} />
       </Routes>
 
       {backgroundLocation && (
         <Routes>
-          <Route path="/cart" element={<Cart overlay />} />
+          {overlayFeatureRoutes.map((route) => (
+            <Route
+              key={route.id}
+              path={route.path}
+              element={<FeatureRouteElement route={route} />}
+            />
+          ))}
         </Routes>
       )}
 

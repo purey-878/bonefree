@@ -983,6 +983,48 @@ export type EventsSettings = {
 };
 
 /**
+ * FeaturedProductReviewResponse
+ */
+export type FeaturedProductReviewResponse = {
+    /**
+     * Comment
+     */
+    comment: string | null;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Customer Name
+     */
+    customer_name?: string | null;
+    /**
+     * Product Display Id
+     */
+    product_display_id: string;
+    /**
+     * Product Id
+     */
+    product_id: number;
+    /**
+     * Product Name
+     */
+    product_name: string;
+    /**
+     * Rating
+     */
+    rating: number;
+    /**
+     * Review Id
+     */
+    review_id: number;
+    /**
+     * Title
+     */
+    title: string | null;
+};
+
+/**
  * ForgotPasswordRequest
  */
 export type ForgotPasswordRequest = {
@@ -1341,6 +1383,28 @@ export type MessageResponse = {
 };
 
 /**
+ * NavigationItem
+ */
+export type NavigationItem = {
+    /**
+     * Enabled
+     */
+    enabled?: boolean;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Route Id
+     */
+    route_id: string;
+};
+
+/**
  * OrderCreateResponse
  */
 export type OrderCreateResponse = {
@@ -1617,6 +1681,16 @@ export type OrganizationProfileUpdate = {
      * Vat Exemption Reason
      */
     vat_exemption_reason?: string | null;
+};
+
+/**
+ * PageConfiguration
+ */
+export type PageConfiguration = {
+    /**
+     * Sections
+     */
+    sections?: Array<SectionDescriptor>;
 };
 
 /**
@@ -2490,6 +2564,156 @@ export type ProductUpdate = {
 };
 
 /**
+ * PublicExperienceConfiguration
+ */
+export type PublicExperienceConfiguration = {
+    /**
+     * Assets
+     */
+    assets?: {
+        [key: string]: string;
+    };
+    /**
+     * Navigation
+     */
+    navigation?: Array<NavigationItem>;
+    /**
+     * Pages
+     */
+    pages?: {
+        [key: string]: PageConfiguration;
+    };
+    theme: PublicThemeConfiguration;
+    /**
+     * Variant Overrides
+     */
+    variant_overrides?: {
+        [key: string]: string;
+    };
+};
+
+/**
+ * PublicOrganizationExperienceResponse
+ */
+export type PublicOrganizationExperienceResponse = {
+    /**
+     * Capabilities
+     */
+    capabilities: Array<string>;
+    experience: PublicExperienceConfiguration;
+    organization: PublicOrganizationIdentity;
+    profile: PublicOrganizationProfile;
+    /**
+     * Schema Version
+     */
+    schema_version: number;
+};
+
+/**
+ * PublicOrganizationIdentity
+ */
+export type PublicOrganizationIdentity = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Slug
+     */
+    slug: string;
+};
+
+/**
+ * PublicOrganizationProfile
+ */
+export type PublicOrganizationProfile = {
+    /**
+     * About Text
+     */
+    about_text?: string | null;
+    /**
+     * Address Line 1
+     */
+    address_line_1?: string | null;
+    /**
+     * Address Line 2
+     */
+    address_line_2?: string | null;
+    /**
+     * City
+     */
+    city?: string | null;
+    /**
+     * Country
+     */
+    country: string;
+    /**
+     * Currency Code
+     */
+    currency_code: string;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Display Name
+     */
+    display_name?: string | null;
+    /**
+     * Email
+     */
+    email?: string | null;
+    /**
+     * Logo Url
+     */
+    logo_url?: string | null;
+    /**
+     * Opening Hours
+     */
+    opening_hours?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Phone
+     */
+    phone?: string | null;
+    /**
+     * Postal Code
+     */
+    postal_code?: string | null;
+    /**
+     * Social Links
+     */
+    social_links?: {
+        [key: string]: unknown;
+    };
+};
+
+/**
+ * PublicThemeConfiguration
+ */
+export type PublicThemeConfiguration = {
+    /**
+     * Decoration Preset
+     */
+    decoration_preset?: string | null;
+    /**
+     * Key
+     */
+    key: string;
+    /**
+     * Mode
+     */
+    mode?: string | null;
+    /**
+     * Token Overrides
+     */
+    token_overrides?: {
+        [key: string]: string;
+    };
+};
+
+/**
  * ResetPasswordRequest
  */
 export type ResetPasswordRequest = {
@@ -2627,6 +2851,42 @@ export type SalesPerformanceResponse = {
      * Total Sales
      */
     total_sales: number;
+};
+
+/**
+ * SectionDescriptor
+ */
+export type SectionDescriptor = {
+    /**
+     * Enabled
+     */
+    enabled?: boolean;
+    /**
+     * Feature Key
+     */
+    feature_key?: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Override Key
+     */
+    override_key?: string | null;
+    /**
+     * Props
+     */
+    props?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Type
+     */
+    type: string;
+    /**
+     * Variant
+     */
+    variant?: string | null;
 };
 
 /**
@@ -8979,6 +9239,61 @@ export type ProfileGetPurchaseHistoryResponses = {
 
 export type ProfileGetPurchaseHistoryResponse = ProfileGetPurchaseHistoryResponses[keyof ProfileGetPurchaseHistoryResponses];
 
+export type OrganizationsGetPublicExperienceData = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/public/organization-experience';
+};
+
+export type OrganizationsGetPublicExperienceErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type OrganizationsGetPublicExperienceError = OrganizationsGetPublicExperienceErrors[keyof OrganizationsGetPublicExperienceErrors];
+
+export type OrganizationsGetPublicExperienceResponses = {
+    /**
+     * Successful Response
+     */
+    200: PublicOrganizationExperienceResponse;
+};
+
+export type OrganizationsGetPublicExperienceResponse = OrganizationsGetPublicExperienceResponses[keyof OrganizationsGetPublicExperienceResponses];
+
 export type OrganizationsResolveData = {
     body?: never;
     path?: never;
@@ -9091,6 +9406,68 @@ export type AuthRegisterResponses = {
 };
 
 export type AuthRegisterResponse = AuthRegisterResponses[keyof AuthRegisterResponses];
+
+export type ReviewsListFeaturedProductReviewsData = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
+    path?: never;
+    query?: {
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/reviews/featured';
+};
+
+export type ReviewsListFeaturedProductReviewsErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type ReviewsListFeaturedProductReviewsError = ReviewsListFeaturedProductReviewsErrors[keyof ReviewsListFeaturedProductReviewsErrors];
+
+export type ReviewsListFeaturedProductReviewsResponses = {
+    /**
+     * Response Reviews List Featured Product Reviews
+     *
+     * Successful Response
+     */
+    200: Array<FeaturedProductReviewResponse>;
+};
+
+export type ReviewsListFeaturedProductReviewsResponse = ReviewsListFeaturedProductReviewsResponses[keyof ReviewsListFeaturedProductReviewsResponses];
 
 export type ReviewsDeleteProductReviewData = {
     body?: never;

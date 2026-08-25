@@ -18,6 +18,7 @@ import type { Product } from '../types/product';
 import type { Cart, CartItem, CustomizedCartItemRequest, GuestCartItem, ItemCustomization, MergeResult } from '../types/cart';
 import { productService } from './productService';
 import i18n from '../i18n';
+import { organizationStorage } from '../core/storage/organizationStorage';
 
 const GUEST_CART_KEY = 'guest_cart';
 const LEGACY_CART_KEY = 'cart';
@@ -156,7 +157,7 @@ function readGuestItem(value: unknown): GuestCartItem | null {
 export const guestCartService = {
   get(): GuestCartItem[] {
     try {
-      const parsed = JSON.parse(localStorage.getItem(GUEST_CART_KEY) || localStorage.getItem(LEGACY_CART_KEY) || '[]');
+      const parsed = JSON.parse(organizationStorage.getItem(GUEST_CART_KEY) || organizationStorage.getItem(LEGACY_CART_KEY) || '[]');
       return Array.isArray(parsed) ? parsed.map(readGuestItem).filter((item): item is GuestCartItem => item !== null) : [];
     } catch (error) {
       console.error('Error reading guest cart:', error);
@@ -166,7 +167,7 @@ export const guestCartService = {
 
   save(items: GuestCartItem[]): void {
     try {
-      localStorage.setItem(GUEST_CART_KEY, JSON.stringify(Array.isArray(items) ? items : []));
+      organizationStorage.setItem(GUEST_CART_KEY, JSON.stringify(Array.isArray(items) ? items : []));
     } catch (error) {
       console.error('Error saving guest cart:', error);
     } finally {
@@ -176,8 +177,8 @@ export const guestCartService = {
 
   clear(): void {
     try {
-      localStorage.removeItem(GUEST_CART_KEY);
-      localStorage.removeItem(LEGACY_CART_KEY);
+      organizationStorage.removeItem(GUEST_CART_KEY);
+      organizationStorage.removeItem(LEGACY_CART_KEY);
     } finally {
       dispatchCartUpdate();
     }

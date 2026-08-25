@@ -1,32 +1,57 @@
-import React, { useEffect, useState } from "react"
+import React from "react"
 import { Link } from "react-router-dom"
-import { getPublicCompanyDetails, getPublicSocialMediaSettings } from "../services/siteSettingsService"
-import { defaultCompanyDetails, defaultSocialMediaSettings, socialIconPaths } from "../utils/footerSettings"
+import { socialIconPaths } from "../utils/footerSettings"
 import { useTranslation } from "react-i18next"
+import { useOrganization } from '../organization/context/organization-context'
+import { resolveNavigation } from '../organization/experience/navigation'
+import currentManifest from '../app/manifest/currentManifest'
+
+type SocialPlatform = keyof typeof socialIconPaths
+
+interface FooterSocialLink {
+  platform: SocialPlatform
+  label: string
+  href: string
+  enabled: boolean
+}
+
+function publicSocialLinks(value: Record<string, unknown>): FooterSocialLink[] {
+  const links = Array.isArray(value.links) ? value.links : []
+  return links.flatMap((item) => {
+    if (!item || typeof item !== 'object') return []
+    const link = item as Record<string, unknown>
+    if (
+      typeof link.platform !== 'string'
+      || !(link.platform in socialIconPaths)
+      || typeof link.href !== 'string'
+    ) return []
+    return [{
+      platform: link.platform as SocialPlatform,
+      label: typeof link.label === 'string' ? link.label : link.platform,
+      href: link.href,
+      enabled: link.enabled !== false,
+    }]
+  })
+}
 
 const Footer: React.FC = () => {
   const { t } = useTranslation(["storefront", "common"])
-  const [companyDetails, setCompanyDetails] = useState(defaultCompanyDetails)
-  const [socialMedia, setSocialMedia] = useState(defaultSocialMediaSettings)
-
-  useEffect(() => {
-    let cancelled = false
-
-    Promise.all([
-      getPublicCompanyDetails().catch(() => defaultCompanyDetails),
-      getPublicSocialMediaSettings().catch(() => defaultSocialMediaSettings),
-    ]).then(([nextCompanyDetails, nextSocialMedia]) => {
-      if (cancelled) return
-      setCompanyDetails(nextCompanyDetails)
-      setSocialMedia(nextSocialMedia)
-    })
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  const socialLinks = socialMedia.links.filter((link) => link.enabled)
+  const { organization, experience, capabilities } = useOrganization()
+  const { profile } = experience
+  const brandName = profile.display_name || organization.name
+  const logoUrl = experience.experience.assets.logo || profile.logo_url
+  const address = [
+    profile.address_line_1,
+    profile.address_line_2,
+    [profile.postal_code, profile.city].filter(Boolean).join(' '),
+    profile.country,
+  ].filter(Boolean).join(', ')
+  const socialLinks = publicSocialLinks(profile.social_links).filter((link) => link.enabled)
+  const navigation = resolveNavigation(
+    experience.experience.navigation,
+    currentManifest.feature_registry,
+    capabilities,
+  )
 
   return (
     <footer className="footer pt-5 pb-3 text-light opacity-100">
@@ -34,26 +59,29 @@ const Footer: React.FC = () => {
         <div className="row">
           <div className="col-lg-3 col-md-6 mb-4">
             <div className="footer-brand">
-              <img src="/assets/images/bonefree-logo.webp" alt={companyDetails.brandName} />
+              {logoUrl ? <img src={logoUrl} alt={brandName} /> : <strong>{brandName}</strong>}
             </div>
-            <p className="mt-3">{companyDetails.description}</p>
+            {profile.description && <p className="mt-3">{profile.description}</p>}
           </div>
 
           <div className="col-lg-3 col-md-6 mb-4">
             <h5 className="fw-bold mb-3">{t("footer.links")}</h5>
             <ul className="list-unstyled">
-              <li><Link to="/" className="text-light text-decoration-none footer-link">{t("navigation.home", { ns: "common" })}</Link></li>
-              <li><Link to="/menu" className="text-light text-decoration-none footer-link">{t("navigation.menu", { ns: "common" })}</Link></li>
-              <li><Link to="/about" className="text-light text-decoration-none footer-link">{t("navigation.about", { ns: "common" })}</Link></li>
-              <li><Link to="/contact" className="text-light text-decoration-none footer-link">{t("navigation.contact", { ns: "common" })}</Link></li>
+              {navigation.map((item) => (
+                <li key={item.id}>
+                  <Link to={item.path} className="text-light text-decoration-none footer-link">
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
           <div className="col-lg-3 col-md-6 mb-4">
             <h5 className="fw-bold mb-3">{t("footer.contact")}</h5>
-            <p><i className="bi bi-geo-alt-fill me-2" />{companyDetails.address}</p>
-            <p><i className="bi bi-telephone-fill me-2" />{companyDetails.phone}</p>
-            <p><i className="bi bi-envelope-fill me-2" />{companyDetails.email}</p>
+            {address && <p><i className="bi bi-geo-alt-fill me-2" />{address}</p>}
+            {profile.phone && <p><i className="bi bi-telephone-fill me-2" />{profile.phone}</p>}
+            {profile.email && <p><i className="bi bi-envelope-fill me-2" />{profile.email}</p>}
           </div>
 
           <div className="col-lg-3 col-md-6 mb-4">
@@ -81,7 +109,7 @@ const Footer: React.FC = () => {
 
         <div className="row">
           <div className="col text-center">
-            <p className="mb-0">&copy; {new Date().getFullYear()} {companyDetails.brandName}. {t("footer.rights")}</p>
+            <p className="mb-0">&copy; {new Date().getFullYear()} {brandName}. {t("footer.rights")}</p>
           </div>
         </div>
       </div>

@@ -68,6 +68,7 @@ import {
   updateAdminSocialMediaSettings,
   updateAdminSiteTheme,
 } from "../services/siteSettingsService"
+import { organizationStorage } from '../core/storage/organizationStorage'
 import type {
   AdminOrder,
   AdminCustomer,
@@ -124,6 +125,7 @@ import { primaryProductMediaUrl, productMediaUrl } from "../utils/productMedia"
 import LanguageSwitcher from "../components/LanguageSwitcher"
 import AdminI18nBoundary from "../components/AdminI18nBoundary"
 import { resolvedLocale } from "../i18n"
+import { useAdminSession } from '../context/admin-session-context'
 
 function getImageUrl(imagePath: string): string {
   return resolveProductImageUrl(imagePath)
@@ -1358,9 +1360,14 @@ function SiteSettingsPanel({
 }
 
 export default function AdminDashboard({ experience = "super" }: { experience?: AdminExperience }) {
+  const {
+    token: adminToken,
+    updateIdentity: updateAdminSessionIdentity,
+    logout: clearAdminSession,
+  } = useAdminSession()
   const routeDefaultTab: TabType = experience === "super" ? "dashboard" : "orders"
   const [activeTab, setActiveTab] = useState<TabType>(routeDefaultTab)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("admin_sidebar_collapsed") === "true")
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => organizationStorage.getItem("admin_sidebar_collapsed") === "true")
   const [isMobileAdminNav, setIsMobileAdminNav] = useState(() => (
     typeof window !== "undefined" ? window.matchMedia(ADMIN_NAV_MOBILE_QUERY).matches : false
   ))
@@ -1368,7 +1375,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
     typeof window !== "undefined" ? window.matchMedia(ADMIN_SIDEBAR_AUTO_COLLAPSE_QUERY).matches : false
   ))
   const [isAdminSidebarOpen, setIsAdminSidebarOpen] = useState(false)
-  const [adminTheme, setAdminTheme] = useState<AdminTheme>(() => (localStorage.getItem("admin_theme") === "dark" ? "dark" : "light"))
+  const [adminTheme, setAdminTheme] = useState<AdminTheme>(() => (organizationStorage.getItem("admin_theme") === "dark" ? "dark" : "light"))
   const [currentAdmin, setCurrentAdmin] = useState<CurrentAdmin | null>(null)
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [products, setProducts] = useState<AdminProduct[]>([])
@@ -1521,7 +1528,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
   const [salesGraphPeriod, setSalesGraphPeriod] = useState<SalesChartPeriod>("day")
   const navigate = useNavigate()
   const toast = useToast()
-  const role = (currentAdmin?.role || localStorage.getItem("admin_role") || "manager") as AdminRole
+  const role = (currentAdmin?.role || organizationStorage.getItem("admin_role") || "manager") as AdminRole
   const isOwner = role === "owner"
   const isKitchenExperience = experience === "kitchen"
   const canManageProducts = role === "owner" || role === "manager"
@@ -1736,8 +1743,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
   }, [])
 
   useEffect(() => {
-    const token = localStorage.getItem("admin_token")
-    if (!token) {
+    if (!adminToken) {
       navigate("/admin/login")
       return
     }
@@ -1745,8 +1751,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
     void getCurrentAdmin()
       .then((admin) => {
         setCurrentAdmin(admin)
-        localStorage.setItem("admin_role", admin.role)
-        localStorage.setItem("admin_name", admin.name)
+        updateAdminSessionIdentity({ role: admin.role, name: admin.name })
 
         if (experience === "super" && admin.role !== "owner") {
           navigate(admin.role === "chef" ? "/admin/kitchen" : "/admin/staff", { replace: true })
@@ -1764,15 +1769,13 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
         }
       })
         .catch(() => {
-          localStorage.removeItem("admin_token")
-          localStorage.removeItem("admin_role")
-          localStorage.removeItem("admin_name")
+          clearAdminSession()
           navigate("/admin/login", { replace: true })
         })
-  }, [experience, handleLoadCategories, handleLoadIngredients, handleLoadOrders, loadDashboard, loadProductsForFilters, navigate])
+  }, [adminToken, clearAdminSession, experience, handleLoadCategories, handleLoadIngredients, handleLoadOrders, loadDashboard, loadProductsForFilters, navigate, updateAdminSessionIdentity])
 
   useEffect(() => {
-    localStorage.setItem("admin_sidebar_collapsed", String(sidebarCollapsed))
+    organizationStorage.setItem("admin_sidebar_collapsed", String(sidebarCollapsed))
   }, [sidebarCollapsed])
 
   useEffect(() => {
@@ -1826,7 +1829,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
   }, [isMobileAdminNav, isAdminSidebarOpen])
 
   useEffect(() => {
-    localStorage.setItem("admin_theme", adminTheme)
+    organizationStorage.setItem("admin_theme", adminTheme)
   }, [adminTheme])
 
   // Debounced filter effect — only re-fetches active products
@@ -2931,7 +2934,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
       setCompanyDetails(savedCompanyDetails)
       setSocialMedia(savedSocialMedia)
       setEventsSettings(savedEventsSettings)
-      localStorage.setItem("bonefree_site_theme", JSON.stringify(savedTheme))
+      organizationStorage.setItem("site_theme", JSON.stringify(savedTheme))
       window.dispatchEvent(new Event("siteThemeUpdated"))
       setSiteThemeSaved(true)
       window.setTimeout(() => setSiteThemeSaved(false), 2200)
@@ -3096,9 +3099,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
       cancelText: "Cancelar",
       }, async () => {
         setIsAdminSidebarOpen(false)
-        localStorage.removeItem("admin_token")
-        localStorage.removeItem("admin_role")
-        localStorage.removeItem("admin_name")
+        clearAdminSession()
         navigate("/admin/login", { replace: true })
         return true
       })

@@ -8,6 +8,13 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 export default defineConfig([
   globalIgnores(['dist', 'src/api/generated']),
   {
+    files: ['build/**/*.mjs'],
+    languageOptions: {
+      ecmaVersion: 2023,
+      globals: globals.node,
+    },
+  },
+  {
     files: ['**/*.{ts,tsx}'],
     extends: [
       js.configs.recommended,
@@ -22,7 +29,7 @@ export default defineConfig([
   },
   {
     files: ['src/**/*.{ts,tsx}'],
-    ignores: ['src/api/**', 'src/services/**'],
+    ignores: ['src/api/**', 'src/services/**', 'src/organization/api/**', 'src/features/**/api/**'],
     rules: {
       'no-restricted-imports': ['error', {
         patterns: [{

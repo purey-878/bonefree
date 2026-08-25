@@ -1,5 +1,6 @@
 import { apiData, publicApiClient } from '../api/clients'
-import { organizationsResolve } from '../api/generated'
+import { organizationsGetPublicExperience, organizationsResolve } from '../api/generated'
+import { toOrganizationExperience } from '../organization/api/experienceAdapter'
 
 
 export const organizationService = {
@@ -9,5 +10,12 @@ export const organizationService = {
       client: publicApiClient,
       throwOnError: true,
     }))
+  },
+  async loadExperience() {
+    const dto = await apiData(organizationsGetPublicExperience({
+      client: publicApiClient,
+      throwOnError: true,
+    }))
+    return toOrganizationExperience(dto)
   },
 }

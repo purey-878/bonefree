@@ -83,6 +83,18 @@ class ProductReviewResponse(BaseModel):
     reactions: list[ReviewReactionResponse] = Field(default_factory=list)
 
 
+class FeaturedProductReviewResponse(BaseModel):
+    review_id: int
+    product_id: int
+    product_display_id: str
+    product_name: str
+    customer_name: str | None = None
+    rating: int
+    title: str | None
+    comment: str | None
+    created_at: datetime
+
+
 class ProductReviewStatsResponse(BaseModel):
     product_id: int
     product_display_id: str

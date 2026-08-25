@@ -475,6 +475,8 @@ def _target_contains_only_development_users(database_path: Path) -> bool:
         tenancy_tables = {
             "organization",
             "organization_domain",
+            "organization_experience",
+            "organization_feature_entitlement",
             "organization_profile",
         }
         present_tenancy_tables = tenancy_tables & tables
@@ -506,6 +508,31 @@ def _target_contains_only_development_users(database_path: Path) -> bool:
                 "SELECT organization_id FROM organization_profile"
             ).fetchall()
             if profiles != [(organization_id,)]:
+                return False
+            experiences = connection.execute(
+                "SELECT organization_id, schema_version, theme_key, theme_mode "
+                "FROM organization_experience"
+            ).fetchall()
+            if experiences != [(organization_id, 1, "bonefree", "default")]:
+                return False
+            entitlements = {
+                (row[0], bool(row[1]), row[2])
+                for row in connection.execute(
+                    "SELECT feature_key, enabled, organization_id "
+                    "FROM organization_feature_entitlement"
+                )
+            }
+            if entitlements != {
+                (feature_key, True, organization_id)
+                for feature_key in (
+                    "catalog",
+                    "customer_accounts",
+                    "events",
+                    "loyalty",
+                    "ordering",
+                    "reviews",
+                )
+            }:
                 return False
             user_columns = {
                 row[1] for row in connection.execute('PRAGMA table_info("user")')

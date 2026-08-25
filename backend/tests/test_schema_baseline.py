@@ -19,7 +19,8 @@ import models  # noqa: F401 - register every model in Base.metadata.
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 BASELINE_REVISION = "20260822_0001"
-HEAD_REVISION = "20260823_0002"
+TENANCY_REVISION = "20260823_0002"
+HEAD_REVISION = "20260825_0003"
 LEGACY_HEAD_REVISION = "b6d8f0a2c4e7"
 
 
@@ -86,11 +87,12 @@ class SchemaBaselineTests(unittest.TestCase):
 
         self.assertEqual(
             [revision.revision for revision in revisions],
-            [HEAD_REVISION, BASELINE_REVISION],
+            [HEAD_REVISION, TENANCY_REVISION, BASELINE_REVISION],
         )
-        self.assertEqual(revisions[0].down_revision, BASELINE_REVISION)
-        self.assertIsNone(revisions[1].down_revision)
-        baseline_source = Path(revisions[1].path).read_text(encoding="utf-8")
+        self.assertEqual(revisions[0].down_revision, TENANCY_REVISION)
+        self.assertEqual(revisions[1].down_revision, BASELINE_REVISION)
+        self.assertIsNone(revisions[2].down_revision)
+        baseline_source = Path(revisions[2].path).read_text(encoding="utf-8")
         self.assertNotIn("Base.metadata", baseline_source)
         self.assertNotIn("product_image", baseline_source)
 
@@ -261,6 +263,19 @@ class SchemaBaselineTests(unittest.TestCase):
                 )
                 self.assertEqual(connection.scalar(text("SELECT COUNT(*) FROM ingredient")), 1)
                 self.assertEqual(connection.scalar(text("SELECT COUNT(*) FROM ingredient WHERE organization_id IS NULL")), 0)
+                self.assertEqual(
+                    connection.scalar(text("SELECT theme_key FROM organization_experience")),
+                    "bonefree",
+                )
+                self.assertEqual(
+                    connection.scalar(
+                        text(
+                            "SELECT COUNT(*) FROM organization_feature_entitlement "
+                            "WHERE enabled = 1"
+                        )
+                    ),
+                    6,
+                )
                 self.assertEqual(connection.execute(text("PRAGMA foreign_key_check")).fetchall(), [])
         finally:
             engine.dispose()

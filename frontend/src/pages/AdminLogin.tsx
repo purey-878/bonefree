@@ -8,13 +8,7 @@ import Footer from "../components/Footer"
 import { adminLogin } from "../services/adminService"
 import type { AdminRole } from "../types/admin"
 import { useTranslation } from "react-i18next"
-
-function normalizeAdminRole(role: unknown): AdminRole {
-  if (role === "owner") return "owner"
-  if (role === "chef") return "chef"
-  if (role === "waiter") return "waiter"
-  return "manager"
-}
+import { normalizeAdminRole, useAdminSession } from '../context/admin-session-context'
 
 function adminHomeForRole(role: AdminRole): string {
   if (role === "owner") return "/admin/dashboard"
@@ -29,6 +23,7 @@ export default function AdminLogin() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const { login } = useAdminSession()
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -37,12 +32,10 @@ export default function AdminLogin() {
 
     try {
       const data = await adminLogin(email, password)
-      const adminRole = normalizeAdminRole(data.admin?.role)
+      const adminRole = normalizeAdminRole(data.admin?.role) ?? 'manager'
       const adminName = data.admin?.name ?? ""
 
-      localStorage.setItem("admin_token", data.accessToken)
-      localStorage.setItem("admin_name", adminName)
-      localStorage.setItem("admin_role", adminRole)
+      login({ token: data.accessToken, name: adminName, role: adminRole })
 
       navigate(adminHomeForRole(adminRole), { replace: true })
     } catch (err) {

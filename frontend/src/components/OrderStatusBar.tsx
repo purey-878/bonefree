@@ -14,6 +14,7 @@ import {
 import "./OrderStatusBar.css"
 import { useTranslation } from "react-i18next"
 import i18n from "../i18n"
+import { organizationStorage } from '../core/storage/organizationStorage'
 
 const SERVED_STATUSES = new Set(["delivered"])
 const TERMINAL_STATUSES = new Set(["delivered", "cancelled"])
@@ -53,7 +54,7 @@ function orderCreatedAt(order: OrderResponse) {
 }
 
 function findActiveOrder(orders: OrderResponse[]) {
-  const storedId = Number(localStorage.getItem(ACTIVE_ORDER_KEY))
+  const storedId = Number(organizationStorage.getItem(ACTIVE_ORDER_KEY))
   const ongoingOrders = orders
     .filter((order) => !TERMINAL_STATUSES.has(order.status))
     .sort((first, second) => orderCreatedAt(first) - orderCreatedAt(second) || first.orderId - second.orderId)
@@ -187,7 +188,7 @@ export default function OrderStatusBar() {
 
       if (SERVED_STATUSES.has(activeOrder.status)) {
         autoDismissTimer.current = window.setTimeout(() => {
-          if (Number(localStorage.getItem(ACTIVE_ORDER_KEY)) === activeOrder.orderId) {
+          if (Number(organizationStorage.getItem(ACTIVE_ORDER_KEY)) === activeOrder.orderId) {
             clearOrder()
           }
         }, 20000)

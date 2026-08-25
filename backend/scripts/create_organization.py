@@ -24,13 +24,17 @@ if str(BACKEND_DIR) not in sys.path:
 
 from core.organizations import normalize_organization_slug
 from database import SessionLocal
-from models import Organization, OrganizationProfile
+from models import Organization, OrganizationExperience, OrganizationProfile
 from schemas.enums import OrganizationType
 
 
 def check_database_ready(db: DBSession) -> None:
     table_names = set(inspect(db.bind).get_table_names())
-    missing = {"organization", "organization_profile"} - table_names
+    missing = {
+        "organization",
+        "organization_profile",
+        "organization_experience",
+    } - table_names
     if missing:
         raise RuntimeError(
             f"Database is not ready. Missing table(s): {', '.join(sorted(missing))}. Run migrations first."
@@ -104,6 +108,17 @@ def create_organization(
                 phone=(phone or "").strip() or None,
                 country=country.strip() or "Portugal",
                 currency_code=normalized_currency,
+            )
+        )
+        db.add(
+            OrganizationExperience(
+                schema_version=1,
+                theme_key="base",
+                token_overrides={},
+                assets={},
+                navigation=[],
+                pages={},
+                variant_overrides={},
             )
         )
         db.commit()

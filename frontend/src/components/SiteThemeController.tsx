@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
 
-import { getPublicSiteTheme } from "../services/siteSettingsService";
-import { defaultSiteThemeResponse } from "../siteThemes";
 import type { SiteThemeResponse, ThemeConfig } from "../types/siteSettings";
 import ThemeDecorations from "./ThemeDecorations";
-
-const THEME_STORAGE_KEY = "bonefree_site_theme";
+import { organizationStorage } from '../core/storage/organizationStorage'
+import currentManifest from '../app/manifest/currentManifest'
+import { useOrganization } from '../organization/context/organization-context'
 
 function applySiteTheme(theme: SiteThemeResponse) {
   const { config } = theme;
@@ -45,9 +44,9 @@ function applySiteTheme(theme: SiteThemeResponse) {
   }
 }
 
-function readCachedTheme(): SiteThemeResponse | null {
+function readCachedTheme(cacheKey: string): SiteThemeResponse | null {
   try {
-    const raw = localStorage.getItem(THEME_STORAGE_KEY);
+    const raw = organizationStorage.getItem(cacheKey);
     const parsed = raw ? (JSON.parse(raw) as Partial<SiteThemeResponse>) : null;
     return parsed?.config ? (parsed as SiteThemeResponse) : null;
   } catch {
@@ -56,45 +55,72 @@ function readCachedTheme(): SiteThemeResponse | null {
 }
 
 export default function SiteThemeController() {
-  const [theme, setTheme] = useState<SiteThemeResponse>(() => readCachedTheme() ?? defaultSiteThemeResponse);
+  const { experience } = useOrganization()
+  const themeConfiguration = experience.experience.theme
+  const themeDefinition = currentManifest.theme_registry[themeConfiguration.key]
+  const cacheKey = [
+    'experience_theme',
+    currentManifest.build_id,
+    experience.schema_version,
+    themeConfiguration.key,
+  ].join(':')
+  const [theme, setTheme] = useState<SiteThemeResponse | null>(() => (
+    readCachedTheme(cacheKey)
+    ?? themeDefinition.legacy_cache_keys
+      ?.map(readCachedTheme)
+      .find((cachedTheme): cachedTheme is SiteThemeResponse => cachedTheme !== null)
+    ?? null
+  ));
   const [previousConfig, setPreviousConfig] = useState<ThemeConfig | null>(null);
 
   useEffect(() => {
-    applySiteTheme(theme);
+    if (theme) applySiteTheme(theme);
   }, [theme]);
 
   useEffect(() => {
+    let active = true
     const applyFetchedTheme = (nextTheme: SiteThemeResponse) => {
+      if (!active) return
       setTheme((current) => {
-        if (JSON.stringify(current.config) !== JSON.stringify(nextTheme.config)) {
+        if (current && JSON.stringify(current.config) !== JSON.stringify(nextTheme.config)) {
           setPreviousConfig(current.config);
           window.setTimeout(() => setPreviousConfig(null), 500);
         }
         return nextTheme;
       });
-      localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(nextTheme));
+      organizationStorage.setItem(cacheKey, JSON.stringify(nextTheme));
       applySiteTheme(nextTheme);
     };
 
-    const refreshTheme = () => {
-      getPublicSiteTheme()
-        .then(applyFetchedTheme)
-        .catch(() => applyFetchedTheme(defaultSiteThemeResponse));
+    const refreshTheme = async () => {
+      const fallback = await themeDefinition.load_default_site_theme(themeConfiguration.mode)
+      if (!themeDefinition.load_remote_site_theme) {
+        applyFetchedTheme(fallback)
+        return
+      }
+      try {
+        applyFetchedTheme(await themeDefinition.load_remote_site_theme())
+      } catch {
+        applyFetchedTheme(fallback)
+      }
     };
 
-    refreshTheme();
-    const interval = window.setInterval(refreshTheme, 60000);
+    void refreshTheme();
+    const interval = themeDefinition.refresh_interval_ms
+      ? window.setInterval(refreshTheme, themeDefinition.refresh_interval_ms)
+      : undefined
     window.addEventListener("siteThemeUpdated", refreshTheme);
     return () => {
-      window.clearInterval(interval);
+      active = false
+      if (interval) window.clearInterval(interval);
       window.removeEventListener("siteThemeUpdated", refreshTheme);
     };
-  }, []);
+  }, [cacheKey, themeConfiguration.key, themeConfiguration.mode, themeDefinition]);
 
   return (
     <>
       {previousConfig && <ThemeDecorations config={previousConfig} exiting />}
-      <ThemeDecorations config={theme.config} />
+      {theme && <ThemeDecorations config={theme.config} />}
     </>
   );
 }

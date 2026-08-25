@@ -18,20 +18,18 @@ import ConfirmDialog from "./ui/ConfirmDialog";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { useAuth } from "../hooks";
 import { cartService } from "../services";
+import { useOrganization } from '../organization/context/organization-context'
+import { resolveNavigation } from '../organization/experience/navigation'
+import currentManifest from '../app/manifest/currentManifest'
 
-const desktopLinks = [
-  { path: "/", labelKey: "navigation.home" },
-  { path: "/menu", labelKey: "navigation.menu" },
-  { path: "/about", labelKey: "navigation.about" },
-  { path: "/events", labelKey: "navigation.events" },
-  { path: "/contact", labelKey: "navigation.contact" },
-];
-
-const bottomLinks = [
-  { path: "/", labelKey: "navigation.home", icon: Home },
-  { path: "/menu", labelKey: "navigation.menu", icon: UtensilsCrossed },
-  { path: "/profile", labelKey: "navigation.profile", icon: User },
-];
+const navigationLabelKeys: Readonly<Record<string, string>> = {
+  home: 'navigation.home',
+  menu: 'navigation.menu',
+  about: 'navigation.about',
+  events: 'navigation.events',
+  contact: 'navigation.contact',
+  profile: 'navigation.profile',
+}
 
 const badgePop = keyframes`
   0% {
@@ -764,7 +762,7 @@ const BottomNav = styled.nav`
 
   @media (max-width: 767px) {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
   }
 `;
 
@@ -795,6 +793,7 @@ const BottomLink = styled(Link)<{ $active: boolean }>`
 
 const Navbar = () => {
   const { t } = useTranslation("common");
+  const { organization, experience, capabilities } = useOrganization()
   const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuth();
@@ -804,6 +803,31 @@ const Navbar = () => {
   const [cartCount, setCartCount] = useState(0);
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
   const accountOpen = accountOpenPath === location.pathname;
+  const brandName = experience.profile.display_name || organization.name
+  const logoUrl = experience.experience.assets.logo || experience.profile.logo_url
+  const hasOrdering = capabilities.has('ordering')
+  const hasCustomerAccounts = capabilities.has('customer_accounts')
+  const desktopLinks = resolveNavigation(
+    experience.experience.navigation,
+    currentManifest.feature_registry,
+    capabilities,
+  ).map((item) => ({
+    ...item,
+    label: navigationLabelKeys[item.route_id]
+      ? t(navigationLabelKeys[item.route_id])
+      : item.label,
+  }))
+  const bottomLinks = [
+    ...desktopLinks
+      .filter((item) => item.route_id === 'home' || item.route_id === 'menu')
+      .map((item) => ({
+        ...item,
+        icon: item.route_id === 'home' ? Home : UtensilsCrossed,
+      })),
+    ...(hasCustomerAccounts
+      ? [{ id: 'profile', route_id: 'profile', path: '/profile', label: t('navigation.profile'), icon: User }]
+      : []),
+  ]
 
   const cartLinkState = useMemo(
     () =>
@@ -863,6 +887,7 @@ const Navbar = () => {
   }, [accountOpen]);
 
   useEffect(() => {
+    if (!hasOrdering) return
     const fetchCartCount = async () => {
       try {
         const cart = await cartService.getCart();
@@ -873,9 +898,10 @@ const Navbar = () => {
     };
 
     fetchCartCount();
-  }, [location.pathname]);
+  }, [hasOrdering, location.pathname]);
 
   useEffect(() => {
+    if (!hasOrdering) return
     const handleCartUpdate = async () => {
       try {
         const cart = await cartService.getCart();
@@ -889,7 +915,7 @@ const Navbar = () => {
     handleCartUpdate();
 
     return () => window.removeEventListener("cartUpdated", handleCartUpdate);
-  }, []);
+  }, [hasOrdering]);
 
   const requestLogout = () => {
     closeDrawer();
@@ -926,26 +952,28 @@ const Navbar = () => {
             </IconAction>
           </MobileLeft>
 
-          <Logo className="logo-bonefree" aria-label={t("navigation.bonefreeHome")} onClick={closeDrawer} to="/">
-            <img src="/assets/images/bonefree-logo.webp" className="img-fluid img-25" alt="Bonefree" />
+          <Logo className="logo-organization" aria-label={`${brandName} home`} onClick={closeDrawer} to="/">
+            {logoUrl ? <img src={logoUrl} className="img-fluid img-25" alt={brandName} /> : <span>{brandName}</span>}
           </Logo>
 
           <CenterNav aria-label={t("navigation.main")}>
-            {desktopLinks.map(({ path, labelKey }) => (
-              <PillLink $active={isActive(path)} key={path} to={path}>
-                {t(labelKey)}
+            {desktopLinks.map(({ path, label, id }) => (
+              <PillLink $active={isActive(path)} key={id} to={path}>
+                {label}
               </PillLink>
             ))}
           </CenterNav>
 
           <NavActions>
             <LanguageSwitcher />
-            <IconLink aria-label={t("navigation.cart")} state={cartLinkState} to="/cart">
-              <ShoppingBag size={21} />
-              {cartCount > 0 && <CartBadge key={cartCount}>{cartCount}</CartBadge>}
-            </IconLink>
+            {hasOrdering && (
+              <IconLink aria-label={t("navigation.cart")} state={cartLinkState} to="/cart">
+                <ShoppingBag size={21} />
+                {cartCount > 0 && <CartBadge key={cartCount}>{cartCount}</CartBadge>}
+              </IconLink>
+            )}
 
-            {isAuthenticated ? (
+            {hasCustomerAccounts && (isAuthenticated ? (
               <AccountMenu ref={accountMenuRef}>
                 <AccountButton
                   aria-expanded={accountOpen}
@@ -983,15 +1011,17 @@ const Navbar = () => {
                   {t("account.create")}
                 </AuthLink>
               </>
-            )}
+            ))}
           </NavActions>
 
           <MobileRight>
             <LanguageSwitcher className="language-switcher-mobile-nav" />
-            <IconLink aria-label={t("navigation.cart")} state={cartLinkState} to="/cart">
-              <ShoppingBag size={22} />
-              {cartCount > 0 && <CartBadge key={cartCount}>{cartCount}</CartBadge>}
-            </IconLink>
+            {hasOrdering && (
+              <IconLink aria-label={t("navigation.cart")} state={cartLinkState} to="/cart">
+                <ShoppingBag size={22} />
+                {cartCount > 0 && <CartBadge key={cartCount}>{cartCount}</CartBadge>}
+              </IconLink>
+            )}
           </MobileRight>
         </NavInner>
       </TopNav>
@@ -1001,8 +1031,8 @@ const Navbar = () => {
           <Backdrop aria-label={t("navigation.closeMenu")} onClick={closeDrawer} type="button" />
           <MobileDrawer aria-label={t("navigation.mobile")}>
             <DrawerHeader>
-              <Logo aria-label={t("navigation.bonefreeHome")} onClick={closeDrawer} to="/">
-                <img src="/assets/images/bonefree-logo.webp" className="img-fluid img-25" alt="Bonefree" />
+              <Logo aria-label={`${brandName} home`} onClick={closeDrawer} to="/">
+                {logoUrl ? <img src={logoUrl} className="img-fluid img-25" alt={brandName} /> : <span>{brandName}</span>}
               </Logo>
               <IconAction aria-label={t("navigation.closeMenu")} onClick={closeDrawer} type="button">
                 <X size={22} />
@@ -1011,20 +1041,20 @@ const Navbar = () => {
 
             <DrawerBody>
               <DrawerNav>
-                {desktopLinks.map(({ path, labelKey }) => (
+                {desktopLinks.map(({ path, label, id }) => (
                   <DrawerLink
                     $active={isActive(path)}
-                    key={path}
+                    key={id}
                     onClick={closeDrawer}
                     to={path}
                   >
-                    {t(labelKey)}
+                    {label}
                   </DrawerLink>
                 ))}
               </DrawerNav>
 
               <DrawerAuth>
-                {isAuthenticated ? (
+                {hasCustomerAccounts && (isAuthenticated ? (
                   <>
                     {displayName && <DrawerWelcome>{displayName}</DrawerWelcome>}
                     <DrawerAuthGrid>
@@ -1048,7 +1078,7 @@ const Navbar = () => {
                       {t("account.create")}
                     </AuthLink>
                   </DrawerAuthGrid>
-                )}
+                ))}
               </DrawerAuth>
             </DrawerBody>
           </MobileDrawer>
@@ -1066,14 +1096,14 @@ const Navbar = () => {
       />
 
       <BottomNav aria-label={t("navigation.mobileBottom")} >
-        {bottomLinks.map(({ path, labelKey, icon: Icon }) => (
+        {bottomLinks.map(({ path, label, id, icon: Icon }) => (
           <BottomLink
             $active={isActive(path)}
-            key={path}
+            key={id}
             to={path}
           >
             <Icon aria-hidden="true" />
-            <span>{t(labelKey)}</span>
+            <span>{label}</span>
           </BottomLink>
         ))}
       </BottomNav>

@@ -19,6 +19,10 @@ import { applyApiImageFallback, productImageFallback, resolveProductImageUrl } f
 import { formatEuro } from "../utils/money";
 import { primaryProductMediaUrl } from "../utils/productMedia";
 import i18n, { resolvedLocale } from "../i18n";
+import manifest from "../app/manifest/currentManifest";
+import { useOrganization } from "../organization/context/organization-context";
+import { PageRenderer } from "../sections/PageRenderer";
+import { resolvePageSections } from "../sections/sectionResolution";
 
 
 type CategorySummary = {
@@ -26,72 +30,9 @@ type CategorySummary = {
   name: string;
 };
 
-type HomeReview = ProductReview & {
-  productName: string;
-  productId: number;
-  productPath?: string;
-};
-
-const HOME_REVIEW_PRODUCT_LIMIT = 18;
 const HOME_REVIEW_LIMIT = 3;
 const fallbackDishImage = productImageFallback;
 const hiddenHomeProductNames = new Set(["latino loaded nachos", "lationo loaded nachos"]);
-
-const fallbackHomeReviews: HomeReview[] = [
-  {
-    reviewId: -1,
-    productId: 0,
-    productDisplayId: "bonefree-menu",
-    customerId: 0,
-    orderProductId: null,
-    customerName: "Marta S.",
-    rating: 5,
-    title: "Jantar leve, cheio de sabor",
-    comment: "Os pratos chegaram coloridos, bem temperados e com aquele cuidado de cozinha que faz a mesa ficar em silêncio por uns segundos.",
-    status: "approved",
-    createdAt: "2026-05-18T20:30:00Z",
-    updatedAt: "2026-05-18T20:30:00Z",
-    isOwner: false,
-    productName: "Menu BONEFREE",
-    productPath: "/menu",
-  },
-  {
-    reviewId: -2,
-    productId: 0,
-    productDisplayId: "bonefree-favorites",
-    customerId: 0,
-    orderProductId: null,
-    customerName: "Rui e Ana",
-    rating: 5,
-    title: "Perfeito para partilhar",
-    comment: "Pedimos vários pratos para dividir e tudo tinha textura, frescura e molhos com personalidade. Ficou vontade de voltar e provar o resto.",
-    status: "approved",
-    createdAt: "2026-05-09T21:15:00Z",
-    updatedAt: "2026-05-09T21:15:00Z",
-    isOwner: false,
-    productName: "Favoritos da casa",
-    productPath: "/menu",
-  },
-  {
-    reviewId: -3,
-    productId: 0,
-    productDisplayId: "bonefree-experience",
-    customerId: 0,
-    orderProductId: null,
-    customerName: "Cliente BONEFREE",
-    rating: 5,
-    title: "Ambiente descontraído",
-    comment: "Boa música, equipa atenta e comida vegan que não parece uma alternativa. Parece simplesmente uma boa escolha.",
-    status: "approved",
-    createdAt: "2026-04-27T19:45:00Z",
-    updatedAt: "2026-04-27T19:45:00Z",
-    isOwner: false,
-    productName: "Experiência BONEFREE",
-    productPath: "/menu",
-  },
-];
-
-
 
 function resolveImage(image: string | null | undefined) {
   return resolveProductImageUrl(image, fallbackDishImage);
@@ -105,19 +46,32 @@ function isHiddenHomeProduct(product: Product) {
   return hiddenHomeProductNames.has(product.name.trim().toLowerCase());
 }
 
-function reviewCopy(review: ProductReview) {
+function reviewCopy(review: Pick<ProductReview, "comment" | "title">) {
   return review.comment?.trim() || review.title?.trim() || "";
-}
-
-function hasMeaningfulReviewCopy(review: ProductReview) {
-  return reviewCopy(review).length >= 24;
 }
 
 const HomePage = () => {
   const { t } = useTranslation("storefront");
+  const { capabilities, experience } = useOrganization();
+  const renderableHomeSections = useMemo(() => new Set(resolvePageSections({
+    page: experience.experience.pages.home,
+    sectionRegistry: manifest.section_registry,
+    capabilities,
+    availableSlots: new Set([
+      "hero",
+      "category_navigation",
+      "loyalty",
+      "popular_products",
+      "chef_special",
+      "reviews",
+    ]),
+  }).sections.map((section) => section.type)), [capabilities, experience]);
+  const reviewsEnabled = renderableHomeSections.has("reviews");
+  const loyaltyEnabled = renderableHomeSections.has("loyalty");
+  const chefSpecialEnabled = renderableHomeSections.has("chef_special");
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
-  const [homeReviews, setHomeReviews] = useState<HomeReview[]>([]);
+  const [homeReviews, setHomeReviews] = useState<Awaited<ReturnType<typeof productService.getFeaturedReviews>>>([]);
   const [reviewsLoading, setReviewsLoading] = useState(true);
   const [chefSpecialProductId, setChefSpecialProductId] = useState<number | null>(null);
   const [loyaltyCouponSettings, setLoyaltyCouponSettings] = useState(defaultLoyaltyCouponSettings);
@@ -132,62 +86,36 @@ const HomePage = () => {
   const [activePopularIndex, setActivePopularIndex] = useState(0);
 
   useEffect(() => {
-    const fetchHomeReviews = async (menuProducts: Product[]) => {
-      setReviewsLoading(true);
-      const reviewProducts = [...menuProducts]
-        .sort((a, b) => {
-          if (a.highlighted !== b.highlighted) return a.highlighted ? -1 : 1;
-          return (b.sold ?? 0) - (a.sold ?? 0);
-        })
-        .slice(0, HOME_REVIEW_PRODUCT_LIMIT);
-
-      const reviewGroups = await Promise.allSettled(
-        reviewProducts.map(async (product) => {
-          const reviews = await productService.getReviews(product.id);
-          return reviews.map((review) => ({
-            ...review,
-            productId: product.id,
-            productName: product.name,
-          }));
-        }),
-      );
-
-      const writtenReviews = reviewGroups
-        .flatMap((result) => (result.status === "fulfilled" ? result.value : []))
-        .filter((review) => review.status === "approved" && hasMeaningfulReviewCopy(review))
-        .sort((a, b) => {
-          const dateDiff = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-          if (dateDiff !== 0) return dateDiff;
-          return b.rating - a.rating;
-        })
-        .slice(0, HOME_REVIEW_LIMIT);
-
-      setHomeReviews(writtenReviews);
-      setReviewsLoading(false);
-    };
-
     const fetchHomeData = async () => {
       try {
-        const [data, chefSpecialSetting, couponSettings] = await Promise.all([
+        const [data, chefSpecialSetting, couponSettings, featuredReviews] = await Promise.all([
           productService.getAll(),
-          getPublicChefSpecial().catch(() => ({ productId: null })),
-          getPublicLoyaltyCouponSettings().catch(() => defaultLoyaltyCouponSettings),
+          chefSpecialEnabled
+            ? getPublicChefSpecial().catch(() => ({ productId: null }))
+            : Promise.resolve({ productId: null }),
+          loyaltyEnabled
+            ? getPublicLoyaltyCouponSettings().catch(() => defaultLoyaltyCouponSettings)
+            : Promise.resolve({ ...defaultLoyaltyCouponSettings, enabled: false }),
+          reviewsEnabled
+            ? productService.getFeaturedReviews(HOME_REVIEW_LIMIT).catch(() => [])
+            : Promise.resolve([]),
         ]);
         setProducts(data);
         setChefSpecialProductId(chefSpecialSetting.productId ?? null);
         setLoyaltyCouponSettings(couponSettings);
-        void fetchHomeReviews(data);
+        setHomeReviews(featuredReviews);
       } catch (fetchError) {
         setError(t("home.loadError"));
         setReviewsLoading(false);
         console.error(fetchError);
       } finally {
         setLoading(false);
+        setReviewsLoading(false);
       }
     };
 
     fetchHomeData();
-  }, [t]);
+  }, [chefSpecialEnabled, loyaltyEnabled, reviewsEnabled, t]);
 
   const visibleProducts = useMemo(
     () => products.filter((product) => !isHiddenHomeProduct(product)),
@@ -222,8 +150,6 @@ const HomePage = () => {
     ?? availableProducts.find((product) => product.id !== featuredDish?.id)
     ?? featuredDish;
   const heroDish = popularProducts[activeHeroProductIndex] ?? featuredDish;
-  const displayedHomeReviews = homeReviews.length > 0 ? homeReviews : fallbackHomeReviews;
-
   useEffect(() => {
     setActiveHeroProductIndex(0);
   }, [popularProducts.length]);
@@ -322,6 +248,10 @@ const HomePage = () => {
 
   return (
     <HomeShell>
+      <PageRenderer
+        pageKey="home"
+        slots={{
+          hero: (
       <HeroSection>
         <HeroOverlay />
         <Navbar />
@@ -425,8 +355,8 @@ const HomePage = () => {
           </FeaturedDishCard>
         </HeroContent>
       </HeroSection>
-
-
+          ),
+          category_navigation: (
       <CategorySection aria-label={t("home.categories")}>
         <CategoryTrack>
           {loading
@@ -441,8 +371,9 @@ const HomePage = () => {
               ))}
         </CategoryTrack>
       </CategorySection>
-
-
+          ),
+          loyalty: (
+            <>
       {loyaltyCouponSettings.enabled && (
         <LoyaltyRewardBanner aria-label={t("home.loyaltyAria")} className="mt-5">
           <div>
@@ -456,7 +387,9 @@ const HomePage = () => {
           </PrimaryCta>
         </LoyaltyRewardBanner>
       )}
-
+            </>
+          ),
+          popular_products: (
       <FavoritesSection>
         <SectionHeader>
           <SectionKicker className="fw-bold">{t("home.popular")}</SectionKicker>
@@ -500,7 +433,8 @@ const HomePage = () => {
           </PopularCarouselDots>
         )}
       </FavoritesSection>
-
+          ),
+          chef_special: (
       <ChefSpecialBanner aria-label={t("home.chefAria")}>
         <ChefImageWrap>
           <ChefImage
@@ -535,8 +469,10 @@ const HomePage = () => {
           </PrimaryCta>
         </ChefCopy>
       </ChefSpecialBanner>
-
-      <TestimonialsSection>
+          ),
+          reviews: (
+            <>
+      {(reviewsLoading || homeReviews.length > 0) && reviewsEnabled ? <TestimonialsSection>
         <SectionHeader>
           <SectionKicker>{t("home.reviewsLabel")}</SectionKicker>
           <h2>{t("home.reviewsTitle")}</h2>
@@ -553,7 +489,7 @@ const HomePage = () => {
           </TestimonialGrid>
         ) : (
           <TestimonialGrid aria-label={t("home.reviewsAria")}>
-            {displayedHomeReviews.map((review) => (
+            {homeReviews.map((review) => (
               <TestimonialCard key={review.reviewId}>
                 <ReviewStars aria-label={t("home.stars", { rating: review.rating })}>
                   {Array.from({ length: 5 }, (_, index) => (
@@ -564,7 +500,7 @@ const HomePage = () => {
                 <ReviewMeta>
                   <span>{review.customerName || t("home.customer")}</span>
                   <small>
-                    <ProductReviewLink to={review.productPath ?? `/product/${review.productId}`}>{review.productName}</ProductReviewLink>
+                    <ProductReviewLink to={`/product/${review.productId}`}>{review.productName}</ProductReviewLink>
                     {" | "}
                     {new Date(review.createdAt).toLocaleDateString(resolvedLocale())}
                   </small>
@@ -573,7 +509,11 @@ const HomePage = () => {
             ))}
           </TestimonialGrid>
         )}
-      </TestimonialsSection>
+      </TestimonialsSection> : null}
+            </>
+          ),
+        }}
+      />
     </HomeShell>
   );
 };

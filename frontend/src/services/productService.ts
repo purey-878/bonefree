@@ -4,6 +4,7 @@ import {
   productsGetProduct,
   productsGetProductCustomization,
   productsListProducts,
+  reviewsListFeaturedProductReviews,
   reviewsCreateProductReview,
   reviewsDeleteProductReview,
   reviewsGetProductReviewEligibility,
@@ -18,6 +19,7 @@ import type { ProductCustomizationDetails, ProductCustomizationOptions } from '.
 import type {
   Product,
   ProductAvailabilitySuggestions,
+  FeaturedProductReview,
   ProductReview,
   ProductReviewEligibility,
   ProductReviewPayload,
@@ -78,6 +80,14 @@ export const productService = {
     return toDomain<ProductReview[]>(await apiData(reviewsListProductReviews({
       path: { product_id: String(id) },
       client: customerApiClient,
+      throwOnError: true,
+    })));
+  },
+
+  async getFeaturedReviews(limit = 3): Promise<FeaturedProductReview[]> {
+    return toDomain<FeaturedProductReview[]>(await apiData(reviewsListFeaturedProductReviews({
+      query: { limit },
+      client: publicApiClient,
       throwOnError: true,
     })));
   },
