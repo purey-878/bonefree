@@ -11,7 +11,7 @@ import json
 from pathlib import Path
 import re
 import sys
-from typing import Any
+from typing import cast
 
 from sqlalchemy import inspect, select
 from sqlalchemy.orm import Session as DBSession
@@ -23,6 +23,7 @@ if str(BACKEND_DIR) not in sys.path:
 
 from core.organizations import bind_session_to_organization
 from database import SessionLocal
+from json_types import FeatureEntitlementConfigurationData
 from models import OrganizationFeatureEntitlement
 
 
@@ -42,7 +43,7 @@ def set_feature_entitlement(
     organization_slug: str,
     feature_key: str,
     enabled: bool,
-    configuration: dict[str, Any] | None = None,
+    configuration: FeatureEntitlementConfigurationData | None = None,
 ) -> OrganizationFeatureEntitlement:
     bind_session_to_organization(db, organization_slug)
     normalized_feature_key = normalize_feature_key(feature_key)
@@ -75,16 +76,20 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     try:
         normalized_feature_key = normalize_feature_key(args.feature)
-        configuration = (
+        raw_configuration = (
             json.loads(args.configuration.read_text(encoding="utf-8"))
             if args.configuration
             else None
         )
-        if configuration is not None and not isinstance(configuration, dict):
+        if raw_configuration is not None and not isinstance(raw_configuration, dict):
             raise ValueError("Feature configuration must be a JSON object.")
+        configuration = cast(
+            FeatureEntitlementConfigurationData | None,
+            raw_configuration,
+        )
         with SessionLocal() as db:
             missing = {"organization", "organization_feature_entitlement"} - set(
-                inspect(db.bind).get_table_names()
+                inspect(db.get_bind()).get_table_names()
             )
             if missing:
                 raise RuntimeError(

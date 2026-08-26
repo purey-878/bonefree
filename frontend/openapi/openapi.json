@@ -1727,6 +1727,41 @@
         "title": "EventsSettings",
         "type": "object"
       },
+      "ExperienceAssets": {
+        "additionalProperties": false,
+        "properties": {
+          "logo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo"
+          }
+        },
+        "title": "ExperienceAssets",
+        "type": "object"
+      },
+      "ExperiencePages": {
+        "additionalProperties": false,
+        "properties": {
+          "home": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PageConfiguration"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "ExperiencePages",
+        "type": "object"
+      },
       "FeaturedProductReviewResponse": {
         "properties": {
           "comment": {
@@ -2486,6 +2521,7 @@
         "type": "object"
       },
       "NavigationItem": {
+        "additionalProperties": false,
         "properties": {
           "enabled": {
             "default": true,
@@ -2501,6 +2537,16 @@
             "type": "string"
           },
           "route_id": {
+            "enum": [
+              "home",
+              "menu",
+              "about",
+              "contact",
+              "profile",
+              "cart",
+              "orders",
+              "events"
+            ],
             "title": "Route Id",
             "type": "string"
           }
@@ -2511,6 +2557,132 @@
           "label"
         ],
         "title": "NavigationItem",
+        "type": "object"
+      },
+      "OpeningHours": {
+        "additionalProperties": false,
+        "properties": {
+          "friday": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/OpeningHoursPeriod"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Friday"
+          },
+          "monday": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/OpeningHoursPeriod"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Monday"
+          },
+          "saturday": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/OpeningHoursPeriod"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Saturday"
+          },
+          "sunday": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/OpeningHoursPeriod"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sunday"
+          },
+          "thursday": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/OpeningHoursPeriod"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thursday"
+          },
+          "tuesday": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/OpeningHoursPeriod"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tuesday"
+          },
+          "wednesday": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/OpeningHoursPeriod"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wednesday"
+          }
+        },
+        "title": "OpeningHours",
+        "type": "object"
+      },
+      "OpeningHoursPeriod": {
+        "additionalProperties": false,
+        "properties": {
+          "closes_at": {
+            "pattern": "^(?:[01]\\d|2[0-3]):[0-5]\\d$",
+            "title": "Closes At",
+            "type": "string"
+          },
+          "opens_at": {
+            "pattern": "^(?:[01]\\d|2[0-3]):[0-5]\\d$",
+            "title": "Opens At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "opens_at",
+          "closes_at"
+        ],
+        "title": "OpeningHoursPeriod",
         "type": "object"
       },
       "OrderCreateResponse": {
@@ -2873,14 +3045,12 @@
           "opening_hours": {
             "anyOf": [
               {
-                "additionalProperties": true,
-                "type": "object"
+                "$ref": "#/components/schemas/OpeningHours"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Opening Hours"
+            ]
           },
           "phone": {
             "anyOf": [
@@ -2907,14 +3077,12 @@
           "social_links": {
             "anyOf": [
               {
-                "additionalProperties": true,
-                "type": "object"
+                "$ref": "#/components/schemas/SocialMediaSettings"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Social Links"
+            ]
           },
           "tax_id": {
             "anyOf": [
@@ -3090,14 +3258,12 @@
           "opening_hours": {
             "anyOf": [
               {
-                "additionalProperties": true,
-                "type": "object"
+                "$ref": "#/components/schemas/OpeningHours"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Opening Hours"
+            ]
           },
           "phone": {
             "anyOf": [
@@ -3126,14 +3292,12 @@
           "social_links": {
             "anyOf": [
               {
-                "additionalProperties": true,
-                "type": "object"
+                "$ref": "#/components/schemas/SocialMediaSettings"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Social Links"
+            ]
           },
           "tax_id": {
             "anyOf": [
@@ -3164,6 +3328,7 @@
         "type": "object"
       },
       "PageConfiguration": {
+        "additionalProperties": false,
         "properties": {
           "sections": {
             "items": {
@@ -4716,13 +4881,10 @@
         "type": "object"
       },
       "PublicExperienceConfiguration": {
+        "additionalProperties": false,
         "properties": {
           "assets": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "title": "Assets",
-            "type": "object"
+            "$ref": "#/components/schemas/ExperienceAssets"
           },
           "navigation": {
             "items": {
@@ -4732,21 +4894,13 @@
             "type": "array"
           },
           "pages": {
-            "additionalProperties": {
-              "$ref": "#/components/schemas/PageConfiguration"
-            },
-            "title": "Pages",
-            "type": "object"
+            "$ref": "#/components/schemas/ExperiencePages"
           },
           "theme": {
             "$ref": "#/components/schemas/PublicThemeConfiguration"
           },
           "variant_overrides": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "title": "Variant Overrides",
-            "type": "object"
+            "$ref": "#/components/schemas/VariantOverrides"
           }
         },
         "required": [
@@ -4759,6 +4913,14 @@
         "properties": {
           "capabilities": {
             "items": {
+              "enum": [
+                "catalog",
+                "customer_accounts",
+                "ordering",
+                "reviews",
+                "loyalty",
+                "events"
+              ],
               "type": "string"
             },
             "title": "Capabilities",
@@ -4905,9 +5067,7 @@
             "title": "Logo Url"
           },
           "opening_hours": {
-            "additionalProperties": true,
-            "title": "Opening Hours",
-            "type": "object"
+            "$ref": "#/components/schemas/OpeningHours"
           },
           "phone": {
             "anyOf": [
@@ -4932,9 +5092,7 @@
             "title": "Postal Code"
           },
           "social_links": {
-            "additionalProperties": true,
-            "title": "Social Links",
-            "type": "object"
+            "$ref": "#/components/schemas/PublicSocialLinks"
           }
         },
         "required": [
@@ -4944,7 +5102,57 @@
         "title": "PublicOrganizationProfile",
         "type": "object"
       },
+      "PublicSocialLink": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "href": {
+            "title": "Href",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "platform": {
+            "enum": [
+              "facebook",
+              "instagram",
+              "whatsapp",
+              "youtube"
+            ],
+            "title": "Platform",
+            "type": "string"
+          }
+        },
+        "required": [
+          "platform",
+          "label",
+          "href"
+        ],
+        "title": "PublicSocialLink",
+        "type": "object"
+      },
+      "PublicSocialLinks": {
+        "additionalProperties": false,
+        "properties": {
+          "links": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSocialLink"
+            },
+            "title": "Links",
+            "type": "array"
+          }
+        },
+        "title": "PublicSocialLinks",
+        "type": "object"
+      },
       "PublicThemeConfiguration": {
+        "additionalProperties": false,
         "properties": {
           "decoration_preset": {
             "anyOf": [
@@ -4973,11 +5181,7 @@
             "title": "Mode"
           },
           "token_overrides": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "title": "Token Overrides",
-            "type": "object"
+            "$ref": "#/components/schemas/ThemeTokenOverrides"
           }
         },
         "required": [
@@ -5187,6 +5391,7 @@
         "type": "object"
       },
       "SectionDescriptor": {
+        "additionalProperties": false,
         "properties": {
           "enabled": {
             "default": true,
@@ -5196,6 +5401,14 @@
           "feature_key": {
             "anyOf": [
               {
+                "enum": [
+                  "catalog",
+                  "customer_accounts",
+                  "ordering",
+                  "reviews",
+                  "loyalty",
+                  "events"
+                ],
                 "type": "string"
               },
               {
@@ -5220,11 +5433,60 @@
             "title": "Override Key"
           },
           "props": {
-            "additionalProperties": true,
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "title": "Props",
             "type": "object"
           },
           "type": {
+            "enum": [
+              "hero",
+              "category_navigation",
+              "loyalty",
+              "popular_products",
+              "chef_special",
+              "reviews",
+              "events"
+            ],
             "title": "Type",
             "type": "string"
           },
@@ -5261,8 +5523,7 @@
           },
           "custom_decorations": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/components/schemas/ThemeDecoration"
             },
             "title": "Custom Decorations",
             "type": "array"
@@ -5312,8 +5573,7 @@
           },
           "custom_decorations": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/components/schemas/ThemeDecoration"
             },
             "title": "Custom Decorations",
             "type": "array"
@@ -5809,6 +6069,112 @@
         "title": "ThemeId",
         "type": "string"
       },
+      "ThemeTokenOverrides": {
+        "additionalProperties": false,
+        "properties": {
+          "accent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accent"
+          },
+          "background": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Background"
+          },
+          "border": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Border"
+          },
+          "price_highlight": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Highlight"
+          },
+          "primary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary"
+          },
+          "secondary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Secondary"
+          },
+          "surface": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Surface"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          },
+          "text_muted": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text Muted"
+          }
+        },
+        "title": "ThemeTokenOverrides",
+        "type": "object"
+      },
       "ThemeUi": {
         "properties": {
           "borderRadius": {
@@ -6170,6 +6536,90 @@
         ],
         "title": "UserStatus",
         "type": "string"
+      },
+      "VariantOverrides": {
+        "additionalProperties": false,
+        "properties": {
+          "category_navigation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Navigation"
+          },
+          "chef_special": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chef Special"
+          },
+          "events": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Events"
+          },
+          "hero": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hero"
+          },
+          "loyalty": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Loyalty"
+          },
+          "popular_products": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Popular Products"
+          },
+          "reviews": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviews"
+          }
+        },
+        "title": "VariantOverrides",
+        "type": "object"
       },
       "VerifyOTPRequest": {
         "properties": {

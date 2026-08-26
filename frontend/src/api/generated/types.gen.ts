@@ -983,6 +983,23 @@ export type EventsSettings = {
 };
 
 /**
+ * ExperienceAssets
+ */
+export type ExperienceAssets = {
+    /**
+     * Logo
+     */
+    logo?: string | null;
+};
+
+/**
+ * ExperiencePages
+ */
+export type ExperiencePages = {
+    home?: PageConfiguration | null;
+};
+
+/**
  * FeaturedProductReviewResponse
  */
 export type FeaturedProductReviewResponse = {
@@ -1401,7 +1418,55 @@ export type NavigationItem = {
     /**
      * Route Id
      */
-    route_id: string;
+    route_id: 'home' | 'menu' | 'about' | 'contact' | 'profile' | 'cart' | 'orders' | 'events';
+};
+
+/**
+ * OpeningHours
+ */
+export type OpeningHours = {
+    /**
+     * Friday
+     */
+    friday?: Array<OpeningHoursPeriod> | null;
+    /**
+     * Monday
+     */
+    monday?: Array<OpeningHoursPeriod> | null;
+    /**
+     * Saturday
+     */
+    saturday?: Array<OpeningHoursPeriod> | null;
+    /**
+     * Sunday
+     */
+    sunday?: Array<OpeningHoursPeriod> | null;
+    /**
+     * Thursday
+     */
+    thursday?: Array<OpeningHoursPeriod> | null;
+    /**
+     * Tuesday
+     */
+    tuesday?: Array<OpeningHoursPeriod> | null;
+    /**
+     * Wednesday
+     */
+    wednesday?: Array<OpeningHoursPeriod> | null;
+};
+
+/**
+ * OpeningHoursPeriod
+ */
+export type OpeningHoursPeriod = {
+    /**
+     * Closes At
+     */
+    closes_at: string;
+    /**
+     * Opens At
+     */
+    opens_at: string;
 };
 
 /**
@@ -1571,12 +1636,7 @@ export type OrganizationProfileResponse = {
      * Logo Url
      */
     logo_url?: string | null;
-    /**
-     * Opening Hours
-     */
-    opening_hours?: {
-        [key: string]: unknown;
-    } | null;
+    opening_hours?: OpeningHours | null;
     /**
      * Phone
      */
@@ -1585,12 +1645,7 @@ export type OrganizationProfileResponse = {
      * Postal Code
      */
     postal_code?: string | null;
-    /**
-     * Social Links
-     */
-    social_links?: {
-        [key: string]: unknown;
-    } | null;
+    social_links?: SocialMediaSettings | null;
     /**
      * Tax Id
      */
@@ -1653,12 +1708,7 @@ export type OrganizationProfileUpdate = {
      * Logo Url
      */
     logo_url?: string | null;
-    /**
-     * Opening Hours
-     */
-    opening_hours?: {
-        [key: string]: unknown;
-    } | null;
+    opening_hours?: OpeningHours | null;
     /**
      * Phone
      */
@@ -1667,12 +1717,7 @@ export type OrganizationProfileUpdate = {
      * Postal Code
      */
     postal_code?: string | null;
-    /**
-     * Social Links
-     */
-    social_links?: {
-        [key: string]: unknown;
-    } | null;
+    social_links?: SocialMediaSettings | null;
     /**
      * Tax Id
      */
@@ -2567,29 +2612,14 @@ export type ProductUpdate = {
  * PublicExperienceConfiguration
  */
 export type PublicExperienceConfiguration = {
-    /**
-     * Assets
-     */
-    assets?: {
-        [key: string]: string;
-    };
+    assets?: ExperienceAssets;
     /**
      * Navigation
      */
     navigation?: Array<NavigationItem>;
-    /**
-     * Pages
-     */
-    pages?: {
-        [key: string]: PageConfiguration;
-    };
+    pages?: ExperiencePages;
     theme: PublicThemeConfiguration;
-    /**
-     * Variant Overrides
-     */
-    variant_overrides?: {
-        [key: string]: string;
-    };
+    variant_overrides?: VariantOverrides;
 };
 
 /**
@@ -2599,7 +2629,7 @@ export type PublicOrganizationExperienceResponse = {
     /**
      * Capabilities
      */
-    capabilities: Array<string>;
+    capabilities: Array<'catalog' | 'customer_accounts' | 'ordering' | 'reviews' | 'loyalty' | 'events'>;
     experience: PublicExperienceConfiguration;
     organization: PublicOrganizationIdentity;
     profile: PublicOrganizationProfile;
@@ -2667,12 +2697,7 @@ export type PublicOrganizationProfile = {
      * Logo Url
      */
     logo_url?: string | null;
-    /**
-     * Opening Hours
-     */
-    opening_hours?: {
-        [key: string]: unknown;
-    };
+    opening_hours?: OpeningHours;
     /**
      * Phone
      */
@@ -2681,12 +2706,39 @@ export type PublicOrganizationProfile = {
      * Postal Code
      */
     postal_code?: string | null;
+    social_links?: PublicSocialLinks;
+};
+
+/**
+ * PublicSocialLink
+ */
+export type PublicSocialLink = {
     /**
-     * Social Links
+     * Enabled
      */
-    social_links?: {
-        [key: string]: unknown;
-    };
+    enabled?: boolean;
+    /**
+     * Href
+     */
+    href: string;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Platform
+     */
+    platform: 'facebook' | 'instagram' | 'whatsapp' | 'youtube';
+};
+
+/**
+ * PublicSocialLinks
+ */
+export type PublicSocialLinks = {
+    /**
+     * Links
+     */
+    links?: Array<PublicSocialLink>;
 };
 
 /**
@@ -2705,12 +2757,7 @@ export type PublicThemeConfiguration = {
      * Mode
      */
     mode?: string | null;
-    /**
-     * Token Overrides
-     */
-    token_overrides?: {
-        [key: string]: string;
-    };
+    token_overrides?: ThemeTokenOverrides;
 };
 
 /**
@@ -2864,7 +2911,7 @@ export type SectionDescriptor = {
     /**
      * Feature Key
      */
-    feature_key?: string | null;
+    feature_key?: 'catalog' | 'customer_accounts' | 'ordering' | 'reviews' | 'loyalty' | 'events' | null;
     /**
      * Id
      */
@@ -2877,12 +2924,12 @@ export type SectionDescriptor = {
      * Props
      */
     props?: {
-        [key: string]: unknown;
+        [key: string]: string | number | number | boolean | Array<string | number | number | boolean | null> | null;
     };
     /**
      * Type
      */
-    type: string;
+    type: 'hero' | 'category_navigation' | 'loyalty' | 'popular_products' | 'chef_special' | 'reviews' | 'events';
     /**
      * Variant
      */
@@ -2903,9 +2950,7 @@ export type SiteThemeResponse = {
     /**
      * Custom Decorations
      */
-    custom_decorations?: Array<{
-        [key: string]: unknown;
-    }>;
+    custom_decorations?: Array<ThemeDecoration>;
     /**
      * Custom Name
      */
@@ -2934,9 +2979,7 @@ export type SiteThemeSettings = {
     /**
      * Custom Decorations
      */
-    custom_decorations?: Array<{
-        [key: string]: unknown;
-    }>;
+    custom_decorations?: Array<ThemeDecoration>;
     /**
      * Custom Name
      */
@@ -3187,6 +3230,48 @@ export type ThemeFonts = {
 export type ThemeId = 'normal' | 'presentation' | 'christmas' | 'halloween';
 
 /**
+ * ThemeTokenOverrides
+ */
+export type ThemeTokenOverrides = {
+    /**
+     * Accent
+     */
+    accent?: string | null;
+    /**
+     * Background
+     */
+    background?: string | null;
+    /**
+     * Border
+     */
+    border?: string | null;
+    /**
+     * Price Highlight
+     */
+    price_highlight?: string | null;
+    /**
+     * Primary
+     */
+    primary?: string | null;
+    /**
+     * Secondary
+     */
+    secondary?: string | null;
+    /**
+     * Surface
+     */
+    surface?: string | null;
+    /**
+     * Text
+     */
+    text?: string | null;
+    /**
+     * Text Muted
+     */
+    text_muted?: string | null;
+};
+
+/**
  * ThemeUi
  */
 export type ThemeUi = {
@@ -3387,6 +3472,40 @@ export type UserRole = 'owner' | 'manager' | 'waiter' | 'chef' | 'client';
  * UserStatus
  */
 export type UserStatus = 'active' | 'suspended' | 'pending';
+
+/**
+ * VariantOverrides
+ */
+export type VariantOverrides = {
+    /**
+     * Category Navigation
+     */
+    category_navigation?: string | null;
+    /**
+     * Chef Special
+     */
+    chef_special?: string | null;
+    /**
+     * Events
+     */
+    events?: string | null;
+    /**
+     * Hero
+     */
+    hero?: string | null;
+    /**
+     * Loyalty
+     */
+    loyalty?: string | null;
+    /**
+     * Popular Products
+     */
+    popular_products?: string | null;
+    /**
+     * Reviews
+     */
+    reviews?: string | null;
+};
 
 /**
  * VerifyOTPRequest

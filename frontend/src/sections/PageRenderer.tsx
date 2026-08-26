@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 
 import manifest from '../app/manifest/currentManifest'
 import { useOrganization } from '../organization/context/organization-context'
-import type { SectionDescriptor } from '../organization/model/types'
+import type { ExperiencePages, SectionDescriptor } from '../organization/model/types'
 import { SectionBoundary } from './SectionBoundary'
 import { resolvePageSections } from './sectionResolution'
 
@@ -12,7 +12,7 @@ export function PageRenderer({
   pageKey,
   slots,
 }: {
-  pageKey: string
+  pageKey: keyof ExperiencePages
   slots: Readonly<Record<string, SectionSlot>>
 }) {
   const { experience, capabilities } = useOrganization()

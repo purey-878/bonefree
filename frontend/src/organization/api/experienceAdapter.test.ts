@@ -25,7 +25,7 @@ describe('toOrganizationExperience', () => {
     expect(experience.profile.display_name).toBeNull()
     expect(experience.experience.navigation).toEqual([])
     expect(experience.experience.theme.token_overrides).toEqual({})
-    expect(experience.experience.pages.home.sections[0]).toEqual({
+    expect(experience.experience.pages.home?.sections[0]).toEqual({
       id: 'hero',
       type: 'hero',
       enabled: true,

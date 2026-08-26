@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 from schemas.enums import (
@@ -16,6 +16,7 @@ from schemas.enums import (
     ThemeId,
 )
 from .id_types import ProductId
+from .organization import OpeningHours
 
 
 THEME_IDS = {theme_id.value for theme_id in ThemeId}
@@ -95,8 +96,8 @@ class SiteThemeSettings(BaseModel):
     theme_id: ThemeId = ThemeId.NORMAL
     colors: Dict[str, str] = Field(default_factory=dict)
     decoration_enabled: bool = True
-    decoration_intensity: int = Field(2, ge=1, le=3)
-    custom_decorations: List[dict] = Field(default_factory=list)
+    decoration_intensity: int = Field(default=2, ge=1, le=3)
+    custom_decorations: List[ThemeDecoration] = Field(default_factory=list)
     custom_name: Optional[str] = None
 
     @model_validator(mode="before")
@@ -153,11 +154,11 @@ class ChefSpecialSettings(BaseModel):
 
 class LoyaltyCouponSettings(BaseModel):
     enabled: bool = True
-    qualifying_order_count: int = Field(3, ge=1, le=20)
-    qualifying_order_minimum: Decimal = Field(Decimal("50.00"), ge=0)
+    qualifying_order_count: int = Field(default=3, ge=1, le=20)
+    qualifying_order_minimum: Decimal = Field(default=Decimal("50.00"), ge=0)
     discount_type: CouponDiscountType = CouponDiscountType.FIXED_VALUE
-    discount_value: Decimal = Field(Decimal("20.00"), gt=0)
-    coupon_minimum_order: Decimal = Field(Decimal("0.00"), ge=0)
+    discount_value: Decimal = Field(default=Decimal("20.00"), gt=0)
+    coupon_minimum_order: Decimal = Field(default=Decimal("0.00"), ge=0)
 
     @field_validator("discount_value")
     @classmethod
@@ -169,14 +170,14 @@ class LoyaltyCouponSettings(BaseModel):
 
 
 class CompanyDetailsSettings(BaseModel):
-    brand_name: str = Field("BONEFREE", max_length=80)
+    brand_name: str = Field(default="BONEFREE", max_length=80)
     description: str = Field(
-        "Bonefree is a vegan restaurant and bar in Costa da Caparica. We serve 100% plant-based dishes, artisanal cocktails, and provide a relaxed atmosphere.",
+        default="Bonefree is a vegan restaurant and bar in Costa da Caparica. We serve 100% plant-based dishes, artisanal cocktails, and provide a relaxed atmosphere.",
         max_length=500,
     )
-    address: str = Field("Bonefree, R. Eng. Henrique Mendia 28A, 2825-450 Costa da Caparica", max_length=700)
-    phone: str = Field("+351 968 107 703", max_length=60)
-    email: str = Field("carambolarubra@gmail.com", max_length=160)
+    address: str = Field(default="Bonefree, R. Eng. Henrique Mendia 28A, 2825-450 Costa da Caparica", max_length=700)
+    phone: str = Field(default="+351 968 107 703", max_length=60)
+    email: str = Field(default="carambolarubra@gmail.com", max_length=160)
 
     @field_validator("brand_name", "description", "address", "phone", "email")
     @classmethod
@@ -187,7 +188,7 @@ class CompanyDetailsSettings(BaseModel):
 class SocialLinkSettings(BaseModel):
     platform: SocialPlatform
     label: str = Field(max_length=40)
-    href: str = Field("", max_length=300)
+    href: str = Field(default="", max_length=300)
     enabled: bool = True
 
     @field_validator("label", "href")
@@ -216,8 +217,8 @@ class OrganizationProfileResponse(BaseModel):
     logo_url: Optional[str] = None
     currency_code: str = "EUR"
     vat_exemption_reason: Optional[str] = None
-    opening_hours: Optional[Dict[str, Any]] = None
-    social_links: Optional[Dict[str, Any]] = None
+    opening_hours: Optional[OpeningHours] = None
+    social_links: Optional[SocialMediaSettings] = None
     website: Optional[str] = None
 
 
@@ -237,8 +238,8 @@ class OrganizationProfileUpdate(BaseModel):
     logo_url: Optional[str] = Field(default=None, max_length=500)
     currency_code: Optional[str] = Field(default=None, min_length=3, max_length=3)
     vat_exemption_reason: Optional[str] = Field(default=None, max_length=500)
-    opening_hours: Optional[Dict[str, Any]] = None
-    social_links: Optional[Dict[str, Any]] = None
+    opening_hours: Optional[OpeningHours] = None
+    social_links: Optional[SocialMediaSettings] = None
 
     @field_validator(
         "display_name", "legal_name", "tax_id", "description", "about_text",
@@ -259,7 +260,7 @@ class OrganizationProfileUpdate(BaseModel):
 class EventItemSettings(BaseModel):
     id: str = Field(max_length=40)
     title: str = Field(max_length=100)
-    kicker: str = Field("Upcoming event", max_length=80)
+    kicker: str = Field(default="Upcoming event", max_length=80)
     description: str = Field(max_length=400)
     date: str = Field(max_length=20)
     start_time: str = Field(max_length=10)

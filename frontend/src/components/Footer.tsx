@@ -4,6 +4,7 @@ import { socialIconPaths } from "../utils/footerSettings"
 import { useTranslation } from "react-i18next"
 import { useOrganization } from '../organization/context/organization-context'
 import { resolveNavigation } from '../organization/experience/navigation'
+import type { OrganizationSocialLinks } from '../organization/model/types'
 import currentManifest from '../app/manifest/currentManifest'
 
 type SocialPlatform = keyof typeof socialIconPaths
@@ -15,23 +16,13 @@ interface FooterSocialLink {
   enabled: boolean
 }
 
-function publicSocialLinks(value: Record<string, unknown>): FooterSocialLink[] {
-  const links = Array.isArray(value.links) ? value.links : []
-  return links.flatMap((item) => {
-    if (!item || typeof item !== 'object') return []
-    const link = item as Record<string, unknown>
-    if (
-      typeof link.platform !== 'string'
-      || !(link.platform in socialIconPaths)
-      || typeof link.href !== 'string'
-    ) return []
-    return [{
-      platform: link.platform as SocialPlatform,
-      label: typeof link.label === 'string' ? link.label : link.platform,
-      href: link.href,
-      enabled: link.enabled !== false,
-    }]
-  })
+function publicSocialLinks(value: OrganizationSocialLinks): FooterSocialLink[] {
+  return value.links.map((link) => ({
+    platform: link.platform,
+    label: link.label,
+    href: link.href,
+    enabled: link.enabled,
+  }))
 }
 
 const Footer: React.FC = () => {

@@ -2,24 +2,29 @@ from __future__ import annotations
 
 import copy
 import json
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from models import OrganizationDomain, OrganizationProfile, SiteSetting
+from json_types import SocialLinksData
 from schemas.site_settings import (
     ChefSpecialSettings,
     CompanyDetailsSettings,
+    EventItemSettings,
     EventsSettings,
     LoyaltyCouponSettings,
     OrganizationProfileResponse,
     OrganizationProfileUpdate,
     SiteThemeResponse,
     SiteThemeSettings,
+    SocialLinkSettings,
     SocialMediaSettings,
     ThemeConfig,
 )
+from schemas.enums import SocialPlatform, ThemeId
+from schemas.organization import OpeningHours
 
 
 SITE_THEME_KEY = "site_theme"
@@ -34,36 +39,56 @@ DEFAULT_LOYALTY_COUPON = LoyaltyCouponSettings()
 DEFAULT_COMPANY_DETAILS = CompanyDetailsSettings()
 DEFAULT_SOCIAL_MEDIA = SocialMediaSettings(
     links=[
-        {"platform": "facebook", "label": "Facebook", "href": "#", "enabled": True},
-        {"platform": "instagram", "label": "Instagram", "href": "#", "enabled": True},
-        {"platform": "whatsapp", "label": "WhatsApp", "href": "#", "enabled": True},
-        {"platform": "youtube", "label": "YouTube", "href": "#", "enabled": True},
+        SocialLinkSettings(
+            platform=SocialPlatform.FACEBOOK,
+            label="Facebook",
+            href="#",
+            enabled=True,
+        ),
+        SocialLinkSettings(
+            platform=SocialPlatform.INSTAGRAM,
+            label="Instagram",
+            href="#",
+            enabled=True,
+        ),
+        SocialLinkSettings(
+            platform=SocialPlatform.WHATSAPP,
+            label="WhatsApp",
+            href="#",
+            enabled=True,
+        ),
+        SocialLinkSettings(
+            platform=SocialPlatform.YOUTUBE,
+            label="YouTube",
+            href="#",
+            enabled=True,
+        ),
     ]
 )
 DEFAULT_EVENTS = EventsSettings(
     events=[
-        {
-            "id": "dj-adriano",
-            "title": "DJ Adriano",
-            "kicker": "Friday selector",
-            "description": "A warm late-night set built for cocktails, plant-based plates, and a room that stays moving.",
-            "date": "2026-06-12",
-            "start_time": "19:00",
-            "end_time": "23:00",
-            "image_url": "/assets/images/dj_adriano.jpg",
-            "enabled": True,
-        },
-        {
-            "id": "dj-khalil",
-            "title": "DJ Khalil",
-            "kicker": "Saturday session",
-            "description": "Groove-led sounds for a long table night with friends, sharing dishes, and coastal energy.",
-            "date": "2026-06-13",
-            "start_time": "20:00",
-            "end_time": "00:00",
-            "image_url": "/assets/images/dj_khalil.jpg",
-            "enabled": True,
-        },
+        EventItemSettings(
+            id="dj-adriano",
+            title="DJ Adriano",
+            kicker="Friday selector",
+            description="A warm late-night set built for cocktails, plant-based plates, and a room that stays moving.",
+            date="2026-06-12",
+            start_time="19:00",
+            end_time="23:00",
+            image_url="/assets/images/dj_adriano.jpg",
+            enabled=True,
+        ),
+        EventItemSettings(
+            id="dj-khalil",
+            title="DJ Khalil",
+            kicker="Saturday session",
+            description="Groove-led sounds for a long table night with friends, sharing dishes, and coastal energy.",
+            date="2026-06-13",
+            start_time="20:00",
+            end_time="00:00",
+            image_url="/assets/images/dj_khalil.jpg",
+            enabled=True,
+        ),
     ]
 )
 
@@ -206,7 +231,7 @@ def _scaled_decorations(settings: SiteThemeSettings, config: dict[str, Any]) -> 
 def resolve_site_theme(settings: SiteThemeSettings) -> SiteThemeResponse:
     if settings.theme_id not in BUILT_IN_THEMES:
         settings = SiteThemeSettings(
-            theme_id="normal",
+            theme_id=ThemeId.NORMAL,
             decoration_enabled=settings.decoration_enabled,
             decoration_intensity=settings.decoration_intensity,
         )
@@ -217,8 +242,11 @@ def resolve_site_theme(settings: SiteThemeSettings) -> SiteThemeResponse:
             base["background"]["type"] = "solid"
             base["background"]["value"] = settings.colors["background"]
     base["decorations"] = _scaled_decorations(settings, base)
-    config = ThemeConfig(**base)
-    return SiteThemeResponse(**settings.model_dump(), config=config)
+    config = ThemeConfig.model_validate(base)
+    return SiteThemeResponse.model_validate({
+        **settings.model_dump(),
+        "config": config,
+    })
 
 
 def get_site_theme_settings(db: Session) -> SiteThemeSettings:
@@ -227,7 +255,7 @@ def get_site_theme_settings(db: Session) -> SiteThemeSettings:
         return DEFAULT_SITE_THEME
     try:
         payload: dict[str, Any] = json.loads(row.value)
-        return SiteThemeSettings(**payload)
+        return SiteThemeSettings.model_validate(payload)
     except Exception:
         return DEFAULT_SITE_THEME
 
@@ -256,7 +284,7 @@ def get_chef_special_settings(db: Session) -> ChefSpecialSettings:
         payload = json.loads(row.value)
         if isinstance(payload, str):
             payload = {"product_id": payload}
-        return ChefSpecialSettings(**payload)
+        return ChefSpecialSettings.model_validate(payload)
     except Exception:
         return DEFAULT_CHEF_SPECIAL
 
@@ -279,7 +307,7 @@ def get_loyalty_coupon_settings(db: Session) -> LoyaltyCouponSettings:
         return DEFAULT_LOYALTY_COUPON
     try:
         payload = json.loads(row.value)
-        return LoyaltyCouponSettings(**payload)
+        return LoyaltyCouponSettings.model_validate(payload)
     except Exception:
         return DEFAULT_LOYALTY_COUPON
 
@@ -326,14 +354,14 @@ def get_social_media_settings(db: Session) -> SocialMediaSettings:
     if profile is None or not profile.social_links:
         return DEFAULT_SOCIAL_MEDIA
     try:
-        return SocialMediaSettings(**profile.social_links)
+        return SocialMediaSettings.model_validate(profile.social_links)
     except Exception:
         return DEFAULT_SOCIAL_MEDIA
 
 
 def save_social_media_settings(db: Session, settings: SocialMediaSettings) -> SocialMediaSettings:
     profile = _require_organization_profile(db)
-    profile.social_links = settings.model_dump(mode="json")
+    profile.social_links = cast(SocialLinksData, settings.model_dump(mode="json"))
     db.commit()
     return settings
 
@@ -362,8 +390,16 @@ def get_organization_profile(db: Session) -> OrganizationProfileResponse:
         logo_url=profile.logo_url,
         currency_code=profile.currency_code,
         vat_exemption_reason=profile.vat_exemption_reason,
-        opening_hours=profile.opening_hours,
-        social_links=profile.social_links,
+        opening_hours=(
+            OpeningHours.model_validate(profile.opening_hours)
+            if profile.opening_hours
+            else None
+        ),
+        social_links=(
+            SocialMediaSettings.model_validate(profile.social_links)
+            if profile.social_links
+            else None
+        ),
         website=(
             f"{'http' if primary_domain in {'bonefree.localhost', '127.0.0.1'} else 'https'}://{primary_domain}"
             if primary_domain
@@ -377,7 +413,7 @@ def save_organization_profile(
     settings: OrganizationProfileUpdate,
 ) -> OrganizationProfileResponse:
     profile = _require_organization_profile(db)
-    for field, value in settings.model_dump(exclude_unset=True).items():
+    for field, value in settings.model_dump(exclude_unset=True, mode="json").items():
         setattr(profile, field, value)
     db.commit()
     return get_organization_profile(db)
@@ -414,7 +450,7 @@ def get_events_settings(db: Session) -> EventsSettings:
         return DEFAULT_EVENTS
     try:
         payload = json.loads(row.value)
-        return EventsSettings(**payload)
+        return EventsSettings.model_validate(payload)
     except Exception:
         return DEFAULT_EVENTS
 

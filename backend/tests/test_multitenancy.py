@@ -394,6 +394,38 @@ class OrganizationScriptsAndInvoiceTests(unittest.TestCase):
                     "schema_version": 0,
                     "experience": {"theme": {"key": "base"}},
                 })
+            with self.assertRaises(ValueError):
+                OrganizationExperienceDocument.model_validate({
+                    "schema_version": 1,
+                    "experience": {
+                        "theme": {
+                            "key": "base",
+                            "token_overrides": {"unknown_token": "#ffffff"},
+                        }
+                    },
+                })
+            with self.assertRaises(ValueError):
+                OrganizationExperienceDocument.model_validate({
+                    "schema_version": 1,
+                    "experience": {
+                        "theme": {"key": "base"},
+                        "pages": {"unknown_page": {"sections": []}},
+                    },
+                })
+            with self.assertRaises(ValueError):
+                OrganizationExperienceDocument.model_validate({
+                    "schema_version": 1,
+                    "experience": {
+                        "theme": {"key": "base"},
+                        "pages": {
+                            "home": {
+                                "sections": [
+                                    {"id": "unknown", "type": "unknown_section"}
+                                ]
+                            }
+                        },
+                    },
+                })
             set_feature_entitlement(
                 db,
                 organization_slug="example",

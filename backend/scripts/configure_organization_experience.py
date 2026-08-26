@@ -10,7 +10,7 @@ import argparse
 import json
 from pathlib import Path
 import sys
-from typing import Any
+from typing import Any, cast
 
 from pydantic import BaseModel, Field, ValidationError
 from sqlalchemy import inspect, select
@@ -23,6 +23,13 @@ if str(BACKEND_DIR) not in sys.path:
 
 from core.organizations import bind_session_to_organization
 from database import SessionLocal
+from json_types import (
+    ExperienceAssetsData,
+    ExperiencePagesData,
+    NavigationItemData,
+    ThemeTokenOverridesData,
+    VariantOverridesData,
+)
 from models import OrganizationExperience
 from schemas.organization import PublicExperienceConfiguration
 
@@ -56,14 +63,26 @@ def upsert_organization_experience(
     stored.theme_key = document.experience.theme.key
     stored.theme_mode = document.experience.theme.mode
     stored.decoration_preset = document.experience.theme.decoration_preset
-    stored.token_overrides = document.experience.theme.token_overrides
-    stored.assets = document.experience.assets
-    stored.navigation = [item.model_dump() for item in document.experience.navigation]
-    stored.pages = {
-        key: page.model_dump()
-        for key, page in document.experience.pages.items()
-    }
-    stored.variant_overrides = document.experience.variant_overrides
+    stored.token_overrides = cast(
+        ThemeTokenOverridesData,
+        document.experience.theme.token_overrides.model_dump(),
+    )
+    stored.assets = cast(
+        ExperienceAssetsData,
+        document.experience.assets.model_dump(),
+    )
+    stored.navigation = cast(
+        list[NavigationItemData],
+        [item.model_dump() for item in document.experience.navigation],
+    )
+    stored.pages = cast(
+        ExperiencePagesData,
+        document.experience.pages.model_dump(),
+    )
+    stored.variant_overrides = cast(
+        VariantOverridesData,
+        document.experience.variant_overrides.model_dump(),
+    )
     return stored
 
 
@@ -81,7 +100,7 @@ def main(argv: list[str] | None = None) -> int:
         document = load_document(args.file)
         with SessionLocal() as db:
             missing = {"organization", "organization_experience"} - set(
-                inspect(db.bind).get_table_names()
+                inspect(db.get_bind()).get_table_names()
             )
             if missing:
                 raise RuntimeError(

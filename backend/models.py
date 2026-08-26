@@ -3,12 +3,23 @@ from __future__ import annotations
 from datetime import datetime
 from enum import StrEnum
 from decimal import Decimal
-from typing import List
+from typing import TYPE_CHECKING, List, TypeAlias
 
 from sqlalchemy import Boolean, DateTime, Enum as SAEnum, ForeignKey, Index, Integer, JSON, Numeric, String, Text, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship, synonym
 
 from core.base import AppBaseModel, OrganizationModel
+from json_types import (
+    ExperienceAssetsData,
+    ExperiencePagesData,
+    FeatureEntitlementConfigurationData,
+    JsonValue,  # Required when SQLAlchemy resolves the recursive JSON alias.
+    NavigationItemData,
+    OpeningHoursData,
+    SocialLinksData,
+    ThemeTokenOverridesData,
+    VariantOverridesData,
+)
 from schemas.enums import (
     CancellationOrigin,
     CartCustomizationAction,
@@ -32,6 +43,23 @@ from schemas.enums import (
 )
 from utils.datetime_utils import naive_utc_now
 from utils.id_format import format_category_id, format_product_id
+
+
+# SQLAlchemy 2.0.35 cannot resolve union annotations on Python 3.14. Keep the
+# nullable type visible to static analyzers while exposing the concrete JSON
+# type to SQLAlchemy at runtime. Column nullability remains declared below.
+if TYPE_CHECKING:
+    NullableString: TypeAlias = str | None
+    NullableOpeningHoursData: TypeAlias = OpeningHoursData | None
+    NullableSocialLinksData: TypeAlias = SocialLinksData | None
+    NullableFeatureEntitlementConfigurationData: TypeAlias = (
+        FeatureEntitlementConfigurationData | None
+    )
+else:
+    NullableString = str
+    NullableOpeningHoursData = OpeningHoursData
+    NullableSocialLinksData = SocialLinksData
+    NullableFeatureEntitlementConfigurationData = FeatureEntitlementConfigurationData
 
 
 def str_enum_column(enum_cls: type[StrEnum], **kwargs):
@@ -115,15 +143,15 @@ class OrganizationProfile(OrganizationModel):
     email: Mapped[str] = mapped_column(String(150), nullable=True)
     phone: Mapped[str] = mapped_column(String(30), nullable=True)
     address_line_1: Mapped[str] = mapped_column(String(255), nullable=True)
-    address_line_2: Mapped[str] = mapped_column(String(255), nullable=True)
+    address_line_2: Mapped[NullableString] = mapped_column(String(255), nullable=True)
     city: Mapped[str] = mapped_column(String(100), nullable=True)
     postal_code: Mapped[str] = mapped_column(String(20), nullable=True)
     country: Mapped[str] = mapped_column(String(100), nullable=False, default="Portugal", server_default="Portugal")
     logo_url: Mapped[str] = mapped_column(String(500), nullable=True)
     currency_code: Mapped[str] = mapped_column(String(3), nullable=False, default="EUR", server_default="EUR")
     vat_exemption_reason: Mapped[str] = mapped_column(String(500), nullable=True)
-    opening_hours: Mapped[dict] = mapped_column(JSON, nullable=True)
-    social_links: Mapped[dict] = mapped_column(JSON, nullable=True)
+    opening_hours: Mapped[NullableOpeningHoursData] = mapped_column(JSON, nullable=True)
+    social_links: Mapped[NullableSocialLinksData] = mapped_column(JSON, nullable=True)
 
     organization: Mapped[Organization] = relationship("Organization", back_populates="profile")
 
@@ -136,13 +164,13 @@ class OrganizationExperience(OrganizationModel):
 
     schema_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
     theme_key: Mapped[str] = mapped_column(String(100), nullable=False)
-    theme_mode: Mapped[str] = mapped_column(String(100), nullable=True)
-    decoration_preset: Mapped[str] = mapped_column(String(100), nullable=True)
-    token_overrides: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
-    assets: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
-    navigation: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
-    pages: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
-    variant_overrides: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    theme_mode: Mapped[NullableString] = mapped_column(String(100), nullable=True)
+    decoration_preset: Mapped[NullableString] = mapped_column(String(100), nullable=True)
+    token_overrides: Mapped[ThemeTokenOverridesData] = mapped_column(JSON, nullable=False, default=dict)
+    assets: Mapped[ExperienceAssetsData] = mapped_column(JSON, nullable=False, default=dict)
+    navigation: Mapped[list[NavigationItemData]] = mapped_column(JSON, nullable=False, default=list)
+    pages: Mapped[ExperiencePagesData] = mapped_column(JSON, nullable=False, default=dict)
+    variant_overrides: Mapped[VariantOverridesData] = mapped_column(JSON, nullable=False, default=dict)
 
     organization: Mapped[Organization] = relationship("Organization", back_populates="experience")
 
@@ -159,7 +187,10 @@ class OrganizationFeatureEntitlement(OrganizationModel):
 
     feature_key: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
-    configuration: Mapped[dict] = mapped_column(JSON, nullable=True)
+    configuration: Mapped[NullableFeatureEntitlementConfigurationData] = mapped_column(
+        JSON,
+        nullable=True,
+    )
 
     organization: Mapped[Organization] = relationship(
         "Organization",
