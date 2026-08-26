@@ -5,10 +5,11 @@ from decimal import Decimal
 from enum import StrEnum
 from typing import List, TypeVar, cast
 
-from sqlalchemy import Boolean, DateTime, Enum as SAEnum, ForeignKey, Index, Integer, Numeric, String, Text, UniqueConstraint, text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, Numeric, String, Text, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship, synonym
 
 from core.base import OrganizationModel
+from core.database_types import StrEnumType
 from modules.auth.models import User
 from utils.datetime_utils import naive_utc_now
 from utils.id_format import format_category_id, format_product_id
@@ -301,7 +302,7 @@ class Category(OrganizationModel):
     category_description: Mapped[str] = mapped_column(String(255), nullable=True)
     created_by_user_id: Mapped[int] = mapped_column("admin_id", Integer, ForeignKey('user.id'), nullable=False, index=True)
     status: Mapped[EntityStatus] = mapped_column(
-        SAEnum(EntityStatus, values_callable=enum_values),
+        StrEnumType(EntityStatus, length=50),
         default=EntityStatus.ACTIVE,
         nullable=False,
         index=True,
@@ -321,7 +322,7 @@ class SiteSetting(OrganizationModel):
     )
 
     key: Mapped[SiteSettingKey] = mapped_column(
-        SAEnum(SiteSettingKey, values_callable=enum_values),
+        StrEnumType(SiteSettingKey, length=50),
         nullable=False,
         index=True,
     )
@@ -341,7 +342,7 @@ class Product(OrganizationModel):
     created_by_user_id: Mapped[int] = mapped_column("admin_id", Integer, ForeignKey('user.id'), nullable=False, index=True)
     sold: Mapped[int] = mapped_column(Integer, nullable=True)
     status: Mapped[EntityStatus] = mapped_column(
-        SAEnum(EntityStatus, values_callable=enum_values),
+        StrEnumType(EntityStatus, length=50),
         default=EntityStatus.ACTIVE,
         nullable=False,
         index=True,
@@ -388,7 +389,7 @@ class Media(OrganizationModel):
     media_id = synonym("id")
 
     owner_type: Mapped[MediaOwnerType] = mapped_column(
-        SAEnum(MediaOwnerType, values_callable=enum_values),
+        StrEnumType(MediaOwnerType, length=50),
         nullable=False,
         index=True,
     )
@@ -423,7 +424,7 @@ class MediaVariant(OrganizationModel):
 
     media_id: Mapped[int] = mapped_column(Integer, ForeignKey("media.id", ondelete="CASCADE"), nullable=False, index=True)
     kind: Mapped[MediaVariantKind] = mapped_column(
-        SAEnum(MediaVariantKind, values_callable=enum_values),
+        StrEnumType(MediaVariantKind, length=50),
         nullable=False,
     )
     storage_key: Mapped[str] = mapped_column(String(500), nullable=False, unique=True)
@@ -500,7 +501,7 @@ class Coupon(OrganizationModel):
     customer_id: Mapped[int] = mapped_column(Integer, ForeignKey('user.id'), nullable=False)
     code: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     type: Mapped[CouponType] = mapped_column(
-        SAEnum(CouponType, values_callable=enum_values),
+        StrEnumType(CouponType, length=50),
         default=CouponType.FIXED_VALUE,
         nullable=False,
     )
@@ -549,12 +550,12 @@ class Ingredient(OrganizationModel):
 
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     type: Mapped[IngredientType] = mapped_column(
-        SAEnum(IngredientType, values_callable=enum_values),
+        StrEnumType(IngredientType, length=50),
         default=IngredientType.NORMAL,
         nullable=False,
     )
     status: Mapped[EntityStatus] = mapped_column(
-        SAEnum(EntityStatus, values_callable=enum_values),
+        StrEnumType(EntityStatus, length=50),
         default=EntityStatus.ACTIVE,
         nullable=False,
         index=True,
@@ -589,13 +590,13 @@ class ProductCustomizationOption(OrganizationModel):
     ingredient_id: Mapped[int] = mapped_column(Integer, ForeignKey('ingredient.id'), nullable=True)
     name: Mapped[str] = mapped_column(String(150), nullable=False)
     type: Mapped[ProductCustomizationOptionType] = mapped_column(
-        SAEnum(ProductCustomizationOptionType, values_callable=enum_values),
+        StrEnumType(ProductCustomizationOptionType, length=50),
         nullable=False,
     )
     extra_price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=0)
     max_quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     status: Mapped[EntityStatus] = mapped_column(
-        SAEnum(EntityStatus, values_callable=enum_values),
+        StrEnumType(EntityStatus, length=50),
         default=EntityStatus.ACTIVE,
         nullable=False,
         index=True,
@@ -616,7 +617,7 @@ class CartProductCustomization(OrganizationModel):
     ingredient_id: Mapped[int] = mapped_column(Integer, ForeignKey('ingredient.id', ondelete='SET NULL'), nullable=True)
     option_id: Mapped[int] = mapped_column(Integer, ForeignKey('product_customization_option.id', ondelete='SET NULL'), nullable=True)
     action: Mapped[CartCustomizationAction] = mapped_column(
-        SAEnum(CartCustomizationAction, values_callable=enum_values),
+        StrEnumType(CartCustomizationAction, length=50),
         nullable=False,
     )
     quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
@@ -649,16 +650,16 @@ class Order(OrganizationModel):
     order_access_expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     ordered_at: Mapped[datetime] = mapped_column(DateTime, default=naive_utc_now, nullable=False)
     state: Mapped[OrderState] = mapped_column(
-        SAEnum(OrderState, values_callable=enum_values),
+        StrEnumType(OrderState, length=50),
         default=OrderState.PENDING,
         nullable=False,
     )
     payment_method: Mapped[PaymentMethod] = mapped_column(
-        SAEnum(PaymentMethod, values_callable=enum_values),
+        StrEnumType(PaymentMethod, length=50),
         nullable=False,
     )
     payment_status: Mapped[PaymentStatus] = mapped_column(
-        SAEnum(PaymentStatus, values_callable=enum_values),
+        StrEnumType(PaymentStatus, length=50),
         default=PaymentStatus.UNPAID,
         nullable=False,
     )
@@ -669,8 +670,8 @@ class Order(OrganizationModel):
     total: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=0)
     notes: Mapped[str] = mapped_column(String(500), nullable=True)
     canceled_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
-    cancellation_origin = mapped_column(
-        SAEnum(CancellationOrigin, values_callable=enum_values),
+    cancellation_origin: Mapped[CancellationOrigin] = mapped_column(
+        StrEnumType(CancellationOrigin, length=50),
         nullable=True,
     )
 
@@ -748,7 +749,7 @@ class ProductReview(OrganizationModel):
     title: Mapped[str] = mapped_column(String(120), nullable=True)
     comment: Mapped[str] = mapped_column(String(1000), nullable=True)
     status: Mapped[ReviewStatus] = mapped_column(
-        SAEnum(ReviewStatus, values_callable=enum_values),
+        StrEnumType(ReviewStatus, length=50),
         default=ReviewStatus.APPROVED,
         nullable=False,
         index=True,
@@ -792,7 +793,7 @@ class ReviewReaction(OrganizationModel):
     review_id: Mapped[int] = mapped_column(Integer, ForeignKey('product_review.id', ondelete='CASCADE'), nullable=False, index=True)
     reacted_by_user_id: Mapped[int] = mapped_column("admin_id", Integer, ForeignKey('user.id'), nullable=False, index=True)
     type: Mapped[ReviewReactionType] = mapped_column(
-        SAEnum(ReviewReactionType, values_callable=enum_values),
+        StrEnumType(ReviewReactionType, length=50),
         nullable=False,
     )
 
@@ -807,11 +808,11 @@ class Payment(OrganizationModel):
 
     order_id: Mapped[int] = mapped_column(Integer, ForeignKey('customer_order.id'), nullable=False, unique=True)
     method: Mapped[PaymentMethod] = mapped_column(
-        SAEnum(PaymentMethod, values_callable=enum_values),
+        StrEnumType(PaymentMethod, length=50),
         nullable=False,
     )
     state: Mapped[PaymentState] = mapped_column(
-        SAEnum(PaymentState, values_callable=enum_values),
+        StrEnumType(PaymentState, length=50),
         default=PaymentState.PENDING,
         nullable=False,
     )

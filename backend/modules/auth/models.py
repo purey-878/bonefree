@@ -4,10 +4,11 @@ from datetime import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING, Literal, NotRequired, TypeAlias, TypedDict
 
-from sqlalchemy import Boolean, DateTime, Enum as SAEnum, ForeignKey, Index, Integer, JSON, String, Text, UniqueConstraint, text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, JSON, String, Text, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.base import AppBaseModel, OrganizationModel
+from core.database_types import StrEnumType
 from utils.datetime_utils import naive_utc_now
 
 
@@ -35,10 +36,6 @@ ORGANIZATION_STAFF_ROLES = {
     UserRole.WAITER,
     UserRole.CHEF,
 }
-
-
-def enum_values(enum_cls: type[StrEnum]) -> list[str]:
-    return [member.value for member in enum_cls]
 
 
 def normalize_user_role(role: str | UserRole | None) -> UserRole:
@@ -193,7 +190,7 @@ class Organization(AppBaseModel):
     name: Mapped[str] = mapped_column(String(150), nullable=False)
     slug: Mapped[str] = mapped_column(String(100), nullable=False, unique=True, index=True)
     organization_type: Mapped[OrganizationType] = mapped_column(
-        SAEnum(OrganizationType, values_callable=enum_values),
+        StrEnumType(OrganizationType, length=50),
         nullable=False,
         default=OrganizationType.RESTAURANT,
         server_default=OrganizationType.RESTAURANT.value,
@@ -308,10 +305,10 @@ class User(OrganizationModel):
     password_reset_verified_until: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     password_reset_token_hash: Mapped[str] = mapped_column(String(255), nullable=True)
     status: Mapped[UserStatus] = mapped_column(
-        SAEnum(UserStatus, values_callable=enum_values), default=UserStatus.ACTIVE, nullable=False, index=True
+        StrEnumType(UserStatus, length=50), default=UserStatus.ACTIVE, nullable=False, index=True
     )
     role: Mapped[UserRole] = mapped_column(
-        SAEnum(UserRole, values_callable=enum_values), default=UserRole.CLIENT, nullable=False, index=True
+        StrEnumType(UserRole, length=50), default=UserRole.CLIENT, nullable=False, index=True
     )
 
     sessions: Mapped[list["Session"]] = relationship("Session", back_populates="user", cascade="all, delete-orphan")

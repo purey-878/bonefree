@@ -1,5 +1,6 @@
 import os
 import json
+from datetime import datetime
 from pathlib import Path
 import subprocess
 import sys
@@ -10,7 +11,9 @@ from unittest.mock import patch
 from alembic.autogenerate import compare_metadata
 from alembic.migration import MigrationContext
 from alembic.script import ScriptDirectory
+import sqlalchemy as sa
 from sqlalchemy import create_engine, inspect, text
+from sqlalchemy.orm import Session
 
 import migrations
 from database import Base
@@ -21,8 +24,55 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 BASELINE_REVISION = "20260822_0001"
 TENANCY_REVISION = "20260823_0002"
 EXPERIENCE_REVISION = "20260825_0003"
-HEAD_REVISION = "20260826_0004"
+ADMIN_REVISION = "20260826_0004"
+HEAD_REVISION = "20260826_0005"
 LEGACY_HEAD_REVISION = "b6d8f0a2c4e7"
+
+ENUM_COLUMN_VALUES = {
+    "organization": {"organization_type": "restaurant"},
+    "user": {"status": "active", "role": "owner"},
+    "admin": {"status": "active"},
+    "category": {"status": "active"},
+    "site_setting": {"key": "site_theme"},
+    "product": {"status": "active"},
+    "media": {"owner_type": "product"},
+    "media_variant": {"kind": "original"},
+    "coupon": {"type": "fixed_value"},
+    "ingredient": {"type": "normal", "status": "active"},
+    "product_customization_option": {"type": "add", "status": "active"},
+    "cart_product_customization": {"action": "remove_ingredient"},
+    "customer_order": {
+        "state": "pending",
+        "payment_method": "card",
+        "payment_status": "unpaid",
+        "cancellation_origin": "client",
+    },
+    "product_review": {"status": "approved"},
+    "review_reactions": {"type": "like"},
+    "payment": {"method": "card", "state": "pending"},
+}
+
+POSTGRES_ENUM_TYPES = {
+    "adminstatus",
+    "organizationtype",
+    "cancellationorigin",
+    "cartcustomizationaction",
+    "coupontype",
+    "entitystatus",
+    "ingredienttype",
+    "mediaownertype",
+    "mediavariantkind",
+    "orderstate",
+    "paymentmethod",
+    "paymentstate",
+    "paymentstatus",
+    "productcustomizationoptiontype",
+    "reviewreactiontype",
+    "reviewstatus",
+    "sitesettingkey",
+    "userrole",
+    "userstatus",
+}
 
 
 class SchemaBaselineTests(unittest.TestCase):
@@ -75,6 +125,66 @@ class SchemaBaselineTests(unittest.TestCase):
         finally:
             engine.dispose()
 
+    def _insert_representative_enum_rows(self) -> None:
+        engine = create_engine(self.database_url)
+        try:
+            with engine.begin() as connection:
+                for table_name, enum_values in ENUM_COLUMN_VALUES.items():
+                    table = sa.Table(
+                        table_name,
+                        sa.MetaData(),
+                        autoload_with=connection,
+                    )
+                    existing_id = connection.scalar(sa.select(table.c.id).limit(1))
+                    if existing_id is not None:
+                        connection.execute(
+                            table.update()
+                            .where(table.c.id == existing_id)
+                            .values(**enum_values)
+                        )
+                        continue
+
+                    values = dict(enum_values)
+                    for column in table.columns:
+                        if (
+                            column.name in values
+                            or column.primary_key
+                            or column.nullable
+                            or column.server_default is not None
+                        ):
+                            continue
+                        if isinstance(column.type, sa.Boolean):
+                            values[column.name] = False
+                        elif isinstance(column.type, sa.DateTime):
+                            values[column.name] = datetime(2026, 8, 26, 12, 0, 0)
+                        elif isinstance(column.type, (sa.Integer, sa.Numeric)):
+                            values[column.name] = 1
+                        elif isinstance(column.type, sa.JSON):
+                            values[column.name] = {}
+                        else:
+                            length = getattr(column.type, "length", None)
+                            values[column.name] = "x" if length and length <= 3 else column.name
+                    connection.execute(table.insert().values(**values))
+        finally:
+            engine.dispose()
+
+    def _assert_representative_enum_values(self) -> None:
+        engine = create_engine(self.database_url)
+        try:
+            with engine.connect() as connection:
+                for table_name, enum_values in ENUM_COLUMN_VALUES.items():
+                    table = sa.Table(
+                        table_name,
+                        sa.MetaData(),
+                        autoload_with=connection,
+                    )
+                    row = connection.execute(
+                        sa.select(*(table.c[name] for name in enum_values)).limit(1)
+                    ).one()
+                    self.assertEqual(tuple(row), tuple(enum_values.values()))
+        finally:
+            engine.dispose()
+
     def test_history_preserves_the_static_baseline_and_adds_tenancy(self):
         engine = create_engine("sqlite://")
         connection = engine.connect()
@@ -88,13 +198,20 @@ class SchemaBaselineTests(unittest.TestCase):
 
         self.assertEqual(
             [revision.revision for revision in revisions],
-            [HEAD_REVISION, EXPERIENCE_REVISION, TENANCY_REVISION, BASELINE_REVISION],
+            [
+                HEAD_REVISION,
+                ADMIN_REVISION,
+                EXPERIENCE_REVISION,
+                TENANCY_REVISION,
+                BASELINE_REVISION,
+            ],
         )
-        self.assertEqual(revisions[0].down_revision, EXPERIENCE_REVISION)
-        self.assertEqual(revisions[1].down_revision, TENANCY_REVISION)
-        self.assertEqual(revisions[2].down_revision, BASELINE_REVISION)
-        self.assertIsNone(revisions[3].down_revision)
-        baseline_source = Path(revisions[3].path).read_text(encoding="utf-8")
+        self.assertEqual(revisions[0].down_revision, ADMIN_REVISION)
+        self.assertEqual(revisions[1].down_revision, EXPERIENCE_REVISION)
+        self.assertEqual(revisions[2].down_revision, TENANCY_REVISION)
+        self.assertEqual(revisions[3].down_revision, BASELINE_REVISION)
+        self.assertIsNone(revisions[4].down_revision)
+        baseline_source = Path(revisions[4].path).read_text(encoding="utf-8")
         self.assertNotIn("Base.metadata", baseline_source)
         self.assertNotIn("product_image", baseline_source)
 
@@ -186,6 +303,119 @@ class SchemaBaselineTests(unittest.TestCase):
                 self.assertNotIn("admin", tables)
                 self.assertNotIn("admin_session", tables)
                 self.assertEqual(connection.scalar(text("SELECT COUNT(*) FROM organization")), organization_count)
+        finally:
+            engine.dispose()
+
+    def test_str_enum_upgrade_preserves_all_enum_families_and_is_reversible(self):
+        self._alembic("upgrade", ADMIN_REVISION)
+        self._insert_representative_enum_rows()
+
+        self._alembic("upgrade", HEAD_REVISION)
+        self._assert_representative_enum_values()
+
+        engine = create_engine(self.database_url)
+        try:
+            with engine.connect() as connection:
+                inspector = inspect(connection)
+                for table_name, enum_values in ENUM_COLUMN_VALUES.items():
+                    columns = {
+                        column["name"]: column
+                        for column in inspector.get_columns(table_name)
+                    }
+                    for column_name in enum_values:
+                        with self.subTest(table=table_name, column=column_name):
+                            self.assertIsInstance(columns[column_name]["type"], sa.String)
+                            self.assertEqual(columns[column_name]["type"].length, 50)
+        finally:
+            engine.dispose()
+
+        self._alembic("downgrade", ADMIN_REVISION)
+        self._assert_representative_enum_values()
+        self._alembic("upgrade", HEAD_REVISION)
+        self._assert_representative_enum_values()
+        self._assert_schema_matches_models(self.database_url)
+
+    def test_str_enum_upgrade_rejects_unknown_values_without_changes(self):
+        self._alembic("upgrade", ADMIN_REVISION)
+        engine = create_engine(self.database_url)
+        try:
+            with engine.begin() as connection:
+                connection.execute(
+                    text(
+                        "UPDATE organization "
+                        "SET organization_type = 'unknown'"
+                    )
+                )
+        finally:
+            engine.dispose()
+
+        result = self._alembic("upgrade", HEAD_REVISION, check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "invalid organizationtype values: 'unknown'",
+            f"{result.stdout}\n{result.stderr}",
+        )
+
+        engine = create_engine(self.database_url)
+        try:
+            with engine.connect() as connection:
+                self.assertEqual(
+                    connection.scalar(text("SELECT version_num FROM alembic_version")),
+                    ADMIN_REVISION,
+                )
+                self.assertEqual(
+                    connection.scalar(
+                        text("SELECT organization_type FROM organization LIMIT 1")
+                    ),
+                    "unknown",
+                )
+        finally:
+            engine.dispose()
+
+        engine = create_engine(self.database_url)
+        try:
+            with engine.begin() as connection:
+                connection.execute(
+                    text(
+                        "UPDATE organization "
+                        "SET organization_type = 'restaurant'"
+                    )
+                )
+        finally:
+            engine.dispose()
+        self._alembic("upgrade", HEAD_REVISION)
+
+        engine = create_engine(self.database_url)
+        try:
+            with engine.begin() as connection:
+                connection.execute(
+                    text(
+                        "UPDATE organization "
+                        "SET organization_type = 'future_type'"
+                    )
+                )
+        finally:
+            engine.dispose()
+
+        result = self._alembic("downgrade", ADMIN_REVISION, check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "invalid organizationtype values: 'future_type'",
+            f"{result.stdout}\n{result.stderr}",
+        )
+        engine = create_engine(self.database_url)
+        try:
+            with engine.connect() as connection:
+                self.assertEqual(
+                    connection.scalar(text("SELECT version_num FROM alembic_version")),
+                    HEAD_REVISION,
+                )
+                self.assertEqual(
+                    connection.scalar(
+                        text("SELECT organization_type FROM organization LIMIT 1")
+                    ),
+                    "future_type",
+                )
         finally:
             engine.dispose()
 
@@ -376,6 +606,22 @@ class SchemaBaselineTests(unittest.TestCase):
         finally:
             engine.dispose()
 
+        self._alembic("upgrade", ADMIN_REVISION, database_url=database_url)
+        engine = create_engine(database_url)
+        try:
+            with engine.begin() as connection:
+                connection.execute(
+                    text(
+                        "INSERT INTO admin "
+                        "(name, email, password_hash, status, created_at, updated_at) "
+                        "VALUES ('Platform Admin', 'admin@example.com', 'hash', "
+                        "'active', :now, :now)"
+                    ),
+                    {"now": datetime(2026, 8, 26, 12, 0, 0)},
+                )
+        finally:
+            engine.dispose()
+
         self._alembic("upgrade", "head", database_url=database_url)
         self._alembic("upgrade", "head", database_url=database_url)
         self._assert_schema_matches_models(database_url)
@@ -386,6 +632,66 @@ class SchemaBaselineTests(unittest.TestCase):
                 self.assertEqual(
                     connection.scalar(text("SELECT version_num FROM alembic_version")),
                     HEAD_REVISION,
+                )
+                physical_columns = {
+                    (row.table_name, row.column_name): (
+                        row.data_type,
+                        row.character_maximum_length,
+                    )
+                    for row in connection.execute(
+                        text(
+                            "SELECT table_name, column_name, data_type, "
+                            "character_maximum_length "
+                            "FROM information_schema.columns "
+                            "WHERE table_schema = current_schema()"
+                        )
+                    )
+                }
+                for table_name, enum_values in ENUM_COLUMN_VALUES.items():
+                    for column_name in enum_values:
+                        self.assertEqual(
+                            physical_columns[(table_name, column_name)],
+                            ("character varying", 50),
+                        )
+
+                remaining_types = set(
+                    connection.scalars(text("SELECT typname FROM pg_type"))
+                ) & POSTGRES_ENUM_TYPES
+                self.assertEqual(remaining_types, set())
+                self.assertIn(
+                    "restaurant",
+                    connection.scalar(
+                        text(
+                            "SELECT column_default FROM information_schema.columns "
+                            "WHERE table_schema = current_schema() "
+                            "AND table_name = 'organization' "
+                            "AND column_name = 'organization_type'"
+                        )
+                    ),
+                )
+                self.assertIn(
+                    "active",
+                    connection.scalar(
+                        text(
+                            "SELECT column_default FROM information_schema.columns "
+                            "WHERE table_schema = current_schema() "
+                            "AND table_name = 'admin' AND column_name = 'status'"
+                        )
+                    ),
+                )
+                self.assertEqual(
+                    connection.scalar(text("SELECT status FROM admin")),
+                    "active",
+                )
+
+            with Session(engine) as db:
+                self.assertIs(
+                    db.scalar(sa.select(models.Organization.organization_type)),
+                    models.OrganizationType.RESTAURANT,
+                )
+                self.assertIs(
+                    db.scalar(sa.select(models.Admin.status)),
+                    models.AdminStatus.ACTIVE,
                 )
         finally:
             engine.dispose()

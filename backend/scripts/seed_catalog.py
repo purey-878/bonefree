@@ -25,7 +25,6 @@ if str(BACKEND_DIR) not in sys.path:
 from sqlalchemy import (
     Boolean,
     DateTime,
-    Enum as SAEnum,
     Numeric,
     create_engine,
     event,
@@ -37,6 +36,7 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.orm import sessionmaker
 
 from core.config import settings
+from core.database_types import StrEnumType
 from core.organizations import bind_session_to_organization
 from database import build_engine_kwargs
 from models import (
@@ -109,7 +109,7 @@ def _coerce_row(
             values[key] = Decimal(str(value))
         elif isinstance(column_type, Boolean):
             values[key] = bool(value)
-        elif isinstance(column_type, SAEnum) and column_type.enum_class is not None:
+        elif isinstance(column_type, StrEnumType):
             values[key] = column_type.enum_class(value)
     return values
 

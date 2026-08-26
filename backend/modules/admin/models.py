@@ -3,20 +3,17 @@ from __future__ import annotations
 from datetime import datetime
 from enum import StrEnum
 
-from sqlalchemy import Boolean, DateTime, Enum as SAEnum, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.base import AppBaseModel
+from core.database_types import StrEnumType
 from utils.datetime_utils import naive_utc_now
 
 
 class AdminStatus(StrEnum):
     ACTIVE = "active"
     SUSPENDED = "suspended"
-
-
-def _enum_values(enum_cls: type[StrEnum]) -> list[str]:
-    return [member.value for member in enum_cls]
 
 
 class Admin(AppBaseModel):
@@ -29,7 +26,7 @@ class Admin(AppBaseModel):
     email: Mapped[str] = mapped_column(String(150), nullable=False, index=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     status: Mapped[AdminStatus] = mapped_column(
-        SAEnum(AdminStatus, values_callable=_enum_values),
+        StrEnumType(AdminStatus, length=50),
         nullable=False,
         default=AdminStatus.ACTIVE,
         server_default=AdminStatus.ACTIVE.value,
