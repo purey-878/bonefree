@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
 
-from services.password_reset import (  # noqa: E402
+from modules.auth.services.password_reset import (  # noqa: E402
     MAX_OTP_ATTEMPTS,
     can_reset_password,
     clear_password_reset,
@@ -32,7 +32,7 @@ class PasswordResetTests(unittest.TestCase):
         user = FakeUser()
         now = datetime(2026, 5, 13, 12, 0, 0)
 
-        with patch("services.password_reset.generate_otp", return_value="123456"):
+        with patch("modules.auth.services.password_reset.generate_otp", return_value="123456"):
             code = start_password_reset(user, now)
 
         self.assertEqual(code, "123456")
@@ -43,9 +43,9 @@ class PasswordResetTests(unittest.TestCase):
         user = FakeUser()
         now = datetime(2026, 5, 13, 12, 0, 0)
 
-        with patch("services.password_reset.generate_otp", return_value="123456"):
+        with patch("modules.auth.services.password_reset.generate_otp", return_value="123456"):
             start_password_reset(user, now)
-        with patch("services.password_reset.generate_reset_token", return_value="reset-token"):
+        with patch("modules.auth.services.password_reset.generate_reset_token", return_value="reset-token"):
             valid, message, token = verify_password_reset_code(user, "123456", now)
 
         self.assertTrue(valid)
@@ -56,7 +56,7 @@ class PasswordResetTests(unittest.TestCase):
 
     def test_invalid_code_increments_attempts(self):
         user = FakeUser()
-        with patch("services.password_reset.generate_otp", return_value="123456"):
+        with patch("modules.auth.services.password_reset.generate_otp", return_value="123456"):
             start_password_reset(user)
 
         valid, message, token = verify_password_reset_code(user, "000000")

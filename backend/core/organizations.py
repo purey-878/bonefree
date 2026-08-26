@@ -41,7 +41,7 @@ def normalize_hostname(value: str) -> str:
 
 def bind_session_to_organization(db: Session, slug: str) -> int:
     """Explicit administrative/bootstrap bypass that binds a session to one tenant."""
-    from models import Organization
+    from modules.auth.models import Organization
 
     normalized_slug = normalize_organization_slug(slug)
     organization_id = db.scalar(

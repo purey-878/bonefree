@@ -14,7 +14,8 @@ from sqlalchemy.orm import Session
 
 from database import Base
 from models import Category, Media, MediaVariant, Organization, Product, ProductMedia, User
-from schemas.enums import EntityStatus, MediaOwnerType, MediaVariantKind, UserRole, UserStatus
+from modules.auth.models import UserRole, UserStatus
+from modules.restaurant.models import EntityStatus, MediaOwnerType, MediaVariantKind
 from scripts import migrate_product_images_to_media as migration
 
 
@@ -51,7 +52,7 @@ class ProductMediaMigrationTests(unittest.TestCase):
         self.db.flush()
         self.category = Category(
             category_name="Mains",
-            admin_id=self.admin.id,
+            created_by_user_id=self.admin.id,
             status=EntityStatus.ACTIVE,
         )
         self.db.add(self.category)
@@ -70,7 +71,7 @@ class ProductMediaMigrationTests(unittest.TestCase):
             price=Decimal("12.00"),
             available=True,
             category_id=self.category.id,
-            admin_id=self.admin.id,
+            created_by_user_id=self.admin.id,
             status=EntityStatus.ACTIVE,
             discount_percentage=Decimal("0"),
         )

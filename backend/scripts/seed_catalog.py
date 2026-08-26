@@ -49,7 +49,7 @@ from models import (
     SiteSetting,
     User,
 )
-from schemas.enums import UserRole
+from modules.auth.models import UserRole
 from scripts.migrate_product_images_to_media import migrate_product_images_to_media
 from seeds.users import TEST_USERS, seed_test_users_in_session
 from seeds.catalog_seed import (
@@ -96,7 +96,7 @@ def _coerce_row(
     if "admin_email" in values:
         if values.pop("admin_email") != CATALOG_OWNER_EMAIL:
             raise CatalogSeedError("Unexpected catalog administrator")
-        values["admin_id"] = owner_id
+        values["created_by_user_id"] = owner_id
 
     columns = model.__table__.columns
     for key, value in list(values.items()):
@@ -576,7 +576,7 @@ def _backup_current_state(
     checksums: dict[str, str] = {}
 
     if database_path.exists() and database_path.stat().st_size:
-        database_backup = output / "bonefree.db"
+        database_backup = output / "core_platform.db"
         source = sqlite3.connect(
             f"file:{database_path.resolve().as_posix()}?mode=ro",
             uri=True,
@@ -831,7 +831,7 @@ def main() -> None:
     parser.add_argument(
         "--database",
         type=Path,
-        default=BACKEND_DIR / "bonefree.db",
+        default=BACKEND_DIR / "core_platform.db",
     )
     parser.add_argument(
         "--uploads",

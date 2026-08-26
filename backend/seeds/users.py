@@ -8,9 +8,9 @@ from sqlalchemy.orm import Session as DBSession
 
 from database import SessionLocal
 from core.organizations import bind_session_to_organization
-from schemas.enums import UserRole, UserStatus
+from modules.auth.models import UserRole, UserStatus
 from models import User
-from services.auth_service import hash_password
+from modules.auth.services.authentication import hash_password
 
 logger = logging.getLogger(__name__)
 

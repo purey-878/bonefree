@@ -7,7 +7,7 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
 
-from services.substitution import (  # noqa: E402
+from modules.restaurant.services.substitution import (  # noqa: E402
     availability_reason,
     is_product_available,
     rank_substitutions,

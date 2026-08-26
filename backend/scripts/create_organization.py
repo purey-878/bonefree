@@ -25,7 +25,7 @@ if str(BACKEND_DIR) not in sys.path:
 from core.organizations import normalize_organization_slug
 from database import SessionLocal
 from models import Organization, OrganizationExperience, OrganizationProfile
-from schemas.enums import OrganizationType
+from modules.auth.models import OrganizationType
 
 
 def check_database_ready(db: DBSession) -> None:

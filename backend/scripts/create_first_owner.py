@@ -18,8 +18,8 @@ from core.config import settings
 from core.organizations import bind_session_to_organization
 from database import SessionLocal, engine
 from models import User
-from schemas.enums import UserRole, UserStatus
-from services.auth_service import hash_password
+from modules.auth.models import UserRole, UserStatus
+from modules.auth.services.authentication import hash_password
 from utils.validation import validate_email, validate_name, validate_password
 
 

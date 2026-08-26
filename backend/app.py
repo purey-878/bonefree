@@ -21,18 +21,18 @@ from core.exception_handlers import (
 )
 from migrations import run_migrations
 from database import engine as database_engine
-from routers.admin import router as admin_router
-from routers.auth import router as auth_router
-from routers.cart import router as cart_router
-from routers.checkout import router as checkout_router
-from routers.products import router as products_router
-from routers.profile import router as profile_router
-from routers.reviews import router as reviews_router
-from routers.site_settings import admin_router as site_settings_admin_router
-from routers.site_settings import public_router as site_settings_public_router
-from routers.organizations import experience_router as organization_experience_router
-from routers.organizations import router as organizations_router
-from dependencies import (
+from modules.restaurant.routers.management import router as staff_router
+from modules.auth.routers.auth import router as auth_router
+from modules.restaurant.routers.cart import router as cart_router
+from modules.restaurant.routers.checkout import router as checkout_router
+from modules.restaurant.routers.products import router as products_router
+from modules.restaurant.routers.profile import router as profile_router
+from modules.restaurant.routers.reviews import router as reviews_router
+from modules.restaurant.routers.site_settings import owner_router as site_settings_owner_router
+from modules.restaurant.routers.site_settings import public_router as site_settings_public_router
+from modules.auth.routers.organizations import experience_router as organization_experience_router
+from modules.auth.routers.organizations import router as organizations_router
+from modules.auth.dependencies import (
     require_organization_context,
     require_organization_feature,
     require_organization_header_context,
@@ -41,7 +41,7 @@ from seeds import seed_test_users
 from scripts.seed_catalog import seed_catalog_on_development_startup
 from core.email_provider import validate_email_config
 from core.redis import create_redis_client
-from schemas.errors import ApiErrorResponse, HealthResponse
+from core.api_schemas import ApiErrorResponse, HealthResponse
 
 logger = logging.getLogger(__name__)
 
@@ -100,7 +100,7 @@ def create_app(
     application = FastAPI(
         title=settings.app_name,
         version=settings.app_version,
-        description="Backend API for the Bonefree project",
+        description="Multi-tenant Core Platform API. Bonefree is the initial restaurant tenant.",
         docs_url="/docs" if settings.docs_enabled else None,
         redoc_url="/redoc" if settings.docs_enabled else None,
         openapi_url="/openapi.json" if settings.docs_enabled else None,
@@ -177,9 +177,9 @@ def create_app(
     application.include_router(checkout_router, dependencies=ordering_dependencies)
     application.include_router(profile_router, dependencies=customer_account_dependencies)
     application.include_router(reviews_router, dependencies=review_dependencies)
-    application.include_router(admin_router)
+    application.include_router(staff_router)
     application.include_router(site_settings_public_router, dependencies=public_tenant_dependencies)
-    application.include_router(site_settings_admin_router)
+    application.include_router(site_settings_owner_router)
     return application
 
 

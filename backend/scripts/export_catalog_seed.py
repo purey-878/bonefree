@@ -207,7 +207,7 @@ def main() -> None:
     parser.add_argument(
         "--source-database",
         type=Path,
-        default=BACKEND_DIR / "bonefree.db",
+        default=BACKEND_DIR / "core_platform.db",
     )
     parser.add_argument(
         "--source-uploads",

@@ -22,8 +22,9 @@ from core.config import settings
 from core.redis import InMemoryRedis
 from database import Base, get_db
 from models import Category, Coupon, CustomerLoyalty, Ingredient, Invoice, Media, Order, OrderProduct, Organization, OrganizationDomain, OrganizationFeatureEntitlement, OrganizationProfile, Payment, Product, ProductCustomizationOption, ProductIngredient, ProductMedia, ProductReview, Session, User
-from schemas.enums import EntityStatus, IngredientType, PaymentState, ProductCustomizationOptionType, UserRole, UserStatus
-from services.auth_service import hash_password, hash_session_token
+from modules.auth.models import UserRole, UserStatus
+from modules.restaurant.models import EntityStatus, IngredientType, PaymentState, ProductCustomizationOptionType
+from modules.auth.services.authentication import hash_password, hash_session_token
 
 
 class EndpointSmokeTests(unittest.TestCase):
@@ -147,7 +148,7 @@ class EndpointSmokeTests(unittest.TestCase):
             category = Category(
                 category_name="Smoke category",
                 category_description="Endpoint smoke fixture",
-                admin_id=admin.id,
+                created_by_user_id=admin.id,
                 status=EntityStatus.ACTIVE,
             )
             db.add(category)
@@ -159,7 +160,7 @@ class EndpointSmokeTests(unittest.TestCase):
                 available=True,
                 sold=0,
                 category_id=category.id,
-                admin_id=admin.id,
+                created_by_user_id=admin.id,
                 status=EntityStatus.ACTIVE,
                 discount_percentage=Decimal("0"),
                 customizable=True,
@@ -171,7 +172,7 @@ class EndpointSmokeTests(unittest.TestCase):
             db.commit()
             cls.product_id = product.id
 
-        import services.media_storage as media_storage
+        from modules.restaurant.services import media_storage
 
         cls.original_uploads_root = media_storage.UPLOADS_ROOT
         cls.original_product_media_dir = media_storage.PRODUCT_MEDIA_DIR
@@ -181,7 +182,7 @@ class EndpointSmokeTests(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        import services.media_storage as media_storage
+        from modules.restaurant.services import media_storage
 
         media_storage.UPLOADS_ROOT = cls.original_uploads_root
         media_storage.PRODUCT_MEDIA_DIR = cls.original_product_media_dir
@@ -345,7 +346,7 @@ class EndpointSmokeTests(unittest.TestCase):
         )
         self.assertEqual(advance_unpaid.status_code, 409, advance_unpaid.text)
 
-        with patch("routers.admin.send_purchase_receipt", return_value=True) as send_receipt:
+        with patch("modules.restaurant.routers.orders.send_purchase_receipt", return_value=True) as send_receipt:
             paid = self.client.post(
                 f"/admin/orders/{order_id}/pay-counter",
                 headers=self.admin_headers,
@@ -671,7 +672,7 @@ class EndpointSmokeTests(unittest.TestCase):
 
     def test_paid_guest_can_download_receipt_with_order_token(self):
         created = self.client.post("/checkout/orders", json=self._checkout_payload()).json()
-        with patch("routers.admin.send_purchase_receipt", return_value=True):
+        with patch("modules.restaurant.routers.orders.send_purchase_receipt", return_value=True):
             paid = self.client.post(
                 f"/admin/orders/{created['order_id']}/pay-counter",
                 headers=self.admin_headers,
@@ -753,7 +754,7 @@ class EndpointSmokeTests(unittest.TestCase):
 
         created = self._create_order()
         order_id = created["order_id"]
-        with patch("routers.admin.send_purchase_receipt", return_value=True):
+        with patch("modules.restaurant.routers.orders.send_purchase_receipt", return_value=True):
             paid = self.client.post(
                 f"/admin/orders/{order_id}/pay-counter",
                 headers=self.admin_headers,

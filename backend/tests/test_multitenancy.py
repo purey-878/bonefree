@@ -29,14 +29,12 @@ from models import (
     Session,
     User,
 )
-from schemas.enums import (
+from modules.auth.models import OrganizationType, UserRole, UserStatus
+from modules.restaurant.models import (
     EntityStatus,
     OrderState,
-    OrganizationType,
     PaymentMethod,
     PaymentStatus,
-    UserRole,
-    UserStatus,
 )
 from scripts.add_organization_domain import add_organization_domain
 from scripts.configure_organization_experience import (
@@ -45,9 +43,9 @@ from scripts.configure_organization_experience import (
 )
 from scripts.create_organization import create_organization
 from scripts.set_feature_entitlement import set_feature_entitlement
-from services.auth_service import hash_session_token
-from services.invoices import ensure_invoice_for_order
-from services.receipt_email import build_saved_order_receipt_payload, render_receipt_email
+from modules.auth.services.authentication import hash_session_token
+from modules.restaurant.services.invoices import ensure_invoice_for_order
+from modules.restaurant.services.receipt_email import build_saved_order_receipt_payload, render_receipt_email
 
 
 class OrganizationScopeTests(unittest.TestCase):
@@ -486,7 +484,7 @@ class OrganizationScriptsAndInvoiceTests(unittest.TestCase):
             owner = User(email="owner@example.com", password="hash", role=UserRole.OWNER, status=UserStatus.ACTIVE)
             db.add(owner)
             db.flush()
-            category = Category(category_name="Mains", admin_id=owner.id, status=EntityStatus.ACTIVE)
+            category = Category(category_name="Mains", created_by_user_id=owner.id, status=EntityStatus.ACTIVE)
             db.add(category)
             db.flush()
             product = Product(
@@ -494,7 +492,7 @@ class OrganizationScriptsAndInvoiceTests(unittest.TestCase):
                 price=Decimal("11.30"),
                 available=True,
                 category_id=category.id,
-                admin_id=owner.id,
+                created_by_user_id=owner.id,
                 status=EntityStatus.ACTIVE,
                 discount_percentage=Decimal("0"),
             )
@@ -547,7 +545,9 @@ class OrganizationScriptsAndInvoiceTests(unittest.TestCase):
 
     def test_receipt_service_has_no_receipt_environment_configuration(self):
         backend_dir = Path(__file__).resolve().parents[1]
-        receipt_source = (backend_dir / "services" / "receipt_email.py").read_text(encoding="utf-8")
+        receipt_source = (
+            backend_dir / "modules" / "restaurant" / "services" / "receipt_email.py"
+        ).read_text(encoding="utf-8")
         config_source = (backend_dir / "core" / "config.py").read_text(encoding="utf-8")
         backend_env = (backend_dir / ".env.example").read_text(encoding="utf-8")
         root_env = (backend_dir.parent / ".env.example").read_text(encoding="utf-8")

@@ -18,8 +18,8 @@ from sqlalchemy.orm import Session, selectinload
 from database import SessionLocal
 from core.organizations import bind_session_to_organization
 from models import Media, MediaVariant, Product, ProductMedia
-from schemas.enums import MediaOwnerType, MediaVariantKind
-from services.media_storage import PRODUCT_MEDIA_DIR, UPLOADS_ROOT, public_url_for_storage_key
+from modules.restaurant.models import MediaOwnerType, MediaVariantKind
+from modules.restaurant.services.media_storage import PRODUCT_MEDIA_DIR, UPLOADS_ROOT, public_url_for_storage_key
 
 
 PRODUCT_FOLDER_PATTERN = re.compile(r"^PRD-(\d+)$")

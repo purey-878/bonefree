@@ -133,7 +133,7 @@ class CatalogSeedTests(unittest.TestCase):
 
             for index in range(2):
                 target_root = temporary_root / f"target-{index}"
-                database_path = target_root / "bonefree.db"
+                database_path = target_root / "core_platform.db"
                 uploads_root = target_root / "uploads"
                 backups_root = target_root / "backups"
                 counts = seed_catalog(
@@ -183,7 +183,7 @@ class CatalogSeedTests(unittest.TestCase):
             self.assertEqual(reset_counts["user"], 5)
             backup_directories = list(backups_root.glob("pre-catalog-seed-*"))
             self.assertEqual(len(backup_directories), 1)
-            self.assertTrue((backup_directories[0] / "bonefree.db").is_file())
+            self.assertTrue((backup_directories[0] / "core_platform.db").is_file())
             self.assertTrue((backup_directories[0] / "products.zip").is_file())
             self.assertTrue((backup_directories[0] / "checksums.json").is_file())
             self.assertEqual(_database_fingerprint(database_path), fingerprints[0])
@@ -197,7 +197,7 @@ class CatalogSeedTests(unittest.TestCase):
                         apply=True,
                         reset=False,
                         confirm_reset=False,
-                        database_path=root / "bonefree.db",
+                        database_path=root / "core_platform.db",
                         uploads_root=root / "uploads",
                         catalog_root=CATALOG_ROOT,
                         backup_root=root / "backups",
@@ -206,7 +206,7 @@ class CatalogSeedTests(unittest.TestCase):
     def test_development_startup_seeds_only_an_empty_catalog(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             root = Path(temporary_directory)
-            database_path = root / "bonefree.db"
+            database_path = root / "core_platform.db"
             database_url = f"sqlite:///{database_path.as_posix()}"
             uploads_root = root / "uploads"
 
@@ -263,7 +263,7 @@ class CatalogSeedTests(unittest.TestCase):
 
     def test_automatic_seed_accepts_only_known_development_users(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
-            database_path = Path(temporary_directory) / "bonefree.db"
+            database_path = Path(temporary_directory) / "core_platform.db"
             connection = sqlite3.connect(database_path)
             try:
                 connection.execute('CREATE TABLE "user" (email TEXT NOT NULL)')
@@ -289,7 +289,7 @@ class CatalogSeedTests(unittest.TestCase):
     def test_automatic_seed_accepts_migrated_bonefree_bootstrap_and_preserves_profile(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             root = Path(temporary_directory)
-            database_path = root / "bonefree.db"
+            database_path = root / "core_platform.db"
             uploads_root = root / "uploads"
             database_url = f"sqlite:///{database_path.as_posix()}"
             _run_alembic_upgrade(database_path)
@@ -345,7 +345,7 @@ class CatalogSeedTests(unittest.TestCase):
     def test_development_startup_rebuilds_a_missing_database_with_existing_uploads(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             root = Path(temporary_directory)
-            database_path = root / "bonefree.db"
+            database_path = root / "core_platform.db"
             database_url = f"sqlite:///{database_path.as_posix()}"
             uploads_root = root / "uploads"
             products_root = uploads_root / "products"
@@ -375,7 +375,7 @@ class CatalogSeedTests(unittest.TestCase):
     def test_failed_install_restores_database_uploads_and_sidecars(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             root = Path(temporary_directory)
-            target_database = root / "target" / "bonefree.db"
+            target_database = root / "target" / "core_platform.db"
             uploads_root = root / "target" / "uploads"
             target_products = uploads_root / "products"
             target_products.mkdir(parents=True)
@@ -385,7 +385,7 @@ class CatalogSeedTests(unittest.TestCase):
             (target_products / "old.webp").write_bytes(b"old-image")
 
             stage = root / "stage"
-            staged_database = stage / "bonefree.db"
+            staged_database = stage / "core_platform.db"
             staged_products = stage / "products"
             staged_products.mkdir(parents=True)
             staged_database.write_bytes(b"new-database")

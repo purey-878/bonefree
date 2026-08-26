@@ -23,18 +23,19 @@ from models import (
     ProductReview,
     User,
 )
-from routers.admin import (
+from modules.restaurant.routers._shared import (
     _build_dashboard_sales_graphs,
     _unavailable_product_rows,
     _popular_product_rows,
     _product_sales_aggregate_rows,
     _sales_aggregate_rows,
 )
-from routers.cart import _delete_cart_items, _find_cart_line, _get_product_or_404
-from routers.checkout import _new_coupon_code
-from routers.products import get_product, list_products
-from routers.reviews import get_product_review_stats
-from schemas.enums import (
+from modules.restaurant.routers.cart import _delete_cart_items, _find_cart_line, _get_product_or_404
+from modules.restaurant.routers.checkout import _new_coupon_code
+from modules.restaurant.routers.products import get_product, list_products
+from modules.restaurant.routers.reviews import get_product_review_stats
+from modules.auth.models import UserRole, UserStatus
+from modules.restaurant.models import (
     CartCustomizationAction,
     EntityStatus,
     IngredientType,
@@ -44,12 +45,10 @@ from schemas.enums import (
     PaymentMethod,
     PaymentStatus,
     ReviewStatus,
-    UserRole,
-    UserStatus,
 )
-from services.product_availability import unavailable_base_product_ids
-from services.site_settings import get_site_theme_settings, save_site_theme
-from schemas.site_settings import SiteThemeSettings
+from modules.restaurant.services.product_availability import unavailable_base_product_ids
+from modules.restaurant.services.site_settings import get_site_theme_settings, save_site_theme
+from modules.restaurant.schemas.site_settings import SiteThemeSettings
 
 
 class SqlAlchemy2BehaviorTests(unittest.TestCase):
@@ -91,7 +90,7 @@ class SqlAlchemy2BehaviorTests(unittest.TestCase):
 
         category = Category(
             category_name="Mains",
-            admin_id=self.admin.id,
+            created_by_user_id=self.admin.id,
             status=EntityStatus.ACTIVE,
         )
         self.db.add(category)
@@ -103,7 +102,7 @@ class SqlAlchemy2BehaviorTests(unittest.TestCase):
             price=Decimal("12.00"),
             available=True,
             category_id=category.id,
-            admin_id=self.admin.id,
+            created_by_user_id=self.admin.id,
             status=EntityStatus.ACTIVE,
             discount_percentage=Decimal("10"),
         )
@@ -255,7 +254,7 @@ class SqlAlchemy2BehaviorTests(unittest.TestCase):
             price=Decimal("8.00"),
             available=False,
             category_id=self.product.category_id,
-            admin_id=self.admin.id,
+            created_by_user_id=self.admin.id,
             status=EntityStatus.ACTIVE,
             discount_percentage=Decimal("0"),
         )

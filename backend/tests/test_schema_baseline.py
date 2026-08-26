@@ -20,7 +20,8 @@ import models  # noqa: F401 - register every model in Base.metadata.
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 BASELINE_REVISION = "20260822_0001"
 TENANCY_REVISION = "20260823_0002"
-HEAD_REVISION = "20260825_0003"
+EXPERIENCE_REVISION = "20260825_0003"
+HEAD_REVISION = "20260826_0004"
 LEGACY_HEAD_REVISION = "b6d8f0a2c4e7"
 
 
@@ -87,12 +88,13 @@ class SchemaBaselineTests(unittest.TestCase):
 
         self.assertEqual(
             [revision.revision for revision in revisions],
-            [HEAD_REVISION, TENANCY_REVISION, BASELINE_REVISION],
+            [HEAD_REVISION, EXPERIENCE_REVISION, TENANCY_REVISION, BASELINE_REVISION],
         )
-        self.assertEqual(revisions[0].down_revision, TENANCY_REVISION)
-        self.assertEqual(revisions[1].down_revision, BASELINE_REVISION)
-        self.assertIsNone(revisions[2].down_revision)
-        baseline_source = Path(revisions[2].path).read_text(encoding="utf-8")
+        self.assertEqual(revisions[0].down_revision, EXPERIENCE_REVISION)
+        self.assertEqual(revisions[1].down_revision, TENANCY_REVISION)
+        self.assertEqual(revisions[2].down_revision, BASELINE_REVISION)
+        self.assertIsNone(revisions[3].down_revision)
+        baseline_source = Path(revisions[3].path).read_text(encoding="utf-8")
         self.assertNotIn("Base.metadata", baseline_source)
         self.assertNotIn("product_image", baseline_source)
 
@@ -117,6 +119,17 @@ class SchemaBaselineTests(unittest.TestCase):
                     "image",
                     {column["name"] for column in inspector.get_columns("product")},
                 )
+                self.assertNotIn(
+                    "organization_id",
+                    {column["name"] for column in inspector.get_columns("admin")},
+                )
+                self.assertNotIn(
+                    "organization_id",
+                    {column["name"] for column in inspector.get_columns("admin_session")},
+                )
+                admin_session_foreign_keys = inspector.get_foreign_keys("admin_session")
+                self.assertEqual(len(admin_session_foreign_keys), 1)
+                self.assertEqual(admin_session_foreign_keys[0]["referred_table"], "admin")
         finally:
             engine.dispose()
 
@@ -135,6 +148,46 @@ class SchemaBaselineTests(unittest.TestCase):
 
         self._alembic("upgrade", "head")
         self._assert_schema_matches_models(self.database_url)
+
+    def test_global_admin_upgrade_preserves_tenant_data_and_downgrades_cleanly(self):
+        self._alembic("upgrade", EXPERIENCE_REVISION)
+        engine = create_engine(self.database_url)
+        try:
+            with engine.connect() as connection:
+                organization_count = connection.scalar(text("SELECT COUNT(*) FROM organization"))
+                entitlement_count = connection.scalar(
+                    text("SELECT COUNT(*) FROM organization_feature_entitlement")
+                )
+        finally:
+            engine.dispose()
+
+        self._alembic("upgrade", HEAD_REVISION)
+        engine = create_engine(self.database_url)
+        try:
+            with engine.connect() as connection:
+                inspector = inspect(connection)
+                self.assertIn("admin", inspector.get_table_names())
+                self.assertIn("admin_session", inspector.get_table_names())
+                self.assertEqual(connection.scalar(text("SELECT COUNT(*) FROM admin")), 0)
+                self.assertEqual(connection.scalar(text("SELECT COUNT(*) FROM admin_session")), 0)
+                self.assertEqual(connection.scalar(text("SELECT COUNT(*) FROM organization")), organization_count)
+                self.assertEqual(
+                    connection.scalar(text("SELECT COUNT(*) FROM organization_feature_entitlement")),
+                    entitlement_count,
+                )
+        finally:
+            engine.dispose()
+
+        self._alembic("downgrade", EXPERIENCE_REVISION)
+        engine = create_engine(self.database_url)
+        try:
+            with engine.connect() as connection:
+                tables = set(inspect(connection).get_table_names())
+                self.assertNotIn("admin", tables)
+                self.assertNotIn("admin_session", tables)
+                self.assertEqual(connection.scalar(text("SELECT COUNT(*) FROM organization")), organization_count)
+        finally:
+            engine.dispose()
 
     def test_startup_rejects_the_archived_head_revision(self):
         engine = create_engine(self.database_url)

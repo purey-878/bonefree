@@ -22,7 +22,7 @@ from core.config import settings
 from core.organizations import bind_session_to_organization
 from database import SessionLocal, engine
 from models import Media, MediaVariant, ProductMedia, User
-from schemas.enums import UserRole, UserStatus
+from modules.auth.models import UserRole, UserStatus
 from scripts.migrate_product_images_to_media import (
     audit_product_media_in_session,
     reconcile_product_media_in_session,

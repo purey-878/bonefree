@@ -1,6 +1,6 @@
-# Bonefree production deployment
+# Core Platform production deployment
 
-This guide deploys the shared multi-tenant Bonefree backend to an Ubuntu 24.04 VPS and the static frontend to an HTTPS hosting service. The frontend can be published as one global/shared application or as one tenant-specific application per tenant. Both modes use the same React code and the same backend.
+This guide deploys the shared multi-tenant Core Platform backend to an Ubuntu 24.04 VPS and the static frontend to an HTTPS hosting service. Bonefree remains the initial tenant, with its own slug, domains, experience, assets, and catalog; it is not the technical name of the platform. The frontend can be published as one global/shared application or as one tenant-specific application per tenant. Both modes use the same React code and the same backend.
 
 Before starting, you need:
 
@@ -189,8 +189,8 @@ For example, if the API is `api.shop.example` and the frontend is `https://shop.
 
 ```dotenv
 API_DOMAIN=api.shop.example
-POSTGRES_DB=bonefree
-POSTGRES_USER=bonefree
+POSTGRES_DB=core_platform
+POSTGRES_USER=core_platform
 POSTGRES_PASSWORD=paste_the_random_value_here
 CORS_ORIGINS=https://shop.example,https://www.shop.example
 ```
@@ -219,6 +219,32 @@ git check-ignore .env
 ```
 
 The command should print a matching ignore rule. If it prints nothing, stop and fix `.gitignore` before continuing.
+
+### Existing PostgreSQL deployments
+
+The `core_platform` database and user names above are defaults for new deployments. Alembic migrates objects inside the connected database; it does not rename an existing PostgreSQL database or role. An existing installation may keep its current PostgreSQL role, but should move the data to a database named `core_platform` during a maintenance window:
+
+```bash
+mkdir -p backups
+chmod 700 backups
+docker compose stop caddy api
+docker compose exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > backups/before-core-platform.dump
+chmod 600 backups/before-core-platform.dump
+docker compose exec -T postgres sh -c 'createdb -U "$POSTGRES_USER" -O "$POSTGRES_USER" core_platform'
+docker compose exec -T postgres sh -c 'pg_restore -U "$POSTGRES_USER" -d core_platform --exit-on-error' < backups/before-core-platform.dump
+```
+
+Change only `POSTGRES_DB=core_platform` in `.env` initially, keeping the established `POSTGRES_USER` and password. Then start the API and validate the migration revision and tenant data:
+
+```bash
+docker compose up -d postgres redis api
+docker compose exec api alembic current
+docker compose exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT version_num FROM alembic_version; SELECT COUNT(*) AS organizations FROM organization; SELECT COUNT(*) AS users FROM \"user\"; SELECT COUNT(*) AS products FROM product; SELECT COUNT(*) AS orders FROM customer_order;"'
+docker compose logs --tail=200 api
+curl --fail --show-error https://api.yourdomain.com/health
+```
+
+The Alembic revision must be the current repository head, and existing organizations, users, products, and orders must still be present before Caddy is started again with `docker compose up -d caddy`. If validation fails, stop the API, restore the previous `POSTGRES_DB` value in `.env`, and start the old database connection again. Keep the dump until the new database has been backed up and restore-tested. Renaming the established PostgreSQL role is a separate database-administration operation and is not required by this application migration.
 
 ## 5. Validate, build, and start
 
@@ -268,7 +294,7 @@ Also test from a browser or a machine outside the VPS. A successful `curl` execu
 
 The `/docs`, `/redoc`, and `/openapi.json` pages are disabled in production by the application.
 
-## 6. Create the first administrator
+## 6. Create the first tenant owner
 
 Run the interactive assistant. `docker compose exec` allocates an interactive terminal by default, which allows the script to hide the password:
 
@@ -281,7 +307,7 @@ Enter the first name, last name, email address, and a strong password. Password 
 The command uses the `bonefree` organization created by the migration. For another
 organization, pass `--organization-slug your-slug`.
 
-The command only works when no `owner` exists. It never changes an existing account. Use this email on the administrator login page afterward.
+The command only works when no `owner` exists. It never changes an existing account. Use this email on the tenant administration login page afterward. This owner is an organization-scoped `User`; it is not a global Core Platform `Admin`. Global administrator tables are reserved for future platform management and currently have no login route or bootstrap command.
 
 ## 7. Load the initial catalog
 
@@ -317,7 +343,7 @@ docker compose exec api python -m scripts.create_organization \
   --email hello@example.com
 ```
 
-If the tenant needs its own administration account, create its first owner interactively. You can then load that tenant's catalog with the section 7 commands and the same `--organization-slug` value:
+If the tenant needs its own management account, create its first organization owner interactively. You can then load that tenant's catalog with the section 7 commands and the same `--organization-slug` value:
 
 ```bash
 docker compose exec api python -m scripts.create_first_owner \

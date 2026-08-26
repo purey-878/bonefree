@@ -12,10 +12,10 @@ from pydantic import ValidationError
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
 
 from models import CartProduct, CartProductCustomization  # noqa: E402
-from routers.cart import _add_customized_item_impl, _trusted_guest_customization  # noqa: E402
-from schemas.customization import CustomizedCartItemRequest, ItemCustomization  # noqa: E402
-from schemas.enums import CartCustomizationAction  # noqa: E402
-from services.order_customization import (  # noqa: E402
+from modules.restaurant.routers.cart import _add_customized_item_impl, _trusted_guest_customization  # noqa: E402
+from modules.restaurant.schemas.customization import CustomizedCartItemRequest, ItemCustomization  # noqa: E402
+from modules.restaurant.models import CartCustomizationAction  # noqa: E402
+from modules.restaurant.services.order_customization import (  # noqa: E402
     customization_from_json,
     customization_summary,
     customization_to_json,
@@ -112,7 +112,7 @@ class OrderCustomizationTests(unittest.TestCase):
         trusted = ItemCustomization(removed_ingredients=[4], note="no sesame", final_unit_price=Decimal("10"))
 
         with patch(
-            "routers.cart._validate_and_build_customization",
+            "modules.restaurant.routers.cart._validate_and_build_customization",
             return_value=(trusted, Decimal("10"), []),
         ) as validate:
             result, rows = _trusted_guest_customization(db, product, 2, customization)
@@ -125,7 +125,7 @@ class OrderCustomizationTests(unittest.TestCase):
     def test_customized_cart_item_persists_notes(self):
         db = FakeSession()
         product = SimpleNamespace(product_id=1, customizable=True, price=Decimal("10"), discount_percentage=0, available=True)
-        customer = SimpleNamespace(customer_id=7)
+        customer = SimpleNamespace(id=7)
         cart = SimpleNamespace(cart_id=9)
         body = CustomizedCartItemRequest(product_id=1, notes="no sesame")
         customization = ItemCustomization(note="no sesame", final_unit_price=Decimal("10"))
@@ -138,16 +138,16 @@ class OrderCustomizationTests(unittest.TestCase):
         }]
 
         with (
-            patch("routers.cart._get_product_or_404", return_value=product),
-            patch("routers.cart._ensure_product_orderable"),
-            patch("routers.cart._ensure_quantity_limit"),
+            patch("modules.restaurant.routers.cart._get_product_or_404", return_value=product),
+            patch("modules.restaurant.routers.cart._ensure_product_orderable"),
+            patch("modules.restaurant.routers.cart._ensure_quantity_limit"),
             patch(
-                "routers.cart._validate_and_build_customization",
+                "modules.restaurant.routers.cart._validate_and_build_customization",
                 return_value=(customization, Decimal("10"), customization_rows),
             ),
-            patch("routers.cart._get_or_create_cart", return_value=cart),
-            patch("routers.cart._find_cart_line", return_value=None),
-            patch("routers.cart._build_cart_out", return_value="cart-response"),
+            patch("modules.restaurant.routers.cart._get_or_create_cart", return_value=cart),
+            patch("modules.restaurant.routers.cart._find_cart_line", return_value=None),
+            patch("modules.restaurant.routers.cart._build_cart_out", return_value="cart-response"),
         ):
             response = _add_customized_item_impl(body, db, customer)
 

@@ -26,17 +26,17 @@ from core.rate_limit import (
 )
 from core.redis import InMemoryRedis, create_redis_client
 from dependencies import (
-    rate_limit_admin,
-    rate_limit_admin_login,
+    rate_limit_staff,
+    rate_limit_staff_login,
     rate_limit_login,
     rate_limit_order,
     rate_limit_register,
-    get_current_admin,
-    require_role,
+    get_current_staff_user,
+    require_organization_role,
 )
-from schemas.admin import AdminLogin
-from schemas.enums import UserRole
-from schemas.user import UserAuth, UserRegister
+from modules.restaurant.schemas.owner import AdminLogin
+from modules.auth.models import UserRole
+from modules.auth.schemas.user import UserAuth, UserRegister
 
 
 def build_request(
@@ -252,7 +252,7 @@ class RateLimitDependencyTests(unittest.IsolatedAsyncioTestCase):
             patch.object(settings, "rate_limit_auth_ip_requests", 10),
             patch.object(settings, "rate_limit_login_identifier_requests", 1),
             patch.object(settings, "rate_limit_register_email_requests", 1),
-            patch.object(settings, "rate_limit_admin_login_requests", 1),
+            patch.object(settings, "rate_limit_staff_login_requests", 1),
         ):
             self.assertIs(await dependency(payload, request), payload)
             with self.assertRaises(AppHTTPException):
@@ -273,20 +273,20 @@ class RateLimitDependencyTests(unittest.IsolatedAsyncioTestCase):
             ),
         )
         await self._assert_credential_dependency_limits(
-            rate_limit_admin_login,
+            rate_limit_staff_login,
             AdminLogin(email="admin@example.com", password="password"),
         )
 
     async def test_admin_and_future_order_limits_use_separate_ip_buckets(self):
         request = build_request(redis_client=InMemoryRedis())
         with (
-            patch.object(settings, "rate_limit_admin_requests", 1),
+            patch.object(settings, "rate_limit_staff_requests", 1),
             patch.object(settings, "rate_limit_order_requests", 1),
         ):
-            await rate_limit_admin(request)
+            await rate_limit_staff(request)
             await rate_limit_order(request)
             with self.assertRaises(AppHTTPException):
-                await rate_limit_admin(request)
+                await rate_limit_staff(request)
             with self.assertRaises(AppHTTPException):
                 await rate_limit_order(request)
 
@@ -306,26 +306,26 @@ class RateLimitDependencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertLessEqual(int(context.exception.headers["Retry-After"]), 60)
 
     def test_require_role_centralizes_admin_rate_limit(self):
-        checker = require_role(UserRole.OWNER)
+        checker = require_organization_role(UserRole.OWNER)
         dependency = inspect.signature(checker).parameters["_rate_limit"].default
         self.assertIsInstance(dependency, DependsParameter)
-        self.assertIs(dependency.dependency, rate_limit_admin)
+        self.assertIs(dependency.dependency, rate_limit_staff)
 
     def test_protected_admin_route_returns_429_after_limit(self):
         app = FastAPI()
         app.state.redis = InMemoryRedis()
         app.add_exception_handler(AppHTTPException, app_http_exception_handler)
-        app.dependency_overrides[get_current_admin] = lambda: type(
+        app.dependency_overrides[get_current_staff_user] = lambda: type(
             "CurrentAdmin",
             (),
             {"role": UserRole.OWNER},
         )()
 
-        @app.get("/admin/limited", dependencies=[Depends(require_role(UserRole.OWNER))])
+        @app.get("/admin/limited", dependencies=[Depends(require_organization_role(UserRole.OWNER))])
         def protected_admin_route():
             return {"ok": True}
 
-        with patch.object(settings, "rate_limit_admin_requests", 1):
+        with patch.object(settings, "rate_limit_staff_requests", 1):
             client = TestClient(app)
             self.assertEqual(client.get("/admin/limited").status_code, 200)
             response = client.get("/admin/limited")

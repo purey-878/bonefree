@@ -1,4 +1,6 @@
 import re
+from collections.abc import Mapping
+from typing import NotRequired, TypedDict
 
 
 FIELD_LABELS: dict[str, str] = {
@@ -32,10 +34,25 @@ _TYPE_ERROR_TYPES = {
 }
 
 
-def map_pydantic_error(error: dict) -> dict:
-    error_type: str = error.get("type", "")
-    loc: tuple = error.get("loc", ())
-    ctx: dict = error.get("ctx") or {}
+class ValidationErrorParams(TypedDict, total=False):
+    min: int
+    max: int | str
+    choices: list[str] | str
+
+
+class MappedValidationError(TypedDict):
+    field: str
+    code: str
+    message: str
+    params: NotRequired[ValidationErrorParams]
+
+
+def map_pydantic_error(error: Mapping[str, object]) -> MappedValidationError:
+    error_type = str(error.get("type") or "")
+    raw_location = error.get("loc")
+    loc = tuple(raw_location) if isinstance(raw_location, (list, tuple)) else ()
+    raw_context = error.get("ctx")
+    ctx: Mapping[str, object] = raw_context if isinstance(raw_context, Mapping) else {}
 
     field = next(
         (str(p) for p in reversed(loc) if isinstance(p, str) and p != "body"),
@@ -71,8 +88,8 @@ def map_pydantic_error(error: dict) -> dict:
         }
 
     if error_type in ("enum", "literal_error"):
-        raw_expected = ctx.get("expected", "")
-        if raw_expected:
+        raw_expected = ctx.get("expected")
+        if isinstance(raw_expected, str) and raw_expected:
             choices = _clean_expected(raw_expected)
             values = _expected_values(raw_expected)
             return {

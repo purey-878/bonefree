@@ -27,7 +27,7 @@ from models import (
     ReviewReaction,
     ReviewReply,
 )
-from services.media_storage import delete_storage_key
+from modules.restaurant.services.media_storage import delete_storage_key
 
 
 def _log(message: str) -> None:

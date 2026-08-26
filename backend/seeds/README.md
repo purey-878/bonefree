@@ -69,7 +69,7 @@ validated staged database and product uploads into place:
 During development startup, the application automatically applies the full catalog
 seed when the database catalog is empty. Existing product uploads are backed up and
 atomically replaced with the normalized seed files in that case, which also supports
-rebuilding after deleting only `backend/bonefree.db`. Existing catalog, real users,
+rebuilding after deleting only `backend/core_platform.db`. Existing catalog, real users,
 and operational data are never reset automatically. Conflicting database data still
 requires the explicit reset command above. The five deterministic development users
 are created with freshly hashed test passwords; real users and all runtime/customer

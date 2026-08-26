@@ -5,8 +5,8 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
 
-from services.receipt_email import render_receipt_email  # noqa: E402
-from services.receipt_pdf import receipt_pdf_filename, render_receipt_pdf  # noqa: E402
+from modules.restaurant.services.receipt_email import render_receipt_email  # noqa: E402
+from modules.restaurant.services.receipt_pdf import receipt_pdf_filename, render_receipt_pdf  # noqa: E402
 
 
 def sample_receipt():

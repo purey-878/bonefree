@@ -10,7 +10,7 @@ from fastapi import Request, status
 from core.config import settings
 from core.errors import AppHTTPException, build_error_payload
 from core.redis import RedisProtocol
-from schemas.errors import ApiErrorResponse
+from core.api_schemas import ApiErrorResponse
 
 logger = logging.getLogger(__name__)
 

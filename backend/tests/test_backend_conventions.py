@@ -156,11 +156,16 @@ class BackendConventionTests(unittest.TestCase):
 
     def test_admin_routes_require_an_explicit_role(self):
         violations = []
-        route_files = [
-            BACKEND / "routers" / "admin.py",
-            BACKEND / "routers" / "reviews.py",
-            BACKEND / "routers" / "site_settings.py",
-        ]
+        route_root = BACKEND / "modules" / "restaurant" / "routers"
+        route_files = list(route_root.rglob("*.py"))
+        staff_route_files = {
+            "analytics.py",
+            "catalog.py",
+            "customers.py",
+            "orders.py",
+            "owner.py",
+            "staff_auth.py",
+        }
         for path in route_files:
             tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
             for node in ast.walk(tree):
@@ -176,17 +181,29 @@ class BackendConventionTests(unittest.TestCase):
                         else ""
                     )
                     is_admin_route = (
-                        (path.name == "admin.py" and isinstance(receiver, ast.Name) and receiver.id == "router")
-                        or (path.name == "site_settings.py" and isinstance(receiver, ast.Name) and receiver.id == "admin_router")
+                        (path.name in staff_route_files and isinstance(receiver, ast.Name) and receiver.id == "router")
+                        or (path.name == "site_settings.py" and isinstance(receiver, ast.Name) and receiver.id == "owner_router")
                         or (path.name == "reviews.py" and route_path.startswith("/admin/"))
                     )
-                    if is_admin_route and operation_id != "admin_management_admin_login" and "require_role" not in dependencies:
+                    if (
+                        is_admin_route
+                        and operation_id != "admin_management_admin_login"
+                        and "require_organization_role" not in dependencies
+                    ):
                         violations.append(f"{path.relative_to(ROOT)}:{node.lineno}:{operation_id}")
         self.assertEqual(violations, [], f"Protected admin routes must use require_role: {violations}")
 
     def test_optional_customer_auth_is_limited_to_guest_capable_routes(self):
         found = set()
-        for path in (BACKEND / "routers").glob("*.py"):
+        route_roots = (
+            BACKEND / "modules" / "auth" / "routers",
+            BACKEND / "modules" / "restaurant" / "routers",
+        )
+        for path in (
+            path
+            for route_root in route_roots
+            for path in route_root.rglob("*.py")
+        ):
             tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
             for node in ast.walk(tree):
                 if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):

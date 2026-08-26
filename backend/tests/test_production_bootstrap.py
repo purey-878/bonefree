@@ -12,11 +12,11 @@ from sqlalchemy.orm import Session
 
 from database import Base
 from models import Category, Media, Organization, OrganizationProfile, Product, User
-from schemas.enums import UserRole, UserStatus
+from modules.auth.models import UserRole, UserStatus
 from scripts.create_first_owner import OwnerBootstrapError, create_first_owner
 from scripts import seed_production_catalog as production_seed
 from seeds.catalog_seed import CatalogSeedError
-from services.auth_service import verify_password
+from modules.auth.services.authentication import verify_password
 
 
 class ProductionBootstrapTests(unittest.TestCase):
@@ -158,8 +158,8 @@ class ProductionBootstrapTests(unittest.TestCase):
         self.assertGreater(counts["product"], 0)
         self.assertGreater(counts["media"], 0)
         self.assertEqual(self.db.scalar(select(func.count()).select_from(User)), 1)
-        self.assertEqual(set(self.db.scalars(select(Category.admin_id))), {owner.id})
-        self.assertEqual(set(self.db.scalars(select(Product.admin_id))), {owner.id})
+        self.assertEqual(set(self.db.scalars(select(Category.created_by_user_id))), {owner.id})
+        self.assertEqual(set(self.db.scalars(select(Product.created_by_user_id))), {owner.id})
         profile = self.db.scalar(select(OrganizationProfile))
         self.assertIsNotNone(profile)
         self.assertEqual(profile.legal_name, "Preserved Bonefree, Lda.")

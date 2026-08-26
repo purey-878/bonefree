@@ -23,7 +23,7 @@ if str(BACKEND_DIR) not in sys.path:
 
 from core.organizations import bind_session_to_organization
 from database import SessionLocal
-from json_types import FeatureEntitlementConfigurationData
+from modules.auth.models import FeatureEntitlementConfigurationData
 from models import OrganizationFeatureEntitlement
 
 

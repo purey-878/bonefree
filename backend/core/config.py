@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -12,7 +12,7 @@ BACKEND_ENV_FILE = BASE_DIR / ".env"
 
 
 class Settings(BaseSettings):
-    app_name: str = Field(default="Bonefree API", validation_alias="APP_NAME")
+    app_name: str = Field(default="Core Platform API", validation_alias="APP_NAME")
     app_version: str = Field(default="0.1.0", validation_alias="APP_VERSION")
     environment: Literal["development", "test", "production"] = Field(
         default="development",
@@ -27,7 +27,7 @@ class Settings(BaseSettings):
         return self.environment == "development"
 
     database_url: str = Field(
-        default=f"sqlite:///{(BASE_DIR / 'bonefree.db').as_posix()}",
+        default=f"sqlite:///{(BASE_DIR / 'core_platform.db').as_posix()}",
         validation_alias="DATABASE_URL",
     )
     database_pool_size: int = Field(
@@ -56,10 +56,16 @@ class Settings(BaseSettings):
     )
     auto_apply_migrations: bool = Field(default=True, validation_alias="AUTO_APPLY_MIGRATIONS")
     session_expiration_minutes: int = Field(default=10080, validation_alias="SESSION_EXPIRATION_MINUTES")
-    admin_session_expiration_minutes: int = Field(default=480, validation_alias="ADMIN_SESSION_EXPIRATION_MINUTES")
-    admin_session_inactivity_expiration_minutes: int = Field(
+    staff_session_expiration_minutes: int = Field(
+        default=480,
+        validation_alias=AliasChoices("STAFF_SESSION_EXPIRATION_MINUTES", "ADMIN_SESSION_EXPIRATION_MINUTES"),
+    )
+    staff_session_inactivity_expiration_minutes: int = Field(
         default=60,
-        validation_alias="ADMIN_SESSION_INACTIVITY_EXPIRATION_MINUTES",
+        validation_alias=AliasChoices(
+            "STAFF_SESSION_INACTIVITY_EXPIRATION_MINUTES",
+            "ADMIN_SESSION_INACTIVITY_EXPIRATION_MINUTES",
+        ),
     )
     redis_url_raw: str | None = Field(default=None, validation_alias="REDIS_URL")
     rate_limit_enabled: bool = Field(default=True, validation_alias="RATE_LIMIT_ENABLED")
@@ -87,21 +93,24 @@ class Settings(BaseSettings):
         default=300,
         validation_alias="RATE_LIMIT_REGISTER_EMAIL_WINDOW_SECONDS",
     )
-    rate_limit_admin_requests: int = Field(
+    rate_limit_staff_requests: int = Field(
         default=100,
-        validation_alias="RATE_LIMIT_ADMIN_REQUESTS",
+        validation_alias=AliasChoices("RATE_LIMIT_STAFF_REQUESTS", "RATE_LIMIT_ADMIN_REQUESTS"),
     )
-    rate_limit_admin_window_seconds: int = Field(
+    rate_limit_staff_window_seconds: int = Field(
         default=60,
-        validation_alias="RATE_LIMIT_ADMIN_WINDOW_SECONDS",
+        validation_alias=AliasChoices("RATE_LIMIT_STAFF_WINDOW_SECONDS", "RATE_LIMIT_ADMIN_WINDOW_SECONDS"),
     )
-    rate_limit_admin_login_requests: int = Field(
+    rate_limit_staff_login_requests: int = Field(
         default=5,
-        validation_alias="RATE_LIMIT_ADMIN_LOGIN_REQUESTS",
+        validation_alias=AliasChoices("RATE_LIMIT_STAFF_LOGIN_REQUESTS", "RATE_LIMIT_ADMIN_LOGIN_REQUESTS"),
     )
-    rate_limit_admin_login_window_seconds: int = Field(
+    rate_limit_staff_login_window_seconds: int = Field(
         default=300,
-        validation_alias="RATE_LIMIT_ADMIN_LOGIN_WINDOW_SECONDS",
+        validation_alias=AliasChoices(
+            "RATE_LIMIT_STAFF_LOGIN_WINDOW_SECONDS",
+            "RATE_LIMIT_ADMIN_LOGIN_WINDOW_SECONDS",
+        ),
     )
     rate_limit_order_requests: int = Field(
         default=10,

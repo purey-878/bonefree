@@ -150,7 +150,7 @@ def archive_snapshot(
         source.close()
 
     output_directory.mkdir(parents=True, exist_ok=False)
-    database_backup = output_directory / "bonefree.db"
+    database_backup = output_directory / "core_platform.db"
     uploads_archive = output_directory / "uploads.zip"
     manifest_path = output_directory / "uploads-manifest.json"
 
@@ -195,7 +195,7 @@ def main() -> None:
     parser.add_argument(
         "--database",
         type=Path,
-        default=project_root / "backend" / "bonefree.db",
+        default=project_root / "backend" / "core_platform.db",
     )
     parser.add_argument(
         "--uploads",

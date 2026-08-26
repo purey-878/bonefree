@@ -23,7 +23,7 @@ if str(BACKEND_DIR) not in sys.path:
 
 from core.organizations import bind_session_to_organization
 from database import SessionLocal
-from json_types import (
+from modules.auth.models import (
     ExperienceAssetsData,
     ExperiencePagesData,
     NavigationItemData,
@@ -31,7 +31,7 @@ from json_types import (
     VariantOverridesData,
 )
 from models import OrganizationExperience
-from schemas.organization import PublicExperienceConfiguration
+from modules.auth.schemas.organization import PublicExperienceConfiguration
 
 
 class OrganizationExperienceDocument(BaseModel):

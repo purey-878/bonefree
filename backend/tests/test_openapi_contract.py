@@ -45,7 +45,12 @@ class OpenApiContractTests(unittest.TestCase):
 
     def test_every_route_decorator_declares_a_unique_literal_operation_id(self):
         operation_ids = {}
-        route_files = [ROOT / "backend" / "app.py", *(ROOT / "backend" / "routers").glob("*.py")]
+        module_router_files = [
+            path
+            for path in (ROOT / "backend" / "modules").rglob("*.py")
+            if path.parent.name == "routers"
+        ]
+        route_files = [ROOT / "backend" / "app.py", *module_router_files]
         route_methods = {"get", "post", "put", "patch", "delete", "options", "head", "trace"}
 
         for route_file in route_files:
