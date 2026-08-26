@@ -229,8 +229,8 @@ function Checkout() {
     const validators: Partial<Record<keyof CheckoutForm, (input: string) => string>> = {
       firstName: validateName,
       lastName: validateName,
-      email: validateEmail,
-      phone: (input) => validatePhone(input),
+      email: (input) => input.trim() ? validateEmail(input) : "",
+      phone: (input) => validatePhone(input, false),
       taxId: (input) => validateNif(input),
     }
     const nextError = validators[field]?.(nextValue) ?? ""
@@ -242,8 +242,8 @@ function Checkout() {
     const errors: FieldErrors<keyof CheckoutForm> = {}
     const firstNameError = validateName(form.firstName)
     const lastNameError = validateName(form.lastName)
-    const emailError = validateEmail(form.email)
-    const phoneError = validatePhone(form.phone)
+    const emailError = form.email.trim() ? validateEmail(form.email) : ""
+    const phoneError = validatePhone(form.phone, false)
     const nifError = validateNif(form.taxId)
     if (firstNameError) errors.firstName = firstNameError
     if (lastNameError) errors.lastName = lastNameError
@@ -357,8 +357,8 @@ function Checkout() {
         customer: {
           firstName: form.firstName.trim(),
           lastName: form.lastName.trim(),
-          email: form.email.trim(),
-          phone: form.phone.trim(),
+          email: form.email.trim() || null,
+          phone: form.phone.trim() || null,
           taxId: form.taxId.trim() || null,
           tableNumber: fulfillment === "dine_in" && form.tableNumber.trim() ? parseInt(form.tableNumber, 10) : null,
         },
@@ -465,9 +465,6 @@ function Checkout() {
     const confirmationMessage = confirmationIsGuest
       ? t("checkout.confirmation.guestMessage")
       : t("checkout.confirmation.accountMessage")
-    const nextStepMessage = confirmationIsGuest
-      ? t("checkout.confirmation.guestNext")
-      : t("checkout.confirmation.accountNext")
     const hasMultipleActiveOrders = activeOrderCount !== null && activeOrderCount > 1
     const highlightOrderStatus = () => {
       window.dispatchEvent(new Event("order-status-highlight"))
@@ -493,7 +490,6 @@ function Checkout() {
             <div>
               <p className="order-status-popup-title">{t("checkout.confirmation.received")}</p>
               <p className="order-status-popup-copy">{t("checkout.confirmation.popup", { order: orderNumber, status: readableStatus, paymentNote })}</p>
-              <p className="order-status-popup-next">{nextStepMessage}</p>
             </div>
             <button type="button" onClick={() => setShowStatusPopup(false)} aria-label={t("checkout.confirmation.closeStatus")}>
               x
@@ -885,7 +881,7 @@ function Checkout() {
 
                 <div className="checkout-fields two-columns">
                   <label>
-                    {t("fields.email", { ns: "common" })}
+                    {t("fields.email", { ns: "common" })} ({t("checkout.fulfillment.optional").toLocaleLowerCase(resolvedLocale())})
                     <input
                       className={fieldErrors.email ? "is-invalid" : ""}
                       type="email"
@@ -901,7 +897,7 @@ function Checkout() {
                   </label>
 
                   <label>
-                    {t("fields.phone", { ns: "common" })}
+                    {t("fields.phone", { ns: "common" })} ({t("checkout.fulfillment.optional").toLocaleLowerCase(resolvedLocale())})
                     <input
                       value={form.phone}
                       onChange={(e) => updateForm("phone", e.target.value)}

@@ -605,10 +605,17 @@
       "CheckoutCustomer": {
         "properties": {
           "email": {
-            "maxLength": 150,
-            "minLength": 3,
-            "title": "Email",
-            "type": "string"
+            "anyOf": [
+              {
+                "maxLength": 150,
+                "minLength": 3,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
           },
           "first_name": {
             "maxLength": 80,
@@ -662,8 +669,7 @@
         },
         "required": [
           "first_name",
-          "last_name",
-          "email"
+          "last_name"
         ],
         "title": "CheckoutCustomer",
         "type": "object"

@@ -7,7 +7,7 @@ export type PaymentMethod = 'counter';
 export interface CheckoutCustomer {
   firstName: string;
   lastName: string;
-  email: string;
+  email?: string | null;
   phone?: string | null;
   taxId?: string | null;
   tableNumber?: number | null;

@@ -634,7 +634,7 @@ def create_order(
         admin_id=None,
         customer_first_name=body.customer.first_name,
         customer_last_name=body.customer.last_name,
-        customer_email=str(body.customer.email),
+        customer_email=body.customer.email,
         customer_phone=body.customer.phone,
         customer_tax_id=(body.customer.tax_id or "").strip() or None,
         order_access_token_hash=order_access_token_hash,

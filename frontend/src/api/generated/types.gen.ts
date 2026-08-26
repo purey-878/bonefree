@@ -398,7 +398,7 @@ export type CheckoutCustomer = {
     /**
      * Email
      */
-    email: string;
+    email?: string | null;
     /**
      * First Name
      */

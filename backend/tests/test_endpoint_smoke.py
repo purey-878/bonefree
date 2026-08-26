@@ -540,6 +540,7 @@ class EndpointSmokeTests(unittest.TestCase):
         self.assertEqual(wrong.status_code, 404, wrong.text)
         self.assertEqual(non_owner.status_code, 404, non_owner.text)
         self.assertEqual(allowed.status_code, 200, allowed.text)
+
         self.assertEqual(self.client.get("/checkout/orders/history").status_code, 401)
         self.assertEqual(self.client.get("/profile").status_code, 401)
 
@@ -565,6 +566,19 @@ class EndpointSmokeTests(unittest.TestCase):
         )
         self.assertEqual(cancelled.status_code, 200, cancelled.text)
         self.assertEqual(cancelled.json()["status"], "cancelled")
+
+    def test_guest_checkout_allows_email_and_phone_to_be_omitted(self):
+        payload = self._checkout_payload()
+        payload["customer"].pop("email")
+        payload["customer"].pop("phone")
+
+        created = self.client.post("/checkout/orders", json=payload)
+
+        self.assertEqual(created.status_code, 201, created.text)
+        with self.Session() as db:
+            order = db.get(Order, created.json()["order_id"])
+            self.assertIsNone(order.customer_email)
+            self.assertIsNone(order.customer_phone)
 
     def test_guest_coupon_is_rejected_without_partial_order(self):
         with self.Session() as db:

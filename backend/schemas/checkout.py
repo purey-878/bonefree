@@ -23,7 +23,7 @@ from utils.validation import normalize_phone, validate_email, validate_name, val
 class CheckoutCustomer(BaseModel):
     first_name: str = Field(..., min_length=1, max_length=80)
     last_name: str = Field(..., min_length=1, max_length=80)
-    email: str = Field(..., min_length=3, max_length=150)
+    email: Optional[str] = Field(None, min_length=3, max_length=150)
     phone: Optional[str] = Field(None, max_length=30)
     tax_id: Optional[str] = Field(None, max_length=20)
     table_number: Optional[int] = Field(None, ge=1, le=999)
@@ -38,7 +38,9 @@ class CheckoutCustomer(BaseModel):
 
     @field_validator("email")
     @classmethod
-    def check_email(cls, value: str) -> str:
+    def check_email(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
         return validate_email(value)
 
     @field_validator("phone")
