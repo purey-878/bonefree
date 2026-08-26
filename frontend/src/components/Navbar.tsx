@@ -72,7 +72,8 @@ const TopNav = styled.header<{ $glassDark?: boolean }>`
   top: 0;
   right: 0;
   left: 0;
-  z-index: 5000;
+  /* Above sticky page controls, but below application overlays such as the cart drawer. */
+  z-index: 1300;
   height:72px;
 
   --nav-text: ${({ $glassDark }) =>
