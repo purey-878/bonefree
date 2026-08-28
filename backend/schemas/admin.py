@@ -20,6 +20,7 @@ from schemas.enums import (
 )
 from .id_types import CategoryId, ProductId
 from .media import ProductMediaResponse
+from .pagination import PaginatedResponse
 
 ORDER_STATES = set(enum_values(OrderState))
 KITCHEN_ORDER_STATES = {
@@ -196,6 +197,7 @@ class IngredientResponse(BaseModel):
     status: EntityStatus
     available: bool
     calories_per_gram: Optional[float] = None
+    linked_product_count: int = 0
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -315,6 +317,14 @@ class ProductAdminResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ProductAdminPageResponse(PaginatedResponse[ProductAdminResponse]):
+    pass
+
+
+class IngredientPageResponse(PaginatedResponse[IngredientResponse]):
+    pass
+
+
 # Order Schemas
 class CartItemResponse(BaseModel):
     """Response model for cart item."""
@@ -353,6 +363,26 @@ class OrderResponse(BaseModel):
     items: List[CartItemResponse]
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class AdminOrderSummary(BaseModel):
+    pending: int = 0
+    preparing: int = 0
+    ready: int = 0
+    completed: int = 0
+    revenue: float = 0
+
+
+class AdminOrderPageResponse(PaginatedResponse[OrderResponse]):
+    summary: AdminOrderSummary
+
+
+class CustomerAdminPageResponse(PaginatedResponse[CustomerAdminResponse]):
+    pass
+
+
+class StaffAdminPageResponse(PaginatedResponse[AdminResponse]):
+    pass
 
 
 class OrderStatusUpdate(BaseModel):
@@ -487,8 +517,13 @@ class CategoryResponse(BaseModel):
     category_name: str
     category_description: Optional[str] = None
     status: Optional[EntityStatus] = None
+    active_product_count: int = 0
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class CategoryPageResponse(PaginatedResponse[CategoryResponse]):
+    pass
 
 
 class CategoryCreate(BaseModel):

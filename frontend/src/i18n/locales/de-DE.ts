@@ -54,6 +54,10 @@ const deDE = {
       show: "Anzeigen",
       view: "Ansehen",
     },
+    pagination: {
+      navigation: "Seitennavigation", range: "{{first}}–{{last}} von {{total}} Ergebnissen", singleRange: "{{count}} von {{total}} Ergebnissen", perPage: "Pro Seite",
+      previous: "Vorherige Seite", next: "Nächste Seite", page: "Zu Seite {{page}} wechseln", goTo: "Seite", go: "Los",
+    },
     fields: {
       address: "Adresse",
       city: "Ort",

@@ -2,8 +2,8 @@
 
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, Response, status
-from sqlalchemy import func, select
+from fastapi import APIRouter, Depends, Query, Response, status
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
 
@@ -14,9 +14,12 @@ from schemas.enums import EntityStatus, OrderState, ReviewStatus
 from models import Admin, Customer, Order, OrderProduct, Product, ProductReview, ReviewReaction, ReviewReply
 from schemas.review import (
     ProductReviewCreate,
+    AdminReviewPageResponse,
+    AdminReviewSummary,
     ProductReviewEligibilityItem,
     ProductReviewEligibilityResponse,
     ProductReviewResponse,
+    ProductReviewPageResponse,
     ProductReviewStatsResponse,
     ProductReviewUpdate,
     ReviewReactionCreate,
@@ -24,6 +27,7 @@ from schemas.review import (
     ReviewReplyCreate,
     ReviewReplyResponse,
 )
+from schemas.pagination import total_pages
 from utils.id_format import format_product_id, parse_product_id
 from core.errors import AppHTTPException
 from core.rate_limit import RATE_LIMIT_OPENAPI_RESPONSES
@@ -40,6 +44,7 @@ def _review_response(review: ProductReview, current_user: Customer | None = None
         review_id=review.review_id,
         product_id=review.product_id,
         product_display_id=format_product_id(review.product_id),
+        product_name=review.product.name if review.product else None,
         customer_id=review.customer_id,
         order_product_id=review.order_product_id,
         customer_name=customer_name,
@@ -126,27 +131,158 @@ def _existing_product_review(db: Session, current_user: Customer, product_id: in
 
 @router.get(
     "/products/{product_id}/reviews",
-    response_model=list[ProductReviewResponse],
+    response_model=ProductReviewPageResponse,
     operation_id="reviews_list_product_reviews",
 )
 def list_product_reviews(
     product_id: str,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    rating: int | None = Query(None, ge=1, le=5),
+    min_rating: int | None = Query(None, ge=1, le=5),
+    has_text: bool | None = Query(None),
     db: Session = Depends(get_db),
     current_user: Customer | None = Depends(get_current_user_optional),
 ):
     parsed_product_id = parse_product_id(product_id)
     _get_active_product(db, parsed_product_id)
+    filters = [
+        ProductReview.product_id == parsed_product_id,
+        ProductReview.status == ReviewStatus.APPROVED,
+    ]
+    if rating is not None:
+        filters.append(ProductReview.rating == rating)
+    if min_rating is not None:
+        filters.append(ProductReview.rating >= min_rating)
+    text_filter = or_(
+        func.length(func.trim(func.coalesce(ProductReview.title, ""))) > 0,
+        func.length(func.trim(func.coalesce(ProductReview.comment, ""))) > 0,
+    )
+    if has_text is True:
+        filters.append(text_filter)
+    elif has_text is False:
+        filters.append(~text_filter)
+
+    total = db.scalar(select(func.count(ProductReview.review_id)).where(*filters)) or 0
     reviews = db.scalars(
         select(ProductReview)
         .options(
+            joinedload(ProductReview.product),
             joinedload(ProductReview.customer),
             selectinload(ProductReview.replies),
             selectinload(ProductReview.reactions),
         )
-        .where(ProductReview.product_id == parsed_product_id, ProductReview.status == ReviewStatus.APPROVED)
-        .order_by(ProductReview.created_at.desc())
+        .where(*filters)
+        .order_by(ProductReview.created_at.desc(), ProductReview.review_id.desc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
     ).all()
-    return [_review_response(review, current_user) for review in reviews]
+    return ProductReviewPageResponse(
+        items=[_review_response(review, current_user) for review in reviews],
+        page=page,
+        per_page=per_page,
+        total=int(total),
+        total_pages=total_pages(int(total), per_page),
+    )
+
+
+@router.get(
+    "/admin/reviews",
+    response_model=AdminReviewPageResponse,
+    operation_id="reviews_list_admin_reviews",
+)
+def list_admin_reviews(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    search: str | None = Query(None, max_length=160),
+    rating: int | None = Query(None, ge=1, le=5),
+    has_text: bool | None = Query(None),
+    status_filter: ReviewStatus | None = Query(ReviewStatus.APPROVED, alias="status"),
+    db: Session = Depends(get_db),
+    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
+):
+    del current_admin
+    filters = []
+    if status_filter is not None:
+        filters.append(ProductReview.status == status_filter)
+    if rating is not None:
+        filters.append(ProductReview.rating == rating)
+    if has_text is True:
+        filters.append(or_(
+            func.length(func.trim(func.coalesce(ProductReview.title, ""))) > 0,
+            func.length(func.trim(func.coalesce(ProductReview.comment, ""))) > 0,
+        ))
+    elif has_text is False:
+        filters.append(and_(
+            func.length(func.trim(func.coalesce(ProductReview.title, ""))) == 0,
+            func.length(func.trim(func.coalesce(ProductReview.comment, ""))) == 0,
+        ))
+    if search and search.strip():
+        pattern = f"%{search.strip()}%"
+        filters.append(or_(
+            Product.name.ilike(pattern),
+            Customer.name.ilike(pattern),
+            Customer.last_name.ilike(pattern),
+            Customer.email.ilike(pattern),
+            ProductReview.title.ilike(pattern),
+            ProductReview.comment.ilike(pattern),
+        ))
+
+    filtered_ids = (
+        select(ProductReview.review_id)
+        .join(ProductReview.product)
+        .join(ProductReview.customer)
+        .where(*filters)
+    )
+    total = db.scalar(select(func.count()).select_from(filtered_ids.subquery())) or 0
+    review_ids = db.scalars(
+        filtered_ids
+        .order_by(ProductReview.created_at.desc(), ProductReview.review_id.desc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
+    ).all()
+    reviews = []
+    if review_ids:
+        loaded = db.scalars(
+            select(ProductReview)
+            .options(
+                joinedload(ProductReview.product),
+                joinedload(ProductReview.customer),
+                selectinload(ProductReview.replies),
+                selectinload(ProductReview.reactions),
+            )
+            .where(ProductReview.review_id.in_(review_ids))
+        ).all()
+        lookup = {review.review_id: review for review in loaded}
+        reviews = [lookup[review_id] for review_id in review_ids if review_id in lookup]
+
+    average_rating = db.scalar(
+        select(func.avg(ProductReview.rating))
+        .select_from(ProductReview)
+        .join(ProductReview.product)
+        .join(ProductReview.customer)
+        .where(*filters)
+    )
+    with_reply_count = int(db.scalar(
+        select(func.count(func.distinct(ProductReview.review_id)))
+        .select_from(ProductReview)
+        .join(ProductReview.product)
+        .join(ProductReview.customer)
+        .join(ReviewReply, ReviewReply.review_id == ProductReview.review_id)
+        .where(*filters)
+    ) or 0)
+    return AdminReviewPageResponse(
+        items=[_review_response(review) for review in reviews],
+        page=page,
+        per_page=per_page,
+        total=int(total),
+        total_pages=total_pages(int(total), per_page),
+        summary=AdminReviewSummary(
+            average_rating=round(float(average_rating), 2) if average_rating is not None else None,
+            with_reply=with_reply_count,
+            awaiting_reply=max(int(total) - with_reply_count, 0),
+        ),
+    )
 
 
 @router.get(

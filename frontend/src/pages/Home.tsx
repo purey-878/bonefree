@@ -117,6 +117,7 @@ const HomePage = () => {
   const { t } = useTranslation("storefront");
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
+  const [catalogCategories, setCatalogCategories] = useState<CategorySummary[]>([]);
   const [homeReviews, setHomeReviews] = useState<HomeReview[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(true);
   const [chefSpecialProductId, setChefSpecialProductId] = useState<number | null>(null);
@@ -143,8 +144,12 @@ const HomePage = () => {
 
       const reviewGroups = await Promise.allSettled(
         reviewProducts.map(async (product) => {
-          const reviews = await productService.getReviews(product.id);
-          return reviews.map((review) => ({
+          const reviewPage = await productService.getReviewsPage(product.id, {
+            page: 1,
+            perPage: HOME_REVIEW_LIMIT,
+            hasText: true,
+          });
+          return reviewPage.items.map((review) => ({
             ...review,
             productId: product.id,
             productName: product.name,
@@ -168,15 +173,20 @@ const HomePage = () => {
 
     const fetchHomeData = async () => {
       try {
-        const [data, chefSpecialSetting, couponSettings] = await Promise.all([
-          productService.getAll(),
+        const [catalogPage, chefSpecialSetting, couponSettings] = await Promise.all([
+          productService.getPage({ page: 1, perPage: 20, sort: "popular" }),
           getPublicChefSpecial().catch(() => ({ productId: null })),
           getPublicLoyaltyCouponSettings().catch(() => defaultLoyaltyCouponSettings),
         ]);
+        const data = catalogPage.items;
         setProducts(data);
+        setCatalogCategories(catalogPage.facets.categories.map((category) => ({ name: category.name, count: category.count })).slice(0, 7));
         setChefSpecialProductId(chefSpecialSetting.productId ?? null);
         setLoyaltyCouponSettings(couponSettings);
         void fetchHomeReviews(data);
+        if (chefSpecialSetting.productId && !data.some((product) => product.id === chefSpecialSetting.productId)) {
+          void productService.getById(chefSpecialSetting.productId).then((special) => setProducts((current) => [...current, special])).catch(() => undefined);
+        }
       } catch (fetchError) {
         setError(t("home.loadError"));
         setReviewsLoading(false);
@@ -199,15 +209,7 @@ const HomePage = () => {
     [visibleProducts],
   );
 
-  const categories = useMemo<CategorySummary[]>(() => {
-    const counts = new Map<string, number>();
-    visibleProducts.forEach((product) => {
-      const name = product.category || t("home.fallbackCategory");
-      counts.set(name, (counts.get(name) ?? 0) + 1);
-    });
-
-    return Array.from(counts, ([name, count]) => ({ count, name })).slice(0, 7);
-  }, [t, visibleProducts]);
+  const categories = catalogCategories;
 
   const featuredDish = availableProducts.find((product) => product.media.length > 0) ?? availableProducts[0] ?? visibleProducts[0];
   const sortedPopularProducts = [...availableProducts]

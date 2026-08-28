@@ -6,8 +6,8 @@ import logging
 from decimal import Decimal
 from fastapi import APIRouter, BackgroundTasks, Depends, Request, status, Query, UploadFile, File
 from sqlalchemy.orm import Session, joinedload, selectinload
-from sqlalchemy import and_, desc, exists, extract, func, or_, select
-from datetime import datetime, timedelta
+from sqlalchemy import String, and_, case, desc, exists, extract, func, or_, select
+from datetime import date, datetime, timedelta
 from typing import Dict, List, Optional, Union
 
 from database import get_db
@@ -28,21 +28,23 @@ from services.auth_service import (
 )
 from schemas.admin import (
     AdminLogin, AdminTokenResponse,
-    ProductCreate, ProductUpdate, ProductAdminResponse, ProductMediaUploadResponse,
+    ProductCreate, ProductUpdate, ProductAdminResponse, ProductMediaUploadResponse, ProductAdminPageResponse,
     IngredientCreate, IngredientResponse, IngredientUpdate, ProductIngredientPayload,
-    ProductIngredientResponse,
+    ProductIngredientResponse, IngredientPageResponse,
     OrderResponse, CartItemResponse, UnavailableProduct,
     PopularProduct, PeriodicSalesResponse, DashboardAnalytics,
     DashboardSalesGraphs,
     ProductAnalyticsResponse,
     AnalyticsSeriesPoint, AnalyticsSeriesResponse,
-    CategoryCreate, CategoryResponse, CategoryUpdate, SalesPerformanceResponse,
-    CustomerAdminCreate, CustomerAdminResponse, CustomerAdminUpdate,
+    CategoryCreate, CategoryResponse, CategoryUpdate, CategoryPageResponse, SalesPerformanceResponse,
+    CustomerAdminCreate, CustomerAdminResponse, CustomerAdminUpdate, CustomerAdminPageResponse,
     CounterPaymentResponse, KitchenOrderResponse, OrderStatusUpdate,
-    StaffAdminCreate, StaffAdminUpdate, AdminResponse,
+    StaffAdminCreate, StaffAdminUpdate, AdminResponse, StaffAdminPageResponse,
+    AdminOrderPageResponse, AdminOrderSummary,
     AvailabilityUpdate,
 )
 from schemas.user import MessageResponse
+from schemas.pagination import total_pages
 from services.invoices import ensure_invoice_for_order
 from services.order_customization import customization_lines
 from services.product_availability import (
@@ -772,18 +774,58 @@ def _staff_order_filter():
 
 @router.get(
     "/categories",
-    response_model=List[CategoryResponse],
+    response_model=CategoryPageResponse,
     operation_id="admin_management_list_categories",
 )
 def list_categories(
-    include_inactive: bool = Query(False),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    search: Optional[str] = Query(None, max_length=120),
+    category_id: Optional[int] = Query(None, ge=1),
+    status_filter: Optional[EntityStatus] = Query(None, alias="status"),
     current_admin: Admin = Depends(require_role(WAITER_ROLE, CHEF_ROLE, STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
-    stmt = select(Category)
-    if not include_inactive:
-        stmt = stmt.where(Category.status == EntityStatus.ACTIVE)
-    return db.scalars(stmt.order_by(Category.category_name.asc())).all()
+    del current_admin
+    filters = []
+    if search and search.strip():
+        pattern = f"%{search.strip()}%"
+        filters.append(or_(Category.category_name.ilike(pattern), Category.category_description.ilike(pattern)))
+    if category_id is not None:
+        filters.append(Category.category_id == category_id)
+    if status_filter is not None:
+        filters.append(Category.status == status_filter)
+
+    total = db.scalar(select(func.count(Category.category_id)).where(*filters)) or 0
+    categories = db.scalars(
+        select(Category)
+        .where(*filters)
+        .order_by(Category.category_name.asc(), Category.category_id.asc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
+    ).all()
+    category_ids = [category.category_id for category in categories]
+    active_counts: dict[int, int] = {}
+    if category_ids:
+        rows = db.execute(
+            select(Product.category_id, func.count(Product.product_id))
+            .where(Product.category_id.in_(category_ids), active_product_filter())
+            .group_by(Product.category_id)
+        ).all()
+        active_counts = {category_id_value: int(count_value or 0) for category_id_value, count_value in rows}
+    items = [
+        CategoryResponse.model_validate(category).model_copy(
+            update={"active_product_count": active_counts.get(category.category_id, 0)}
+        )
+        for category in categories
+    ]
+    return CategoryPageResponse(
+        items=items,
+        page=page,
+        per_page=per_page,
+        total=int(total),
+        total_pages=total_pages(int(total), per_page),
+    )
 
 
 @router.post(
@@ -876,18 +918,28 @@ def delete_category(
 
 @router.get(
     "/ingredients",
-    response_model=List[IngredientResponse],
+    response_model=IngredientPageResponse,
     operation_id="admin_management_list_ingredients",
 )
 def list_ingredients(
-    include_inactive: bool = Query(False),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    search: Optional[str] = Query(None, max_length=120),
+    type_filter: Optional[IngredientType] = Query(None, alias="type"),
+    status_filter: Optional[EntityStatus] = Query(None, alias="status"),
     customization_only: bool = Query(False),
     current_admin: Admin = Depends(require_role(WAITER_ROLE, CHEF_ROLE, STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
-    stmt = select(Ingredient)
-    if not include_inactive:
-        stmt = stmt.where(Ingredient.status == EntityStatus.ACTIVE)
+    del current_admin
+    filters = []
+    if search and search.strip():
+        pattern = f"%{search.strip()}%"
+        filters.append(or_(Ingredient.name.ilike(pattern), func.cast(Ingredient.ingredient_id, String).ilike(pattern)))
+    if type_filter is not None:
+        filters.append(Ingredient.type == type_filter)
+    if status_filter is not None:
+        filters.append(Ingredient.status == status_filter)
     if customization_only:
         drink_category_ids = select(Category.category_id).where(
             Category.category_name.ilike("%bebida%")
@@ -898,14 +950,43 @@ def list_ingredients(
             .where(~Product.category_id.in_(drink_category_ids))
         )
         linked_ingredient_ids = select(ProductIngredient.ingredient_id)
-        stmt = stmt.where(
+        filters.append(and_(
             Ingredient.type != IngredientType.DRINK,
             or_(
                 Ingredient.ingredient_id.in_(non_drink_ingredient_ids),
                 ~Ingredient.ingredient_id.in_(linked_ingredient_ids),
             ),
+        ))
+    total = db.scalar(select(func.count(Ingredient.ingredient_id)).where(*filters)) or 0
+    ingredients = db.scalars(
+        select(Ingredient)
+        .where(*filters)
+        .order_by(Ingredient.type.asc(), Ingredient.name.asc(), Ingredient.ingredient_id.asc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
+    ).all()
+    ingredient_ids = [ingredient.ingredient_id for ingredient in ingredients]
+    linked_counts: dict[int, int] = {}
+    if ingredient_ids:
+        rows = db.execute(
+            select(ProductIngredient.ingredient_id, func.count(func.distinct(ProductIngredient.product_id)))
+            .where(ProductIngredient.ingredient_id.in_(ingredient_ids))
+            .group_by(ProductIngredient.ingredient_id)
+        ).all()
+        linked_counts = {ingredient_id_value: int(count_value or 0) for ingredient_id_value, count_value in rows}
+    items = [
+        IngredientResponse.model_validate(ingredient).model_copy(
+            update={"linked_product_count": linked_counts.get(ingredient.ingredient_id, 0)}
         )
-    return db.scalars(stmt.order_by(Ingredient.type.asc(), Ingredient.name.asc())).all()
+        for ingredient in ingredients
+    ]
+    return IngredientPageResponse(
+        items=items,
+        page=page,
+        per_page=per_page,
+        total=int(total),
+        total_pages=total_pages(int(total), per_page),
+    )
 
 
 @router.post(
@@ -1086,12 +1167,12 @@ def create_product(
 
 @router.get(
     "/products",
-    response_model=List[ProductAdminResponse],
+    response_model=ProductAdminPageResponse,
     operation_id="admin_management_list_products",
 )
 def list_products(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=100),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
     name: str = Query(None),
     category: str = Query(None),
     min_price: float = Query(None),
@@ -1099,48 +1180,104 @@ def list_products(
     featured: bool = Query(None),
     gluten_free: bool = Query(None),
     contains_alcohol: bool = Query(None),
-    include_deleted: bool = Query(False),
+    catalog_state: str = Query("active", pattern="^(active|archived|all)$"),
     current_admin: Admin = Depends(require_role(WAITER_ROLE, CHEF_ROLE, STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
+    del current_admin
     stmt = select(Product).options(
         selectinload(Product.media_items)
         .selectinload(ProductMedia.media)
         .selectinload(Media.variants)
     )
 
-    if not include_deleted:
-        stmt = stmt.where(active_product_filter(), Product.deleted_at.is_(None))
+    filters = []
+    if catalog_state == "active":
+        filters.append(active_product_filter())
+    elif catalog_state == "archived":
+        filters.append(or_(Product.status == EntityStatus.INACTIVE, Product.deleted_at.is_not(None)))
 
-    if name:
-        stmt = stmt.where(Product.name.ilike(f"%{name}%"))
+    if name and name.strip():
+        filters.append(Product.name.ilike(f"%{name.strip()}%"))
 
     if category:
-        stmt = stmt.where(Product.category_id == parse_category_id(category))
+        filters.append(Product.category_id == parse_category_id(category))
 
     if min_price is not None:
-        stmt = stmt.where(Product.price >= min_price)
+        filters.append(Product.price >= min_price)
 
     if max_price is not None:
-        stmt = stmt.where(Product.price <= max_price)
+        filters.append(Product.price <= max_price)
 
     if featured is not None:
-        stmt = stmt.where(Product.featured == (1 if featured else 0))
+        filters.append(Product.featured == (1 if featured else 0))
 
     if gluten_free is not None:
-        stmt = stmt.where(Product.gluten_free == (1 if gluten_free else 0))
+        filters.append(Product.gluten_free == (1 if gluten_free else 0))
 
     if contains_alcohol is not None:
-        stmt = stmt.where(Product.contains_alcohol == (1 if contains_alcohol else 0))
+        filters.append(Product.contains_alcohol == (1 if contains_alcohol else 0))
 
-    products = db.scalars(stmt.offset(skip).limit(limit)).unique().all()
+    total = db.scalar(select(func.count(Product.product_id)).where(*filters)) or 0
+    products = db.scalars(
+        stmt.where(*filters)
+        .order_by(Product.name.asc(), Product.product_id.asc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
+    ).unique().all()
     product_ids = [product.product_id for product in products]
     ingredient_lookup = _product_ingredient_lookup(db, product_ids)
     unavailable_base_lookup = unavailable_base_ingredients(db, product_ids)
-    return [
+    items = [
         _product_admin_response(db, product, ingredient_lookup, unavailable_base_lookup)
         for product in products
     ]
+    return ProductAdminPageResponse(
+        items=items,
+        page=page,
+        per_page=per_page,
+        total=int(total),
+        total_pages=total_pages(int(total), per_page),
+    )
+
+
+@router.get(
+    "/ingredients/{ingredient_id}/products",
+    response_model=ProductAdminPageResponse,
+    operation_id="admin_management_list_ingredient_products",
+)
+def list_ingredient_products(
+    ingredient_id: int,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    current_admin: Admin = Depends(require_role(WAITER_ROLE, CHEF_ROLE, STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
+    db: Session = Depends(get_db),
+):
+    del current_admin
+    if not db.scalar(select(exists().where(Ingredient.ingredient_id == ingredient_id))):
+        raise AppHTTPException(status_code=404, error="ingredient_not_found", message="Ingredient not found.", details={"reason": "request_failed"})
+    related_filter = Product.product_id.in_(
+        select(ProductIngredient.product_id).where(ProductIngredient.ingredient_id == ingredient_id)
+    )
+    total = db.scalar(select(func.count(Product.product_id)).where(related_filter)) or 0
+    products = db.scalars(
+        select(Product)
+        .options(selectinload(Product.media_items).selectinload(ProductMedia.media).selectinload(Media.variants))
+        .where(related_filter)
+        .order_by(Product.name.asc(), Product.product_id.asc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
+    ).unique().all()
+    product_ids = [product.product_id for product in products]
+    ingredient_lookup = _product_ingredient_lookup(db, product_ids)
+    unavailable_base_lookup = unavailable_base_ingredients(db, product_ids)
+    return ProductAdminPageResponse(
+        items=[_product_admin_response(db, product, ingredient_lookup, unavailable_base_lookup) for product in products],
+        page=page,
+        per_page=per_page,
+        total=int(total),
+        total_pages=total_pages(int(total), per_page),
+    )
 
 
 @router.get(
@@ -1554,23 +1691,91 @@ def delete_product_media(
 
 @router.get(
     "/orders",
-    response_model=List[OrderResponse],
+    response_model=AdminOrderPageResponse,
     operation_id="admin_management_list_orders",
 )
 def list_orders(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(10, ge=1, le=100),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    search: Optional[str] = Query(None, max_length=160),
+    state: Optional[OrderState] = Query(None),
+    payment_method: Optional[PaymentMethod] = Query(None),
+    payment_status: Optional[PaymentStatus] = Query(None),
+    date_from: Optional[date] = Query(None),
+    date_to: Optional[date] = Query(None),
+    customization: str = Query("all", pattern="^(all|customized|plain)$"),
     current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
+    del current_admin
+    filters = []
+    if state is not None:
+        filters.append(Order.state == state)
+    if payment_method is not None:
+        filters.append(Order.payment_method == payment_method)
+    if payment_status is not None:
+        filters.append(Order.payment_status == payment_status)
+    if date_from is not None:
+        filters.append(Order.ordered_at >= datetime.combine(date_from, datetime.min.time()))
+    if date_to is not None:
+        filters.append(Order.ordered_at <= datetime.combine(date_to, datetime.max.time()))
+    customized_exists = exists().where(
+        OrderProduct.order_id == Order.order_id,
+        func.length(func.trim(func.coalesce(OrderProduct.customization, ""))) > 0,
+    )
+    if customization == "customized":
+        filters.append(customized_exists)
+    elif customization == "plain":
+        filters.append(~customized_exists)
+    if search and search.strip():
+        pattern = f"%{search.strip()}%"
+        item_match = exists().where(
+            OrderProduct.order_id == Order.order_id,
+            or_(
+                OrderProduct.product_name_snapshot.ilike(pattern),
+                func.cast(OrderProduct.product_id, String).ilike(pattern),
+            ),
+        )
+        filters.append(or_(
+            func.cast(Order.order_id, String).ilike(pattern),
+            Order.customer_first_name.ilike(pattern),
+            Order.customer_last_name.ilike(pattern),
+            Order.customer_email.ilike(pattern),
+            Order.customer_phone.ilike(pattern),
+            item_match,
+        ))
+
+    total = db.scalar(select(func.count(Order.order_id)).where(*filters)) or 0
     orders = db.scalars(
         select(Order)
-        .order_by(Order.ordered_at.desc())
-        .offset(skip)
-        .limit(limit)
+        .where(*filters)
+        .order_by(Order.ordered_at.desc(), Order.order_id.desc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
     ).unique().all()
-
-    return [_order_response(order) for order in orders]
+    pending, preparing, ready, completed, revenue = db.execute(
+        select(
+            func.sum(case((Order.state == OrderState.PENDING, 1), else_=0)),
+            func.sum(case((Order.state == OrderState.IN_PREPARATION, 1), else_=0)),
+            func.sum(case((Order.state == OrderState.READY, 1), else_=0)),
+            func.sum(case((Order.state == OrderState.DELIVERED, 1), else_=0)),
+            func.sum(case((Order.state == OrderState.DELIVERED, Order.total), else_=0)),
+        ).where(*filters)
+    ).one()
+    return AdminOrderPageResponse(
+        items=[_order_response(order) for order in orders],
+        page=page,
+        per_page=per_page,
+        total=int(total),
+        total_pages=total_pages(int(total), per_page),
+        summary=AdminOrderSummary(
+            pending=int(pending or 0),
+            preparing=int(preparing or 0),
+            ready=int(ready or 0),
+            completed=int(completed or 0),
+            revenue=float(revenue or 0),
+        ),
+    )
 
 
 @router.get(
@@ -1579,17 +1784,13 @@ def list_orders(
     operation_id="admin_management_list_staff_orders",
 )
 def list_staff_orders(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=200),
     current_admin: Admin = Depends(require_role(WAITER_ROLE, CHEF_ROLE, STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     orders = db.scalars(
         select(Order)
         .where(_staff_order_filter())
-        .order_by(Order.ordered_at.asc())
-        .offset(skip)
-        .limit(limit)
+        .order_by(Order.ordered_at.asc(), Order.order_id.asc())
     ).unique().all()
 
     return [_order_response(order) for order in orders]
@@ -1601,8 +1802,6 @@ def list_staff_orders(
     operation_id="admin_management_list_kitchen_orders",
 )
 def list_kitchen_orders(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=100),
     current_admin: Admin = Depends(require_role(WAITER_ROLE, CHEF_ROLE, STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
@@ -1618,9 +1817,7 @@ def list_kitchen_orders(
                 ),
             )
         )
-        .order_by(Order.ordered_at.asc())
-        .offset(skip)
-        .limit(limit)
+        .order_by(Order.ordered_at.asc(), Order.order_id.asc())
     ).unique().all()
 
     return [_kitchen_order_response(order) for order in orders]
@@ -1797,22 +1994,47 @@ def _customer_admin_response(customer: Customer) -> dict:
 
 @router.get(
     "/customers",
-    response_model=List[CustomerAdminResponse],
+    response_model=CustomerAdminPageResponse,
     operation_id="admin_management_list_customers",
 )
 def list_customers(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=200),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
     search: str = Query(None),
+    status_filter: Optional[UserStatus] = Query(None, alias="status"),
     current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
-    stmt = select(Customer).options(joinedload(Customer.billing_address)).where(Customer.role == UserRole.CLIENT)
-    if search:
-        pattern = f"%{search}%"
-        stmt = stmt.where(or_(Customer.name.ilike(pattern), Customer.last_name.ilike(pattern), Customer.email.ilike(pattern)))
-    customers = db.scalars(stmt.order_by(Customer.customer_id.desc()).offset(skip).limit(limit)).unique().all()
-    return [_customer_admin_response(customer) for customer in customers]
+    del current_admin
+    filters = [Customer.role == UserRole.CLIENT]
+    if search and search.strip():
+        pattern = f"%{search.strip()}%"
+        filters.append(or_(
+            func.cast(Customer.customer_id, String).ilike(pattern),
+            Customer.name.ilike(pattern),
+            Customer.last_name.ilike(pattern),
+            Customer.email.ilike(pattern),
+            Customer.phone.ilike(pattern),
+            Customer.tax_id.ilike(pattern),
+        ))
+    if status_filter is not None:
+        filters.append(Customer.status == status_filter)
+    total = db.scalar(select(func.count(Customer.customer_id)).where(*filters)) or 0
+    customers = db.scalars(
+        select(Customer)
+        .options(joinedload(Customer.billing_address))
+        .where(*filters)
+        .order_by(Customer.customer_id.desc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
+    ).unique().all()
+    return CustomerAdminPageResponse(
+        items=[_customer_admin_response(customer) for customer in customers],
+        page=page,
+        per_page=per_page,
+        total=int(total),
+        total_pages=total_pages(int(total), per_page),
+    )
 
 
 @router.post(
@@ -1920,19 +2142,48 @@ def delete_customer(
 
 @router.get(
     "/staff",
-    response_model=List[AdminResponse],
+    response_model=StaffAdminPageResponse,
     operation_id="admin_management_list_staff_admins",
 )
 def list_staff_admins(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    search: Optional[str] = Query(None, max_length=160),
+    role: Optional[UserRole] = Query(None),
+    status_filter: Optional[UserStatus] = Query(None, alias="status"),
     current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
+    del current_admin
+    filters = [Admin.role.in_(ADMIN_ROLES)]
+    if search and search.strip():
+        pattern = f"%{search.strip()}%"
+        filters.append(or_(
+            func.cast(Admin.admin_id, String).ilike(pattern),
+            Admin.name.ilike(pattern),
+            Admin.email.ilike(pattern),
+        ))
+    if role is not None:
+        filters.append(Admin.role == role)
+    if status_filter is not None:
+        filters.append(Admin.status == status_filter)
+    total = db.scalar(select(func.count(Admin.admin_id)).where(*filters)) or 0
     admins = db.scalars(
-        select(Admin).where(Admin.role.in_(ADMIN_ROLES)).order_by(Admin.admin_id.asc())
+        select(Admin)
+        .where(*filters)
+        .order_by(Admin.admin_id.asc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
     ).all()
     for admin in admins:
         admin.role = normalize_admin_role(admin.role)
-    return admins
+    return StaffAdminPageResponse(
+        items=[AdminResponse.model_validate(admin) for admin in admins],
+        page=page,
+        per_page=per_page,
+        total=int(total),
+        total_pages=total_pages(int(total), per_page),
+    )
 
 
 @router.post(

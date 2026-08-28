@@ -38,6 +38,59 @@ export type AdminLogin = {
 };
 
 /**
+ * AdminOrderPageResponse
+ */
+export type AdminOrderPageResponse = {
+    /**
+     * Items
+     */
+    items?: Array<SchemasAdminOrderResponse>;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Per Page
+     */
+    per_page: number;
+    summary: AdminOrderSummary;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Total Pages
+     */
+    total_pages: number;
+};
+
+/**
+ * AdminOrderSummary
+ */
+export type AdminOrderSummary = {
+    /**
+     * Completed
+     */
+    completed?: number;
+    /**
+     * Pending
+     */
+    pending?: number;
+    /**
+     * Preparing
+     */
+    preparing?: number;
+    /**
+     * Ready
+     */
+    ready?: number;
+    /**
+     * Revenue
+     */
+    revenue?: number;
+};
+
+/**
  * AdminResponse
  *
  * Response model for authenticated admin.
@@ -57,6 +110,51 @@ export type AdminResponse = {
     name: string;
     role: UserRole;
     status: UserStatus;
+};
+
+/**
+ * AdminReviewPageResponse
+ */
+export type AdminReviewPageResponse = {
+    /**
+     * Items
+     */
+    items?: Array<ProductReviewResponse>;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Per Page
+     */
+    per_page: number;
+    summary: AdminReviewSummary;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Total Pages
+     */
+    total_pages: number;
+};
+
+/**
+ * AdminReviewSummary
+ */
+export type AdminReviewSummary = {
+    /**
+     * Average Rating
+     */
+    average_rating?: number | null;
+    /**
+     * Awaiting Reply
+     */
+    awaiting_reply: number;
+    /**
+     * With Reply
+     */
+    with_reply: number;
 };
 
 /**
@@ -350,11 +448,41 @@ export type CategoryCreate = {
 };
 
 /**
+ * CategoryPageResponse
+ */
+export type CategoryPageResponse = {
+    /**
+     * Items
+     */
+    items?: Array<CategoryResponse>;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Per Page
+     */
+    per_page: number;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Total Pages
+     */
+    total_pages: number;
+};
+
+/**
  * CategoryResponse
  *
  * Response model for category.
  */
 export type CategoryResponse = {
+    /**
+     * Active Product Count
+     */
+    active_product_count?: number;
     /**
      * Category Description
      */
@@ -511,6 +639,32 @@ export type CounterPaymentResponse = {
 export type CouponDiscountType = 'fixed_value' | 'percentage';
 
 /**
+ * CouponPageResponse
+ */
+export type CouponPageResponse = {
+    /**
+     * Items
+     */
+    items?: Array<CouponResponse>;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Per Page
+     */
+    per_page: number;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Total Pages
+     */
+    total_pages: number;
+};
+
+/**
  * CouponResponse
  */
 export type CouponResponse = {
@@ -620,6 +774,32 @@ export type CustomerAdminCreate = {
      * Tax Id
      */
     tax_id?: string | null;
+};
+
+/**
+ * CustomerAdminPageResponse
+ */
+export type CustomerAdminPageResponse = {
+    /**
+     * Items
+     */
+    items?: Array<CustomerAdminResponse>;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Per Page
+     */
+    per_page: number;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Total Pages
+     */
+    total_pages: number;
 };
 
 /**
@@ -1083,6 +1263,32 @@ export type IngredientCreate = {
 };
 
 /**
+ * IngredientPageResponse
+ */
+export type IngredientPageResponse = {
+    /**
+     * Items
+     */
+    items?: Array<IngredientResponse>;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Per Page
+     */
+    per_page: number;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Total Pages
+     */
+    total_pages: number;
+};
+
+/**
  * IngredientResponse
  */
 export type IngredientResponse = {
@@ -1098,6 +1304,10 @@ export type IngredientResponse = {
      * Ingredient Id
      */
     ingredient_id: number;
+    /**
+     * Linked Product Count
+     */
+    linked_product_count?: number;
     /**
      * Name
      */
@@ -1486,6 +1696,32 @@ export type OrderItemResponse = {
 };
 
 /**
+ * OrderPageResponse
+ */
+export type OrderPageResponse = {
+    /**
+     * Items
+     */
+    items?: Array<SchemasCheckoutOrderResponse>;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Per Page
+     */
+    per_page: number;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Total Pages
+     */
+    total_pages: number;
+};
+
+/**
  * OrderState
  */
 export type OrderState = 'pending' | 'confirmed' | 'in_preparation' | 'ready' | 'delivered' | 'cancelled';
@@ -1561,6 +1797,32 @@ export type PopularProduct = {
      * Sold
      */
     sold: number;
+};
+
+/**
+ * ProductAdminPageResponse
+ */
+export type ProductAdminPageResponse = {
+    /**
+     * Items
+     */
+    items?: Array<ProductAdminResponse>;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Per Page
+     */
+    per_page: number;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Total Pages
+     */
+    total_pages: number;
 };
 
 /**
@@ -1702,6 +1964,46 @@ export type ProductAnalyticsResponse = {
      * Total Sales
      */
     total_sales: number;
+};
+
+/**
+ * ProductCatalogFacets
+ */
+export type ProductCatalogFacets = {
+    /**
+     * Categories
+     */
+    categories?: Array<ProductCategoryFacet>;
+    /**
+     * Max Price
+     */
+    max_price: number;
+    /**
+     * Total Products
+     */
+    total_products: number;
+};
+
+/**
+ * ProductCategoryFacet
+ */
+export type ProductCategoryFacet = {
+    /**
+     * Category Display Id
+     */
+    category_display_id: string;
+    /**
+     * Category Id
+     */
+    category_id: number;
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Name
+     */
+    name: string;
 };
 
 /**
@@ -2003,6 +2305,33 @@ export type ProductMediaUploadResponse = {
 };
 
 /**
+ * ProductPageResponse
+ */
+export type ProductPageResponse = {
+    facets: ProductCatalogFacets;
+    /**
+     * Items
+     */
+    items?: Array<ProductResponse>;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Per Page
+     */
+    per_page: number;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Total Pages
+     */
+    total_pages: number;
+};
+
+/**
  * ProductResponse
  *
  * Response model for a product.
@@ -2016,6 +2345,10 @@ export type ProductResponse = {
      * Category
      */
     category: string;
+    /**
+     * Category Id
+     */
+    category_id: number;
     /**
      * Contains Alcohol
      */
@@ -2167,6 +2500,32 @@ export type ProductReviewEligibilityResponse = {
 };
 
 /**
+ * ProductReviewPageResponse
+ */
+export type ProductReviewPageResponse = {
+    /**
+     * Items
+     */
+    items?: Array<ProductReviewResponse>;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Per Page
+     */
+    per_page: number;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Total Pages
+     */
+    total_pages: number;
+};
+
+/**
  * ProductReviewResponse
  */
 export type ProductReviewResponse = {
@@ -2202,6 +2561,10 @@ export type ProductReviewResponse = {
      * Product Id
      */
     product_id: number;
+    /**
+     * Product Name
+     */
+    product_name?: string | null;
     /**
      * Rating
      */
@@ -2365,6 +2728,86 @@ export type ProductUpdate = {
      * Total Calories
      */
     total_calories?: number | null;
+};
+
+/**
+ * ProfileFavoriteProductResponse
+ */
+export type ProfileFavoriteProductResponse = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Product Display Id
+     */
+    product_display_id: string;
+    /**
+     * Product Id
+     */
+    product_id: number;
+    /**
+     * Quantity
+     */
+    quantity: number;
+    /**
+     * Total
+     */
+    total?: string;
+};
+
+/**
+ * ProfileLoyaltyProgressResponse
+ */
+export type ProfileLoyaltyProgressResponse = {
+    /**
+     * Current
+     */
+    current: number;
+    /**
+     * Minimum Subtotal
+     */
+    minimum_subtotal?: string;
+    /**
+     * Percent
+     */
+    percent: number;
+    /**
+     * Remaining
+     */
+    remaining: number;
+    /**
+     * Required
+     */
+    required: number;
+};
+
+/**
+ * ProfileOverviewResponse
+ */
+export type ProfileOverviewResponse = {
+    /**
+     * Average Order Value
+     */
+    average_order_value?: string;
+    /**
+     * Favorite Products
+     */
+    favorite_products?: Array<ProfileFavoriteProductResponse>;
+    latest_order?: SchemasCheckoutOrderResponse | null;
+    loyalty_progress: ProfileLoyaltyProgressResponse;
+    /**
+     * Order Count
+     */
+    order_count: number;
+    /**
+     * Total Items
+     */
+    total_items: number;
+    /**
+     * Total Spent
+     */
+    total_spent?: string;
 };
 
 /**
@@ -2608,6 +3051,32 @@ export type StaffAdminCreate = {
     password: string;
     role?: UserRole;
     status?: UserStatus;
+};
+
+/**
+ * StaffAdminPageResponse
+ */
+export type StaffAdminPageResponse = {
+    /**
+     * Items
+     */
+    items?: Array<AdminResponse>;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Per Page
+     */
+    per_page: number;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Total Pages
+     */
+    total_pages: number;
 };
 
 /**
@@ -3398,9 +3867,25 @@ export type AdminManagementListCategoriesData = {
     path?: never;
     query?: {
         /**
-         * Include Inactive
+         * Page
          */
-        include_inactive?: boolean;
+        page?: number;
+        /**
+         * Per Page
+         */
+        per_page?: number;
+        /**
+         * Search
+         */
+        search?: string | null;
+        /**
+         * Category Id
+         */
+        category_id?: number | null;
+        /**
+         * Status
+         */
+        status?: EntityStatus | null;
     };
     url: '/admin/categories';
 };
@@ -3444,11 +3929,9 @@ export type AdminManagementListCategoriesError = AdminManagementListCategoriesEr
 
 export type AdminManagementListCategoriesResponses = {
     /**
-     * Response Admin Management List Categories
-     *
      * Successful Response
      */
-    200: Array<CategoryResponse>;
+    200: CategoryPageResponse;
 };
 
 export type AdminManagementListCategoriesResponse = AdminManagementListCategoriesResponses[keyof AdminManagementListCategoriesResponses];
@@ -3627,17 +4110,21 @@ export type AdminManagementListCustomersData = {
     path?: never;
     query?: {
         /**
-         * Skip
+         * Page
          */
-        skip?: number;
+        page?: number;
         /**
-         * Limit
+         * Per Page
          */
-        limit?: number;
+        per_page?: number;
         /**
          * Search
          */
         search?: string;
+        /**
+         * Status
+         */
+        status?: UserStatus | null;
     };
     url: '/admin/customers';
 };
@@ -3681,11 +4168,9 @@ export type AdminManagementListCustomersError = AdminManagementListCustomersErro
 
 export type AdminManagementListCustomersResponses = {
     /**
-     * Response Admin Management List Customers
-     *
      * Successful Response
      */
-    200: Array<CustomerAdminResponse>;
+    200: CustomerAdminPageResponse;
 };
 
 export type AdminManagementListCustomersResponse = AdminManagementListCustomersResponses[keyof AdminManagementListCustomersResponses];
@@ -3864,9 +4349,25 @@ export type AdminManagementListIngredientsData = {
     path?: never;
     query?: {
         /**
-         * Include Inactive
+         * Page
          */
-        include_inactive?: boolean;
+        page?: number;
+        /**
+         * Per Page
+         */
+        per_page?: number;
+        /**
+         * Search
+         */
+        search?: string | null;
+        /**
+         * Type
+         */
+        type?: IngredientType | null;
+        /**
+         * Status
+         */
+        status?: EntityStatus | null;
         /**
          * Customization Only
          */
@@ -3914,11 +4415,9 @@ export type AdminManagementListIngredientsError = AdminManagementListIngredients
 
 export type AdminManagementListIngredientsResponses = {
     /**
-     * Response Admin Management List Ingredients
-     *
      * Successful Response
      */
-    200: Array<IngredientResponse>;
+    200: IngredientPageResponse;
 };
 
 export type AdminManagementListIngredientsResponse = AdminManagementListIngredientsResponses[keyof AdminManagementListIngredientsResponses];
@@ -4150,19 +4649,77 @@ export type AdminManagementSetIngredientAvailabilityResponses = {
 
 export type AdminManagementSetIngredientAvailabilityResponse = AdminManagementSetIngredientAvailabilityResponses[keyof AdminManagementSetIngredientAvailabilityResponses];
 
+export type AdminManagementListIngredientProductsData = {
+    body?: never;
+    path: {
+        /**
+         * Ingredient Id
+         */
+        ingredient_id: number;
+    };
+    query?: {
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Per Page
+         */
+        per_page?: number;
+    };
+    url: '/admin/ingredients/{ingredient_id}/products';
+};
+
+export type AdminManagementListIngredientProductsErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type AdminManagementListIngredientProductsError = AdminManagementListIngredientProductsErrors[keyof AdminManagementListIngredientProductsErrors];
+
+export type AdminManagementListIngredientProductsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProductAdminPageResponse;
+};
+
+export type AdminManagementListIngredientProductsResponse = AdminManagementListIngredientProductsResponses[keyof AdminManagementListIngredientProductsResponses];
+
 export type AdminManagementListKitchenOrdersData = {
     body?: never;
     path?: never;
-    query?: {
-        /**
-         * Skip
-         */
-        skip?: number;
-        /**
-         * Limit
-         */
-        limit?: number;
-    };
+    query?: never;
     url: '/admin/kitchen/orders';
 };
 
@@ -4383,13 +4940,41 @@ export type AdminManagementListOrdersData = {
     path?: never;
     query?: {
         /**
-         * Skip
+         * Page
          */
-        skip?: number;
+        page?: number;
         /**
-         * Limit
+         * Per Page
          */
-        limit?: number;
+        per_page?: number;
+        /**
+         * Search
+         */
+        search?: string | null;
+        /**
+         * State
+         */
+        state?: OrderState | null;
+        /**
+         * Payment Method
+         */
+        payment_method?: PaymentMethod | null;
+        /**
+         * Payment Status
+         */
+        payment_status?: PaymentStatus | null;
+        /**
+         * Date From
+         */
+        date_from?: string | null;
+        /**
+         * Date To
+         */
+        date_to?: string | null;
+        /**
+         * Customization
+         */
+        customization?: string;
     };
     url: '/admin/orders';
 };
@@ -4433,11 +5018,9 @@ export type AdminManagementListOrdersError = AdminManagementListOrdersErrors[key
 
 export type AdminManagementListOrdersResponses = {
     /**
-     * Response Admin Management List Orders
-     *
      * Successful Response
      */
-    200: Array<SchemasAdminOrderResponse>;
+    200: AdminOrderPageResponse;
 };
 
 export type AdminManagementListOrdersResponse = AdminManagementListOrdersResponses[keyof AdminManagementListOrdersResponses];
@@ -4679,13 +5262,13 @@ export type AdminManagementListProductsData = {
     path?: never;
     query?: {
         /**
-         * Skip
+         * Page
          */
-        skip?: number;
+        page?: number;
         /**
-         * Limit
+         * Per Page
          */
-        limit?: number;
+        per_page?: number;
         /**
          * Name
          */
@@ -4715,9 +5298,9 @@ export type AdminManagementListProductsData = {
          */
         contains_alcohol?: boolean;
         /**
-         * Include Deleted
+         * Catalog State
          */
-        include_deleted?: boolean;
+        catalog_state?: string;
     };
     url: '/admin/products';
 };
@@ -4761,11 +5344,9 @@ export type AdminManagementListProductsError = AdminManagementListProductsErrors
 
 export type AdminManagementListProductsResponses = {
     /**
-     * Response Admin Management List Products
-     *
      * Successful Response
      */
-    200: Array<ProductAdminResponse>;
+    200: ProductAdminPageResponse;
 };
 
 export type AdminManagementListProductsResponse = AdminManagementListProductsResponses[keyof AdminManagementListProductsResponses];
@@ -5300,6 +5881,80 @@ export type AdminManagementToggleProductStatusResponses = {
 };
 
 export type AdminManagementToggleProductStatusResponse = AdminManagementToggleProductStatusResponses[keyof AdminManagementToggleProductStatusResponses];
+
+export type ReviewsListAdminReviewsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Per Page
+         */
+        per_page?: number;
+        /**
+         * Search
+         */
+        search?: string | null;
+        /**
+         * Rating
+         */
+        rating?: number | null;
+        /**
+         * Has Text
+         */
+        has_text?: boolean | null;
+        /**
+         * Status
+         */
+        status?: ReviewStatus | null;
+    };
+    url: '/admin/reviews';
+};
+
+export type ReviewsListAdminReviewsErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type ReviewsListAdminReviewsError = ReviewsListAdminReviewsErrors[keyof ReviewsListAdminReviewsErrors];
+
+export type ReviewsListAdminReviewsResponses = {
+    /**
+     * Successful Response
+     */
+    200: AdminReviewPageResponse;
+};
+
+export type ReviewsListAdminReviewsResponse = ReviewsListAdminReviewsResponses[keyof ReviewsListAdminReviewsResponses];
 
 export type ReviewsDeleteReviewReactionData = {
     body?: never;
@@ -6238,7 +6893,28 @@ export type SiteSettingsUpdateAdminSiteThemeResponse = SiteSettingsUpdateAdminSi
 export type AdminManagementListStaffAdminsData = {
     body?: never;
     path?: never;
-    query?: never;
+    query?: {
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Per Page
+         */
+        per_page?: number;
+        /**
+         * Search
+         */
+        search?: string | null;
+        /**
+         * Role
+         */
+        role?: UserRole | null;
+        /**
+         * Status
+         */
+        status?: UserStatus | null;
+    };
     url: '/admin/staff';
 };
 
@@ -6281,11 +6957,9 @@ export type AdminManagementListStaffAdminsError = AdminManagementListStaffAdmins
 
 export type AdminManagementListStaffAdminsResponses = {
     /**
-     * Response Admin Management List Staff Admins
-     *
      * Successful Response
      */
-    200: Array<AdminResponse>;
+    200: StaffAdminPageResponse;
 };
 
 export type AdminManagementListStaffAdminsResponse = AdminManagementListStaffAdminsResponses[keyof AdminManagementListStaffAdminsResponses];
@@ -6346,16 +7020,7 @@ export type AdminManagementCreateStaffAdminResponse = AdminManagementCreateStaff
 export type AdminManagementListStaffOrdersData = {
     body?: never;
     path?: never;
-    query?: {
-        /**
-         * Skip
-         */
-        skip?: number;
-        /**
-         * Limit
-         */
-        limit?: number;
-    };
+    query?: never;
     url: '/admin/staff/orders';
 };
 
@@ -6879,7 +7544,16 @@ export type CartUpdateItemResponse = CartUpdateItemResponses[keyof CartUpdateIte
 export type CheckoutListAvailableCouponsData = {
     body?: never;
     path?: never;
-    query?: never;
+    query?: {
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Per Page
+         */
+        per_page?: number;
+    };
     url: '/checkout/coupons';
 };
 
@@ -6918,11 +7592,9 @@ export type CheckoutListAvailableCouponsError = CheckoutListAvailableCouponsErro
 
 export type CheckoutListAvailableCouponsResponses = {
     /**
-     * Response Checkout List Available Coupons
-     *
      * Successful Response
      */
-    200: Array<CouponResponse>;
+    200: CouponPageResponse;
 };
 
 export type CheckoutListAvailableCouponsResponse = CheckoutListAvailableCouponsResponses[keyof CheckoutListAvailableCouponsResponses];
@@ -7081,7 +7753,16 @@ export type CheckoutClaimGuestOrdersResponse = CheckoutClaimGuestOrdersResponses
 export type CheckoutListOrderHistoryData = {
     body?: never;
     path?: never;
-    query?: never;
+    query?: {
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Per Page
+         */
+        per_page?: number;
+    };
     url: '/checkout/orders/history';
 };
 
@@ -7120,11 +7801,9 @@ export type CheckoutListOrderHistoryError = CheckoutListOrderHistoryErrors[keyof
 
 export type CheckoutListOrderHistoryResponses = {
     /**
-     * Response Checkout List Order History
-     *
      * Successful Response
      */
-    200: Array<SchemasCheckoutOrderResponse>;
+    200: OrderPageResponse;
 };
 
 export type CheckoutListOrderHistoryResponse = CheckoutListOrderHistoryResponses[keyof CheckoutListOrderHistoryResponses];
@@ -7641,7 +8320,44 @@ export type AuthVerifyPasswordOtpResponse = AuthVerifyPasswordOtpResponses[keyof
 export type ProductsListProductsData = {
     body?: never;
     path?: never;
-    query?: never;
+    query?: {
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Per Page
+         */
+        per_page?: number;
+        /**
+         * Search
+         */
+        search?: string | null;
+        /**
+         * Category Id
+         */
+        category_id?: number | null;
+        /**
+         * Min Price
+         */
+        min_price?: number | null;
+        /**
+         * Max Price
+         */
+        max_price?: number | null;
+        /**
+         * Special
+         */
+        special?: string;
+        /**
+         * Sort
+         */
+        sort?: string;
+        /**
+         * Product Ids
+         */
+        product_ids?: Array<number> | null;
+    };
     url: '/products/';
 };
 
@@ -7680,11 +8396,9 @@ export type ProductsListProductsError = ProductsListProductsErrors[keyof Product
 
 export type ProductsListProductsResponses = {
     /**
-     * Response Products List Products
-     *
      * Successful Response
      */
-    200: Array<ProductResponse>;
+    200: ProductPageResponse;
 };
 
 export type ProductsListProductsResponse = ProductsListProductsResponses[keyof ProductsListProductsResponses];
@@ -7918,7 +8632,28 @@ export type ReviewsListProductReviewsData = {
          */
         product_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Per Page
+         */
+        per_page?: number;
+        /**
+         * Rating
+         */
+        rating?: number | null;
+        /**
+         * Min Rating
+         */
+        min_rating?: number | null;
+        /**
+         * Has Text
+         */
+        has_text?: boolean | null;
+    };
     url: '/products/{product_id}/reviews';
 };
 
@@ -7957,11 +8692,9 @@ export type ReviewsListProductReviewsError = ReviewsListProductReviewsErrors[key
 
 export type ReviewsListProductReviewsResponses = {
     /**
-     * Response Reviews List Product Reviews
-     *
      * Successful Response
      */
-    200: Array<ProductReviewResponse>;
+    200: ProductReviewPageResponse;
 };
 
 export type ReviewsListProductReviewsResponse = ReviewsListProductReviewsResponses[keyof ReviewsListProductReviewsResponses];
@@ -8231,6 +8964,14 @@ export type ProfileGetPurchaseHistoryData = {
     path?: never;
     query?: {
         /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Per Page
+         */
+        per_page?: number;
+        /**
          * Status
          */
         status?: string | null;
@@ -8289,14 +9030,61 @@ export type ProfileGetPurchaseHistoryError = ProfileGetPurchaseHistoryErrors[key
 
 export type ProfileGetPurchaseHistoryResponses = {
     /**
-     * Response Profile Get Purchase History
-     *
      * Successful Response
      */
-    200: Array<SchemasCheckoutOrderResponse>;
+    200: OrderPageResponse;
 };
 
 export type ProfileGetPurchaseHistoryResponse = ProfileGetPurchaseHistoryResponses[keyof ProfileGetPurchaseHistoryResponses];
+
+export type ProfileGetOverviewData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/profile/overview';
+};
+
+export type ProfileGetOverviewErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type ProfileGetOverviewError = ProfileGetOverviewErrors[keyof ProfileGetOverviewErrors];
+
+export type ProfileGetOverviewResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProfileOverviewResponse;
+};
+
+export type ProfileGetOverviewResponse = ProfileGetOverviewResponses[keyof ProfileGetOverviewResponses];
 
 export type AuthRegisterData = {
     body: UserRegister;

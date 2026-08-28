@@ -92,7 +92,9 @@ function App() {
     }
 
     window.scrollTo({ top: 0, left: 0, behavior: "auto" })
-  }, [visibleLocation.hash, visibleLocation.pathname, visibleLocation.search])
+  // Query-string changes represent in-place state (filters, tabs and pagination),
+  // so they must not throw the user back to the top of the current screen.
+  }, [visibleLocation.hash, visibleLocation.pathname])
 
   return (
     <>

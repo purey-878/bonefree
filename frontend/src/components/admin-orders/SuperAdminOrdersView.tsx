@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Clock, CreditCard, Store } from "lucide-react";
 import type { AdminOrder } from "../../types/admin";
@@ -6,15 +6,34 @@ import { formatEuro } from "../../utils/money";
 import OrderAgeBadge from "./OrderAgeBadge";
 import OrderDetailsDrawer from "./OrderDetailsDrawer";
 import OrderStatusBadge from "./OrderStatusBadge";
-import { formatOrderAge, formatOrderStatus, fulfillmentLabel, handoffLabel, hasCustomization, isToday, localDateInputValue, paymentLabel, shouldShowOrderAge } from "./orderUtils";
+import { formatOrderAge, formatOrderStatus, fulfillmentLabel, handoffLabel, localDateInputValue, paymentLabel, shouldShowOrderAge } from "./orderUtils";
 import CustomSelect from "../ui/CustomSelect";
 import { formatPaymentMethod, formatPaymentStatus } from "../../utils/adminEnumLabels";
+import { Pagination } from "../ui";
+
+export type ManagementOrderFilters = {
+  search: string;
+  status: string;
+  paymentMethod: string;
+  paymentStatus: string;
+  dateFrom: string;
+  dateTo: string;
+  customization: string;
+};
 
 type Props = {
   orders: AdminOrder[];
   onRefresh: () => void;
   onUpdateStatus: (orderId: number, status: string) => Promise<void> | void;
   onDelete: (orderId: number) => Promise<void> | void;
+  onFiltersChange: (filters: ManagementOrderFilters) => void;
+  page: number;
+  perPage: number;
+  total: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+  onPerPageChange: (perPage: number) => void;
+  summary: { pending: number; preparing: number; ready: number; completed: number; revenue: number };
 };
 
 const allStatuses = ["pending", "confirmed", "in_preparation", "ready", "delivered", "cancelled"];
@@ -46,7 +65,7 @@ function paymentParts(order: AdminOrder): { method: string; status: string } {
   return { method, status };
 }
 
-export default function SuperAdminOrdersView({ orders, onRefresh, onUpdateStatus, onDelete }: Props) {
+export default function SuperAdminOrdersView({ orders, onRefresh, onUpdateStatus, onDelete, onFiltersChange, page, perPage, total, totalPages, onPageChange, onPerPageChange, summary: serverSummary }: Props) {
   const { t } = useTranslation("admin");
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [quickFilter, setQuickFilter] = useState("all");
@@ -58,18 +77,10 @@ export default function SuperAdminOrdersView({ orders, onRefresh, onUpdateStatus
     [orders, selectedOrderId],
   );
 
-  const summary = useMemo(() => {
-    const todayOrders = orders.filter((order) => isToday(order.updatedAt ?? order.createdAt));
-    return {
-      pending: orders.filter((order) => order.state === "pending").length,
-      preparing: orders.filter((order) => order.state === "in_preparation").length,
-      ready: orders.filter((order) => order.state === "ready").length,
-      completedToday: todayOrders.filter((order) => order.state === "delivered").length,
-      revenueToday: todayOrders
-        .filter((order) => order.paymentStatus === "paid")
-        .reduce((sum, order) => sum + (order.total ?? 0), 0),
-    };
-  }, [orders]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => onFiltersChange(filters), 350);
+    return () => window.clearTimeout(timer);
+  }, [filters, onFiltersChange]);
 
   const paymentMethods = useMemo(() => Array.from(new Set(orders.map((order) => order.paymentMethod).filter(Boolean))) as string[], [orders]);
   const paymentStatuses = useMemo(() => Array.from(new Set(orders.map((order) => order.paymentStatus).filter(Boolean))) as string[], [orders]);
@@ -77,49 +88,9 @@ export default function SuperAdminOrdersView({ orders, onRefresh, onUpdateStatus
   const clearAllFilters = () => {
     setQuickFilter("all");
     setFilters(emptyOrderFilters);
-    onRefresh();
   };
 
-  const filteredOrders = useMemo(() => {
-    const query = filters.search.trim().toLowerCase();
-    return orders.filter((order) => {
-      if (quickFilter === "needs-payment" && order.state !== "pending") return false;
-      if (quickFilter === "queued" && order.state !== "confirmed") return false;
-      if (quickFilter === "preparing" && order.state !== "in_preparation") return false;
-      if (quickFilter === "ready" && order.state !== "ready") return false;
-      if (quickFilter === "cancelled" && order.state !== "cancelled") return false;
-      if (quickFilter === "customized" && !hasCustomization(order)) return false;
-
-      if (filters.status && order.state !== filters.status) return false;
-      if (filters.paymentMethod && order.paymentMethod !== filters.paymentMethod) return false;
-      if (filters.paymentStatus && order.paymentStatus !== filters.paymentStatus) return false;
-      if (filters.customization === "customized" && !hasCustomization(order)) return false;
-      if (filters.customization === "plain" && hasCustomization(order)) return false;
-
-      const created = new Date(order.createdAt);
-      if (filters.dateFrom && created < new Date(`${filters.dateFrom}T00:00:00`)) return false;
-      if (filters.dateTo && created > new Date(`${filters.dateTo}T23:59:59`)) return false;
-
-      if (!query) return true;
-      const haystack = [
-        order.orderId,
-        `#${order.orderId}`,
-        order.customerName,
-        order.customerEmail,
-        order.customerPhone,
-        order.state,
-        order.paymentMethod,
-        order.paymentStatus,
-        order.fulfillmentMethod,
-        fulfillmentLabel(order),
-        handoffLabel(order),
-        order.tableNumber ? `table ${order.tableNumber}` : "",
-        order.items.map((item) => item.name).join(" "),
-      ].join(" ").toLowerCase();
-
-      return haystack.includes(query);
-    });
-  }, [filters, orders, quickFilter]);
+  const filteredOrders = orders;
 
   return (
     <div className="orders-workspace">
@@ -137,11 +108,11 @@ export default function SuperAdminOrdersView({ orders, onRefresh, onUpdateStatus
       </div>
 
       <div className="order-summary-grid">
-        <div className="order-summary-card"><span>{t("orders.super.summary.pending")}</span><strong>{summary.pending}</strong></div>
-        <div className="order-summary-card"><span>{t("orders.super.summary.preparing")}</span><strong>{summary.preparing}</strong></div>
-        <div className="order-summary-card"><span>{t("orders.super.summary.ready")}</span><strong>{summary.ready}</strong></div>
-        <div className="order-summary-card"><span>{t("orders.super.summary.completedToday")}</span><strong>{summary.completedToday}</strong></div>
-        <div className="order-summary-card"><span>{t("orders.super.summary.revenueToday")}</span><strong>{formatEuro(summary.revenueToday)}</strong></div>
+        <div className="order-summary-card"><span>{t("orders.super.summary.pending")}</span><strong>{serverSummary.pending}</strong></div>
+        <div className="order-summary-card"><span>{t("orders.super.summary.preparing")}</span><strong>{serverSummary.preparing}</strong></div>
+        <div className="order-summary-card"><span>{t("orders.super.summary.ready")}</span><strong>{serverSummary.ready}</strong></div>
+        <div className="order-summary-card"><span>{t("orders.super.summary.completedToday")}</span><strong>{serverSummary.completed}</strong></div>
+        <div className="order-summary-card"><span>{t("orders.super.summary.revenueToday")}</span><strong>{formatEuro(serverSummary.revenue)}</strong></div>
       </div>
 
       <div className="order-quick-filters" role="group" aria-label={t("orders.super.quickFilters")}>
@@ -154,7 +125,14 @@ export default function SuperAdminOrdersView({ orders, onRefresh, onUpdateStatus
           ["cancelled", "orders.common.cancelled"],
           ["customized", "orders.common.customised"],
         ].map(([value, labelKey]) => (
-          <button key={value} className={quickFilter === value ? "active" : ""} onClick={() => setQuickFilter(value)}>
+          <button key={value} className={quickFilter === value ? "active" : ""} onClick={() => {
+            setQuickFilter(value);
+            setFilters((current) => ({
+              ...current,
+              status: value === "needs-payment" ? "pending" : value === "queued" ? "confirmed" : value === "preparing" || value === "ready" || value === "cancelled" ? value : "",
+              customization: value === "customized" ? "customized" : "all",
+            }));
+          }}>
             {t(labelKey)}
           </button>
         ))}
@@ -310,6 +288,8 @@ export default function SuperAdminOrdersView({ orders, onRefresh, onUpdateStatus
         </>
         )}
       </div>
+
+      <Pagination variant="admin" page={page} perPage={perPage} total={total} totalPages={totalPages} onPageChange={onPageChange} onPerPageChange={onPerPageChange} />
 
       <OrderDetailsDrawer order={selectedOrder} onClose={() => setSelectedOrderId(null)} />
     </div>

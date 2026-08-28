@@ -5,6 +5,7 @@ from typing import Optional
 
 from schemas.enums import EntityStatus, IngredientType
 from schemas.media import ProductMediaResponse
+from schemas.pagination import PaginatedResponse
 from services.product_media import product_media_responses
 from services.product_pricing import discounted_product_price, product_discount_percent, product_tags
 
@@ -24,6 +25,7 @@ class ProductResponse(BaseModel):
     """Response model for a product."""
     id: int
     id_display: str
+    category_id: int
     category: str
     name: str
     description: str | None
@@ -72,6 +74,7 @@ class ProductResponse(BaseModel):
         return cls(
             id=p.product_id,
             id_display=p.product_display_id,
+            category_id=p.category_id,
             name=p.name,
             category=p.category.category_name if getattr(p, 'category', None) else p.category_id,
             description=p.product_description,
@@ -91,3 +94,20 @@ class ProductResponse(BaseModel):
             unavailable_due_to_unavailable_base=unavailable_due_to_unavailable_base,
             ingredients=ingredients or [],
         )
+
+
+class ProductCategoryFacet(BaseModel):
+    category_id: int
+    category_display_id: str
+    name: str
+    count: int = Field(ge=0)
+
+
+class ProductCatalogFacets(BaseModel):
+    total_products: int = Field(ge=0)
+    max_price: float = Field(ge=0)
+    categories: list[ProductCategoryFacet] = Field(default_factory=list)
+
+
+class ProductPageResponse(PaginatedResponse[ProductResponse]):
+    facets: ProductCatalogFacets

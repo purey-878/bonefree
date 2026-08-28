@@ -12,6 +12,7 @@ import type { CheckoutRequest, GuestOrderClaimRequest } from '../api/generated';
 import { apiData, customerApiClient } from '../api/clients';
 import { toDomain, toDto } from '../api/mappers';
 import type { CheckoutPayload, Coupon, CouponValidation, GuestOrderClaimInput, GuestOrderClaimResult, OrderCreateResponse, OrderResponse } from '../types/checkout';
+import type { Page, PageRequest } from '../types/pagination';
 
 function orderAccessHeaders(accessToken?: string | null) {
   return accessToken ? { 'X-Order-Token': accessToken } : undefined;
@@ -54,11 +55,21 @@ export const checkoutService = {
     };
   },
 
-  async getHistory(): Promise<OrderResponse[]> {
-    return toDomain<OrderResponse[]>(await apiData(checkoutListOrderHistory({
+  async getHistory(options: PageRequest = {}): Promise<Page<OrderResponse>> {
+    return toDomain<Page<OrderResponse>>(await apiData(checkoutListOrderHistory({
+      query: { page: options.page, per_page: options.perPage },
       client: customerApiClient,
       throwOnError: true,
     })));
+  },
+
+  async getAllHistory(): Promise<OrderResponse[]> {
+    const first = await this.getHistory({ page: 1, perPage: 100 });
+    const items = [...first.items];
+    for (let page = 2; page <= first.totalPages; page += 1) {
+      items.push(...(await this.getHistory({ page, perPage: 100 })).items);
+    }
+    return items;
   },
 
   async claimGuestOrders(orders: GuestOrderClaimInput[]): Promise<GuestOrderClaimResult> {
@@ -88,11 +99,21 @@ export const checkoutService = {
     })));
   },
 
-  async getCoupons(): Promise<Coupon[]> {
-    return toDomain<Coupon[]>(await apiData(checkoutListAvailableCoupons({
+  async getCoupons(options: PageRequest = {}): Promise<Page<Coupon>> {
+    return toDomain<Page<Coupon>>(await apiData(checkoutListAvailableCoupons({
+      query: { page: options.page, per_page: options.perPage },
       client: customerApiClient,
       throwOnError: true,
     })));
+  },
+
+  async getAllCoupons(): Promise<Coupon[]> {
+    const first = await this.getCoupons({ page: 1, perPage: 100 });
+    const items = [...first.items];
+    for (let page = 2; page <= first.totalPages; page += 1) {
+      items.push(...(await this.getCoupons({ page, perPage: 100 })).items);
+    }
+    return items;
   },
 
   async validateCoupon(code: string, subtotal: number): Promise<CouponValidation> {

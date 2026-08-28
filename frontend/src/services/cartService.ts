@@ -280,7 +280,8 @@ export const cartService = {
     const guestItems = guestCartService.get();
     if (!guestItems.length) return { cartId: null, items: [], total: 0 };
     try {
-      const products = await productService.getAll();
+      const productIds = [...new Set(guestItems.map((item) => item.productId))];
+      const products = (await productService.getPage({ page: 1, perPage: 100, productIds })).items;
       const productMap = new Map<number, Product>(products.map((product) => [product.id, product]));
       const items: CartItem[] = guestItems.flatMap((item) => {
         const product = productMap.get(item.productId);

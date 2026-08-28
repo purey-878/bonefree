@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { CakeSlice, Check, ChevronDown, CupSoda, Flame, Salad, Sandwich, Search, SlidersHorizontal, Soup, X } from "lucide-react";
 import { useRef } from "react";
 
 import Navbar from "../components/Navbar";
-import { ProductCard, ProductCardSkeleton } from "../components/ui";
+import { Pagination, ProductCard, ProductCardSkeleton } from "../components/ui";
 import "./Menu.css";
 import "../theme.css";
 import { cartService, getPublicLoyaltyCouponSettings, productService } from "../services";
@@ -21,6 +21,7 @@ import { useTranslation } from "react-i18next";
 import { resolvedLocale } from "../i18n";
 
 interface CategoryCount {
+  id: number;
   name: string;
   count: number;
 }
@@ -103,10 +104,6 @@ function readSavedMenuFilters(): InitialMenuFilters {
   }
 }
 
-function hasTag(product: Product, needle: string) {
-  return (product.tags ?? []).some((tag) => tag.toLowerCase().includes(needle));
-}
-
 function sortMenuCategories(categories: CategoryCount[]) {
   const sorted = [...categories].sort((a, b) => b.count - a.count);
   const entradasIndex = sorted.findIndex((cat) => cat.name.toLowerCase() === "entradas");
@@ -131,25 +128,34 @@ function clampPrice(value: number, maxPrice: number) {
   return Number(Math.min(Math.max(value, 0), maxPrice).toFixed(2));
 }
 
-function isDrinkProduct(product: Product) {
-  const category = product.category.toLowerCase();
-  return (
-    category.includes("drink") ||
-    category.includes("bebida") ||
-    category.includes("beverage") ||
-    category.includes("juice") ||
-    category.includes("sumo") ||
-    category.includes("cocktail") ||
-    category.includes("beer") ||
-    category.includes("wine")
-  );
-}
-
 function Menu() {
   const { t } = useTranslation("storefront");
-  const [initialFilters] = useState(readSavedMenuFilters);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [initialFilters] = useState(() => {
+    const saved = readSavedMenuFilters();
+    const hasUrlParameters = searchParams.toString().length > 0;
+    if (!hasUrlParameters) return saved;
+    const minPrice = Number(searchParams.get("min_price"));
+    const maxPrice = Number(searchParams.get("max_price"));
+    const urlSort = searchParams.get("sort")?.replaceAll("_", "-");
+    const urlSpecial = searchParams.get("special")?.replace("_", "-");
+    return {
+      searchTerm: searchParams.get("q") ?? "",
+      selectedCategory: searchParams.get("category") ?? "",
+      priceRange: [Number.isFinite(minPrice) ? minPrice : 0, Number.isFinite(maxPrice) && maxPrice > 0 ? maxPrice : 1000] as [number, number],
+      sortBy: isSortOption(urlSort) ? urlSort : "default",
+      specialFilter: isSpecialFilter(urlSpecial) ? urlSpecial : "all",
+      hasSavedFilters: false,
+    };
+  });
   const [categories, setCategories] = useState<CategoryCount[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [popularProducts, setPopularProducts] = useState<Product[]>([]);
+  const [page, setPage] = useState(() => Math.max(1, Number(searchParams.get("page")) || 1));
+  const [perPage, setPerPage] = useState(() => [10, 20, 50, 100].includes(Number(searchParams.get("per_page"))) ? Number(searchParams.get("per_page")) : 20);
+  const [total, setTotal] = useState(0);
+  const [catalogTotal, setCatalogTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState(initialFilters.searchTerm);
   const [selectedCategory, setSelectedCategory] = useState<string>(initialFilters.selectedCategory);
@@ -172,6 +178,12 @@ function Menu() {
 
   const navigate = useNavigate();
   const sortMenuRef = useRef<HTMLDivElement | null>(null);
+  const requestIdRef = useRef(0);
+  const initialFilterEffectRef = useRef(true);
+  const hydratingUrlRef = useRef(false);
+  const skipUrlWriteRef = useRef(false);
+  const lastWrittenSearchRef = useRef(searchParams.toString());
+  const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
 
   const dismissLoyaltyBanner = () => {
     setShowLoyaltyBanner(false);
@@ -183,48 +195,108 @@ function Menu() {
   };
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const [productsData, couponSettings] = await Promise.all([
-          productService.getAll(),
-          getPublicLoyaltyCouponSettings().catch(() => defaultLoyaltyCouponSettings),
-        ]);
-        setProducts(productsData);
-        setLoyaltyCouponSettings(couponSettings);
+    const timer = window.setTimeout(() => setDebouncedSearch(searchTerm), 350);
+    return () => window.clearTimeout(timer);
+  }, [searchTerm]);
 
-        const productPrices = productsData
-          .map((product) => Number(product.price ?? 0))
-          .filter((price) => Number.isFinite(price) && price > 0);
-        const nextMaxPrice = productPrices.length
-          ? Number(Math.max(...productPrices).toFixed(2))
-          : 0;
-        setMaxPrice(nextMaxPrice);
-        setPriceRange((currentRange) => [
-          initialFilters.hasSavedFilters ? clampPrice(currentRange[0], nextMaxPrice) : 0,
-          initialFilters.hasSavedFilters ? clampPrice(currentRange[1], nextMaxPrice) : nextMaxPrice,
-        ]);
+  useEffect(() => {
+    void Promise.all([
+      productService.getPage({ page: 1, perPage: 4, sort: "popular" }).then((result) => setPopularProducts(result.items)),
+      getPublicLoyaltyCouponSettings().then(setLoyaltyCouponSettings).catch(() => setLoyaltyCouponSettings(defaultLoyaltyCouponSettings)),
+    ]);
+  }, []);
 
-        const categoryMap = new Map<string, number>();
-        productsData.forEach((product) => {
-          const count = categoryMap.get(product.category) || 0;
-          categoryMap.set(product.category, count + 1);
-        });
-
-        const categoryCounts = Array.from(categoryMap, ([name, count]) => ({
-          name,
-          count,
-        }));
-
-        setCategories(sortMenuCategories(categoryCounts));
-      } catch (error) {
-        console.error("Error fetching products:", error);
-      } finally {
-        setLoading(false);
+  useEffect(() => {
+    const requestId = ++requestIdRef.current;
+    setLoading(true);
+    void productService.getPage({
+      page,
+      perPage,
+      search: debouncedSearch.trim() || undefined,
+      categoryId: Number(selectedCategory) || undefined,
+      minPrice: priceRange[0] > 0 ? priceRange[0] : undefined,
+      maxPrice: priceRange[1] < maxPrice ? priceRange[1] : undefined,
+      special: specialFilter === "gluten-free" ? "gluten_free" : specialFilter,
+      sort: sortBy.replaceAll("-", "_") as "default" | "price_asc" | "price_desc" | "name_asc",
+    }).then((result) => {
+      if (requestId !== requestIdRef.current) return;
+      setProducts(result.items);
+      setTotal(result.total);
+      setCatalogTotal(result.facets.totalProducts);
+      setTotalPages(result.totalPages);
+      setCategories(sortMenuCategories(result.facets.categories.map((facet) => ({ name: facet.name, count: facet.count, id: facet.categoryId }))));
+      if (selectedCategory && !Number(selectedCategory)) {
+        const legacyCategory = result.facets.categories.find((facet) => facet.name === selectedCategory);
+        if (legacyCategory) setSelectedCategory(String(legacyCategory.categoryId));
       }
-    };
+      const nextMaxPrice = Number(result.facets.maxPrice || 0);
+      setMaxPrice(nextMaxPrice);
+      if (initialFilterEffectRef.current) {
+        setPriceRange((current) => [clampPrice(current[0], nextMaxPrice), initialFilters.hasSavedFilters ? clampPrice(current[1], nextMaxPrice) : nextMaxPrice]);
+      }
+      if (result.totalPages === 0 && page !== 1) setPage(1);
+      else if (result.totalPages > 0 && page > result.totalPages) setPage(result.totalPages);
+    }).catch((error) => {
+      if (requestId === requestIdRef.current) console.error("Error fetching products:", error);
+    }).finally(() => {
+      initialFilterEffectRef.current = false;
+      if (requestId === requestIdRef.current) setLoading(false);
+    });
+  }, [debouncedSearch, initialFilters.hasSavedFilters, maxPrice, page, perPage, priceRange, selectedCategory, sortBy, specialFilter]);
 
-    fetchProducts();
-  }, [initialFilters.hasSavedFilters]);
+  useEffect(() => {
+    const currentSearch = searchParams.toString();
+    if (currentSearch === lastWrittenSearchRef.current) return;
+    lastWrittenSearchRef.current = currentSearch;
+    hydratingUrlRef.current = true;
+    skipUrlWriteRef.current = true;
+    const nextSearch = searchParams.get("q") ?? "";
+    const nextSort = searchParams.get("sort")?.replaceAll("_", "-");
+    const nextSpecial = searchParams.get("special")?.replace("_", "-");
+    const nextMinPrice = Number(searchParams.get("min_price"));
+    const nextMaxPrice = Number(searchParams.get("max_price"));
+    const nextPerPage = Number(searchParams.get("per_page"));
+    setSearchTerm(nextSearch);
+    setDebouncedSearch(nextSearch);
+    setSelectedCategory(searchParams.get("category") ?? "");
+    setPriceRange([
+      Number.isFinite(nextMinPrice) ? clampPrice(nextMinPrice, maxPrice) : 0,
+      Number.isFinite(nextMaxPrice) && nextMaxPrice > 0 ? clampPrice(nextMaxPrice, maxPrice) : maxPrice,
+    ]);
+    setSortBy(isSortOption(nextSort) ? nextSort : "default");
+    setSpecialFilter(isSpecialFilter(nextSpecial) ? nextSpecial : "all");
+    setPage(Math.max(1, Number(searchParams.get("page")) || 1));
+    setPerPage([10, 20, 50, 100].includes(nextPerPage) ? nextPerPage : 20);
+  }, [maxPrice, searchParams]);
+
+  useEffect(() => {
+    if (skipUrlWriteRef.current) {
+      skipUrlWriteRef.current = false;
+      return;
+    }
+    const next = new URLSearchParams();
+    if (debouncedSearch.trim()) next.set("q", debouncedSearch.trim());
+    if (selectedCategory) next.set("category", selectedCategory);
+    if (priceRange[0] > 0) next.set("min_price", String(priceRange[0]));
+    if (maxPrice > 0 && priceRange[1] < maxPrice) next.set("max_price", String(priceRange[1]));
+    if (specialFilter !== "all") next.set("special", specialFilter.replace("-", "_"));
+    if (sortBy !== "default") next.set("sort", sortBy.replaceAll("-", "_"));
+    if (page !== 1) next.set("page", String(page));
+    if (perPage !== 20) next.set("per_page", String(perPage));
+    if (next.toString() !== searchParams.toString()) {
+      lastWrittenSearchRef.current = next.toString();
+      setSearchParams(next, { replace: true });
+    }
+  }, [debouncedSearch, maxPrice, page, perPage, priceRange, searchParams, selectedCategory, setSearchParams, sortBy, specialFilter]);
+
+  useEffect(() => {
+    if (initialFilterEffectRef.current) return;
+    if (hydratingUrlRef.current) {
+      hydratingUrlRef.current = false;
+      return;
+    }
+    setPage(1);
+  }, [debouncedSearch, priceRange, selectedCategory, sortBy, specialFilter]);
 
   useEffect(() => {
     try {
@@ -285,50 +357,7 @@ function Menu() {
     }
   };
 
-  const filteredProducts = useMemo(() => {
-    const filtered = products.filter((product) => {
-      const matchesSearch =
-        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.description?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory =
-        !selectedCategory || product.category === selectedCategory;
-      const matchesPrice =
-        (product.price || 0) >= priceRange[0] &&
-        (product.price || 0) <= priceRange[1];
-      const matchesSpecial =
-        specialFilter === "all" ||
-        (specialFilter === "gluten-free"
-          ? Boolean(product.glutenFree)
-          : isDrinkProduct(product) && Boolean(product.containsAlcohol));
-      return matchesSearch && matchesCategory && matchesPrice && matchesSpecial;
-    });
-
-    return [...filtered].sort((a, b) => {
-      if (sortBy === "price-asc") return (a.price || 0) - (b.price || 0);
-      if (sortBy === "price-desc") return (b.price || 0) - (a.price || 0);
-      if (sortBy === "name-asc") return a.name.localeCompare(b.name);
-      const score = (product: Product) =>
-        (product.highlighted ? 1000 : 0) +
-        (hasTag(product, "popular") ? 600 : 0) +
-        (hasTag(product, "new") ? 300 : 0) +
-        Number(product.sold ?? 0);
-      return score(b) - score(a);
-    });
-  }, [priceRange, products, searchTerm, selectedCategory, sortBy, specialFilter]);
-
-  const popularProducts = useMemo(() => {
-    const sortedProducts = [...products]
-      .sort((a, b) => {
-        const score = (product: Product) =>
-          (product.highlighted ? 1000 : 0) +
-          (hasTag(product, "popular") ? 700 : 0) +
-          (Number(product.discountPercent ?? 0) > 0 ? 250 : 0) +
-          Number(product.sold ?? 0);
-        return score(b) - score(a);
-      })
-    const highlightedProducts = sortedProducts.filter((product) => product.highlighted);
-    return highlightedProducts.length > 0 ? highlightedProducts : sortedProducts.slice(0, 4);
-  }, [products]);
+  const filteredProducts = products;
 
   const activeFilterCount =
     (searchTerm.trim() ? 1 : 0) +
@@ -342,6 +371,7 @@ function Menu() {
     setPriceRange([0, maxPrice]);
     setSortBy("default");
     setSpecialFilter("all");
+    setPage(1);
   };
 
   const selectCategory = (category: string) => {
@@ -482,8 +512,8 @@ function Menu() {
         <div className="menu-results-summary">
           <div>
             <span>{t("menu.showing")}</span>
-            <strong className="fw-bold">{filteredProducts.length}</strong>
-            <span>{t("menu.dish", { count: filteredProducts.length })}</span>
+              <strong className="fw-bold">{total}</strong>
+            <span>{t("menu.dish", { count: total })}</span>
           </div>
 
         </div>
@@ -619,14 +649,14 @@ function Menu() {
             >
 
               <span className=" fw-bold">{t("menu.all")}</span>
-              <strong className="fw-bold">{products.length}</strong>
+              <strong className="fw-bold">{catalogTotal}</strong>
             </button>
             {categories.map((cat) => (
               <button
                 type="button"
-                key={cat.name}
-                className={selectedCategory === cat.name ? "active f-bold" : ""}
-                onClick={() => selectCategory(cat.name)}
+                key={cat.id}
+                className={selectedCategory === String(cat.id) ? "active f-bold" : ""}
+                onClick={() => selectCategory(String(cat.id))}
               >
                 <span className="fw-bold">{cat.name}</span>
                 <strong>{cat.count}</strong>
@@ -682,6 +712,7 @@ function Menu() {
 
             </main>
           </div>
+          <Pagination page={page} perPage={perPage} total={total} totalPages={totalPages} onPageChange={setPage} onPerPageChange={(value) => { setPerPage(value); setPage(1); }} />
         </div>
       </div>
 

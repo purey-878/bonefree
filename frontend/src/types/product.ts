@@ -28,6 +28,7 @@ export interface ProductMedia {
 export interface Product {
   id: number;
   idDisplay: string;
+  categoryId?: number;
   category: string;
   name: string;
   description: string | null;

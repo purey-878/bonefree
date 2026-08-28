@@ -48,6 +48,14 @@ describe('guest order access storage', () => {
     expect(JSON.parse(localStorage.getItem(GUEST_ORDER_ACCESSES_KEY) ?? '{}')).toHaveProperty('42');
   });
 
+  it('preserves optional creation metadata used to sort before loading a page', () => {
+    const expiresAt = new Date(Date.now() + 60_000).toISOString();
+    const createdAt = '2026-08-28T18:45:00';
+    rememberGuestOrderAccess(91, 'dated-secret', expiresAt, false, createdAt);
+
+    expect(readGuestOrderAccess(91)?.createdAt).toBe(createdAt);
+  });
+
   it('migrates a valid legacy access and removes every legacy key', () => {
     const expiresAt = new Date(Date.now() + 60_000).toISOString();
     localStorage.setItem(LEGACY_ACTIVE_ORDER_KEY, '42');

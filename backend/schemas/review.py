@@ -4,6 +4,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from schemas.enums import ReviewReactionType, ReviewStatus
+from schemas.pagination import PaginatedResponse
 
 
 class ReviewReplyCreate(BaseModel):
@@ -68,6 +69,7 @@ class ProductReviewResponse(BaseModel):
     review_id: int
     product_id: int
     product_display_id: str
+    product_name: str | None = None
     customer_id: int
     order_product_id: int | None
     customer_name: str | None = None
@@ -81,6 +83,20 @@ class ProductReviewResponse(BaseModel):
     reply: ReviewReplyResponse | None = None
     replies: list[ReviewReplyResponse] = Field(default_factory=list)
     reactions: list[ReviewReactionResponse] = Field(default_factory=list)
+
+
+class ProductReviewPageResponse(PaginatedResponse[ProductReviewResponse]):
+    pass
+
+
+class AdminReviewSummary(BaseModel):
+    average_rating: float | None = None
+    with_reply: int = Field(ge=0)
+    awaiting_reply: int = Field(ge=0)
+
+
+class AdminReviewPageResponse(ProductReviewPageResponse):
+    summary: AdminReviewSummary
 
 
 class ProductReviewStatsResponse(BaseModel):

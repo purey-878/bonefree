@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { Download, LoaderCircle, LogIn, PackageCheck, ReceiptText, UserPlus, X } from "lucide-react"
-import { Link, Navigate } from "react-router-dom"
+import { Link, Navigate, useSearchParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 
 import { ApiError } from "../api/errors"
 import Navbar from "../components/Navbar"
+import { Pagination } from "../components/ui"
 import {
   GUEST_ORDERS_UPDATED_EVENT,
   readGuestOrderAccesses,
@@ -30,46 +31,97 @@ function orderTimestamp(order: OrderResponse) {
 export default function GuestOrders() {
   const { t } = useTranslation("storefront")
   const { isAuthenticated, loading: authLoading } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [records, setRecords] = useState<GuestOrderRecord[]>([])
+  const [page, setPage] = useState(() => Math.max(1, Number(searchParams.get("page")) || 1))
+  const [perPage, setPerPage] = useState(() => [10, 20, 50, 100].includes(Number(searchParams.get("per_page"))) ? Number(searchParams.get("per_page")) : 20)
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [busyKey, setBusyKey] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const lastWrittenSearchRef = useRef(searchParams.toString())
+  const skipUrlWriteRef = useRef(false)
+  const loadRequestRef = useRef(0)
 
   const loadOrders = useCallback(async () => {
     if (authLoading || isAuthenticated) return
-    const accesses = readGuestOrderAccesses()
+    const requestId = ++loadRequestRef.current
+    const accesses = readGuestOrderAccesses().sort((first, second) => {
+      const firstTimestamp = first.createdAt ? Date.parse(first.createdAt) : Number.NaN
+      const secondTimestamp = second.createdAt ? Date.parse(second.createdAt) : Number.NaN
+      if (Number.isFinite(firstTimestamp) && Number.isFinite(secondTimestamp) && firstTimestamp !== secondTimestamp) {
+        return secondTimestamp - firstTimestamp
+      }
+      return second.orderId - first.orderId
+    })
     if (accesses.length === 0) {
+      if (requestId !== loadRequestRef.current) return
       setRecords([])
+      setTotal(0)
       setLoading(false)
       return
     }
 
-    const results = await Promise.allSettled(
-      accesses.map(async (access) => ({
-        order: await checkoutService.getOrder(access.orderId, access.accessToken),
-        accessToken: access.accessToken,
-      })),
-    )
     const invalidOrderIds: number[] = []
     const loaded: GuestOrderRecord[] = []
     let temporaryFailure = false
 
-    results.forEach((result, index) => {
-      if (result.status === "fulfilled") {
-        loaded.push(result.value)
-      } else if (result.reason instanceof ApiError && (result.reason.status === 401 || result.reason.status === 404)) {
-        invalidOrderIds.push(accesses[index].orderId)
-      } else {
-        temporaryFailure = true
-      }
-    })
+    let cursor = (page - 1) * perPage
+    while (cursor < accesses.length && loaded.length < perPage) {
+      const candidates = accesses.slice(cursor, cursor + (perPage - loaded.length))
+      const results = await Promise.allSettled(candidates.map(async (access) => ({
+        order: await checkoutService.getOrder(access.orderId, access.accessToken),
+        accessToken: access.accessToken,
+      })))
+      if (requestId !== loadRequestRef.current) return
+      results.forEach((result, index) => {
+        if (result.status === "fulfilled") loaded.push(result.value)
+        else if (result.reason instanceof ApiError && (result.reason.status === 401 || result.reason.status === 404)) invalidOrderIds.push(candidates[index].orderId)
+        else temporaryFailure = true
+      })
+      cursor += candidates.length
+      if (candidates.length === 0) break
+    }
+
+    const nextTotal = Math.max(0, accesses.length - invalidOrderIds.length)
+    const nextTotalPages = Math.ceil(nextTotal / perPage)
+    if ((nextTotalPages === 0 && page !== 1) || (nextTotalPages > 0 && page > nextTotalPages)) {
+      setPage(nextTotalPages === 0 ? 1 : nextTotalPages)
+      return
+    }
 
     if (invalidOrderIds.length > 0) removeGuestOrderAccesses(invalidOrderIds)
+    if (requestId !== loadRequestRef.current) return
     loaded.sort((first, second) => orderTimestamp(second.order) - orderTimestamp(first.order))
     setRecords(loaded)
+    setTotal(nextTotal)
     setError(temporaryFailure ? t("guestOrders.partialLoad") : null)
     setLoading(false)
-  }, [authLoading, isAuthenticated, t])
+  }, [authLoading, isAuthenticated, page, perPage, t])
+
+  useEffect(() => {
+    const currentSearch = searchParams.toString()
+    if (currentSearch === lastWrittenSearchRef.current) return
+    lastWrittenSearchRef.current = currentSearch
+    skipUrlWriteRef.current = true
+    const nextPerPage = Number(searchParams.get("per_page"))
+    setPage(Math.max(1, Number(searchParams.get("page")) || 1))
+    setPerPage([10, 20, 50, 100].includes(nextPerPage) ? nextPerPage : 20)
+  }, [searchParams])
+
+  useEffect(() => {
+    if (skipUrlWriteRef.current) {
+      skipUrlWriteRef.current = false
+      return
+    }
+    const next = new URLSearchParams(searchParams)
+    if (page === 1) next.delete("page"); else next.set("page", String(page))
+    if (perPage === 20) next.delete("per_page"); else next.set("per_page", String(perPage))
+    if (next.toString() !== searchParams.toString()) {
+      lastWrittenSearchRef.current = next.toString()
+      setSearchParams(next, { replace: true })
+    }
+  }, [page, perPage, searchParams, setSearchParams])
 
   useEffect(() => {
     void loadOrders()
@@ -136,7 +188,7 @@ export default function GuestOrders() {
             <h1>{t("guestOrders.title")}</h1>
             <p>{t("guestOrders.description")}</p>
           </div>
-          {records.length > 0 && <strong>{t("guestOrders.savedCount", { count: records.length })}</strong>}
+          {total > 0 && <strong>{t("guestOrders.savedCount", { count: total })}</strong>}
         </header>
 
         <aside className="guest-orders-account-callout">
@@ -228,6 +280,7 @@ export default function GuestOrders() {
             })}
           </div>
         )}
+        <Pagination page={page} perPage={perPage} total={total} totalPages={Math.ceil(total / perPage)} onPageChange={setPage} onPerPageChange={(value) => { setPerPage(value); setPage(1) }} />
       </main>
     </section>
   )

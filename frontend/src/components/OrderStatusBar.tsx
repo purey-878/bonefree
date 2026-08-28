@@ -70,7 +70,7 @@ export default function OrderStatusBar() {
 
     if (isAuthenticated) {
       try {
-        const history = await checkoutService.getHistory()
+        const history = await checkoutService.getAllHistory()
         setTrackedOrders(
           history
             .filter((order) => !TERMINAL_STATUSES.has(order.status))

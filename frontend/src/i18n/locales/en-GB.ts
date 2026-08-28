@@ -54,6 +54,10 @@ const enGB = {
       show: "Show",
       view: "View",
     },
+    pagination: {
+      navigation: "Pagination", range: "{{first}}–{{last}} of {{total}} results", singleRange: "{{count}} of {{total}} results", perPage: "Per page",
+      previous: "Previous page", next: "Next page", page: "Go to page {{page}}", goTo: "Page", go: "Go",
+    },
     fields: {
       address: "Address",
       city: "City",

@@ -54,6 +54,10 @@ const ptPT = {
       show: "Mostrar",
       view: "Ver",
     },
+    pagination: {
+      navigation: "Paginação", range: "{{first}}–{{last}} de {{total}} resultados", singleRange: "{{count}} de {{total}} resultados", perPage: "Por página",
+      previous: "Página anterior", next: "Página seguinte", page: "Ir para a página {{page}}", goTo: "Página", go: "Ir",
+    },
     fields: {
       address: "Morada",
       city: "Cidade",

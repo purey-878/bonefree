@@ -10,6 +10,7 @@ export interface AdminIngredient {
   status: EntityStatus;
   available: boolean;
   caloriesPerGram?: number | null;
+  linkedProductCount?: number;
 }
 
 export interface AdminIngredientPayload {
@@ -129,7 +130,7 @@ export interface DashboardData {
   salesCharts: DashboardSalesGraphs;
 }
 
-export interface Category { categoryId: number; categoryDisplayId: string; categoryName: string; categoryDescription?: string | null; status?: EntityStatus | null; }
+export interface Category { categoryId: number; categoryDisplayId: string; categoryName: string; categoryDescription?: string | null; status?: EntityStatus | null; activeProductCount?: number; }
 export interface CategoryPayload { categoryName: string; categoryDescription?: string | null; }
 export interface SalesDay { period: string; totalSales: number; quantitySold: number; orderCount: number; }
 export interface DashboardSalesGraphs { byHour: SalesDay[]; byDay: SalesDay[]; byMonth: SalesDay[]; byYear: SalesDay[]; }

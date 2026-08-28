@@ -51,6 +51,81 @@
         "title": "AdminLogin",
         "type": "object"
       },
+      "AdminOrderPageResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/schemas__admin__OrderResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "minimum": 1.0,
+            "title": "Page",
+            "type": "integer"
+          },
+          "per_page": {
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Per Page",
+            "type": "integer"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/AdminOrderSummary"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          },
+          "total_pages": {
+            "minimum": 0.0,
+            "title": "Total Pages",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "page",
+          "per_page",
+          "total",
+          "total_pages",
+          "summary"
+        ],
+        "title": "AdminOrderPageResponse",
+        "type": "object"
+      },
+      "AdminOrderSummary": {
+        "properties": {
+          "completed": {
+            "default": 0,
+            "title": "Completed",
+            "type": "integer"
+          },
+          "pending": {
+            "default": 0,
+            "title": "Pending",
+            "type": "integer"
+          },
+          "preparing": {
+            "default": 0,
+            "title": "Preparing",
+            "type": "integer"
+          },
+          "ready": {
+            "default": 0,
+            "title": "Ready",
+            "type": "integer"
+          },
+          "revenue": {
+            "default": 0,
+            "title": "Revenue",
+            "type": "number"
+          }
+        },
+        "title": "AdminOrderSummary",
+        "type": "object"
+      },
       "AdminResponse": {
         "description": "Response model for authenticated admin.",
         "properties": {
@@ -81,6 +156,81 @@
           "status"
         ],
         "title": "AdminResponse",
+        "type": "object"
+      },
+      "AdminReviewPageResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ProductReviewResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "minimum": 1.0,
+            "title": "Page",
+            "type": "integer"
+          },
+          "per_page": {
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Per Page",
+            "type": "integer"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/AdminReviewSummary"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          },
+          "total_pages": {
+            "minimum": 0.0,
+            "title": "Total Pages",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "page",
+          "per_page",
+          "total",
+          "total_pages",
+          "summary"
+        ],
+        "title": "AdminReviewPageResponse",
+        "type": "object"
+      },
+      "AdminReviewSummary": {
+        "properties": {
+          "average_rating": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Rating"
+          },
+          "awaiting_reply": {
+            "minimum": 0.0,
+            "title": "Awaiting Reply",
+            "type": "integer"
+          },
+          "with_reply": {
+            "minimum": 0.0,
+            "title": "With Reply",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "with_reply",
+          "awaiting_reply"
+        ],
+        "title": "AdminReviewSummary",
         "type": "object"
       },
       "AdminTokenResponse": {
@@ -518,9 +668,54 @@
         "title": "CategoryCreate",
         "type": "object"
       },
+      "CategoryPageResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CategoryResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "minimum": 1.0,
+            "title": "Page",
+            "type": "integer"
+          },
+          "per_page": {
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Per Page",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          },
+          "total_pages": {
+            "minimum": 0.0,
+            "title": "Total Pages",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "page",
+          "per_page",
+          "total",
+          "total_pages"
+        ],
+        "title": "CategoryPageResponse",
+        "type": "object"
+      },
       "CategoryResponse": {
         "description": "Response model for category.",
         "properties": {
+          "active_product_count": {
+            "default": 0,
+            "title": "Active Product Count",
+            "type": "integer"
+          },
           "category_description": {
             "anyOf": [
               {
@@ -829,6 +1024,46 @@
         "title": "CouponDiscountType",
         "type": "string"
       },
+      "CouponPageResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CouponResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "minimum": 1.0,
+            "title": "Page",
+            "type": "integer"
+          },
+          "per_page": {
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Per Page",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          },
+          "total_pages": {
+            "minimum": 0.0,
+            "title": "Total Pages",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "page",
+          "per_page",
+          "total",
+          "total_pages"
+        ],
+        "title": "CouponPageResponse",
+        "type": "object"
+      },
       "CouponResponse": {
         "properties": {
           "code": {
@@ -1049,6 +1284,46 @@
           "password"
         ],
         "title": "CustomerAdminCreate",
+        "type": "object"
+      },
+      "CustomerAdminPageResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CustomerAdminResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "minimum": 1.0,
+            "title": "Page",
+            "type": "integer"
+          },
+          "per_page": {
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Per Page",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          },
+          "total_pages": {
+            "minimum": 0.0,
+            "title": "Total Pages",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "page",
+          "per_page",
+          "total",
+          "total_pages"
+        ],
+        "title": "CustomerAdminPageResponse",
         "type": "object"
       },
       "CustomerAdminResponse": {
@@ -1904,6 +2179,46 @@
         "title": "IngredientCreate",
         "type": "object"
       },
+      "IngredientPageResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/IngredientResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "minimum": 1.0,
+            "title": "Page",
+            "type": "integer"
+          },
+          "per_page": {
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Per Page",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          },
+          "total_pages": {
+            "minimum": 0.0,
+            "title": "Total Pages",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "page",
+          "per_page",
+          "total",
+          "total_pages"
+        ],
+        "title": "IngredientPageResponse",
+        "type": "object"
+      },
       "IngredientResponse": {
         "properties": {
           "available": {
@@ -1923,6 +2238,11 @@
           },
           "ingredient_id": {
             "title": "Ingredient Id",
+            "type": "integer"
+          },
+          "linked_product_count": {
+            "default": 0,
+            "title": "Linked Product Count",
             "type": "integer"
           },
           "name": {
@@ -2702,6 +3022,46 @@
         "title": "OrderItemResponse",
         "type": "object"
       },
+      "OrderPageResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/schemas__checkout__OrderResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "minimum": 1.0,
+            "title": "Page",
+            "type": "integer"
+          },
+          "per_page": {
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Per Page",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          },
+          "total_pages": {
+            "minimum": 0.0,
+            "title": "Total Pages",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "page",
+          "per_page",
+          "total",
+          "total_pages"
+        ],
+        "title": "OrderPageResponse",
+        "type": "object"
+      },
       "OrderState": {
         "enum": [
           "pending",
@@ -2809,6 +3169,46 @@
           "category"
         ],
         "title": "PopularProduct",
+        "type": "object"
+      },
+      "ProductAdminPageResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ProductAdminResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "minimum": 1.0,
+            "title": "Page",
+            "type": "integer"
+          },
+          "per_page": {
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Per Page",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          },
+          "total_pages": {
+            "minimum": 0.0,
+            "title": "Total Pages",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "page",
+          "per_page",
+          "total",
+          "total_pages"
+        ],
+        "title": "ProductAdminPageResponse",
         "type": "object"
       },
       "ProductAdminResponse": {
@@ -3042,6 +3442,62 @@
           "sales_by_day"
         ],
         "title": "ProductAnalyticsResponse",
+        "type": "object"
+      },
+      "ProductCatalogFacets": {
+        "properties": {
+          "categories": {
+            "items": {
+              "$ref": "#/components/schemas/ProductCategoryFacet"
+            },
+            "title": "Categories",
+            "type": "array"
+          },
+          "max_price": {
+            "minimum": 0.0,
+            "title": "Max Price",
+            "type": "number"
+          },
+          "total_products": {
+            "minimum": 0.0,
+            "title": "Total Products",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total_products",
+          "max_price"
+        ],
+        "title": "ProductCatalogFacets",
+        "type": "object"
+      },
+      "ProductCategoryFacet": {
+        "properties": {
+          "category_display_id": {
+            "title": "Category Display Id",
+            "type": "string"
+          },
+          "category_id": {
+            "title": "Category Id",
+            "type": "integer"
+          },
+          "count": {
+            "minimum": 0.0,
+            "title": "Count",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "category_id",
+          "category_display_id",
+          "name",
+          "count"
+        ],
+        "title": "ProductCategoryFacet",
         "type": "object"
       },
       "ProductCreate": {
@@ -3565,6 +4021,50 @@
         "title": "ProductMediaUploadResponse",
         "type": "object"
       },
+      "ProductPageResponse": {
+        "properties": {
+          "facets": {
+            "$ref": "#/components/schemas/ProductCatalogFacets"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ProductResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "minimum": 1.0,
+            "title": "Page",
+            "type": "integer"
+          },
+          "per_page": {
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Per Page",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          },
+          "total_pages": {
+            "minimum": 0.0,
+            "title": "Total Pages",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "page",
+          "per_page",
+          "total",
+          "total_pages",
+          "facets"
+        ],
+        "title": "ProductPageResponse",
+        "type": "object"
+      },
       "ProductResponse": {
         "description": "Response model for a product.",
         "properties": {
@@ -3576,6 +4076,10 @@
           "category": {
             "title": "Category",
             "type": "string"
+          },
+          "category_id": {
+            "title": "Category Id",
+            "type": "integer"
           },
           "contains_alcohol": {
             "default": false,
@@ -3704,6 +4208,7 @@
         "required": [
           "id",
           "id_display",
+          "category_id",
           "category",
           "name",
           "description",
@@ -3846,6 +4351,46 @@
         "title": "ProductReviewEligibilityResponse",
         "type": "object"
       },
+      "ProductReviewPageResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ProductReviewResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "minimum": 1.0,
+            "title": "Page",
+            "type": "integer"
+          },
+          "per_page": {
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Per Page",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          },
+          "total_pages": {
+            "minimum": 0.0,
+            "title": "Total Pages",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "page",
+          "per_page",
+          "total",
+          "total_pages"
+        ],
+        "title": "ProductReviewPageResponse",
+        "type": "object"
+      },
       "ProductReviewResponse": {
         "properties": {
           "comment": {
@@ -3902,6 +4447,17 @@
           "product_id": {
             "title": "Product Id",
             "type": "integer"
+          },
+          "product_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Name"
           },
           "rating": {
             "title": "Rating",
@@ -4263,6 +4819,133 @@
           }
         },
         "title": "ProductUpdate",
+        "type": "object"
+      },
+      "ProfileFavoriteProductResponse": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "product_display_id": {
+            "title": "Product Display Id",
+            "type": "string"
+          },
+          "product_id": {
+            "title": "Product Id",
+            "type": "integer"
+          },
+          "quantity": {
+            "minimum": 0.0,
+            "title": "Quantity",
+            "type": "integer"
+          },
+          "total": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total",
+            "type": "string"
+          }
+        },
+        "required": [
+          "product_id",
+          "product_display_id",
+          "name",
+          "quantity"
+        ],
+        "title": "ProfileFavoriteProductResponse",
+        "type": "object"
+      },
+      "ProfileLoyaltyProgressResponse": {
+        "properties": {
+          "current": {
+            "minimum": 0.0,
+            "title": "Current",
+            "type": "integer"
+          },
+          "minimum_subtotal": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Minimum Subtotal",
+            "type": "string"
+          },
+          "percent": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Percent",
+            "type": "number"
+          },
+          "remaining": {
+            "minimum": 0.0,
+            "title": "Remaining",
+            "type": "integer"
+          },
+          "required": {
+            "minimum": 1.0,
+            "title": "Required",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "current",
+          "required",
+          "remaining",
+          "percent"
+        ],
+        "title": "ProfileLoyaltyProgressResponse",
+        "type": "object"
+      },
+      "ProfileOverviewResponse": {
+        "properties": {
+          "average_order_value": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Average Order Value",
+            "type": "string"
+          },
+          "favorite_products": {
+            "items": {
+              "$ref": "#/components/schemas/ProfileFavoriteProductResponse"
+            },
+            "title": "Favorite Products",
+            "type": "array"
+          },
+          "latest_order": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/schemas__checkout__OrderResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "loyalty_progress": {
+            "$ref": "#/components/schemas/ProfileLoyaltyProgressResponse"
+          },
+          "order_count": {
+            "minimum": 0.0,
+            "title": "Order Count",
+            "type": "integer"
+          },
+          "total_items": {
+            "minimum": 0.0,
+            "title": "Total Items",
+            "type": "integer"
+          },
+          "total_spent": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Spent",
+            "type": "string"
+          }
+        },
+        "required": [
+          "order_count",
+          "total_items",
+          "loyalty_progress"
+        ],
+        "title": "ProfileOverviewResponse",
         "type": "object"
       },
       "ResetPasswordRequest": {
@@ -4635,6 +5318,46 @@
           "password"
         ],
         "title": "StaffAdminCreate",
+        "type": "object"
+      },
+      "StaffAdminPageResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdminResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "minimum": 1.0,
+            "title": "Page",
+            "type": "integer"
+          },
+          "per_page": {
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Per Page",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          },
+          "total_pages": {
+            "minimum": 0.0,
+            "title": "Total Pages",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "page",
+          "per_page",
+          "total",
+          "total_pages"
+        ],
+        "title": "StaffAdminPageResponse",
         "type": "object"
       },
       "StaffAdminUpdate": {
@@ -6270,12 +6993,75 @@
         "parameters": [
           {
             "in": "query",
-            "name": "include_inactive",
+            "name": "page",
             "required": false,
             "schema": {
-              "default": false,
-              "title": "Include Inactive",
-              "type": "boolean"
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "per_page",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Per Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 120,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            }
+          },
+          {
+            "in": "query",
+            "name": "category_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/EntityStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
             }
           }
         ],
@@ -6284,11 +7070,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/CategoryResponse"
-                  },
-                  "title": "Response Admin Management List Categories",
-                  "type": "array"
+                  "$ref": "#/components/schemas/CategoryPageResponse"
                 }
               }
             },
@@ -6784,24 +7566,24 @@
         "parameters": [
           {
             "in": "query",
-            "name": "skip",
+            "name": "page",
             "required": false,
             "schema": {
-              "default": 0,
-              "minimum": 0,
-              "title": "Skip",
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
               "type": "integer"
             }
           },
           {
             "in": "query",
-            "name": "limit",
+            "name": "per_page",
             "required": false,
             "schema": {
-              "default": 50,
-              "maximum": 200,
+              "default": 20,
+              "maximum": 100,
               "minimum": 1,
-              "title": "Limit",
+              "title": "Per Page",
               "type": "integer"
             }
           },
@@ -6813,6 +7595,22 @@
               "title": "Search",
               "type": "string"
             }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/UserStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
           }
         ],
         "responses": {
@@ -6820,11 +7618,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/CustomerAdminResponse"
-                  },
-                  "title": "Response Admin Management List Customers",
-                  "type": "array"
+                  "$ref": "#/components/schemas/CustomerAdminPageResponse"
                 }
               }
             },
@@ -7320,12 +8114,74 @@
         "parameters": [
           {
             "in": "query",
-            "name": "include_inactive",
+            "name": "page",
             "required": false,
             "schema": {
-              "default": false,
-              "title": "Include Inactive",
-              "type": "boolean"
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "per_page",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Per Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 120,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/IngredientType"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/EntityStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
             }
           },
           {
@@ -7344,11 +8200,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/IngredientResponse"
-                  },
-                  "title": "Response Admin Management List Ingredients",
-                  "type": "array"
+                  "$ref": "#/components/schemas/IngredientPageResponse"
                 }
               }
             },
@@ -7974,34 +8826,158 @@
         ]
       }
     },
-    "/admin/kitchen/orders": {
+    "/admin/ingredients/{ingredient_id}/products": {
       "get": {
-        "operationId": "admin_management_list_kitchen_orders",
+        "operationId": "admin_management_list_ingredient_products",
         "parameters": [
           {
-            "in": "query",
-            "name": "skip",
-            "required": false,
+            "in": "path",
+            "name": "ingredient_id",
+            "required": true,
             "schema": {
-              "default": 0,
-              "minimum": 0,
-              "title": "Skip",
+              "title": "Ingredient Id",
               "type": "integer"
             }
           },
           {
             "in": "query",
-            "name": "limit",
+            "name": "page",
             "required": false,
             "schema": {
-              "default": 50,
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "per_page",
+            "required": false,
+            "schema": {
+              "default": 20,
               "maximum": 100,
               "minimum": 1,
-              "title": "Limit",
+              "title": "Per Page",
               "type": "integer"
             }
           }
         ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductAdminPageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limit exceeded",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds until another request may be attempted.",
+                "schema": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "List Ingredient Products",
+        "tags": [
+          "Admin Management"
+        ]
+      }
+    },
+    "/admin/kitchen/orders": {
+      "get": {
+        "operationId": "admin_management_list_kitchen_orders",
         "responses": {
           "200": {
             "content": {
@@ -8090,7 +9066,7 @@
               "Retry-After": {
                 "description": "Seconds until another request may be attempted.",
                 "schema": {
-                  "minimum": 1,
+                  "minimum": 1.0,
                   "type": "integer"
                 }
               }
@@ -8485,25 +9461,135 @@
         "parameters": [
           {
             "in": "query",
-            "name": "skip",
+            "name": "page",
             "required": false,
             "schema": {
-              "default": 0,
-              "minimum": 0,
-              "title": "Skip",
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
               "type": "integer"
             }
           },
           {
             "in": "query",
-            "name": "limit",
+            "name": "per_page",
             "required": false,
             "schema": {
-              "default": 10,
+              "default": 20,
               "maximum": 100,
               "minimum": 1,
-              "title": "Limit",
+              "title": "Per Page",
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 160,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/OrderState"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "State"
+            }
+          },
+          {
+            "in": "query",
+            "name": "payment_method",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/PaymentMethod"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Payment Method"
+            }
+          },
+          {
+            "in": "query",
+            "name": "payment_status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/PaymentStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Payment Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "customization",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "pattern": "^(all|customized|plain)$",
+              "title": "Customization",
+              "type": "string"
             }
           }
         ],
@@ -8512,11 +9598,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/schemas__admin__OrderResponse"
-                  },
-                  "title": "Response Admin Management List Orders",
-                  "type": "array"
+                  "$ref": "#/components/schemas/AdminOrderPageResponse"
                 }
               }
             },
@@ -9141,24 +10223,24 @@
         "parameters": [
           {
             "in": "query",
-            "name": "skip",
+            "name": "page",
             "required": false,
             "schema": {
-              "default": 0,
-              "minimum": 0,
-              "title": "Skip",
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
               "type": "integer"
             }
           },
           {
             "in": "query",
-            "name": "limit",
+            "name": "per_page",
             "required": false,
             "schema": {
               "default": 20,
               "maximum": 100,
               "minimum": 1,
-              "title": "Limit",
+              "title": "Per Page",
               "type": "integer"
             }
           },
@@ -9227,12 +10309,13 @@
           },
           {
             "in": "query",
-            "name": "include_deleted",
+            "name": "catalog_state",
             "required": false,
             "schema": {
-              "default": false,
-              "title": "Include Deleted",
-              "type": "boolean"
+              "default": "active",
+              "pattern": "^(active|archived|all)$",
+              "title": "Catalog State",
+              "type": "string"
             }
           }
         ],
@@ -9241,11 +10324,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/ProductAdminResponse"
-                  },
-                  "title": "Response Admin Management List Products",
-                  "type": "array"
+                  "$ref": "#/components/schemas/ProductAdminPageResponse"
                 }
               }
             },
@@ -10537,6 +11616,195 @@
         "summary": "Toggle Product Status",
         "tags": [
           "Admin Management"
+        ]
+      }
+    },
+    "/admin/reviews": {
+      "get": {
+        "operationId": "reviews_list_admin_reviews",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "per_page",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Per Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 160,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            }
+          },
+          {
+            "in": "query",
+            "name": "rating",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 5,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Rating"
+            }
+          },
+          {
+            "in": "query",
+            "name": "has_text",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Has Text"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ReviewStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": "approved",
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminReviewPageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "List Admin Reviews",
+        "tags": [
+          "Reviews"
         ]
       }
     },
@@ -12631,16 +13899,86 @@
     "/admin/staff": {
       "get": {
         "operationId": "admin_management_list_staff_admins",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "per_page",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Per Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 160,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            }
+          },
+          {
+            "in": "query",
+            "name": "role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/UserRole"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Role"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/UserStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/AdminResponse"
-                  },
-                  "title": "Response Admin Management List Staff Admins",
-                  "type": "array"
+                  "$ref": "#/components/schemas/StaffAdminPageResponse"
                 }
               }
             },
@@ -12719,7 +14057,7 @@
               "Retry-After": {
                 "description": "Seconds until another request may be attempted.",
                 "schema": {
-                  "minimum": 1.0,
+                  "minimum": 1,
                   "type": "integer"
                 }
               }
@@ -12842,7 +14180,7 @@
               "Retry-After": {
                 "description": "Seconds until another request may be attempted.",
                 "schema": {
-                  "minimum": 1.0,
+                  "minimum": 1,
                   "type": "integer"
                 }
               }
@@ -12873,31 +14211,6 @@
     "/admin/staff/orders": {
       "get": {
         "operationId": "admin_management_list_staff_orders",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "skip",
-            "required": false,
-            "schema": {
-              "default": 0,
-              "minimum": 0,
-              "title": "Skip",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 100,
-              "maximum": 200,
-              "minimum": 1,
-              "title": "Limit",
-              "type": "integer"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "content": {
@@ -12986,7 +14299,7 @@
               "Retry-After": {
                 "description": "Seconds until another request may be attempted.",
                 "schema": {
-                  "minimum": 1,
+                  "minimum": 1.0,
                   "type": "integer"
                 }
               }
@@ -14017,16 +15330,37 @@
     "/checkout/coupons": {
       "get": {
         "operationId": "checkout_list_available_coupons",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "per_page",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Per Page",
+              "type": "integer"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/CouponResponse"
-                  },
-                  "title": "Response Checkout List Available Coupons",
-                  "type": "array"
+                  "$ref": "#/components/schemas/CouponPageResponse"
                 }
               }
             },
@@ -14454,16 +15788,37 @@
     "/checkout/orders/history": {
       "get": {
         "operationId": "checkout_list_order_history",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "per_page",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Per Page",
+              "type": "integer"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/schemas__checkout__OrderResponse"
-                  },
-                  "title": "Response Checkout List Order History",
-                  "type": "array"
+                  "$ref": "#/components/schemas/OrderPageResponse"
                 }
               }
             },
@@ -15589,18 +16944,148 @@
     },
     "/products/": {
       "get": {
-        "description": "Get all active products with their media.",
+        "description": "Return a filtered page of active products and stable catalog facets.",
         "operationId": "products_list_products",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "per_page",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Per Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 120,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            }
+          },
+          {
+            "in": "query",
+            "name": "category_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "min_price",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Min Price"
+            }
+          },
+          {
+            "in": "query",
+            "name": "max_price",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Max Price"
+            }
+          },
+          {
+            "in": "query",
+            "name": "special",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "pattern": "^(all|gluten_free|alcohol)$",
+              "title": "Special",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "default",
+              "pattern": "^(default|popular|price_asc|price_desc|name_asc)$",
+              "title": "Sort",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "product_ids",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "integer"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Product Ids"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/ProductResponse"
-                  },
-                  "title": "Response Products List Products",
-                  "type": "array"
+                  "$ref": "#/components/schemas/ProductPageResponse"
                 }
               }
             },
@@ -16116,6 +17601,81 @@
               "title": "Product Id",
               "type": "string"
             }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "per_page",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Per Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "rating",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 5,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Rating"
+            }
+          },
+          {
+            "in": "query",
+            "name": "min_rating",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 5,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Min Rating"
+            }
+          },
+          {
+            "in": "query",
+            "name": "has_text",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Has Text"
+            }
           }
         ],
         "responses": {
@@ -16123,11 +17683,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/ProductReviewResponse"
-                  },
-                  "title": "Response Reviews List Product Reviews",
-                  "type": "array"
+                  "$ref": "#/components/schemas/ProductReviewPageResponse"
                 }
               }
             },
@@ -16745,6 +18301,29 @@
         "parameters": [
           {
             "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "per_page",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Per Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
             "name": "status",
             "required": false,
             "schema": {
@@ -16831,11 +18410,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/schemas__checkout__OrderResponse"
-                  },
-                  "title": "Response Profile Get Purchase History",
-                  "type": "array"
+                  "$ref": "#/components/schemas/OrderPageResponse"
                 }
               }
             },
@@ -16918,6 +18493,102 @@
           }
         ],
         "summary": "Get Purchase History",
+        "tags": [
+          "Profile"
+        ]
+      }
+    },
+    "/profile/overview": {
+      "get": {
+        "operationId": "profile_get_overview",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileOverviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Get Profile Overview",
         "tags": [
           "Profile"
         ]

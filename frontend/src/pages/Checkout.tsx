@@ -211,14 +211,14 @@ function Checkout() {
   useEffect(() => {
     if (!isAuthenticated) return
 
-    checkoutService.getCoupons()
+      checkoutService.getAllCoupons()
       .then(setAvailableCoupons)
       .catch((err) => console.error("Não foi possível carregar cupões.", err))
   }, [isAuthenticated])
 
   useEffect(() => {
-    productService.getAll()
-      .then(setUpsellProducts)
+    productService.getPage({ page: 1, perPage: 20, sort: "popular" })
+      .then((result) => setUpsellProducts(result.items))
       .catch((err) => console.error("Não foi possível carregar extras do checkout.", err))
   }, [])
 
@@ -389,9 +389,11 @@ function Checkout() {
         order.orderId,
         order.orderAccessToken,
         order.orderAccessExpiresAt,
+        true,
+        order.createdAt,
       )
       if (isAuthenticated) {
-        checkoutService.getHistory()
+        checkoutService.getAllHistory()
           .then((history) => {
             setActiveOrderCount(history.filter((historyOrder) => !TERMINAL_ORDER_STATUSES.has(historyOrder.status)).length)
           })

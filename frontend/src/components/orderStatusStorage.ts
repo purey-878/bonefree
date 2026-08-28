@@ -7,6 +7,7 @@ const GUEST_ORDERS_UPDATED_EVENT = "guest-orders-updated"
 interface StoredGuestOrderAccess {
   accessToken: string
   accessExpiresAt: string | null
+  createdAt?: string | null
 }
 
 type StoredGuestOrderAccesses = Record<string, StoredGuestOrderAccess>
@@ -46,6 +47,7 @@ function parseStoredAccesses(): StoredGuestOrderAccesses {
           && typeof access?.accessToken === "string"
           && access.accessToken.length > 0
           && (access.accessExpiresAt === null || typeof access.accessExpiresAt === "string")
+          && (access.createdAt === undefined || access.createdAt === null || typeof access.createdAt === "string")
       }),
     ) as StoredGuestOrderAccesses
   } catch {
@@ -106,10 +108,15 @@ export function rememberGuestOrderAccess(
   accessToken?: string | null,
   accessExpiresAt?: string | null,
   notify = true,
+  createdAt?: string | null,
 ) {
   if (!Number.isInteger(orderId) || orderId <= 0 || !accessToken || !storageAvailable()) return
   const accesses = migrateLegacyAccess(parseStoredAccesses())
-  accesses[String(orderId)] = { accessToken, accessExpiresAt: accessExpiresAt ?? null }
+  accesses[String(orderId)] = {
+    accessToken,
+    accessExpiresAt: accessExpiresAt ?? null,
+    ...(createdAt ? { createdAt } : {}),
+  }
   writeStoredAccesses(accesses)
   if (notify) notifyGuestOrdersUpdated()
 }

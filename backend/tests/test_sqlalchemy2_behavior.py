@@ -268,12 +268,25 @@ class SqlAlchemy2BehaviorTests(unittest.TestCase):
 
         event.listen(self.engine, "before_cursor_execute", record_statement)
         try:
-            response = list_products(self.db)
+            response = list_products(
+                page=1,
+                per_page=20,
+                search=None,
+                category_id=None,
+                min_price=None,
+                max_price=None,
+                special="all",
+                sort="default",
+                product_ids=None,
+                db=self.db,
+            )
         finally:
             event.remove(self.engine, "before_cursor_execute", record_statement)
 
-        self.assertEqual(len(response), 2)
-        self.assertLessEqual(len(statements), 6)
+        self.assertEqual(len(response.items), 2)
+        # The page now includes its filtered count and global catalogue facets,
+        # while media and ingredient relationships remain batch-loaded.
+        self.assertLessEqual(len(statements), 9)
         self.assertEqual(len(_unavailable_product_rows(self.db, 2)), 2)
         self.assertEqual(len(_popular_product_rows(self.db, 2)), 2)
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import type { FormEvent } from "react"
 import { createPortal } from "react-dom"
 import { Link, useNavigate, useSearchParams } from "react-router-dom"
@@ -27,12 +27,14 @@ import {
 import FloatingProfileIcons from "../components/FloatingProfileIcons"
 import Navbar from "../components/Navbar"
 import CustomSelect from "../components/ui/CustomSelect"
+import { Pagination } from "../components/ui"
 import { useToast } from "../components/ui/toastContext"
 import { useAuth } from "../hooks"
 import { cartService, checkoutService, customizationSummary, productService } from "../services"
 import { applyApiImageFallback, resolveProductImageUrl } from "../utils/imageFallback"
 import { translateUserMessage } from "../utils/messages"
 import { authService } from "../services/authService"
+import type { ProfileOverview } from "../services/authService"
 import { getPublicLoyaltyCouponSettings } from "../services/siteSettingsService"
 import type { ItemCustomization } from "../types/cart"
 import type { Coupon, OrderItem, OrderResponse } from "../types/checkout"
@@ -216,43 +218,6 @@ function orderItemsCount(order: OrderResponse) {
   return order.items.reduce((sum, item) => sum + item.quantity, 0)
 }
 
-function orderMatchesSearch(order: OrderResponse, query: string) {
-  const normalizedQuery = query.trim().toLowerCase()
-  if (!normalizedQuery) return true
-  const queryParts = normalizedQuery.split(/\s+/).filter(Boolean)
-  const orderNumberDigits = order.orderNumber.replace(/\D/g, "")
-  const orderNumberWithoutLeadingZeros = orderNumberDigits.replace(/^0+/, "") || orderNumberDigits
-  const isNumericOrderSearch = /^\d+$/.test(normalizedQuery)
-
-  if (isNumericOrderSearch) {
-    return String(order.orderId) === normalizedQuery || orderNumberWithoutLeadingZeros === normalizedQuery
-  }
-
-  const haystack = [
-    order.orderId,
-    order.orderNumber,
-    `#${order.orderId}`,
-    orderNumberDigits,
-    orderNumberWithoutLeadingZeros,
-    order.status,
-    formatStatus(order.status),
-    order.paymentMethod,
-    formatPayment(order.paymentMethod),
-    order.paymentStatus,
-    order.deliveryMethod,
-    formatFulfillment(order.deliveryMethod),
-    order.createdAt,
-    formatDate(order.createdAt),
-    order.items.map((item) => [
-      item.productId,
-      item.productDisplayId,
-      item.productName,
-    ].join(" ")).join(" "),
-  ].join(" ").toLowerCase()
-
-  return queryParts.every((part) => haystack.includes(part))
-}
-
 function numericSetting(value: number | string | null | undefined, fallback = 0) {
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : fallback
@@ -282,10 +247,23 @@ function Profile() {
     city: "",
   })
   const [fieldErrors, setFieldErrors] = useState<FieldErrors<keyof ProfileForm>>({})
-  const [filters, setFilters] = useState<HistoryFilters>(emptyFilters)
+  const [filters, setFilters] = useState<HistoryFilters>(() => ({
+    status: searchParams.get("status") ?? "", payment: searchParams.get("payment") ?? "",
+    dateFrom: searchParams.get("date_from") ?? "", dateTo: searchParams.get("date_to") ?? "", search: searchParams.get("q") ?? "",
+  }))
   const [orders, setOrders] = useState<OrderResponse[]>([])
-  const [allOrders, setAllOrders] = useState<OrderResponse[]>([])
+  const [overview, setOverview] = useState<ProfileOverview | null>(null)
+  const [ordersPage, setOrdersPage] = useState(() => Math.max(1, Number(searchParams.get("page")) || 1))
+  const [ordersPerPage, setOrdersPerPage] = useState(() => [10, 20, 50, 100].includes(Number(searchParams.get("per_page"))) ? Number(searchParams.get("per_page")) : 20)
+  const [ordersTotal, setOrdersTotal] = useState(0)
+  const [ordersTotalPages, setOrdersTotalPages] = useState(0)
   const [availableCoupons, setAvailableCoupons] = useState<Coupon[]>([])
+  const [couponsPage, setCouponsPage] = useState(() => Math.max(1, Number(searchParams.get("coupon_page")) || 1))
+  const [couponsPerPage, setCouponsPerPage] = useState(() => [10, 20, 50, 100].includes(Number(searchParams.get("coupon_per_page"))) ? Number(searchParams.get("coupon_per_page")) : 20)
+  const [couponsTotal, setCouponsTotal] = useState(0)
+  const [couponsTotalPages, setCouponsTotalPages] = useState(0)
+  const lastWrittenSearchRef = useRef(searchParams.toString())
+  const skipUrlWriteRef = useRef(false)
   const [loyaltySettings, setLoyaltySettings] = useState<LoyaltyCouponSettings>(defaultLoyaltyCouponSettings)
   const [loadingCoupons, setLoadingCoupons] = useState(true)
   const [productsById, setProductsById] = useState<Record<string, Product>>({})
@@ -328,15 +306,11 @@ function Profile() {
       try {
         setError(null)
         setLoadingCoupons(true)
-        const [history, products, coupons, couponSettings] = await Promise.all([
-          authService.getPurchaseHistory({}),
-          productService.getAll().catch(() => [] as Product[]),
-          checkoutService.getCoupons().catch(() => [] as Coupon[]),
+        const [profileOverview, couponSettings] = await Promise.all([
+          authService.getProfileOverview(),
           getPublicLoyaltyCouponSettings().catch(() => defaultLoyaltyCouponSettings),
         ])
-        setAllOrders(history)
-        setProductsById(Object.fromEntries(products.map((product) => [product.id, product])))
-        setAvailableCoupons(coupons)
+        setOverview(profileOverview)
         setLoyaltySettings(couponSettings)
       } catch (err) {
         setError(translateUserMessage(err instanceof Error ? err.message : t("profile.errors.profileData")))
@@ -350,81 +324,63 @@ function Profile() {
 
   useEffect(() => {
     if (!isAuthenticated) return
+    let current = true
+    setLoadingCoupons(true)
+    void checkoutService.getCoupons({ page: couponsPage, perPage: couponsPerPage }).then((result) => {
+      if (!current) return
+      setAvailableCoupons(result.items)
+      setCouponsTotal(result.total)
+      setCouponsTotalPages(result.totalPages)
+      if (result.totalPages === 0 && couponsPage !== 1) setCouponsPage(1)
+      else if (result.totalPages > 0 && couponsPage > result.totalPages) setCouponsPage(result.totalPages)
+    }).catch((err) => {
+      if (current) setError(translateUserMessage(err instanceof Error ? err.message : t("profile.errors.profileData")))
+    }).finally(() => {
+      if (current) setLoadingCoupons(false)
+    })
+    return () => { current = false }
+  }, [couponsPage, couponsPerPage, isAuthenticated, t])
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+    let current = true
 
     const loadHistory = async () => {
       try {
         setLoadingOrders(true)
         setError(null)
         const { search, ...serverFilters } = filters
-        const history = await authService.getPurchaseHistory(serverFilters)
-        setOrders(history.filter((order) => orderMatchesSearch(order, search)))
+        const history = await authService.getPurchaseHistory({ ...serverFilters, search, page: ordersPage, perPage: ordersPerPage })
+        if (!current) return
+        setOrders(history.items)
+        setOrdersTotal(history.total)
+        setOrdersTotalPages(history.totalPages)
+        if (history.totalPages === 0 && ordersPage !== 1) setOrdersPage(1)
+        else if (history.totalPages > 0 && ordersPage > history.totalPages) setOrdersPage(history.totalPages)
       } catch (err) {
-        setError(translateUserMessage(err instanceof Error ? err.message : t("profile.errors.history")))
+        if (current) setError(translateUserMessage(err instanceof Error ? err.message : t("profile.errors.history")))
       } finally {
-        setLoadingOrders(false)
+        if (current) setLoadingOrders(false)
       }
     }
 
     const timeout = window.setTimeout(() => void loadHistory(), 220)
-    return () => window.clearTimeout(timeout)
-  }, [filters, isAuthenticated, t])
+    return () => {
+      current = false
+      window.clearTimeout(timeout)
+    }
+  }, [filters, isAuthenticated, ordersPage, ordersPerPage, t])
 
-  const totalSpent = useMemo(
-    () => allOrders.reduce((sum, order) => sum + Number(order.total), 0),
-    [allOrders],
-  )
-
-  const totalItems = useMemo(
-    () => allOrders.reduce((sum, order) => sum + orderItemsCount(order), 0),
-    [allOrders],
-  )
-
-  const favoriteMeals = useMemo(() => {
-    const items = new Map<number, { id: number; name: string; quantity: number; total: number; item: OrderItem }>()
-    allOrders.forEach((order) => {
-      order.items.forEach((item) => {
-        const current = items.get(item.productId) ?? {
-          id: item.productId,
-          name: item.productName,
-          quantity: 0,
-          total: 0,
-          item,
-        }
-        current.quantity += item.quantity
-        current.total += Number(item.subtotal)
-        current.item = item
-        items.set(item.productId, current)
-      })
-    })
-
-    return Array.from(items.values()).sort((a, b) => b.quantity - a.quantity).slice(0, 6)
-  }, [allOrders])
+  const totalSpent = overview?.totalSpent ?? 0
+  const totalItems = overview?.totalItems ?? 0
+  const favoriteMeals = overview?.favoriteProducts ?? []
 
   const favoriteItem = favoriteMeals[0]?.name ?? t("profile.discovering")
-  const latestOrder = allOrders[0]
+  const latestOrder = overview?.latestOrder ?? null
   const activeFilterCount = Object.values(filters).filter(Boolean).length
   const displayName = `${form.name} ${form.lastName}`.trim() || user?.email || t("profile.defaultCustomer")
-  const tier = customerTier(allOrders.length, totalSpent)
-  const couponStreak = useMemo(() => {
-    const requiredOrders = Math.max(1, Math.round(numericSetting(loyaltySettings.qualifyingOrderCount, 3)))
-    const minimumSubtotal = Math.max(0, numericSetting(loyaltySettings.qualifyingOrderMinimum, 50))
-    const progress = allOrders
-      .slice()
-      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-      .reduce((current, order) => {
-        if (Number(order.subtotal) < minimumSubtotal) return current
-        const next = current + 1
-        return next >= requiredOrders ? next - requiredOrders : next
-      }, 0)
-
-    return {
-      current: progress,
-      required: requiredOrders,
-      remaining: requiredOrders - progress,
-      percent: Math.min(100, Math.max(0, (progress / requiredOrders) * 100)),
-      minimumSubtotal,
-    }
-  }, [allOrders, loyaltySettings])
+  const tier = customerTier(overview?.orderCount ?? 0, totalSpent)
+  const couponStreak = overview?.loyaltyProgress ?? { current: 0, required: 1, remaining: 1, percent: 0, minimumSubtotal: 0 }
   const showCouponProgress = couponStreak.current > 0 && couponStreak.current < couponStreak.required
 
   const updateForm = (field: keyof ProfileForm, value: string) => {
@@ -436,7 +392,51 @@ function Profile() {
 
   const updateFilter = (field: keyof HistoryFilters, value: string) => {
     setFilters((current) => ({ ...current, [field]: value }))
+    setOrdersPage(1)
   }
+
+  useEffect(() => {
+    const currentSearch = searchParams.toString()
+    if (currentSearch === lastWrittenSearchRef.current) return
+    lastWrittenSearchRef.current = currentSearch
+    skipUrlWriteRef.current = true
+    const nextOrdersPerPage = Number(searchParams.get("per_page"))
+    const nextCouponsPerPage = Number(searchParams.get("coupon_per_page"))
+    setActiveTab(profileTabFromParam(searchParams.get("tab") ?? searchParams.get("section")) ?? "overview")
+    setFilters({
+      search: searchParams.get("q") ?? "",
+      status: searchParams.get("status") ?? "",
+      payment: searchParams.get("payment") ?? "",
+      dateFrom: searchParams.get("date_from") ?? "",
+      dateTo: searchParams.get("date_to") ?? "",
+    })
+    setOrdersPage(Math.max(1, Number(searchParams.get("page")) || 1))
+    setOrdersPerPage([10, 20, 50, 100].includes(nextOrdersPerPage) ? nextOrdersPerPage : 20)
+    setCouponsPage(Math.max(1, Number(searchParams.get("coupon_page")) || 1))
+    setCouponsPerPage([10, 20, 50, 100].includes(nextCouponsPerPage) ? nextCouponsPerPage : 20)
+  }, [searchParams])
+
+  useEffect(() => {
+    if (skipUrlWriteRef.current) {
+      skipUrlWriteRef.current = false
+      return
+    }
+    const next = new URLSearchParams(searchParams)
+    const setOrDelete = (key: string, value: string) => value ? next.set(key, value) : next.delete(key)
+    setOrDelete("q", filters.search.trim())
+    setOrDelete("status", filters.status)
+    setOrDelete("payment", filters.payment)
+    setOrDelete("date_from", filters.dateFrom)
+    setOrDelete("date_to", filters.dateTo)
+    if (ordersPage === 1) next.delete("page"); else next.set("page", String(ordersPage))
+    if (ordersPerPage === 20) next.delete("per_page"); else next.set("per_page", String(ordersPerPage))
+    if (couponsPage === 1) next.delete("coupon_page"); else next.set("coupon_page", String(couponsPage))
+    if (couponsPerPage === 20) next.delete("coupon_per_page"); else next.set("coupon_per_page", String(couponsPerPage))
+    if (next.toString() !== searchParams.toString()) {
+      lastWrittenSearchRef.current = next.toString()
+      setSearchParams(next, { replace: true })
+    }
+  }, [couponsPage, couponsPerPage, filters, ordersPage, ordersPerPage, searchParams, setSearchParams])
 
   const selectProfileTab = (tab: ProfileTab) => {
     setActiveTab(tab)
@@ -690,7 +690,7 @@ function Profile() {
           <div className="profile-stat-strip">
             <div>
               <span>{t("profile.hero.orders")}</span>
-              <strong>{allOrders.length}</strong>
+              <strong>{overview?.orderCount ?? 0}</strong>
             </div>
             <div>
               <span>{t("profile.hero.totalSpent")}</span>
@@ -762,7 +762,7 @@ function Profile() {
                 <div className="profile-metric-card">
                   <WalletCards size={18} />
                   <span>{t("profile.overview.averageOrder")}</span>
-                  <strong>{formatCurrency(allOrders.length ? totalSpent / allOrders.length : 0)}</strong>
+                  <strong>{formatCurrency(overview?.averageOrderValue ?? 0)}</strong>
                 </div>
                 <div className="profile-metric-card">
                   <Star size={18} />
@@ -807,13 +807,12 @@ function Profile() {
                   {favoriteMeals.slice(0, 3).map((meal) => (
                     <button
                       type="button"
-                      key={meal.id}
+                      key={meal.productId}
                       className="profile-favorite-row"
-                      onClick={() => handleAddItem(meal.item, `favorite-${meal.id}`)}
-                      disabled={busyKey === `favorite-${meal.id}`}
+                      onClick={() => navigate(`/product/${meal.productId}`)}
                     >
                       <span>{meal.name}</span>
-                      <strong>{busyKey === `favorite-${meal.id}` ? t("profile.overview.adding") : t("profile.overview.repeatCount", { count: meal.quantity })}</strong>
+                      <strong>{t("profile.overview.repeatCount", { count: meal.quantity })}</strong>
                     </button>
                   ))}
                   {favoriteMeals.length === 0 && <div className="profile-empty compact">{t("profile.overview.noFavourites")}</div>}
@@ -891,7 +890,7 @@ function Profile() {
 
             {loadingOrders ? (
               <div className="profile-loading small">{t("profile.orders.loading")}</div>
-            ) : allOrders.length === 0 ? (
+            ) : (overview?.orderCount ?? 0) === 0 ? (
               <div className="profile-empty profile-empty-orders">
                 <h3>{t("profile.orders.emptyTitle")}</h3>
                 <p>{t("profile.orders.emptyText")}</p>
@@ -919,6 +918,7 @@ function Profile() {
                 ))}
               </div>
             )}
+            <Pagination page={ordersPage} perPage={ordersPerPage} total={ordersTotal} totalPages={ordersTotalPages} onPageChange={setOrdersPage} onPerPageChange={(value) => { setOrdersPerPage(value); setOrdersPage(1) }} />
           </section>
         )}
 
@@ -965,6 +965,7 @@ function Profile() {
                 ))}
               </div>
             )}
+            <Pagination page={couponsPage} perPage={couponsPerPage} total={couponsTotal} totalPages={couponsTotalPages} onPageChange={setCouponsPage} onPerPageChange={(value) => { setCouponsPerPage(value); setCouponsPage(1) }} />
           </section>
         )}
 

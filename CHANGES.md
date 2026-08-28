@@ -336,6 +336,96 @@ Files changed:
 
 No backend query, API contract, authorization, storage, OpenAPI, or generated-client behavior changed. When porting to multi-tenant, preserve tenant filtering before frontend grouping, use the same local-date helper rather than UTC serialization, and ensure the isolated Cancelled tab can never expose cancelled orders belonging to another tenant.
 
+## 13. Restore ingredient-card visibility and blur the complete admin modal background
+
+Final-state note: section 15 supersedes the linked-product popover described below with a dedicated modal. Keep this section as the record of the original overlap cause, but implement section 15 when synchronizing the current interface.
+
+Required behavior:
+
+- Keep each ingredient's linked-product popover hidden until its own trigger is hovered or focused. The popover remains in the DOM to preserve hover/focus continuity, so it must use its existing opacity/pointer-event transition rather than the shared mount animation used by conditionally rendered popovers.
+- Remove `.ad-ingredient-products-popover` from the unconditional `ad-surface-popover-in` animation. That animation's `both` fill mode permanently applied its final `opacity: 1`, causing every ingredient's product list to cover neighbouring ingredient cards immediately after the global motion pass.
+- Place product and ingredient modal backdrops above the sticky admin topbar (`z-index: 1130`) and place the modal itself above that backdrop. The topbar, sidebar, and page content must therefore share one continuous dimmed/blurred background instead of leaving a sharp, unaffected header strip.
+- Animate the modal backdrop from zero blur/opacity to a 6 px saturated blur over 220 ms. Keep drawer backdrops on the existing opacity-only animation and continue honoring the global reduced-motion rule.
+
+File changed:
+
+- `frontend/src/pages/AdminDashboard.css`: restored linked-product popover visibility control, raised modal backdrop/modal stacking to `1300`/`1310`, and added the dedicated blur-entry keyframes.
+
+No React behavior, backend, API contract, authorization, storage, OpenAPI, or generated-client code changed. When porting to multi-tenant, compare the target topbar/sidebar z-indexes before copying the exact values; the required invariant is `page chrome < modal backdrop < modal`, and persistent hover popovers must never receive an animation that fills to visible while idle.
+
+## 14. Paginate every growing collection with server-side filters and URL state
+
+Required behavior and shared contract:
+
+- Replace bare arrays on growing collection endpoints with the typed envelope `{ items, page, per_page, total, total_pages }`. The API defaults to `page=1` and `per_page=20`, accepts `1 <= per_page <= 100`, and the interface offers 10, 20, 50, and 100. Empty collections remain on page 1; if a mutation or filter leaves the selected page beyond the last page, the interface corrects it to the last available page.
+- Count the filtered result set before applying `offset`/`limit`, keep ordering deterministic with an ID tie-breaker, and perform search, filters, summaries, and facets in SQL. Do not restore client-side slicing over an already incomplete page.
+- Paginate `GET /products/`, `GET /products/{product_id}/reviews`, `GET /profile/orders`, `GET /checkout/orders/history`, `GET /checkout/coupons`, `GET /admin/products`, `GET /admin/ingredients`, `GET /admin/categories`, `GET /admin/orders`, `GET /admin/customers`, and `GET /admin/staff`.
+- Add owner-only `GET /admin/reviews` so the review directory is one paginated, filtered query instead of one product request plus N review requests. Add all-staff `GET /admin/ingredients/{ingredient_id}/products` for paginated, on-demand ingredient relationships. Add customer-only `GET /profile/overview` for database-calculated historical order totals, average, latest order, favorites, and loyalty progress.
+- Keep `GET /admin/staff/orders` and `GET /admin/kitchen/orders` as complete operational arrays and remove their previous artificial limits. Counter and Kitchen remain live boards without result pagination.
+- Public product pages support server-side search, category, visible promotional-price bounds, special filters, sort, and optional ID lookup. Their response also carries catalog-wide product count, maximum visible price, and category counts so Menu and Home never need a full catalog download for facets.
+- Review filters (rating/text), order filters (search/status/payment/date/personalization), and administrative directory filters (search/status/role/type and each existing selector) execute before count and pagination. Category rows carry the active-product count, ingredient rows carry the linked-product count, and Management-order/review responses carry summaries over the complete filtered result rather than only the visible page.
+- Active and archived products are two independently paginated queries. Do not fetch archived products until that section is expanded. Auxiliary form selectors intentionally walk all pages through service helpers because they are not result lists.
+
+Frontend behavior:
+
+- Use the shared `Pagination` component with `storefront` and `admin` variants. It renders a styled page-size selector, visible range/total, previous/next arrows, numeric pages, ellipses, and a clamped manual page field with an “Ir/Go/Los” action that also submits on Enter. The token sequence always includes the first three pages, last two pages, and current-page neighbors.
+- Hide pagination completely for an empty collection. When all results fit on one page, render only the localized result range/count and omit the page-size selector, arrows, page number, ellipses, and manual “Ir” field; render the complete control set only when `total_pages > 1`. This rule lives in the shared component and therefore applies equally to storefront, profile, guest, related-product, and administrative collections.
+- Treat the URL as the source of truth, including browser back/forward navigation. Menu, product reviews, Profile orders/coupons, guest orders, and every administrative result tab read and write page, page size, sort, and filters without discarding unrelated `tab`/`view` values. Filtering or changing page size returns that collection to page 1. Search inputs are debounced and stale responses cannot replace a newer request.
+- Preserve the current scroll position when only query parameters change. Pagination buttons, the manual “Ir” action, page-size selectors, filters, sort controls, and administrative view/tab state update the URL in place without the global route handler scrolling to the top; actual pathname or hash navigation keeps the existing top/anchor behavior.
+- Guest orders are sorted from locally stored metadata, then only tokens for the visible page are requested. Invalid/expired tokens are removed individually and later valid entries refill the page; one failed token cannot discard the other orders.
+- Menu, product reviews, Profile, guest orders, Products, archived Products, Ingredients, Categories, Reviews, Customers, Team, and Management orders show pagination. Cart contents, order line items, Home highlights, Counter, and Kitchen intentionally do not.
+- Avoid unrelated complete loads: Home/Menu highlights and checkout upsells request bounded pages, cart lookups request explicit IDs, Profile uses `/profile/overview`, and tracking helpers explicitly walk paginated history only where the complete active-order set is operationally required.
+
+Backend files changed:
+
+- `backend/schemas/pagination.py`: generic `PaginatedResponse[T]` and the shared total-page calculation.
+- `backend/schemas/product.py`, `backend/schemas/review.py`, `backend/schemas/checkout.py`, and `backend/schemas/admin.py`: paginated envelopes, product facets, administrative counts/summaries, ingredient-product response, and profile-overview models.
+- `backend/routers/products.py`: public product filtering/facets/pagination and deterministic ordering.
+- `backend/routers/reviews.py`: paginated product reviews and the owner review directory with filtered summary.
+- `backend/routers/profile.py`: paginated customer orders plus aggregate overview queries.
+- `backend/routers/checkout.py`: paginated authenticated history/coupons while preserving guest detail behavior.
+- `backend/routers/admin.py`: paginated administrative directories and Management orders, related ingredient products, filtered summaries/counts, and unlimited operational Counter/Kitchen queries.
+- `backend/tests/test_endpoint_smoke.py`: envelope, permissions, empty/out-of-range pages, `per_page` validation, related-product/overview endpoints, and unchanged operational-array coverage.
+- `backend/tests/test_sqlalchemy2_behavior.py`: updated bounded-query expectations for the new count/facet queries.
+
+Frontend files changed:
+
+- `frontend/src/types/pagination.ts`, `frontend/src/components/ui/Pagination.tsx`, `frontend/src/components/ui/Pagination.css`, `frontend/src/components/ui/paginationRange.ts`, `frontend/src/components/ui/Pagination.test.ts`, and `frontend/src/components/ui/index.ts`: shared types, component, two visual variants, page-token algorithm, exports, and tests.
+- `frontend/src/services/productService.ts`, `frontend/src/services/checkoutService.ts`, `frontend/src/services/authService.ts`, `frontend/src/services/adminService.ts`, and `frontend/src/services/cartService.ts`: consume envelopes, pass server filters, provide explicit all-page helpers only for auxiliary/operational consumers, and expose the three new endpoints.
+- `frontend/src/types/product.ts` and `frontend/src/types/admin.ts`: facet/count/summary types consumed outside generated models.
+- `frontend/src/pages/Menu.tsx`, `frontend/src/pages/ProductDetail.tsx`, `frontend/src/pages/Profile.tsx`, `frontend/src/pages/GuestOrders.tsx`, and `frontend/src/pages/AdminDashboard.tsx`: per-collection pagination, URL hydration/write-back, page correction, debounced requests, independent archived products, on-demand ingredient relationships, and use of global summaries/facets.
+- `frontend/src/App.tsx`: limits automatic top scrolling to pathname/hash navigation so query-only pagination and filtering remain at the user's current viewport.
+- `frontend/src/pages/AdminDashboard.tsx`: makes the query string the single source of truth for sidebar navigation. Sidebar clicks now update `tab`/`view` first and URL hydration selects the panel; the post-auth canonicalization effect no longer reacts to the transient local tab update and therefore cannot reset a valid click to the owner dashboard. Preserve this URL-first ordering when porting pagination to the multi-tenant console, or sidebar links can appear to navigate and immediately bounce back to `/admin/dashboard`.
+- `frontend/src/components/orderStatusStorage.ts` and `frontend/src/components/orderStatusStorage.test.ts`: preserve optional guest-order creation timestamps without breaking legacy records, allowing `/orders` to sort local accesses before requesting only the selected page.
+- `frontend/src/components/admin-orders/SuperAdminOrdersView.tsx`: server-controlled Management filters, page controls, and global filtered summary. Administrative paginator layout lives in the shared `Pagination.css`; the pre-existing `frontend/src/pages/AdminDashboard.css` changes remain exclusively the ingredient-popover/modal corrections documented in section 13 and were not overwritten by this work.
+- `frontend/src/pages/Home.tsx`, `frontend/src/components/MenuSection.tsx`, `frontend/src/pages/Checkout.tsx`, `frontend/src/components/OrderStatusBar.tsx`, and the cart service: replace accidental full-catalog/history requests with bounded, ID-based, or deliberate all-page operational calls.
+- `frontend/src/i18n/locales/pt-PT.ts`, `frontend/src/i18n/locales/en-GB.ts`, and `frontend/src/i18n/locales/de-DE.ts`: pagination labels, page ranges, page-size text, navigation labels, and manual-page actions.
+- `frontend/openapi/openapi.json` and `frontend/src/api/generated/{index.ts,sdk.gen.ts,types.gen.ts}`: regenerated from the FastAPI source after the intentional list-contract changes. Never port these files by hand; regenerate them in the target branch.
+
+Multi-tenant synchronization notes:
+
+- Apply the tenant predicate to both the page query and every companion count, facet, aggregate, summary, related-product, and auxiliary all-page query. A correct `items` query with an unscoped `total`, price maximum, category count, review summary, ingredient relationship, or profile overview still leaks cross-tenant information.
+- Preserve tenant scoping on the non-paginated Counter/Kitchen endpoints before removing limits. The absence of pagination is deliberate only for the current tenant's operational working set.
+- Keep the target branch's tenant-aware product URL/media mapping and ownership joins when transferring the pagination helpers. No migration is required.
+- Verification completed here: FastAPI OpenAPI/client generation succeeded; all 135 backend tests passed with one skipped; all 54 frontend tests passed; ESLint passed; and the production TypeScript/Vite build passed (the existing large-chunk advisory remains non-fatal).
+
+## 15. Present ingredient-related products in a dedicated responsive modal
+
+Required behavior:
+
+- Clicking the product count on an ingredient card opens a centred administrative modal instead of inserting a paginated popover inside the narrow ingredient card. The ingredient grid must keep its original dimensions and no related-product content may be clipped by, overlap, or resize neighbouring cards.
+- Open the modal immediately in a loading state, retain the existing result page while another page is loading, and never reopen a modal that the user closed while its request was still in flight. Backdrop, close-button, and Escape-key actions dismiss it; selecting a related product closes it before navigating to the Products tab and opening that product's analytical detail.
+- Show the ingredient name and global relationship count in the header. Render related products as responsive cards with display ID, name, category display ID, price, activity/availability state, and a clear hover/focus treatment. Use two columns when space permits and one column on narrow viewports.
+- Keep related-product pagination server-driven through `GET /admin/ingredients/{ingredient_id}/products`. For multiple pages, the shared admin paginator is stacked beneath the modal list so its summary, page buttons, page-size selector, and manual page field are never compressed into the ingredient-card width; for one page, only the result count is shown.
+- Reuse the existing administrative modal backdrop, blur, entry animation, colour variables, dark theme, and reduced-motion behavior. No backend contract, authorization, generated client, or migration changes are required.
+
+Files changed:
+
+- `frontend/src/pages/AdminDashboard.tsx`: moves related-product rendering out of each ingredient card, adds race-safe modal loading state, preserves per-ingredient paginated results, and closes the modal before product navigation.
+- `frontend/src/pages/AdminDashboard.css`: adds the responsive modal, product-card grid, empty/loading states, compact stacked paginator layout, and light/dark theme-compatible interaction styling.
+
+For the multi-tenant port, retain the target branch's tenant-scoped related-product endpoint and product identifiers/media conventions. Copy the modal behavior and styles, but do not replace the tenant predicate or fetch all related products locally.
+
 ## Multi-tenant port verification checklist
 
 1. Reapply backend behavior while preserving tenant ownership filters on every order lookup and list.
@@ -351,6 +441,9 @@ No backend query, API contract, authorization, storage, OpenAPI, or generated-cl
 11. Open Login, registration, and password-recovery routes at desktop and mobile widths and verify their footers remain below the page content. In Management, verify the clear-filter button shares the lower baseline of the adjacent controls and still becomes a usable full-width grid item on narrow screens.
 12. In Counter and Management, compare the exact height and baseline of every filter control. In Counter, combine individual-card, complete-column, and global card collapse controls; verify that a closed column leaves only its header visible without a stretched blank panel, restores prior card states when reopened, is absent from keyboard navigation while closed, and exposes a disabled control when empty. Repeat complete-column collapse in all three Kitchen columns, then move orders between columns and verify smooth card entry with both normal and reduced-motion settings.
 13. Open Counter and Management around a known local date and confirm both ends of the initial interval equal today while clearing produces blank fields. Verify the operational Counter grid never includes Cancelled, its quick-filter/status selection opens a single Cancelled column, and global collapse does not affect hidden orders. Compare empty and collapsed column heights, validate singular/plural summaries in all three languages, and expand a collapsed Counter/Kitchen column by clicking both its chevron and summary interior.
+14. Open Ingredients without activating any product count and confirm no linked-product content covers the grid. Open both product and ingredient editors and verify the blur animates continuously across the admin topbar, sidebar, and content in light/dark themes and with reduced motion enabled.
+15. For every paginated endpoint, compare `items`, `total`, `total_pages`, facets, summaries, and related counts against the same tenant-scoped filters. Exercise first/last/empty/out-of-range pages and `per_page` limits; then use back/forward navigation on every paginated frontend surface, independently expand archived products, invalidate one guest token, and confirm Counter/Kitchen still return their complete tenant-scoped operational sets without paginator controls.
+16. Click related-product counts on ingredients near every grid edge and confirm the grid remains unchanged while a centred modal opens. Test loading, empty, multi-page, page-size, narrow viewport, dark theme, backdrop/close dismissal, and product-detail navigation; close the modal before a delayed request resolves and confirm it stays closed.
 
 
 # Changes in multi-tenant branch

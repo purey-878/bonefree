@@ -17,15 +17,19 @@ import {
   getDashboardAnalytics,
   getCurrentAdmin,
   listProducts,
+  listAllProducts,
   listOrders,
   listStaffOrders,
   listKitchenOrders,
   listCategories,
+  listAllCategories,
   createCategory,
   updateCategory,
   deleteCategory,
   getProductAnalytics,
   listIngredients,
+  listAllIngredients,
+  listIngredientProducts,
   createIngredient,
   updateIngredient,
   deleteIngredient,
@@ -49,7 +53,7 @@ import {
   createStaffAdmin,
   updateStaffAdmin,
   deleteStaffAdmin,
-  listProductReviews,
+  listAdminReviews,
   createReviewReply,
   updateReviewReply,
   deleteReviewReply,
@@ -114,8 +118,10 @@ import { defaultCompanyDetails, defaultSocialMediaSettings } from "../utils/foot
 import StaffOrdersBoard from "../components/admin-orders/StaffOrdersBoard"
 import KitchenOrdersBoard from "../components/admin-orders/KitchenOrdersBoard"
 import SuperAdminOrdersView from "../components/admin-orders/SuperAdminOrdersView"
+import type { ManagementOrderFilters } from "../components/admin-orders/SuperAdminOrdersView"
 import OrderViewSwitcher from "../components/admin-orders/OrderViewSwitcher"
 import CustomSelect from "../components/ui/CustomSelect"
+import { Pagination } from "../components/ui"
 import ConfirmDialog from "../components/ui/ConfirmDialog"
 import { useToast } from "../components/ui/toastContext"
 import { formatCategoryId, formatProductId } from "../utils/ids"
@@ -130,6 +136,7 @@ import AdminI18nBoundary from "../components/AdminI18nBoundary"
 import { resolvedLocale } from "../i18n"
 import { adminTabsForRole, canEditCatalog, canManageKitchenOrders, canManageServiceOrders, canViewCatalog, orderViewForRole, orderViewsForRole } from "../utils/adminOrderViews"
 import type { AdminDashboardTab, AdminOrderView } from "../utils/adminOrderViews"
+import type { Page } from "../types/pagination"
 
 function getImageUrl(imagePath: string): string {
   return resolveProductImageUrl(imagePath)
@@ -353,17 +360,26 @@ const ANALYTICS_RANGE_OPTIONS: { range: AnalyticsRange; label: string }[] = [
 
 type DirectoryStatusFilter = "all" | "active" | "inactive"
 type StaffRoleFilter = "all" | AdminRole
+type PaginatedAdminTab = "products" | "ingredients" | "categories" | "reviews" | "clientes" | "staff" | "orders"
+type PageMeta = { page: number; perPage: number; total: number; totalPages: number }
+const EMPTY_PAGE_META: PageMeta = { page: 1, perPage: 20, total: 0, totalPages: 0 }
+const PAGINATED_ADMIN_TABS: PaginatedAdminTab[] = ["products", "ingredients", "categories", "reviews", "clientes", "staff", "orders"]
+const ADMIN_COLLECTION_QUERY_KEYS = [
+  "page", "per_page", "show_archived", "archived_page", "archived_per_page",
+  "product_search", "product_category", "product_min_price", "product_max_price",
+  "product_featured", "product_gluten_free", "product_contains_alcohol",
+  "ingredient_search", "ingredient_type", "ingredient_status",
+  "category_search", "category_id", "category_status", "review_search",
+  "customer_search", "customer_status", "staff_search", "staff_role", "staff_status",
+  "order_search", "order_status", "order_payment_method", "order_payment_status",
+  "order_date_from", "order_date_to", "order_customization",
+] as const
 
 const DIRECTORY_STATUS_OPTIONS = [
   { value: "all", label: "Todos os estados" },
   { value: "active", label: "Ativo" },
   { value: "inactive", label: "Inativo" },
 ]
-
-function statusMatchesFilter(status: string | null | undefined, filter: DirectoryStatusFilter): boolean {
-  if (filter === "all") return true
-  return filter === "active" ? status === "active" : status !== "active"
-}
 
 function formatSalesTick(value: string, period: SalesChartPeriod): string {
   if (period === "hour") return value.slice(11)
@@ -1376,11 +1392,45 @@ export default function AdminDashboard() {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [products, setProducts] = useState<AdminProduct[]>([])
   const [deletedProducts, setDeletedProducts] = useState<AdminProduct[]>([])
+  const [settingsProducts, setSettingsProducts] = useState<AdminProduct[]>([])
+  const [pageMeta, setPageMeta] = useState<Record<PaginatedAdminTab, PageMeta>>(() => {
+    const urlPage = Math.max(1, Number(searchParams.get("page")) || 1)
+    const requestedPerPage = Number(searchParams.get("per_page"))
+    const urlPerPage = [10, 20, 50, 100].includes(requestedPerPage) ? requestedPerPage : 20
+    const initial = { ...EMPTY_PAGE_META, page: urlPage, perPage: urlPerPage }
+    return {
+      products: { ...initial }, ingredients: { ...initial }, categories: { ...initial }, reviews: { ...initial },
+      clientes: { ...initial }, staff: { ...initial }, orders: { ...initial },
+    }
+  })
+  const [archivedProductPage, setArchivedProductPage] = useState<PageMeta>(() => {
+    const requestedPage = Math.max(1, Number(searchParams.get("archived_page")) || 1)
+    const requestedPerPage = Number(searchParams.get("archived_per_page"))
+    return {
+      ...EMPTY_PAGE_META,
+      page: requestedPage,
+      perPage: [10, 20, 50, 100].includes(requestedPerPage) ? requestedPerPage : 20,
+    }
+  })
+  const [orderSummary, setOrderSummary] = useState({ pending: 0, preparing: 0, ready: 0, completed: 0, revenue: 0 })
+  const [reviewSummary, setReviewSummary] = useState<{ averageRating: number | null; withReply: number; awaitingReply: number }>({ averageRating: null, withReply: 0, awaitingReply: 0 })
   const [selectedAnalyticsProduct, setSelectedAnalyticsProduct] = useState<AdminProduct | null>(null)
   const [productAnalytics, setProductAnalytics] = useState<ProductAnalytics | null>(null)
   const [productAnalyticsLoading, setProductAnalyticsLoading] = useState(false)
   const [productAnalyticsDays, setProductAnalyticsDays] = useState(30)
   const [orders, setOrders] = useState<AdminOrder[]>([])
+  const [managementOrderFilters, setManagementOrderFilters] = useState<ManagementOrderFilters>(() => {
+    const today = new Date().toLocaleDateString("sv-SE")
+    return {
+      search: searchParams.get("order_search") ?? "",
+      status: searchParams.get("order_status") ?? "",
+      paymentMethod: searchParams.get("order_payment_method") ?? "",
+      paymentStatus: searchParams.get("order_payment_status") ?? "",
+      dateFrom: searchParams.has("order_date_from") ? (searchParams.get("order_date_from") ?? "") : today,
+      dateTo: searchParams.has("order_date_to") ? (searchParams.get("order_date_to") ?? "") : today,
+      customization: searchParams.get("order_customization") ?? "all",
+    }
+  })
   const [reviews, setReviews] = useState<AdminReview[]>([])
   const [reviewsLoading, setReviewsLoading] = useState(false)
   const [analyticsSeries, setAnalyticsSeries] = useState<Partial<Record<AnalyticsMetric, AnalyticsSeries>>>({})
@@ -1407,6 +1457,7 @@ export default function AdminDashboard() {
   const [siteThemeSaving, setSiteThemeSaving] = useState(false)
   const [siteThemeSaved, setSiteThemeSaved] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
+  const [catalogCategories, setCatalogCategories] = useState<Category[]>([])
   const [showCategoryForm, setShowCategoryForm] = useState(false)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   const [categoryForm, setCategoryForm] = useState<CategoryPayload>({
@@ -1414,6 +1465,10 @@ export default function AdminDashboard() {
     categoryDescription: "",
   })
   const [ingredients, setIngredients] = useState<AdminIngredient[]>([])
+  const [catalogIngredients, setCatalogIngredients] = useState<AdminIngredient[]>([])
+  const [relatedIngredientId, setRelatedIngredientId] = useState<number | null>(null)
+  const [relatedIngredientLoadingId, setRelatedIngredientLoadingId] = useState<number | null>(null)
+  const [ingredientProducts, setIngredientProducts] = useState<Record<number, Page<AdminProduct>>>({})
   const [showIngredientForm, setShowIngredientForm] = useState(false)
   const [editingIngredient, setEditingIngredient] = useState<AdminIngredient | null>(null)
   const [ingredientForm, setIngredientForm] = useState<AdminIngredientPayload>({
@@ -1427,10 +1482,14 @@ export default function AdminDashboard() {
     search: string
     type: "" | IngredientType
     status: "all" | "active" | "inactive"
-  }>({
-    search: "",
-    type: "",
-    status: "all",
+  }>(() => {
+    const requestedType = searchParams.get("ingredient_type") as IngredientType | null
+    const requestedStatus = searchParams.get("ingredient_status")
+    return {
+      search: searchParams.get("ingredient_search") ?? "",
+      type: requestedType && INGREDIENT_TYPES.includes(requestedType) ? requestedType : "",
+      status: requestedStatus === "active" || requestedStatus === "inactive" ? requestedStatus : "all",
+    }
   })
   const [clientes, setClientes] = useState<AdminCustomer[]>([])
   const [staffAdmins, setStaffAdmins] = useState<CurrentAdmin[]>([])
@@ -1497,21 +1556,39 @@ export default function AdminDashboard() {
   })
 
   // Filter state
-  const [filters, setFilters] = useState<ProductFilterState>({
-    ...EMPTY_PRODUCT_FILTERS,
-  })
-  const [showDeletedProducts, setShowDeletedProducts] = useState(false)
+  const [filters, setFilters] = useState<ProductFilterState>(() => ({
+    name: searchParams.get("product_search") ?? "",
+    category: Number(searchParams.get("product_category")) || "",
+    minPrice: searchParams.get("product_min_price") ?? "",
+    maxPrice: searchParams.get("product_max_price") ?? "",
+    featured: searchParams.get("product_featured") === "true",
+    glutenFree: searchParams.get("product_gluten_free") === "true",
+    containsAlcohol: searchParams.get("product_contains_alcohol") === "true",
+  }))
+  const [showDeletedProducts, setShowDeletedProducts] = useState(() => searchParams.get("show_archived") === "true")
   const [openProductActionMenuId, setOpenProductActionMenuId] = useState<number | null>(null)
   const [categoryFilterOpen, setCategoryFilterOpen] = useState(false)
-  const [categorySearch, setCategorySearch] = useState("")
-  const [categoryIdFilter, setCategoryIdFilter] = useState("")
-  const [categoryStatusFilter, setCategoryStatusFilter] = useState<DirectoryStatusFilter>("all")
-  const [reviewSearch, setReviewSearch] = useState("")
-  const [clienteSearch, setClienteSearch] = useState("")
-  const [clienteStatusFilter, setClienteStatusFilter] = useState<DirectoryStatusFilter>("all")
-  const [staffSearch, setStaffSearch] = useState("")
-  const [staffRoleFilter, setStaffRoleFilter] = useState<StaffRoleFilter>("all")
-  const [staffStatusFilter, setStaffStatusFilter] = useState<DirectoryStatusFilter>("all")
+  const [categorySearch, setCategorySearch] = useState(() => searchParams.get("category_search") ?? "")
+  const [categoryIdFilter, setCategoryIdFilter] = useState(() => searchParams.get("category_id") ?? "")
+  const [categoryStatusFilter, setCategoryStatusFilter] = useState<DirectoryStatusFilter>(() => {
+    const value = searchParams.get("category_status")
+    return value === "active" || value === "inactive" ? value : "all"
+  })
+  const [reviewSearch, setReviewSearch] = useState(() => searchParams.get("review_search") ?? "")
+  const [clienteSearch, setClienteSearch] = useState(() => searchParams.get("customer_search") ?? "")
+  const [clienteStatusFilter, setClienteStatusFilter] = useState<DirectoryStatusFilter>(() => {
+    const value = searchParams.get("customer_status")
+    return value === "active" || value === "inactive" ? value : "all"
+  })
+  const [staffSearch, setStaffSearch] = useState(() => searchParams.get("staff_search") ?? "")
+  const [staffRoleFilter, setStaffRoleFilter] = useState<StaffRoleFilter>(() => {
+    const value = searchParams.get("staff_role") as StaffRoleFilter | null
+    return value && ADMIN_ROLES.includes(value as AdminRole) ? value : "all"
+  })
+  const [staffStatusFilter, setStaffStatusFilter] = useState<DirectoryStatusFilter>(() => {
+    const value = searchParams.get("staff_status")
+    return value === "active" || value === "inactive" ? value : "all"
+  })
   const [reviewReplyDrafts, setReviewReplyDrafts] = useState<Record<number, string>>({})
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null)
   const [confirmLoading, setConfirmLoading] = useState(false)
@@ -1524,8 +1601,52 @@ export default function AdminDashboard() {
     ...editableStaffRoleOptions,
   ]
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const hydratingAdminUrlRef = useRef(false)
+  const skipAdminUrlWriteRef = useRef(false)
+  const lastWrittenSearchRef = useRef(searchParams.toString())
   const productImageInputRef = useRef<HTMLInputElement | null>(null)
+  const previousDirectoryFiltersRef = useRef({
+    products: JSON.stringify(filters),
+    ingredients: JSON.stringify(ingredientFilters), categories: `${categorySearch}|${categoryIdFilter}|${categoryStatusFilter}`,
+    reviews: reviewSearch, clientes: `${clienteSearch}|${clienteStatusFilter}`,
+    staff: `${staffSearch}|${staffRoleFilter}|${staffStatusFilter}`,
+  })
+  const updatePageMeta = useCallback((tab: PaginatedAdminTab, changes: Partial<PageMeta>) => {
+    setPageMeta((current) => {
+      const merged = { ...current[tab], ...changes }
+      const normalized = {
+        ...merged,
+        page: merged.totalPages > 0 ? Math.min(Math.max(1, merged.page), merged.totalPages) : 1,
+      }
+      return { ...current, [tab]: normalized }
+    })
+  }, [])
+
+  useEffect(() => {
+    const next = {
+      products: JSON.stringify(filters),
+      ingredients: JSON.stringify(ingredientFilters), categories: `${categorySearch}|${categoryIdFilter}|${categoryStatusFilter}`,
+      reviews: reviewSearch, clientes: `${clienteSearch}|${clienteStatusFilter}`,
+      staff: `${staffSearch}|${staffRoleFilter}|${staffStatusFilter}`,
+    }
+    if (hydratingAdminUrlRef.current) {
+      hydratingAdminUrlRef.current = false
+      previousDirectoryFiltersRef.current = next
+      return
+    }
+    ;(Object.keys(next) as Array<keyof typeof next>).forEach((tab) => {
+      if (next[tab] !== previousDirectoryFiltersRef.current[tab]) updatePageMeta(tab, { page: 1 })
+    })
+    previousDirectoryFiltersRef.current = next
+  }, [categoryIdFilter, categorySearch, categoryStatusFilter, clienteSearch, clienteStatusFilter, filters, ingredientFilters, reviewSearch, staffRoleFilter, staffSearch, staffStatusFilter, updatePageMeta])
   const categoryFilterRef = useRef<HTMLDivElement | null>(null)
+  const productLoadRequestRef = useRef(0)
+  const categoryLoadRequestRef = useRef(0)
+  const ingredientLoadRequestRef = useRef(0)
+  const reviewLoadRequestRef = useRef(0)
+  const customerLoadRequestRef = useRef(0)
+  const staffLoadRequestRef = useRef(0)
+  const ingredientProductRequestRef = useRef<Record<number, number>>({})
   const orderLoadRequestRef = useRef(0)
   const confirmActionRef = useRef<(() => Promise<boolean>) | null>(null)
   const confirmResolveRef = useRef<((confirmed: boolean) => void) | null>(null)
@@ -1559,6 +1680,156 @@ export default function AdminDashboard() {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join("") || "A"
+
+  useEffect(() => {
+    const currentSearch = searchParams.toString()
+    if (currentSearch === lastWrittenSearchRef.current) return
+    lastWrittenSearchRef.current = currentSearch
+    hydratingAdminUrlRef.current = true
+    skipAdminUrlWriteRef.current = true
+
+    const requestedTab = searchParams.get("tab") as TabType | null
+    const nextTab = requestedTab && allowedTabs.includes(requestedTab)
+      ? requestedTab
+      : role === "owner" ? "dashboard" : "orders"
+    const requestedPerPage = Number(searchParams.get("per_page"))
+    const nextPerPage = [10, 20, 50, 100].includes(requestedPerPage) ? requestedPerPage : 20
+    const nextPage = Math.max(1, Number(searchParams.get("page")) || 1)
+    setActiveTab(nextTab)
+    if (PAGINATED_ADMIN_TABS.includes(nextTab as PaginatedAdminTab)) {
+      setPageMeta((current) => ({
+        ...current,
+        [nextTab]: { ...current[nextTab as PaginatedAdminTab], page: nextPage, perPage: nextPerPage },
+      }))
+    }
+
+    if (nextTab === "products") {
+      setFilters({
+        name: searchParams.get("product_search") ?? "",
+        category: Number(searchParams.get("product_category")) || "",
+        minPrice: searchParams.get("product_min_price") ?? "",
+        maxPrice: searchParams.get("product_max_price") ?? "",
+        featured: searchParams.get("product_featured") === "true",
+        glutenFree: searchParams.get("product_gluten_free") === "true",
+        containsAlcohol: searchParams.get("product_contains_alcohol") === "true",
+      })
+      setShowDeletedProducts(searchParams.get("show_archived") === "true")
+      const archivedPerPage = Number(searchParams.get("archived_per_page"))
+      setArchivedProductPage((current) => ({
+        ...current,
+        page: Math.max(1, Number(searchParams.get("archived_page")) || 1),
+        perPage: [10, 20, 50, 100].includes(archivedPerPage) ? archivedPerPage : 20,
+      }))
+    } else if (nextTab === "ingredients") {
+      const type = searchParams.get("ingredient_type") as IngredientType | null
+      const status = searchParams.get("ingredient_status")
+      setIngredientFilters({
+        search: searchParams.get("ingredient_search") ?? "",
+        type: type && INGREDIENT_TYPES.includes(type) ? type : "",
+        status: status === "active" || status === "inactive" ? status : "all",
+      })
+    } else if (nextTab === "categories") {
+      const status = searchParams.get("category_status")
+      setCategorySearch(searchParams.get("category_search") ?? "")
+      setCategoryIdFilter(searchParams.get("category_id") ?? "")
+      setCategoryStatusFilter(status === "active" || status === "inactive" ? status : "all")
+    } else if (nextTab === "reviews") {
+      setReviewSearch(searchParams.get("review_search") ?? "")
+    } else if (nextTab === "clientes") {
+      const status = searchParams.get("customer_status")
+      setClienteSearch(searchParams.get("customer_search") ?? "")
+      setClienteStatusFilter(status === "active" || status === "inactive" ? status : "all")
+    } else if (nextTab === "staff") {
+      const requestedRole = searchParams.get("staff_role") as StaffRoleFilter | null
+      const status = searchParams.get("staff_status")
+      setStaffSearch(searchParams.get("staff_search") ?? "")
+      setStaffRoleFilter(requestedRole && ADMIN_ROLES.includes(requestedRole as AdminRole) ? requestedRole : "all")
+      setStaffStatusFilter(status === "active" || status === "inactive" ? status : "all")
+    } else if (nextTab === "orders" && orderViewForRole(role, searchParams.get("view")) === "management") {
+      const today = new Date().toLocaleDateString("sv-SE")
+      setManagementOrderFilters({
+        search: searchParams.get("order_search") ?? "",
+        status: searchParams.get("order_status") ?? "",
+        paymentMethod: searchParams.get("order_payment_method") ?? "",
+        paymentStatus: searchParams.get("order_payment_status") ?? "",
+        dateFrom: searchParams.has("order_date_from") ? (searchParams.get("order_date_from") ?? "") : today,
+        dateTo: searchParams.has("order_date_to") ? (searchParams.get("order_date_to") ?? "") : today,
+        customization: searchParams.get("order_customization") ?? "all",
+      })
+    }
+  }, [allowedTabs, role, searchParams])
+
+  useEffect(() => {
+    if (skipAdminUrlWriteRef.current) {
+      skipAdminUrlWriteRef.current = false
+      return
+    }
+    const isPaginatedTab = PAGINATED_ADMIN_TABS.includes(activeTab as PaginatedAdminTab)
+      && !(activeTab === "orders" && orderView !== "management")
+    const next = new URLSearchParams(searchParams)
+    ADMIN_COLLECTION_QUERY_KEYS.forEach((key) => next.delete(key))
+
+    const setOptional = (key: string, value: string | number | boolean | null | undefined, preserveEmpty = false) => {
+      if (value === null || value === undefined || (!preserveEmpty && value === "") || value === false) return
+      next.set(key, String(value))
+    }
+
+    if (isPaginatedTab) {
+      const meta = pageMeta[activeTab as PaginatedAdminTab]
+      next.set("page", String(meta.page))
+      next.set("per_page", String(meta.perPage))
+
+      if (activeTab === "products") {
+        setOptional("product_search", filters.name.trim())
+        setOptional("product_category", filters.category)
+        setOptional("product_min_price", filters.minPrice)
+        setOptional("product_max_price", filters.maxPrice)
+        setOptional("product_featured", filters.featured)
+        setOptional("product_gluten_free", filters.glutenFree)
+        setOptional("product_contains_alcohol", filters.containsAlcohol)
+        setOptional("show_archived", showDeletedProducts)
+        if (showDeletedProducts) {
+          next.set("archived_page", String(archivedProductPage.page))
+          next.set("archived_per_page", String(archivedProductPage.perPage))
+        }
+      } else if (activeTab === "ingredients") {
+        setOptional("ingredient_search", ingredientFilters.search.trim())
+        setOptional("ingredient_type", ingredientFilters.type)
+        setOptional("ingredient_status", ingredientFilters.status === "all" ? "" : ingredientFilters.status)
+      } else if (activeTab === "categories") {
+        setOptional("category_search", categorySearch.trim())
+        setOptional("category_id", categoryIdFilter)
+        setOptional("category_status", categoryStatusFilter === "all" ? "" : categoryStatusFilter)
+      } else if (activeTab === "reviews") {
+        setOptional("review_search", reviewSearch.trim())
+      } else if (activeTab === "clientes") {
+        setOptional("customer_search", clienteSearch.trim())
+        setOptional("customer_status", clienteStatusFilter === "all" ? "" : clienteStatusFilter)
+      } else if (activeTab === "staff") {
+        setOptional("staff_search", staffSearch.trim())
+        setOptional("staff_role", staffRoleFilter === "all" ? "" : staffRoleFilter)
+        setOptional("staff_status", staffStatusFilter === "all" ? "" : staffStatusFilter)
+      } else if (activeTab === "orders") {
+        setOptional("order_search", managementOrderFilters.search.trim())
+        setOptional("order_status", managementOrderFilters.status)
+        setOptional("order_payment_method", managementOrderFilters.paymentMethod)
+        setOptional("order_payment_status", managementOrderFilters.paymentStatus)
+        setOptional("order_date_from", managementOrderFilters.dateFrom, true)
+        setOptional("order_date_to", managementOrderFilters.dateTo, true)
+        setOptional("order_customization", managementOrderFilters.customization === "all" ? "" : managementOrderFilters.customization)
+      }
+    }
+
+    if (next.toString() !== searchParams.toString()) {
+      lastWrittenSearchRef.current = next.toString()
+      setSearchParams(next, { replace: true })
+    }
+  }, [
+    activeTab, archivedProductPage.page, archivedProductPage.perPage, categoryIdFilter, categorySearch,
+    categoryStatusFilter, clienteSearch, clienteStatusFilter, filters, ingredientFilters,
+    managementOrderFilters, orderView, pageMeta, reviewSearch, searchParams, setSearchParams,
+    showDeletedProducts, staffRoleFilter, staffSearch, staffStatusFilter,
+  ])
 
   const runConfirmedAction = (
     config: ConfirmDialogState,
@@ -1606,6 +1877,7 @@ export default function AdminDashboard() {
   }, [])
 
   const loadProductsForFilters = useCallback(async (nextFilters: ProductFilterState) => {
+    const requestId = ++productLoadRequestRef.current
     try {
       const filterObj: ProductFilters = {}
       if (nextFilters.name.trim()) filterObj.name = nextFilters.name.trim()
@@ -1616,59 +1888,116 @@ export default function AdminDashboard() {
       if (nextFilters.glutenFree) filterObj.glutenFree = true
       if (nextFilters.containsAlcohol) filterObj.containsAlcohol = true
 
-      const allProducts = await listProducts(
-        0,
-        100,
-        true,
-        Object.keys(filterObj).length > 0 ? filterObj : undefined,
-      )
-
-      setProducts(allProducts.filter((product) => product.status !== "inactive" && !product.deletedAt))
-      setDeletedProducts(allProducts.filter((product) => product.status === "inactive" || product.deletedAt))
+      const activePage = await listProducts({
+        page: pageMeta.products.page,
+        perPage: pageMeta.products.perPage,
+        catalogState: "active",
+        filters: Object.keys(filterObj).length > 0 ? filterObj : undefined,
+      })
+      if (requestId !== productLoadRequestRef.current) return
+      setProducts(activePage.items)
+      updatePageMeta("products", { page: activePage.page, perPage: activePage.perPage, total: activePage.total, totalPages: activePage.totalPages })
+      if (showDeletedProducts) {
+        const archivedPage = await listProducts({
+          page: archivedProductPage.page,
+          perPage: archivedProductPage.perPage,
+          catalogState: "archived",
+          filters: Object.keys(filterObj).length > 0 ? filterObj : undefined,
+        })
+        if (requestId !== productLoadRequestRef.current) return
+        setDeletedProducts(archivedPage.items)
+        setArchivedProductPage({
+          page: archivedPage.totalPages > 0 ? Math.min(archivedPage.page, archivedPage.totalPages) : 1,
+          perPage: archivedPage.perPage,
+          total: archivedPage.total,
+          totalPages: archivedPage.totalPages,
+        })
+      } else {
+        setDeletedProducts([])
+      }
     } catch (err) {
-      setError(getErrorMessage(err, "Failed to load products"))
+      if (requestId === productLoadRequestRef.current) setError(getErrorMessage(err, "Failed to load products"))
     }
-  }, [])
+  }, [archivedProductPage.page, archivedProductPage.perPage, pageMeta.products.page, pageMeta.products.perPage, showDeletedProducts, updatePageMeta])
 
   const handleLoadProducts = useCallback(async () => {
     await loadProductsForFilters(filters)
   }, [filters, loadProductsForFilters])
 
-  const handleLoadAllProducts = useCallback(async () => {
-    await loadProductsForFilters(EMPTY_PRODUCT_FILTERS)
-  }, [loadProductsForFilters])
-
   const handleLoadCategories = useCallback(async () => {
+    const requestId = ++categoryLoadRequestRef.current
     try {
-      setCategories(await listCategories(true))
+      const result = await listCategories({
+        page: pageMeta.categories.page,
+        perPage: pageMeta.categories.perPage,
+        search: categorySearch,
+        categoryId: Number(categoryIdFilter) || undefined,
+        status: categoryStatusFilter === "all" ? undefined : categoryStatusFilter,
+      })
+      if (requestId !== categoryLoadRequestRef.current) return
+      setCategories(result.items)
+      updatePageMeta("categories", { page: result.page, perPage: result.perPage, total: result.total, totalPages: result.totalPages })
     } catch (err) {
-      setError(getErrorMessage(err, "Failed to load categories"))
+      if (requestId === categoryLoadRequestRef.current) setError(getErrorMessage(err, "Failed to load categories"))
     }
-  }, [])
+  }, [categoryIdFilter, categorySearch, categoryStatusFilter, pageMeta.categories.page, pageMeta.categories.perPage, updatePageMeta])
 
   const handleLoadIngredients = useCallback(async () => {
+    const requestId = ++ingredientLoadRequestRef.current
     try {
-      setIngredients(await listIngredients(true, false))
+      const result = await listIngredients({
+        page: pageMeta.ingredients.page,
+        perPage: pageMeta.ingredients.perPage,
+        search: ingredientFilters.search,
+        type: ingredientFilters.type || undefined,
+        status: ingredientFilters.status === "all" ? "all" : ingredientFilters.status,
+      })
+      if (requestId !== ingredientLoadRequestRef.current) return
+      setIngredients(result.items)
+      updatePageMeta("ingredients", { page: result.page, perPage: result.perPage, total: result.total, totalPages: result.totalPages })
     } catch (err) {
-      setError(getErrorMessage(err, "Failed to load ingredients"))
+      if (requestId === ingredientLoadRequestRef.current) setError(getErrorMessage(err, "Failed to load ingredients"))
     }
-  }, [])
+  }, [ingredientFilters.search, ingredientFilters.status, ingredientFilters.type, pageMeta.ingredients.page, pageMeta.ingredients.perPage, updatePageMeta])
 
   const handleLoadOrders = useCallback(async () => {
     const requestId = ++orderLoadRequestRef.current
     try {
       const loadedOrders = orderView === "kitchen"
-        ? await listKitchenOrders(0, 100)
+        ? await listKitchenOrders()
         : orderView === "service"
-          ? await listStaffOrders(0, 100)
-          : await listOrders(0, 100)
-      if (requestId === orderLoadRequestRef.current) setOrders(loadedOrders)
+          ? await listStaffOrders()
+          : await listOrders({
+            page: pageMeta.orders.page,
+            perPage: pageMeta.orders.perPage,
+            search: managementOrderFilters.search,
+            state: managementOrderFilters.status,
+            paymentMethod: managementOrderFilters.paymentMethod,
+            paymentStatus: managementOrderFilters.paymentStatus,
+            dateFrom: managementOrderFilters.dateFrom,
+            dateTo: managementOrderFilters.dateTo,
+            customization: managementOrderFilters.customization === "all" ? undefined : managementOrderFilters.customization,
+          })
+      if (requestId === orderLoadRequestRef.current) {
+        if (Array.isArray(loadedOrders)) {
+          setOrders(loadedOrders)
+        } else {
+          setOrders(loadedOrders.items)
+          setOrderSummary(loadedOrders.summary)
+          updatePageMeta("orders", { page: loadedOrders.page, perPage: loadedOrders.perPage, total: loadedOrders.total, totalPages: loadedOrders.totalPages })
+        }
+      }
     } catch (err) {
       if (requestId === orderLoadRequestRef.current) {
         setError(getErrorMessage(err, "Failed to load orders"))
       }
     }
-  }, [orderView])
+  }, [managementOrderFilters, orderView, pageMeta.orders.page, pageMeta.orders.perPage, updatePageMeta])
+
+  const handleManagementOrderFiltersChange = useCallback((nextFilters: ManagementOrderFilters) => {
+    setManagementOrderFilters(nextFilters)
+    updatePageMeta("orders", { page: 1 })
+  }, [updatePageMeta])
 
   const handleLoadAnalyticsMetric = useCallback(async (metric: AnalyticsMetric, nextRange?: AnalyticsRange) => {
     const activeRange = nextRange ?? analyticsRanges[metric]
@@ -1691,20 +2020,39 @@ export default function AdminDashboard() {
   }, [handleLoadAnalyticsMetric])
 
   const handleLoadClientes = useCallback(async () => {
+    const requestId = ++customerLoadRequestRef.current
     try {
-      setClientes(await listCustomers())
+      const result = await listCustomers({
+        page: pageMeta.clientes.page,
+        perPage: pageMeta.clientes.perPage,
+        search: clienteSearch,
+        status: clienteStatusFilter === "all" ? undefined : clienteStatusFilter,
+      })
+      if (requestId !== customerLoadRequestRef.current) return
+      setClientes(result.items)
+      updatePageMeta("clientes", { page: result.page, perPage: result.perPage, total: result.total, totalPages: result.totalPages })
     } catch (err) {
-      setError(getErrorMessage(err, "Failed to load customers"))
+      if (requestId === customerLoadRequestRef.current) setError(getErrorMessage(err, "Failed to load customers"))
     }
-  }, [])
+  }, [clienteSearch, clienteStatusFilter, pageMeta.clientes.page, pageMeta.clientes.perPage, updatePageMeta])
 
   const handleLoadStaff = useCallback(async () => {
+    const requestId = ++staffLoadRequestRef.current
     try {
-      setStaffAdmins(await listStaffAdmins())
+      const result = await listStaffAdmins({
+        page: pageMeta.staff.page,
+        perPage: pageMeta.staff.perPage,
+        search: staffSearch,
+        role: staffRoleFilter === "all" ? undefined : staffRoleFilter,
+        status: staffStatusFilter === "all" ? undefined : staffStatusFilter,
+      })
+      if (requestId !== staffLoadRequestRef.current) return
+      setStaffAdmins(result.items)
+      updatePageMeta("staff", { page: result.page, perPage: result.perPage, total: result.total, totalPages: result.totalPages })
     } catch (err) {
-      setError(getErrorMessage(err, "Failed to load staff admins"))
+      if (requestId === staffLoadRequestRef.current) setError(getErrorMessage(err, "Failed to load staff admins"))
     }
-  }, [])
+  }, [pageMeta.staff.page, pageMeta.staff.perPage, staffRoleFilter, staffSearch, staffStatusFilter, updatePageMeta])
 
   const handleLoadSiteTheme = useCallback(async () => {
     if (!isOwner) return
@@ -1732,27 +2080,24 @@ export default function AdminDashboard() {
   }, [isOwner])
 
   const handleLoadReviews = useCallback(async () => {
+    const requestId = ++reviewLoadRequestRef.current
     try {
       setReviewsLoading(true)
-      const reviewProducts = await listProducts(0, 100, false)
-      const reviewGroups = await Promise.all(
-        reviewProducts.map(async (product) => {
-          const productReviews = await listProductReviews(product.productId)
-          return productReviews.map((review) => ({ ...review, productName: product.name }))
-        }),
-      )
-
-      setReviews(
-        reviewGroups
-          .flat()
-          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
-      )
+      const result = await listAdminReviews({
+        page: pageMeta.reviews.page,
+        perPage: pageMeta.reviews.perPage,
+        search: reviewSearch,
+      })
+      if (requestId !== reviewLoadRequestRef.current) return
+      setReviews(result.items)
+      setReviewSummary(result.summary)
+      updatePageMeta("reviews", { page: result.page, perPage: result.perPage, total: result.total, totalPages: result.totalPages })
     } catch (err) {
-      setError(getErrorMessage(err, "Failed to load reviews"))
+      if (requestId === reviewLoadRequestRef.current) setError(getErrorMessage(err, "Failed to load reviews"))
     } finally {
-      setReviewsLoading(false)
+      if (requestId === reviewLoadRequestRef.current) setReviewsLoading(false)
     }
-  }, [])
+  }, [pageMeta.reviews.page, pageMeta.reviews.perPage, reviewSearch, updatePageMeta])
 
   useEffect(() => {
     const token = localStorage.getItem("admin_token")
@@ -1769,9 +2114,6 @@ export default function AdminDashboard() {
 
         if (admin.role === "owner") {
           void loadDashboard()
-          void loadProductsForFilters(EMPTY_PRODUCT_FILTERS)
-          void handleLoadCategories()
-          void handleLoadIngredients()
         }
       })
         .catch(() => {
@@ -1780,7 +2122,7 @@ export default function AdminDashboard() {
           localStorage.removeItem("admin_name")
           navigate("/admin/login", { replace: true })
         })
-  }, [handleLoadCategories, handleLoadIngredients, loadDashboard, loadProductsForFilters, navigate])
+  }, [loadDashboard, navigate])
 
   useEffect(() => {
     if (!currentAdmin) return
@@ -1801,15 +2143,26 @@ export default function AdminDashboard() {
       nextParams.delete("view")
     }
 
-    if (activeTab !== nextTab) setActiveTab(nextTab)
+    setActiveTab((currentTab) => currentTab === nextTab ? currentTab : nextTab)
     if (nextParams.toString() !== searchParams.toString()) {
       setSearchParams(nextParams, { replace: true })
     }
-  }, [activeTab, allowedTabs, currentAdmin, orderView, role, searchParams, setSearchParams])
+  }, [allowedTabs, currentAdmin, orderView, role, searchParams, setSearchParams])
 
   useEffect(() => {
     localStorage.setItem("admin_sidebar_collapsed", String(sidebarCollapsed))
   }, [sidebarCollapsed])
+
+  useEffect(() => {
+    if (relatedIngredientId === null) return
+
+    const handleRelatedProductsKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setRelatedIngredientId(null)
+    }
+
+    document.addEventListener("keydown", handleRelatedProductsKeyDown)
+    return () => document.removeEventListener("keydown", handleRelatedProductsKeyDown)
+  }, [relatedIngredientId])
 
   useEffect(() => {
     const mediaQuery = window.matchMedia(ADMIN_NAV_MOBILE_QUERY)
@@ -1876,6 +2229,34 @@ export default function AdminDashboard() {
   }, [activeTab, canViewAdminCatalog, handleLoadProducts])
 
   useEffect(() => {
+    if (!currentAdmin || !canViewAdminCatalog || activeTab !== "products") return
+    if (catalogCategories.length === 0) {
+      void listAllCategories({ status: "active" }).then(setCatalogCategories)
+    }
+    if (catalogIngredients.length === 0) {
+      void listAllIngredients({ status: "all", customizationOnly: true }).then(setCatalogIngredients)
+    }
+  }, [activeTab, canViewAdminCatalog, catalogCategories.length, catalogIngredients.length, currentAdmin])
+
+  useEffect(() => {
+    if (!currentAdmin || !isOwner || activeTab !== "settings" || settingsProducts.length > 0) return
+    void listAllProducts({ catalogState: "active" }).then(setSettingsProducts)
+  }, [activeTab, currentAdmin, isOwner, settingsProducts.length])
+
+  useEffect(() => {
+    if (!currentAdmin) return
+    const loader = activeTab === "ingredients" ? handleLoadIngredients
+      : activeTab === "categories" ? handleLoadCategories
+        : activeTab === "reviews" ? handleLoadReviews
+          : activeTab === "clientes" ? handleLoadClientes
+            : activeTab === "staff" ? handleLoadStaff
+              : null
+    if (!loader) return
+    const timer = window.setTimeout(() => void loader(), 350)
+    return () => window.clearTimeout(timer)
+  }, [activeTab, currentAdmin, handleLoadCategories, handleLoadClientes, handleLoadIngredients, handleLoadReviews, handleLoadStaff])
+
+  useEffect(() => {
     if (!categoryFilterOpen) return
 
     const handlePointerDown = (event: PointerEvent) => {
@@ -1928,7 +2309,7 @@ export default function AdminDashboard() {
   const handleTabChange = (tab: TabType) => {
     const nextTab = allowedTabs.includes(tab) ? tab : "orders"
     const nextParams = new URLSearchParams(searchParams)
-    setActiveTab(nextTab)
+    if (nextTab !== "ingredients") setRelatedIngredientId(null)
     if (nextTab === "dashboard") {
       nextParams.delete("tab")
     } else {
@@ -1942,15 +2323,13 @@ export default function AdminDashboard() {
     setSearchParams(nextParams)
 
     if (nextTab === "products") {
-      if (categories.length === 0) void handleLoadCategories()
-      if (ingredients.length === 0) void handleLoadIngredients()
+      if (catalogCategories.length === 0) void listAllCategories({ status: "active" }).then(setCatalogCategories)
+      if (catalogIngredients.length === 0) void listAllIngredients({ status: "all", customizationOnly: true }).then(setCatalogIngredients)
       void handleLoadProducts()
     } else if (nextTab === "ingredients") {
       void handleLoadIngredients()
-      void handleLoadAllProducts()
     } else if (nextTab === "categories") {
       if (categories.length === 0) void handleLoadCategories()
-      if (products.length === 0 && deletedProducts.length === 0) void handleLoadProducts()
     } else if (nextTab === "reviews" && reviews.length === 0) {
       void handleLoadReviews()
     } else if (nextTab === "clientes" && clientes.length === 0) {
@@ -1961,7 +2340,7 @@ export default function AdminDashboard() {
       handleLoadAllAnalytics()
     } else if (nextTab === "settings") {
       void handleLoadSiteTheme()
-      void loadProductsForFilters(EMPTY_PRODUCT_FILTERS)
+      if (settingsProducts.length === 0) void listAllProducts({ catalogState: "active" }).then(setSettingsProducts)
     }
   }
 
@@ -2004,13 +2383,12 @@ export default function AdminDashboard() {
 
   const openNewForm = async () => {
     setEditingProduct(null)
-    const nextCategories = categories.length === 0 ? await listCategories() : categories
-    if (categories.length === 0) {
-      setCategories(nextCategories)
-    }
-    if (ingredients.length === 0) {
-      setIngredients(await listIngredients(true, true))
-    }
+    const [nextCategories, nextIngredients] = await Promise.all([
+      listAllCategories({ status: "active" }),
+      listAllIngredients({ status: "all", customizationOnly: true }),
+    ])
+    setCatalogCategories(nextCategories)
+    setCatalogIngredients(nextIngredients)
     const activeCategories = nextCategories.filter((category) => category.status !== "inactive")
     setFormData({
       name: "",
@@ -2060,13 +2438,12 @@ export default function AdminDashboard() {
 
   const handleEditProduct = async (product: AdminProduct, startStep = 0) => {
     setEditingProduct(product)
-    if (categories.length === 0) {
-      setCategories(await listCategories())
-    }
-    const nextIngredients = ingredients.length === 0 ? await listIngredients(true, true) : ingredients
-    if (ingredients.length === 0) {
-      setIngredients(nextIngredients)
-    }
+    const [nextCategories, nextIngredients] = await Promise.all([
+      listAllCategories({ status: "active" }),
+      listAllIngredients({ status: "all", customizationOnly: true }),
+    ])
+    setCatalogCategories(nextCategories)
+    setCatalogIngredients(nextIngredients)
     const ingredientCaloriesById = new Map(
       nextIngredients.map((ingredient) => [ingredient.ingredientId, ingredient.caloriesPerGram ?? null]),
     )
@@ -2353,11 +2730,11 @@ export default function AdminDashboard() {
   }
 
   const handleOpenLinkedIngredientProduct = (product: AdminProduct) => {
+    setRelatedIngredientId(null)
     handleTabChange("products")
     setFilters({ ...EMPTY_PRODUCT_FILTERS })
     setShowProductForm(false)
     if (product.status === "inactive") setShowDeletedProducts(true)
-    void handleLoadAllProducts()
     void handleOpenProductAnalytics(product)
   }
 
@@ -2448,7 +2825,7 @@ export default function AdminDashboard() {
     const name = newProductIngredientName.trim()
     if (!name) return
     const caloriesPerGram = nullableNumberFromInput(newProductIngredientCalories)
-    const existing = ingredients.find((ingredient) => ingredient.name.toLowerCase() === name.toLowerCase())
+    const existing = catalogIngredients.find((ingredient) => ingredient.name.toLowerCase() === name.toLowerCase())
     if (existing) {
       selectSavedProductIngredient(existing, caloriesPerGram)
       setProductFormMessage(`"${existing.name}" já existe e foi selecionado.`)
@@ -2464,7 +2841,7 @@ export default function AdminDashboard() {
           available: true,
           caloriesPerGram: caloriesPerGram,
         })
-        setIngredients((current) => (
+        setCatalogIngredients((current) => (
           current.some((ingredient) => ingredient.ingredientId === created.ingredientId)
             ? current
             : [...current, created].sort((a, b) => a.type.localeCompare(b.type) || a.name.localeCompare(b.name))
@@ -2472,10 +2849,10 @@ export default function AdminDashboard() {
         selectSavedProductIngredient(created, caloriesPerGram)
         toast.success("Ingredient created and selected.")
       } catch (err) {
-        const latestIngredients = await listIngredients(true, true).catch(() => [] as AdminIngredient[])
+        const latestIngredients = await listAllIngredients({ status: "all", customizationOnly: true }).catch(() => [] as AdminIngredient[])
         const duplicate = latestIngredients.find((ingredient) => ingredient.name.toLowerCase() === name.toLowerCase())
         if (duplicate) {
-          setIngredients(latestIngredients)
+          setCatalogIngredients(latestIngredients)
           selectSavedProductIngredient(duplicate, caloriesPerGram)
           setProductFormMessage(`"${duplicate.name}" já existe e foi selecionado.`)
           toast.info("Existing ingredient selected.")
@@ -2659,6 +3036,7 @@ export default function AdminDashboard() {
       }
       closeCategoryForm()
       await handleLoadCategories()
+      setCatalogCategories([])
       await loadDashboard()
       toast.success(editingCategory ? "Category updated successfully." : "Category created successfully.")
     } catch (err) {
@@ -2679,6 +3057,7 @@ export default function AdminDashboard() {
       try {
         await deleteCategory(categoryId)
         await handleLoadCategories()
+        setCatalogCategories([])
         await loadDashboard()
         toast.success("Category deactivated successfully.")
         return true
@@ -2695,6 +3074,7 @@ export default function AdminDashboard() {
     try {
       await updateCategory(categoryId, { status: "active" })
       await handleLoadCategories()
+      setCatalogCategories([])
       await loadDashboard()
       toast.success("Category activated successfully.")
     } catch (err) {
@@ -2738,6 +3118,7 @@ export default function AdminDashboard() {
       }
       closeIngredientForm()
       await handleLoadIngredients()
+      setCatalogIngredients([])
       toast.success(editingIngredient ? "Ingredient updated successfully." : "Ingredient created successfully.")
     } catch (err) {
       const message = getErrorMessage(err, "Failed to save ingredient")
@@ -2757,6 +3138,7 @@ export default function AdminDashboard() {
       try {
         await deleteIngredient(ingredientId)
         await handleLoadIngredients()
+        setCatalogIngredients([])
         toast.success("Ingredient deactivated successfully.")
         return true
       } catch (err) {
@@ -2772,6 +3154,7 @@ export default function AdminDashboard() {
     try {
       await updateIngredient(ingredientId, { status: "active" })
       await handleLoadIngredients()
+      setCatalogIngredients([])
       toast.success("Ingredient activated successfully.")
     } catch (err) {
       const message = getErrorMessage(err, "Failed to restore ingredient")
@@ -2783,9 +3166,13 @@ export default function AdminDashboard() {
   const handleSetIngredientAvailability = async (ingredient: AdminIngredient, available: boolean) => {
     const key = `ingredient-${ingredient.ingredientId}`
     const optimistic = { ...ingredient, available }
-    const apply = (next: AdminIngredient) => setIngredients((current) => current.map((item) => (
-      item.ingredientId === ingredient.ingredientId ? next : item
-    )))
+    const apply = (next: AdminIngredient) => {
+      const replace = (items: AdminIngredient[]) => items.map((item) => (
+        item.ingredientId === ingredient.ingredientId ? next : item
+      ))
+      setIngredients(replace)
+      setCatalogIngredients(replace)
+    }
     setAvailabilityBusyKey(key)
     try {
       await persistOptimisticUpdate(
@@ -2802,6 +3189,26 @@ export default function AdminDashboard() {
       toast.error(message)
     } finally {
       setAvailabilityBusyKey(null)
+    }
+  }
+
+  const handleLoadIngredientProducts = async (ingredientId: number, page = 1, perPage = 20) => {
+    const requestId = (ingredientProductRequestRef.current[ingredientId] ?? 0) + 1
+    ingredientProductRequestRef.current[ingredientId] = requestId
+    setRelatedIngredientId(ingredientId)
+    setRelatedIngredientLoadingId(ingredientId)
+    try {
+      const result = await listIngredientProducts(ingredientId, { page, perPage })
+      if (ingredientProductRequestRef.current[ingredientId] !== requestId) return
+      setIngredientProducts((current) => ({ ...current, [ingredientId]: result }))
+    } catch (err) {
+      if (ingredientProductRequestRef.current[ingredientId] === requestId) {
+        setError(getErrorMessage(err, "Não foi possível carregar os produtos relacionados."))
+      }
+    } finally {
+      if (ingredientProductRequestRef.current[ingredientId] === requestId) {
+        setRelatedIngredientLoadingId((current) => current === ingredientId ? null : current)
+      }
     }
   }
 
@@ -3186,87 +3593,16 @@ export default function AdminDashboard() {
       })
   }
 
-  const filteredReviews = reviews.filter((review) => {
-    const query = reviewSearch.trim().toLowerCase()
-    if (!query) return true
-
-    return [
-      review.customerName,
-      review.productName,
-      review.title,
-      review.comment,
-      review.status,
-    ].filter(Boolean).join(" ").toLowerCase().includes(query)
-  })
-  const filteredCategories = useMemo(() => {
-    const query = categorySearch.trim().toLowerCase()
-
-    return categories.filter((category) => {
-      if (categoryIdFilter && String(category.categoryId) !== categoryIdFilter) return false
-      if (!statusMatchesFilter(category.status ?? "active", categoryStatusFilter)) return false
-      if (!query) return true
-
-      const statusLabel = category.status !== "inactive" ? "active" : "inactive"
-      return [
-        category.categoryId,
-        category.categoryDisplayId ?? formatCategoryId(category.categoryId),
-        category.categoryName,
-        category.categoryDescription,
-        statusLabel,
-      ].filter(Boolean).join(" ").toLowerCase().includes(query)
-    })
-  }, [categories, categoryIdFilter, categorySearch, categoryStatusFilter])
-  const filteredClientes = useMemo(() => {
-    const query = clienteSearch.trim().toLowerCase()
-
-    return clientes.filter((cliente) => {
-      if (!statusMatchesFilter(cliente.status, clienteStatusFilter)) return false
-      if (!query) return true
-
-      const statusLabel = cliente.status === "active" ? "active" : "inactive"
-      return [
-        String(cliente.customerId),
-        `#${cliente.customerId}`,
-        cliente.name,
-        cliente.lastName,
-        cliente.email,
-        cliente.phone,
-        cliente.taxId,
-        cliente.address,
-        cliente.city,
-        cliente.postalCode,
-        statusLabel,
-      ].filter(Boolean).join(" ").toLowerCase().includes(query)
-    })
-  }, [clienteSearch, clienteStatusFilter, clientes])
-  const filteredStaffAdmins = useMemo(() => {
-    const query = staffSearch.trim().toLowerCase()
-
-    return staffAdmins.filter((admin) => {
-      if (staffRoleFilter !== "all" && admin.role !== staffRoleFilter) return false
-      if (!statusMatchesFilter(admin.status, staffStatusFilter)) return false
-      if (!query) return true
-
-      const statusLabel = admin.status === "active" ? "active" : "inactive"
-      return [
-        String(admin.adminId),
-        `#${admin.adminId}`,
-        admin.name,
-        admin.email,
-        admin.role,
-        statusLabel,
-      ].filter(Boolean).join(" ").toLowerCase().includes(query)
-    })
-  }, [staffAdmins, staffRoleFilter, staffSearch, staffStatusFilter])
+  // These collections are already filtered and counted by the API. Never apply
+  // a second filter to the visible page, otherwise matching rows on later pages
+  // disappear and the pagination metadata becomes misleading.
+  const filteredReviews = reviews
+  const filteredCategories = categories
+  const filteredClientes = clientes
+  const filteredStaffAdmins = staffAdmins
   const hasCategoryFilters = Boolean(categorySearch.trim()) || Boolean(categoryIdFilter) || categoryStatusFilter !== "all"
   const hasClienteFilters = Boolean(clienteSearch.trim()) || clienteStatusFilter !== "all"
   const hasStaffFilters = Boolean(staffSearch.trim()) || staffRoleFilter !== "all" || staffStatusFilter !== "all"
-  const reviewsWithReply = reviews.filter((review) => review.reply?.text?.trim()).length
-  const reviewsAwaitingReply = Math.max(reviews.length - reviewsWithReply, 0)
-  const averageReviewRating = reviews.length
-    ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
-    : 0
-  const allAdminProducts = useMemo(() => [...products, ...deletedProducts], [products, deletedProducts])
   const getBaseUnavailableReason = useCallback((product: AdminProduct) => {
     if (!product.available) return "Indisponível por decisão operacional."
     const names = product.unavailableBaseIngredients ?? []
@@ -3277,21 +3613,11 @@ export default function AdminDashboard() {
     const remainingCount = names.length - 2
     return `Indisponível: ${remainingCount > 0 ? `${shownNames} e mais ${remainingCount}` : shownNames}.`
   }, [])
-  const filteredIngredients = ingredients.filter((ingredient) => {
-    const query = ingredientFilters.search.trim().toLowerCase()
-    const matchesSearch = !query || [
-      ingredient.name,
-      ingredient.type,
-      String(ingredient.ingredientId),
-    ].join(" ").toLowerCase().includes(query)
-    const matchesType = !ingredientFilters.type || ingredient.type === ingredientFilters.type
-    const matchesStatus =
-      ingredientFilters.status === "all" ||
-      (ingredientFilters.status === "active" && ingredient.status !== "inactive") ||
-      (ingredientFilters.status === "inactive" && ingredient.status === "inactive")
-
-    return matchesSearch && matchesType && matchesStatus
-  })
+  const filteredIngredients = ingredients
+  const relatedIngredient = relatedIngredientId === null
+    ? null
+    : ingredients.find((ingredient) => ingredient.ingredientId === relatedIngredientId) ?? null
+  const relatedIngredientPage = relatedIngredientId === null ? null : ingredientProducts[relatedIngredientId] ?? null
   const clearIngredientFilters = () => {
     setIngredientFilters({ search: "", type: "", status: "all" })
   }
@@ -3300,11 +3626,11 @@ export default function AdminDashboard() {
       .map((ingredient) => ingredient.ingredientId)
       .filter((id): id is number => typeof id === "number"),
   )
-  const activeCategories = categories.filter((category) => category.status !== "inactive")
+  const activeCategories = catalogCategories.filter((category) => category.status !== "inactive")
   const selectedProductFilterCategory =
     activeCategories.find((category) => category.categoryId === filters.category)?.categoryName ??
     "All categories"
-  const activeProductIngredients = ingredients.filter((ingredient) => ingredient.status !== "inactive")
+  const activeProductIngredients = catalogIngredients.filter((ingredient) => ingredient.status !== "inactive")
   const productIngredientChipGroups = STEP4_INGREDIENT_TYPES
     .map((type) => {
       const query = productIngredientSearch.trim().toLowerCase()
@@ -3353,6 +3679,30 @@ export default function AdminDashboard() {
     [formData.ingredients],
   )
   const isSidebarCollapsed = sidebarCollapsed || isAdminSidebarAutoCollapsed
+  const renderAdminPagination = (tab: PaginatedAdminTab, meta = pageMeta[tab], archived = false) => (
+    <Pagination
+      variant="admin"
+      page={meta.page}
+      perPage={meta.perPage}
+      total={meta.total}
+      totalPages={meta.totalPages}
+      onPageChange={(nextPage) => {
+        if (archived) setArchivedProductPage((current) => ({ ...current, page: nextPage }))
+        else updatePageMeta(tab, { page: nextPage })
+        const next = new URLSearchParams(searchParams)
+        next.set(archived ? "archived_page" : "page", String(nextPage))
+        setSearchParams(next)
+      }}
+      onPerPageChange={(nextPerPage) => {
+        if (archived) setArchivedProductPage((current) => ({ ...current, page: 1, perPage: nextPerPage }))
+        else updatePageMeta(tab, { page: 1, perPage: nextPerPage })
+        const next = new URLSearchParams(searchParams)
+        next.set(archived ? "archived_page" : "page", "1")
+        next.set(archived ? "archived_per_page" : "per_page", String(nextPerPage))
+        setSearchParams(next)
+      }}
+    />
+  )
   const adminShellClassName = [
     "ad-shell",
     `ad-theme-${adminTheme}`,
@@ -3453,6 +3803,7 @@ export default function AdminDashboard() {
                 {group.items.map(({ tab, label, icon }) => (
                   <button
                     key={tab}
+                    type="button"
                     className={`ad-nav-item ${activeTab === tab ? "active" : ""}`}
                     onClick={() => handleAdminNavItemClick(tab)}
                     title={!isMobileAdminNav && isSidebarCollapsed ? label : undefined}
@@ -3574,7 +3925,7 @@ export default function AdminDashboard() {
                                 try {
                                   handleTabChange("products")
                                   const availableProducts = products.length === 0
-                                    ? await listProducts(0, 100, true)
+                                    ? await listAllProducts({ catalogState: "all" })
                                     : products
                                   if (products.length === 0) {
                                     setProducts(availableProducts.filter((product) => product.status !== "inactive" && !product.deletedAt))
@@ -3709,7 +4060,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
               <div className="ad-review-toolbar-meta">
-                <span>{filteredCategories.length} apresentadas</span>
+                <span>{pageMeta.categories.total} apresentadas</span>
                 {hasCategoryFilters && (
                   <button
                     type="button"
@@ -3728,7 +4079,7 @@ export default function AdminDashboard() {
 
             <div className="ad-category-grid">
               {filteredCategories.map((category) => {
-                const activeCount = products.filter((product) => product.categoryId === category.categoryId && product.status === "active").length
+                const activeCount = category.activeProductCount ?? 0
                 const isActive = category.status !== "inactive"
 
                 return (
@@ -3759,6 +4110,7 @@ export default function AdminDashboard() {
               {categories.length === 0 && <p className="ad-empty">No categories found.</p>}
               {categories.length > 0 && filteredCategories.length === 0 && <p className="ad-empty">No categories match these filters.</p>}
             </div>
+            {renderAdminPagination("categories")}
           </div>
         )}
 
@@ -3897,7 +4249,7 @@ export default function AdminDashboard() {
                 />
               </div>
               <div className="ad-ingredient-toolbar-meta">
-                <span>{filteredIngredients.length} de {ingredients.length}</span>
+                <span>{pageMeta.ingredients.total} apresentados</span>
                 <button type="button" className="ad-btn ad-btn-ghost" onClick={clearIngredientFilters}>Limpar filtros</button>
               </div>
             </div>
@@ -3905,9 +4257,8 @@ export default function AdminDashboard() {
             <div className="ad-ingredient-grid">
               {filteredIngredients.map((ingredient) => {
                 const isActive = ingredient.status !== "inactive"
-                const linkedProducts = allAdminProducts.filter((product) => (
-                  product.ingredients?.some((item) => item.ingredientId === ingredient.ingredientId)
-                ))
+                const relatedPage = ingredientProducts[ingredient.ingredientId]
+                const linkedProductCount = ingredient.linkedProductCount ?? relatedPage?.total ?? 0
 
                 return (
                   <article key={ingredient.ingredientId} className={`ad-ingredient-card ${!isActive ? "inactive" : ""}`}>
@@ -3928,29 +4279,17 @@ export default function AdminDashboard() {
                         <button
                           type="button"
                           className="ad-ingredient-linked-trigger"
-                          aria-haspopup="true"
-                          aria-label={`${linkedProducts.length} produtos associados a ${ingredient.name}`}
+                          aria-haspopup="dialog"
+                          aria-expanded={relatedIngredientId === ingredient.ingredientId}
+                          aria-label={`${linkedProductCount} produtos associados a ${ingredient.name}`}
+                          onClick={() => {
+                            if (relatedIngredientId === ingredient.ingredientId) setRelatedIngredientId(null)
+                            else void handleLoadIngredientProducts(ingredient.ingredientId)
+                          }}
                         >
-                          <strong>{linkedProducts.length}</strong>
-                          <span>{linkedProducts.length === 1 ? "produto" : "produtos"}</span>
+                          <strong>{linkedProductCount}</strong>
+                          <span>{linkedProductCount === 1 ? "produto" : "produtos"}</span>
                         </button>
-                        <div className="ad-ingredient-products-popover" role="tooltip">
-                          {linkedProducts.length > 0 ? (
-                            linkedProducts.map((product) => (
-                              <button
-                                key={product.productId}
-                                type="button"
-                                className={`ad-linked-product-row ${product.status === "inactive" ? "disabled" : ""}`}
-                                onClick={() => handleOpenLinkedIngredientProduct(product)}
-                              >
-                                <code>{product.productDisplayId ?? formatProductId(product.productId)}</code>
-                                <span>{product.name}</span>
-                              </button>
-                            ))
-                          ) : (
-                            <span className="ad-linked-product-empty">Sem produtos associados</span>
-                          )}
-                        </div>
                       </div>
                     </div>
                     {!isActive && (
@@ -3982,6 +4321,84 @@ export default function AdminDashboard() {
               {ingredients.length === 0 && <p className="ad-empty">Nenhum ingrediente encontrado.</p>}
               {ingredients.length > 0 && filteredIngredients.length === 0 && <p className="ad-empty">Nenhum ingrediente corresponde a estes filtros.</p>}
             </div>
+            {relatedIngredient && (
+              <>
+                <div className="ad-modal-backdrop" onClick={() => setRelatedIngredientId(null)} />
+                <section
+                  className="ad-modal ad-related-products-modal"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="related-products-title"
+                >
+                  <header className="ad-modal-header ad-related-products-header">
+                    <div>
+                      <span className="ad-related-products-kicker">Produtos associados</span>
+                      <h3 className="ad-modal-title" id="related-products-title">{relatedIngredient.name}</h3>
+                      <p>
+                        {relatedIngredientPage?.total ?? relatedIngredient.linkedProductCount ?? 0}
+                        {` ${(relatedIngredientPage?.total ?? relatedIngredient.linkedProductCount ?? 0) === 1 ? "produto utiliza" : "produtos utilizam"} este ingrediente`}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="ad-modal-close"
+                      onClick={() => setRelatedIngredientId(null)}
+                      aria-label="Fechar produtos associados"
+                    >
+                      <X size={20} />
+                    </button>
+                  </header>
+                  <div className="ad-modal-body ad-related-products-body">
+                    {relatedIngredientLoadingId === relatedIngredient.ingredientId && !relatedIngredientPage ? (
+                      <p className="ad-related-products-state" role="status">A carregar produtos associados...</p>
+                    ) : (relatedIngredientPage?.items.length ?? 0) > 0 ? (
+                      <div className="ad-related-products-list">
+                        {relatedIngredientPage!.items.map((product) => (
+                          <button
+                            key={product.productId}
+                            type="button"
+                            className={`ad-related-product-card ${product.status === "inactive" ? "disabled" : ""}`}
+                            onClick={() => handleOpenLinkedIngredientProduct(product)}
+                          >
+                            <span className="ad-related-product-main">
+                              <code>{product.productDisplayId ?? formatProductId(product.productId)}</code>
+                              <strong>{product.name}</strong>
+                              <small>{product.categoryDisplayId}</small>
+                            </span>
+                            <span className="ad-related-product-meta">
+                              <strong>{formatEuro(product.price)}</strong>
+                              <span className={`ad-pill ${product.status === "inactive" ? "ad-pill-gray" : "ad-pill-green"}`}>
+                                {product.status === "inactive" ? "inativo" : product.effectiveAvailable ? "disponível" : "indisponível"}
+                              </span>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="ad-related-products-state">Nenhum produto utiliza este ingrediente.</p>
+                    )}
+
+                    {relatedIngredientLoadingId === relatedIngredient.ingredientId && relatedIngredientPage && (
+                      <span className="ad-related-products-loading" role="status">A atualizar resultados...</span>
+                    )}
+
+                    {relatedIngredientPage && (
+                      <Pagination
+                        variant="admin"
+                        className="ad-related-products-pagination"
+                        page={relatedIngredientPage.page}
+                        perPage={relatedIngredientPage.perPage}
+                        total={relatedIngredientPage.total}
+                        totalPages={relatedIngredientPage.totalPages}
+                        onPageChange={(page) => void handleLoadIngredientProducts(relatedIngredient.ingredientId, page, relatedIngredientPage.perPage)}
+                        onPerPageChange={(perPage) => void handleLoadIngredientProducts(relatedIngredient.ingredientId, 1, perPage)}
+                      />
+                    )}
+                  </div>
+                </section>
+              </>
+            )}
+            {renderAdminPagination("ingredients")}
           </div>
         )}
 
@@ -4205,10 +4622,10 @@ export default function AdminDashboard() {
                             <CustomSelect
                               value={formData.categoryId}
                               onChange={(nextValue) => setFormData({ ...formData, categoryId: Number(nextValue) || 0 })}
-                              placeholder={categories.length === 0 ? "A carregar categorias..." : "Selecione uma categoria"}
+                              placeholder={catalogCategories.length === 0 ? "A carregar categorias..." : "Selecione uma categoria"}
                               options={[
-                                { value: "", label: categories.length === 0 ? "A carregar categorias..." : "Selecione uma categoria" },
-                                ...categories.filter((cat) => cat.status !== "inactive").map((cat) => ({
+                                { value: "", label: catalogCategories.length === 0 ? "A carregar categorias..." : "Selecione uma categoria" },
+                                ...catalogCategories.filter((cat) => cat.status !== "inactive").map((cat) => ({
                                   value: cat.categoryId,
                                   label: cat.categoryName,
                                 })),
@@ -4820,10 +5237,10 @@ export default function AdminDashboard() {
                             className="ad-select"
                             value={formData.categoryId}
                             onChange={(nextValue) => setFormData({ ...formData, categoryId: Number(nextValue) || 0 })}
-                            placeholder={categories.length === 0 ? "A carregar categorias..." : "Selecione uma categoria"}
+                            placeholder={catalogCategories.length === 0 ? "A carregar categorias..." : "Selecione uma categoria"}
                             options={[
-                              { value: "", label: categories.length === 0 ? "A carregar categorias..." : "Selecione uma categoria" },
-                              ...categories.filter((cat) => cat.status !== "inactive").map((cat) => ({
+                              { value: "", label: catalogCategories.length === 0 ? "A carregar categorias..." : "Selecione uma categoria" },
+                              ...catalogCategories.filter((cat) => cat.status !== "inactive").map((cat) => ({
                                 value: cat.categoryId,
                                 label: cat.categoryName,
                               })),
@@ -4900,7 +5317,7 @@ export default function AdminDashboard() {
                         </div>
 
                         <div className="ad-ingredient-picker">
-                          {ingredients.filter((ingredient) => ingredient.status !== "inactive").map((ingredient) => (
+                          {activeProductIngredients.map((ingredient) => (
                             <button
                               key={ingredient.ingredientId}
                               type="button"
@@ -4911,7 +5328,7 @@ export default function AdminDashboard() {
                               <small>{ingredientTypeLabel(ingredient.type)}</small>
                             </button>
                           ))}
-                          {ingredients.filter((ingredient) => ingredient.status !== "inactive").length === 0 && (
+                          {activeProductIngredients.length === 0 && (
                             <p className="ad-empty ad-empty-compact">Ainda não há ingredientes guardados.</p>
                           )}
                         </div>
@@ -5153,10 +5570,11 @@ export default function AdminDashboard() {
                   })}
                 </div>
               ) : <p className="ad-empty">Nenhum produto ativo</p>}
+              {renderAdminPagination("products")}
             </div>
 
             {/* Soft-deleted products */}
-            {deletedProducts.length > 0 && (
+            {(
               <div className="ad-card ad-product-table-card ad-product-deleted-table-card" style={{ marginTop: "1.5rem" }}>
                 <button
                   onClick={() => setShowDeletedProducts(!showDeletedProducts)}
@@ -5167,7 +5585,7 @@ export default function AdminDashboard() {
                   }}
                 >
                   <span style={{ transform: `rotate(${showDeletedProducts ? 90 : 0}deg)`, display: "inline-block", transition: "transform 0.2s" }}>▶</span>
-                  Produtos eliminados suavemente ({deletedProducts.length})
+                  Produtos arquivados ({archivedProductPage.total})
                 </button>
 
                 {showDeletedProducts && (
@@ -5242,6 +5660,7 @@ export default function AdminDashboard() {
                     </tbody>
                   </table>
                 )}
+                {showDeletedProducts && renderAdminPagination("products", archivedProductPage, true)}
               </div>
             )}
           </div>
@@ -5257,7 +5676,7 @@ export default function AdminDashboard() {
             socialMedia={socialMedia}
             eventsSettings={eventsSettings}
             loading={siteThemeLoading}
-            products={products}
+            products={settingsProducts}
             saving={siteThemeSaving}
             saved={siteThemeSaved}
             onChange={setSiteTheme}
@@ -5282,7 +5701,20 @@ export default function AdminDashboard() {
             ) : orderView === "service" ? (
               <StaffOrdersBoard orders={orders} onRefresh={handleLoadOrders} onMarkPaid={handlePayCounterOrder} onUpdateStatus={handleOrderStatusChange} readOnly={serviceReadOnly} />
             ) : (
-              <SuperAdminOrdersView orders={orders} onRefresh={handleLoadOrders} onUpdateStatus={handleOrderStatusChange} onDelete={handleDeleteOrder} />
+              <SuperAdminOrdersView
+                orders={orders}
+                onRefresh={handleLoadOrders}
+                onUpdateStatus={handleOrderStatusChange}
+                onDelete={handleDeleteOrder}
+                onFiltersChange={handleManagementOrderFiltersChange}
+                page={pageMeta.orders.page}
+                perPage={pageMeta.orders.perPage}
+                total={pageMeta.orders.total}
+                totalPages={pageMeta.orders.totalPages}
+                summary={orderSummary}
+                onPageChange={(page) => updatePageMeta("orders", { page })}
+                onPerPageChange={(perPage) => updatePageMeta("orders", { page: 1, perPage })}
+              />
             )}
           </div>
         )}
@@ -5303,19 +5735,19 @@ export default function AdminDashboard() {
             <div className="ad-review-stats" aria-label="Resumo das avaliações">
               <div>
                 <span>Total de avaliações</span>
-                <strong>{reviews.length}</strong>
+                <strong>{pageMeta.reviews.total}</strong>
               </div>
               <div>
                 <span>Public replies</span>
-                <strong>{reviewsWithReply}</strong>
+                <strong>{reviewSummary.withReply}</strong>
               </div>
               <div>
                 <span>Needs reply</span>
-                <strong>{reviewsAwaitingReply}</strong>
+                <strong>{reviewSummary.awaitingReply}</strong>
               </div>
               <div>
                 <span>Average rating</span>
-                <strong>{averageReviewRating ? averageReviewRating.toFixed(1) : "-"}</strong>
+                <strong>{reviewSummary.averageRating ? reviewSummary.averageRating.toFixed(1) : "-"}</strong>
               </div>
             </div>
 
@@ -5330,7 +5762,7 @@ export default function AdminDashboard() {
                 />
               </label>
               <div className="ad-review-toolbar-meta">
-                <span>{filteredReviews.length} apresentados</span>
+                <span>{pageMeta.reviews.total} apresentados</span>
 
               </div>
             </div>
@@ -5435,6 +5867,7 @@ export default function AdminDashboard() {
                 })}
               </div>
             )}
+            {renderAdminPagination("reviews")}
           </div>
         )}
 
@@ -5491,7 +5924,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
               <div className="ad-review-toolbar-meta">
-                <span>{filteredClientes.length} apresentados</span>
+                <span>{pageMeta.clientes.total} apresentados</span>
                 {hasClienteFilters && (
                   <button
                     type="button"
@@ -5566,6 +5999,7 @@ export default function AdminDashboard() {
                 </div>
               )}
             </div>
+            {renderAdminPagination("clientes")}
           </div>
         )}
 
@@ -5629,7 +6063,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
               <div className="ad-review-toolbar-meta">
-                <span>{filteredStaffAdmins.length} apresentados</span>
+                <span>{pageMeta.staff.total} apresentados</span>
                 {hasStaffFilters && (
                   <button
                     type="button"
@@ -5679,6 +6113,7 @@ export default function AdminDashboard() {
                 </table>
               )}
             </div>
+            {renderAdminPagination("staff")}
           </div>
         )}
 

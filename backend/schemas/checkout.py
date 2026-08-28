@@ -17,6 +17,7 @@ from schemas.enums import (
 from .customization import ItemCustomization
 from .media import ProductMediaResponse
 from .id_types import ProductId
+from .pagination import PaginatedResponse
 from utils.validation import normalize_phone, validate_email, validate_name, validate_portuguese_tax_id
 
 
@@ -91,6 +92,10 @@ class CouponResponse(BaseModel):
     expires_at: Optional[datetime] = None
 
 
+class CouponPageResponse(PaginatedResponse[CouponResponse]):
+    pass
+
+
 class OrderItemResponse(BaseModel):
     product_id: int
     product_display_id: str
@@ -126,6 +131,36 @@ class OrderResponse(BaseModel):
     items: List[OrderItemResponse]
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class OrderPageResponse(PaginatedResponse[OrderResponse]):
+    pass
+
+
+class ProfileFavoriteProductResponse(BaseModel):
+    product_id: int
+    product_display_id: str
+    name: str
+    quantity: int = Field(ge=0)
+    total: Decimal = Decimal("0")
+
+
+class ProfileLoyaltyProgressResponse(BaseModel):
+    current: int = Field(ge=0)
+    required: int = Field(ge=1)
+    remaining: int = Field(ge=0)
+    percent: float = Field(ge=0, le=100)
+    minimum_subtotal: Decimal = Decimal("0")
+
+
+class ProfileOverviewResponse(BaseModel):
+    order_count: int = Field(ge=0)
+    total_spent: Decimal = Decimal("0")
+    total_items: int = Field(ge=0)
+    average_order_value: Decimal = Decimal("0")
+    favorite_products: List[ProfileFavoriteProductResponse] = Field(default_factory=list)
+    latest_order: Optional[OrderResponse] = None
+    loyalty_progress: ProfileLoyaltyProgressResponse
 
 
 class OrderCreateResponse(OrderResponse):

@@ -22,6 +22,7 @@ import {
   adminManagementListCategories,
   adminManagementListCustomers,
   adminManagementListIngredients,
+  adminManagementListIngredientProducts,
   adminManagementListKitchenOrders,
   adminManagementListOrders,
   adminManagementListProducts,
@@ -42,7 +43,7 @@ import {
   reviewsCreateReviewReply,
   reviewsDeleteReviewReaction,
   reviewsDeleteReviewReply,
-  reviewsListProductReviews,
+  reviewsListAdminReviews,
   reviewsUpdateReviewReply,
   reviewsUpsertReviewReaction,
 } from '../api/generated';
@@ -52,12 +53,19 @@ import type {
   CustomerAdminCreate,
   CustomerAdminUpdate,
   IngredientCreate,
+  IngredientType as ApiIngredientType,
   IngredientUpdate,
+  EntityStatus,
   OrderState,
+  PaymentMethod,
+  PaymentStatus,
   ProductCreate,
   ProductUpdate,
   StaffAdminCreate,
   StaffAdminUpdate,
+  UserRole,
+  UserStatus,
+  ReviewStatus,
 } from '../api/generated';
 import { adminApiClient, apiData, publicApiClient } from '../api/clients';
 import { toDomain, toDto } from '../api/mappers';
@@ -86,6 +94,7 @@ import type {
   SalesPerformance,
 } from '../types/admin';
 import type { ProductMedia } from '../types/product';
+import type { Page } from '../types/pagination';
 
 const pathId = (value: string | number) => String(value);
 
@@ -115,11 +124,21 @@ export async function createProduct(product: AdminProductPayload): Promise<Admin
   })));
 }
 
-export async function listProducts(skip = 0, limit = 10, includeDeleted = false, filters?: ProductFilters): Promise<AdminProduct[]> {
+export interface AdminProductListOptions {
+  page?: number;
+  perPage?: number;
+  catalogState?: 'active' | 'archived' | 'all';
+  filters?: ProductFilters;
+}
+
+export async function listProducts(options: AdminProductListOptions = {}): Promise<Page<AdminProduct>> {
+  const filters = options.filters;
   return toDomain(await apiData(adminManagementListProducts({
     query: {
-      skip, limit, include_deleted: includeDeleted,
-      name: filters?.name,
+      page: options.page ?? 1,
+      per_page: options.perPage ?? 20,
+      catalog_state: options.catalogState ?? 'active',
+      name: filters?.name?.trim() || undefined,
       category: filters?.category == null ? undefined : String(filters.category),
       min_price: filters?.minPrice,
       max_price: filters?.maxPrice,
@@ -130,6 +149,15 @@ export async function listProducts(skip = 0, limit = 10, includeDeleted = false,
     client: adminApiClient,
     throwOnError: true,
   })));
+}
+
+export async function listAllProducts(options: Omit<AdminProductListOptions, 'page' | 'perPage'> = {}): Promise<AdminProduct[]> {
+  const first = await listProducts({ ...options, page: 1, perPage: 100 });
+  const items = [...first.items];
+  for (let page = 2; page <= first.totalPages; page += 1) {
+    items.push(...(await listProducts({ ...options, page, perPage: 100 })).items);
+  }
+  return items;
 }
 
 export async function getProduct(productId: string | number): Promise<AdminProduct> {
@@ -144,9 +172,46 @@ export async function getProductAnalytics(productId: string | number, days = 30)
   })));
 }
 
-export async function listIngredients(includeInactive = false, customizationOnly = false): Promise<AdminIngredient[]> {
+export interface IngredientListOptions {
+  page?: number;
+  perPage?: number;
+  search?: string;
+  type?: string;
+  status?: 'active' | 'inactive' | 'archived' | 'all';
+  customizationOnly?: boolean;
+}
+
+export async function listIngredients(options: IngredientListOptions = {}): Promise<Page<AdminIngredient>> {
   return toDomain(await apiData(adminManagementListIngredients({
-    query: { include_inactive: includeInactive, customization_only: customizationOnly },
+    query: {
+      page: options.page ?? 1,
+      per_page: options.perPage ?? 20,
+      search: options.search?.trim() || undefined,
+      type: (options.type || undefined) as ApiIngredientType | undefined,
+      status: (options.status === 'all' ? undefined : options.status) as EntityStatus | undefined,
+      customization_only: options.customizationOnly,
+    },
+    client: adminApiClient,
+    throwOnError: true,
+  })));
+}
+
+export async function listAllIngredients(options: Omit<IngredientListOptions, 'page' | 'perPage'> = {}): Promise<AdminIngredient[]> {
+  const first = await listIngredients({ ...options, page: 1, perPage: 100 });
+  const items = [...first.items];
+  for (let page = 2; page <= first.totalPages; page += 1) {
+    items.push(...(await listIngredients({ ...options, page, perPage: 100 })).items);
+  }
+  return items;
+}
+
+export async function listIngredientProducts(
+  ingredientId: number,
+  options: { page?: number; perPage?: number } = {},
+): Promise<Page<AdminProduct>> {
+  return toDomain(await apiData(adminManagementListIngredientProducts({
+    path: { ingredient_id: ingredientId },
+    query: { page: options.page ?? 1, per_page: options.perPage ?? 20 },
     client: adminApiClient,
     throwOnError: true,
   })));
@@ -200,14 +265,44 @@ export async function setProductAvailability(productId: string | number, availab
   })));
 }
 
-export async function listOrders(skip = 0, limit = 10): Promise<AdminOrder[]> {
-  return toDomain(await apiData(adminManagementListOrders({ query: { skip, limit }, client: adminApiClient, throwOnError: true })));
+export interface AdminOrderListOptions {
+  page?: number;
+  perPage?: number;
+  search?: string;
+  state?: string;
+  paymentMethod?: string;
+  paymentStatus?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  customization?: string;
 }
-export async function listStaffOrders(skip = 0, limit = 100): Promise<AdminOrder[]> {
-  return toDomain(await apiData(adminManagementListStaffOrders({ query: { skip, limit }, client: adminApiClient, throwOnError: true })));
+
+export interface AdminOrderPage extends Page<AdminOrder> {
+  summary: { pending: number; preparing: number; ready: number; completed: number; revenue: number };
 }
-export async function listKitchenOrders(skip = 0, limit = 50): Promise<AdminOrder[]> {
-  return toDomain(await apiData(adminManagementListKitchenOrders({ query: { skip, limit }, client: adminApiClient, throwOnError: true })));
+
+export async function listOrders(options: AdminOrderListOptions = {}): Promise<AdminOrderPage> {
+  return toDomain(await apiData(adminManagementListOrders({
+    query: {
+      page: options.page ?? 1,
+      per_page: options.perPage ?? 20,
+      search: options.search?.trim() || undefined,
+      state: (options.state || undefined) as OrderState | undefined,
+      payment_method: (options.paymentMethod || undefined) as PaymentMethod | undefined,
+      payment_status: (options.paymentStatus || undefined) as PaymentStatus | undefined,
+      date_from: options.dateFrom || undefined,
+      date_to: options.dateTo || undefined,
+      customization: options.customization || undefined,
+    },
+    client: adminApiClient,
+    throwOnError: true,
+  })));
+}
+export async function listStaffOrders(): Promise<AdminOrder[]> {
+  return toDomain(await apiData(adminManagementListStaffOrders({ client: adminApiClient, throwOnError: true })));
+}
+export async function listKitchenOrders(): Promise<AdminOrder[]> {
+  return toDomain(await apiData(adminManagementListKitchenOrders({ client: adminApiClient, throwOnError: true })));
 }
 export async function getOrder(orderId: number): Promise<AdminOrder> {
   return toDomain(await apiData(adminManagementGetOrder({ path: { order_id: orderId }, client: adminApiClient, throwOnError: true })));
@@ -226,9 +321,14 @@ export async function payCounterOrder(orderId: number): Promise<AdminOrder> {
   const value = await apiData(adminManagementPayCounterOrder({ path: { order_id: orderId }, client: adminApiClient, throwOnError: true }));
   return toDomain(value.order);
 }
-export async function listCustomers(search = ''): Promise<AdminCustomer[]> {
+export async function listCustomers(options: { page?: number; perPage?: number; search?: string; status?: string } = {}): Promise<Page<AdminCustomer>> {
   return toDomain(await apiData(adminManagementListCustomers({
-    query: { skip: 0, limit: 100, search: search.trim() || undefined }, client: adminApiClient, throwOnError: true,
+    query: {
+      page: options.page ?? 1,
+      per_page: options.perPage ?? 20,
+      search: options.search?.trim() || undefined,
+      status: (options.status || undefined) as UserStatus | undefined,
+    }, client: adminApiClient, throwOnError: true,
   })));
 }
 export async function createCustomer(payload: AdminCustomerPayload): Promise<AdminCustomer> {
@@ -247,8 +347,16 @@ export async function deleteCustomer(customerId: number): Promise<AdminCustomer>
   })));
 }
 
-export async function listStaffAdmins(): Promise<CurrentAdmin[]> {
-  return toDomain(await apiData(adminManagementListStaffAdmins({ client: adminApiClient, throwOnError: true })));
+export async function listStaffAdmins(options: { page?: number; perPage?: number; search?: string; role?: string; status?: string } = {}): Promise<Page<CurrentAdmin>> {
+  return toDomain(await apiData(adminManagementListStaffAdmins({
+    query: {
+      page: options.page ?? 1,
+      per_page: options.perPage ?? 20,
+      search: options.search?.trim() || undefined,
+      role: (options.role || undefined) as UserRole | undefined,
+      status: (options.status || undefined) as UserStatus | undefined,
+    }, client: adminApiClient, throwOnError: true,
+  })));
 }
 export async function createStaffAdmin(payload: AdminUserPayload & { password: string }): Promise<CurrentAdmin> {
   return toDomain(await apiData(adminManagementCreateStaffAdmin({
@@ -266,10 +374,24 @@ export async function deleteStaffAdmin(adminId: number): Promise<CurrentAdmin> {
   })));
 }
 
-export async function listCategories(includeInactive = false): Promise<Category[]> {
+export async function listCategories(options: { page?: number; perPage?: number; search?: string; categoryId?: number; status?: string } = {}): Promise<Page<Category>> {
   return toDomain(await apiData(adminManagementListCategories({
-    query: { include_inactive: includeInactive }, client: adminApiClient, throwOnError: true,
+    query: {
+      page: options.page ?? 1,
+      per_page: options.perPage ?? 20,
+      search: options.search?.trim() || undefined,
+      category_id: options.categoryId || undefined,
+      status: (options.status || undefined) as EntityStatus | undefined,
+    }, client: adminApiClient, throwOnError: true,
   })));
+}
+export async function listAllCategories(options: Omit<Parameters<typeof listCategories>[0], 'page' | 'perPage'> = {}): Promise<Category[]> {
+  const first = await listCategories({ ...options, page: 1, perPage: 100 });
+  const items = [...first.items];
+  for (let page = 2; page <= first.totalPages; page += 1) {
+    items.push(...(await listCategories({ ...options, page, perPage: 100 })).items);
+  }
+  return items;
 }
 export async function createCategory(payload: CategoryPayload): Promise<Category> {
   return toDomain(await apiData(adminManagementCreateCategory({
@@ -317,9 +439,27 @@ export async function getAnalyticsSeries(metric: AnalyticsMetric, range: Analyti
   })));
 }
 
-export async function listProductReviews(productId: string | number): Promise<AdminReview[]> {
-  return toDomain(await apiData(reviewsListProductReviews({
-    path: { product_id: pathId(productId) }, client: adminApiClient, throwOnError: true,
+export interface AdminReviewPage extends Page<AdminReview> {
+  summary: { averageRating: number | null; withReply: number; awaitingReply: number };
+}
+
+export async function listAdminReviews(options: {
+  page?: number;
+  perPage?: number;
+  search?: string;
+  rating?: number;
+  hasText?: boolean;
+  status?: string;
+} = {}): Promise<AdminReviewPage> {
+  return toDomain(await apiData(reviewsListAdminReviews({
+    query: {
+      page: options.page ?? 1,
+      per_page: options.perPage ?? 20,
+      search: options.search?.trim() || undefined,
+      rating: options.rating,
+      has_text: options.hasText,
+      status: (options.status || undefined) as ReviewStatus | undefined,
+    }, client: adminApiClient, throwOnError: true,
   })));
 }
 export async function createReviewReply(reviewId: number, text: string): Promise<ReviewReply> {

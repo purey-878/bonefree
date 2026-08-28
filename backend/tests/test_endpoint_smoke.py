@@ -604,12 +604,12 @@ class EndpointSmokeTests(unittest.TestCase):
             json={"available": False},
             headers=waiter_headers,
         )
-        listed = self.client.get("/admin/products?include_deleted=true", headers=waiter_headers)
+        listed = self.client.get("/admin/products?catalog_state=all", headers=waiter_headers)
         self.assertEqual(updated.status_code, 200, updated.text)
         self.assertEqual(archived.status_code, 200, archived.text)
         self.assertEqual(availability.status_code, 200, availability.text)
         self.assertFalse(availability.json()["available"])
-        self.assertIn(product_id, {item["product_id"] for item in listed.json()})
+        self.assertIn(product_id, {item["product_id"] for item in listed.json()["items"]})
 
         archived_ingredient = self.client.delete(f"/admin/ingredients/{ingredient_id}", headers=manager_headers)
         ingredient_availability = self.client.put(
@@ -932,7 +932,7 @@ class EndpointSmokeTests(unittest.TestCase):
             for order in self.client.get(
                 "/checkout/orders/history",
                 headers=self.customer_headers,
-            ).json()
+            ).json()["items"]
         }
         self.assertTrue({first["order_id"], second["order_id"]}.issubset(history_ids))
         old_guest_access = self.client.get(
@@ -972,6 +972,130 @@ class EndpointSmokeTests(unittest.TestCase):
         )
         self.assertEqual(receipt.status_code, 200, receipt.text)
         self.assertEqual(receipt.headers["content-type"], "application/pdf")
+
+    def test_paginated_collection_contracts_and_permissions(self):
+        public_page = self.client.get("/products/?page=1&per_page=1")
+        self.assertEqual(public_page.status_code, 200, public_page.text)
+        self.assertEqual(
+            set(public_page.json()),
+            {"items", "page", "per_page", "total", "total_pages", "facets"},
+        )
+        self.assertEqual(public_page.json()["page"], 1)
+        self.assertEqual(public_page.json()["per_page"], 1)
+        self.assertLessEqual(len(public_page.json()["items"]), 1)
+        self.assertGreaterEqual(public_page.json()["facets"]["total_products"], public_page.json()["total"])
+        self.assertEqual(
+            sum(category["count"] for category in public_page.json()["facets"]["categories"]),
+            public_page.json()["facets"]["total_products"],
+        )
+
+        total_pages_value = public_page.json()["total_pages"]
+        ordered_ids = []
+        for page_number in range(1, total_pages_value + 1):
+            page_response = self.client.get(f"/products/?page={page_number}&per_page=1")
+            self.assertEqual(page_response.status_code, 200, page_response.text)
+            ordered_ids.extend(item["id"] for item in page_response.json()["items"])
+        self.assertEqual(len(ordered_ids), len(set(ordered_ids)))
+        repeated_first_page = self.client.get("/products/?page=1&per_page=1").json()
+        self.assertEqual(repeated_first_page["items"], public_page.json()["items"])
+        beyond_last_page = self.client.get(f"/products/?page={total_pages_value + 1}&per_page=1")
+        self.assertEqual(beyond_last_page.status_code, 200, beyond_last_page.text)
+        self.assertEqual(beyond_last_page.json()["items"], [])
+        self.assertEqual(beyond_last_page.json()["total_pages"], total_pages_value)
+
+        empty_filtered_page = self.client.get("/products/?search=no-such-smoke-product&page=4&per_page=10")
+        self.assertEqual(empty_filtered_page.status_code, 200, empty_filtered_page.text)
+        self.assertEqual(empty_filtered_page.json()["items"], [])
+        self.assertEqual(empty_filtered_page.json()["total"], 0)
+        self.assertEqual(empty_filtered_page.json()["total_pages"], 0)
+        self.assertGreater(empty_filtered_page.json()["facets"]["total_products"], 0)
+        self.assertEqual(self.client.get("/products/?per_page=101").status_code, 422)
+
+        owner_paths = (
+            "/admin/products?per_page=1&catalog_state=all",
+            "/admin/ingredients?per_page=1",
+            "/admin/categories?per_page=1",
+            "/admin/orders?per_page=1",
+            "/admin/customers?per_page=1",
+            "/admin/staff?per_page=1",
+            "/admin/reviews?per_page=1",
+        )
+        for path in owner_paths:
+            with self.subTest(path=path):
+                response = self.client.get(path, headers=self.admin_headers)
+                self.assertEqual(response.status_code, 200, response.text)
+                self.assertIn("items", response.json())
+                self.assertEqual(response.json()["per_page"], 1)
+
+        filtered_management_orders = self.client.get(
+            "/admin/orders?state=pending&per_page=1",
+            headers=self.admin_headers,
+        ).json()
+        self.assertEqual(filtered_management_orders["summary"]["pending"], filtered_management_orders["total"])
+        self.assertLessEqual(len(filtered_management_orders["items"]), 1)
+
+        self.assertEqual(
+            self.client.get("/admin/reviews", headers=self.role_headers(self.manager_token)).status_code,
+            403,
+        )
+
+        with self.Session() as db:
+            ingredient = Ingredient(
+                name="Pagination ingredient",
+                type=IngredientType.NORMAL,
+                status=EntityStatus.ACTIVE,
+                available=True,
+            )
+            db.add(ingredient)
+            db.flush()
+            db.add(ProductIngredient(
+                product_id=self.product_id,
+                ingredient_id=ingredient.id,
+                included_by_default=True,
+                removable=True,
+                substitutable=False,
+            ))
+            db.commit()
+            ingredient_id = ingredient.id
+
+        related = self.client.get(
+            f"/admin/ingredients/{ingredient_id}/products?page=1&per_page=10",
+            headers=self.role_headers(self.waiter_token),
+        )
+        self.assertEqual(related.status_code, 200, related.text)
+        self.assertIn(self.product_id, {item["product_id"] for item in related.json()["items"]})
+        ingredient_page = self.client.get(
+            "/admin/ingredients?search=Pagination%20ingredient",
+            headers=self.admin_headers,
+        ).json()
+        self.assertEqual(ingredient_page["total"], 1)
+        self.assertEqual(ingredient_page["items"][0]["linked_product_count"], 1)
+        category_page = self.client.get(
+            f"/admin/categories?category_id={self.category_id}",
+            headers=self.admin_headers,
+        ).json()
+        self.assertEqual(category_page["total"], 1)
+        self.assertGreaterEqual(category_page["items"][0]["active_product_count"], 1)
+
+        customer_responses = {}
+        for path in ("/checkout/orders/history", "/checkout/coupons", "/profile/orders", "/profile/overview"):
+            with self.subTest(path=path):
+                response = self.client.get(path, headers=self.customer_headers)
+                self.assertEqual(response.status_code, 200, response.text)
+                customer_responses[path] = response.json()
+                if path != "/profile/overview":
+                    self.assertIn("items", response.json())
+                else:
+                    self.assertTrue({"order_count", "total_spent", "total_items", "average_order_value", "favorite_products", "latest_order", "loyalty_progress"}.issubset(response.json()))
+        self.assertEqual(
+            customer_responses["/profile/overview"]["order_count"],
+            customer_responses["/checkout/orders/history"]["total"],
+        )
+
+        for path in ("/admin/staff/orders", "/admin/kitchen/orders"):
+            response = self.client.get(path, headers=self.role_headers(self.chef_token))
+            self.assertEqual(response.status_code, 200, response.text)
+            self.assertIsInstance(response.json(), list)
 
     def test_guest_order_creation_is_rate_limited_after_ten_requests(self):
         previous_redis = getattr(self.app.state, "redis", None)
