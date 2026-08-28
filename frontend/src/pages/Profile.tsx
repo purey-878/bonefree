@@ -26,7 +26,6 @@ import {
 
 import FloatingProfileIcons from "../components/FloatingProfileIcons"
 import Navbar from "../components/Navbar"
-import { rememberActiveOrder } from "../components/orderStatusStorage"
 import CustomSelect from "../components/ui/CustomSelect"
 import { useToast } from "../components/ui/toastContext"
 import { useAuth } from "../hooks"
@@ -538,10 +537,9 @@ function Profile() {
   }
 
   const handleTrackOrder = (order: OrderResponse) => {
-    rememberActiveOrder(order.orderId)
-    window.dispatchEvent(new Event("order-status-highlight"))
     setActionError(null)
-    setSuccessMessage(t("profile.messages.tracking", { order: order.orderNumber }))
+    setSuccessMessage(null)
+    navigate(`/orders/${order.orderId}`)
   }
 
   const handleViewReceipt = async (order: OrderResponse) => {

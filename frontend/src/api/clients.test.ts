@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { adminManagementReadCurrentAdmin, authGetMe, checkoutGetOrder } from './generated';
 import { adminApiClient, customerApiClient, publicApiClient } from './clients';
+import { authService } from '../services/authService';
 
 class MemoryStorage implements Storage {
   private values = new Map<string, string>();
@@ -64,5 +65,21 @@ describe('generated API clients', () => {
     expect(capturedRequest?.headers.get('X-Order-Token')).toBe('guest-order-secret');
     expect(capturedRequest?.url).toBe('https://api.example.test/checkout/orders/42');
     expect(capturedRequest?.url).not.toContain('guest-order-secret');
+  });
+
+  it('omits empty purchase-history filters instead of serializing invalid query values', async () => {
+    localStorage.setItem('token', 'customer-secret');
+    const requests: Request[] = [];
+    const fetchMock = vi.fn(async (request: Request) => {
+      requests.push(request);
+      return new Response('[]', { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }) as unknown as typeof fetch;
+    customerApiClient.setConfig({ baseUrl: 'https://api.example.test', fetch: fetchMock });
+
+    await authService.getPurchaseHistory({ status: '', payment: '', dateFrom: '', dateTo: '' });
+    await authService.getPurchaseHistory({ status: 'ready', payment: '', dateFrom: '2026-08-01', dateTo: '' });
+
+    expect(requests[0].url).toBe('https://api.example.test/profile/orders');
+    expect(requests[1].url).toBe('https://api.example.test/profile/orders?status=ready&date_from=2026-08-01');
   });
 });

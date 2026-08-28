@@ -2,8 +2,30 @@ import { useEffect, useState } from 'react'
 import type { ReactNode } from "react";
 import { authService } from "../services/authService";
 import { cartService } from "../services/cartService";
+import { claimStoredGuestOrders } from "../services/guestOrderService";
 import type { RegisterRequest, User } from "../types/user";
 import { AuthContext } from "./auth-context";
+
+async function mergeBrowserState() {
+  const [cartMerge, orderClaim] = await Promise.allSettled([
+    cartService.mergeGuestCartOnLogin(),
+    claimStoredGuestOrders(),
+  ])
+  if (cartMerge.status === "rejected") {
+    console.error("Error merging cart:", cartMerge.reason)
+  }
+  if (orderClaim.status === "rejected") {
+    console.error("Error claiming guest orders:", orderClaim.reason)
+  }
+}
+
+async function retryGuestOrderClaim() {
+  try {
+    await claimStoredGuestOrders()
+  } catch (orderClaimError) {
+    console.error("Error claiming guest orders:", orderClaimError)
+  }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -17,7 +39,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     authService
       .getCurrentUser()
-      .then((userData) => {
+      .then(async (userData) => {
+        await retryGuestOrderClaim()
         setUser(userData)
       })
       .catch((error) => {
@@ -36,11 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(data.user)
     localStorage.setItem('token', data.accessToken)
 
-    try {
-      await cartService.mergeGuestCartOnLogin()
-    } catch (mergeError) {
-      console.error('Error merging cart:', mergeError)
-    }
+    await mergeBrowserState()
   }
 
   const register = async (payload: RegisterRequest) => {
@@ -49,11 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(data.user)
     localStorage.setItem('token', data.accessToken)
 
-    try {
-      await cartService.mergeGuestCartOnLogin()
-    } catch (mergeError) {
-      console.error('Error merging cart:', mergeError)
-    }
+    await mergeBrowserState()
   }
 
   const refreshUser = async () => {

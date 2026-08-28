@@ -63,3 +63,13 @@ export interface OrderCreateResponse extends OrderResponse {
   orderAccessToken?: string | null;
   orderAccessExpiresAt?: string | null;
 }
+
+export interface GuestOrderClaimInput {
+  orderId: number;
+  accessToken: string;
+}
+
+export interface GuestOrderClaimResult {
+  claimedOrderIds: number[];
+  rejectedOrderIds: number[];
+}

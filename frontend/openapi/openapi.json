@@ -1788,6 +1788,69 @@
         "title": "GuestCartItem",
         "type": "object"
       },
+      "GuestOrderClaimItem": {
+        "properties": {
+          "access_token": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Access Token",
+            "type": "string"
+          },
+          "order_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Order Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "order_id",
+          "access_token"
+        ],
+        "title": "GuestOrderClaimItem",
+        "type": "object"
+      },
+      "GuestOrderClaimRequest": {
+        "properties": {
+          "orders": {
+            "items": {
+              "$ref": "#/components/schemas/GuestOrderClaimItem"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Orders",
+            "type": "array"
+          }
+        },
+        "required": [
+          "orders"
+        ],
+        "title": "GuestOrderClaimRequest",
+        "type": "object"
+      },
+      "GuestOrderClaimResponse": {
+        "properties": {
+          "claimed_order_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Claimed Order Ids",
+            "type": "array"
+          },
+          "rejected_order_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Rejected Order Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "claimed_order_ids",
+          "rejected_order_ids"
+        ],
+        "title": "GuestOrderClaimResponse",
+        "type": "object"
+      },
       "HealthResponse": {
         "properties": {
           "status": {
@@ -14277,6 +14340,112 @@
           }
         ],
         "summary": "Create Order",
+        "tags": [
+          "Checkout"
+        ]
+      }
+    },
+    "/checkout/orders/claim": {
+      "post": {
+        "operationId": "checkout_claim_guest_orders",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GuestOrderClaimRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuestOrderClaimResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Claim Guest Orders",
         "tags": [
           "Checkout"
         ]

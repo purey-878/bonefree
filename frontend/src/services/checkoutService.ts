@@ -1,5 +1,6 @@
 import {
   checkoutCancelOrder,
+  checkoutClaimGuestOrders,
   checkoutCreateOrder,
   checkoutDownloadOrderReceiptPdf,
   checkoutGetOrder,
@@ -7,10 +8,10 @@ import {
   checkoutListOrderHistory,
   checkoutValidateCoupon,
 } from '../api/generated';
-import type { CheckoutRequest } from '../api/generated';
+import type { CheckoutRequest, GuestOrderClaimRequest } from '../api/generated';
 import { apiData, customerApiClient } from '../api/clients';
 import { toDomain, toDto } from '../api/mappers';
-import type { CheckoutPayload, Coupon, CouponValidation, OrderCreateResponse, OrderResponse } from '../types/checkout';
+import type { CheckoutPayload, Coupon, CouponValidation, GuestOrderClaimInput, GuestOrderClaimResult, OrderCreateResponse, OrderResponse } from '../types/checkout';
 
 function orderAccessHeaders(accessToken?: string | null) {
   return accessToken ? { 'X-Order-Token': accessToken } : undefined;
@@ -55,6 +56,15 @@ export const checkoutService = {
 
   async getHistory(): Promise<OrderResponse[]> {
     return toDomain<OrderResponse[]>(await apiData(checkoutListOrderHistory({
+      client: customerApiClient,
+      throwOnError: true,
+    })));
+  },
+
+  async claimGuestOrders(orders: GuestOrderClaimInput[]): Promise<GuestOrderClaimResult> {
+    const body = toDto<GuestOrderClaimRequest>({ orders });
+    return toDomain<GuestOrderClaimResult>(await apiData(checkoutClaimGuestOrders({
+      body,
       client: customerApiClient,
       throwOnError: true,
     })));

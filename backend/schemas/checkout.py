@@ -131,3 +131,17 @@ class OrderResponse(BaseModel):
 class OrderCreateResponse(OrderResponse):
     order_access_token: Optional[str] = None
     order_access_expires_at: Optional[datetime] = None
+
+
+class GuestOrderClaimItem(BaseModel):
+    order_id: int = Field(..., gt=0)
+    access_token: str = Field(..., min_length=1, max_length=255)
+
+
+class GuestOrderClaimRequest(BaseModel):
+    orders: List[GuestOrderClaimItem] = Field(..., min_length=1, max_length=50)
+
+
+class GuestOrderClaimResponse(BaseModel):
+    claimed_order_ids: List[int]
+    rejected_order_ids: List[int]

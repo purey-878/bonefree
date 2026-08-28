@@ -98,7 +98,10 @@ export const authService = {
   },
 
   async getPurchaseHistory(filters: Record<string, string>): Promise<OrderResponse[]> {
-    const query = toDto<NonNullable<ProfileGetPurchaseHistoryData['query']>>(filters);
+    const populatedFilters = Object.fromEntries(
+      Object.entries(filters).filter(([, value]) => value.trim().length > 0),
+    );
+    const query = toDto<NonNullable<ProfileGetPurchaseHistoryData['query']>>(populatedFilters);
     return toDomain<OrderResponse[]>(await apiData(profileGetPurchaseHistory({
       query,
       client: customerApiClient,

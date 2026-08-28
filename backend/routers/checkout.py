@@ -42,6 +42,8 @@ from schemas.checkout import (
     CouponValidationResponse,
     CheckoutItem,
     CheckoutRequest,
+    GuestOrderClaimRequest,
+    GuestOrderClaimResponse,
     OrderCreateResponse,
     OrderResponse,
 )
@@ -697,6 +699,62 @@ def create_order(
     })
 
     return response
+
+
+@router.post(
+    "/orders/claim",
+    response_model=GuestOrderClaimResponse,
+    operation_id="checkout_claim_guest_orders",
+)
+def claim_guest_orders(
+    body: GuestOrderClaimRequest,
+    db: Session = Depends(get_db),
+    current_user: Customer = Depends(get_current_user),
+):
+    requested_by_id = {item.order_id: item for item in body.orders}
+    requested_ids = list(requested_by_id)
+    orders = db.scalars(
+        select(Order).where(Order.order_id.in_(requested_ids))
+    ).all()
+    orders_by_id = {order.order_id: order for order in orders}
+    now = datetime.utcnow()
+    claimed_order_ids: list[int] = []
+    rejected_order_ids: list[int] = []
+
+    for order_id, item in requested_by_id.items():
+        order = orders_by_id.get(order_id)
+        if order and order.customer_id == current_user.customer_id:
+            order.order_access_token_hash = None
+            order.order_access_expires_at = None
+            claimed_order_ids.append(order_id)
+            continue
+
+        can_claim = (
+            order is not None
+            and order.customer_id is None
+            and order.order_access_token_hash is not None
+            and order.order_access_expires_at is not None
+            and order.order_access_expires_at > now
+            and secrets.compare_digest(
+                _hash_order_access_token(item.access_token),
+                order.order_access_token_hash,
+            )
+        )
+        if not can_claim:
+            rejected_order_ids.append(order_id)
+            continue
+
+        order.customer_id = current_user.customer_id
+        order.order_access_token_hash = None
+        order.order_access_expires_at = None
+        order.updated_at = now
+        claimed_order_ids.append(order_id)
+
+    db.commit()
+    return GuestOrderClaimResponse(
+        claimed_order_ids=claimed_order_ids,
+        rejected_order_ids=rejected_order_ids,
+    )
 
 
 @router.post(

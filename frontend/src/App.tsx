@@ -1,5 +1,6 @@
 import './theme.css'
 import './siteThemes.css'
+import './App.css'
 import { Navigate, Routes, Route, useLocation } from 'react-router-dom'
 import { useEffect } from 'react'
 import type { ReactNode } from 'react'
@@ -20,6 +21,7 @@ import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
 import Cart from './pages/Cart'
 import Checkout from './pages/Checkout'
+import GuestOrders from './pages/GuestOrders'
 import OrderDetails from './pages/OrderDetails'
 import Profile from './pages/Profile'
 import {ProductDetail} from './pages/ProductDetail'
@@ -28,7 +30,6 @@ import AdminLogin from './pages/AdminLogin'
 import AdminDashboard from './pages/AdminDashboard'
 import type { AdminRole } from './types/admin'
 import { useAuth } from './hooks'
-import { readActiveOrder } from './components/orderStatusStorage'
 import { adminDashboardPathForRole } from './utils/adminOrderViews'
 
 type CartRouteState = {
@@ -73,17 +74,6 @@ function ProtectedCustomerRoute({ children }: { children: ReactNode }) {
   return <>{children}</>
 }
 
-function OrdersIndexRedirect() {
-  const { isAuthenticated, loading } = useAuth()
-  const activeOrder = readActiveOrder()
-
-  if (activeOrder?.accessToken) {
-    return <Navigate to={`/orders/${activeOrder.orderId}`} replace />
-  }
-  if (loading) return null
-  return <Navigate to={isAuthenticated ? "/profile?tab=orders" : "/menu"} replace />
-}
-
 function App() {
   const location = useLocation()
   const state = location.state as CartRouteState | null
@@ -108,28 +98,30 @@ function App() {
     <>
       <SiteThemeController />
 
-      <Routes location={visibleLocation}>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin/dashboard" element={<ProtectedAdminRoute roles={["owner", "manager", "waiter", "chef"]}><AdminDashboard /></ProtectedAdminRoute>} />
-        <Route path="/admin/super" element={<ProtectedAdminRoute roles={["owner"]}><Navigate to="/admin/dashboard" replace /></ProtectedAdminRoute>} />
-        <Route path="/admin/staff" element={<ProtectedAdminRoute roles={["owner", "manager", "waiter", "chef"]}><Navigate to="/admin/dashboard?tab=orders&view=service" replace /></ProtectedAdminRoute>} />
-        <Route path="/admin/kitchen" element={<ProtectedAdminRoute roles={["owner", "manager", "waiter", "chef"]}><Navigate to="/admin/dashboard?tab=orders&view=kitchen" replace /></ProtectedAdminRoute>} />
-        <Route path="/menu" element={<Menu />} />
-        <Route path="/cart" element={<Cart />} />
-        <Route path="/checkout" element={<Checkout />} />
-        <Route path="/orders" element={<OrdersIndexRedirect />} />
-        <Route path="/orders/:orderId" element={<OrderDetails />} />
-        <Route path="/profile" element={<ProtectedCustomerRoute><Profile /></ProtectedCustomerRoute>} />
-        <Route path="/about" element={<About />} />
-        <Route path="/events" element={<Events />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/product/:id" element={<ProductDetail />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+      <div className="app-route-stage" key={visibleLocation.pathname}>
+        <Routes location={visibleLocation}>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin/dashboard" element={<ProtectedAdminRoute roles={["owner", "manager", "waiter", "chef"]}><AdminDashboard /></ProtectedAdminRoute>} />
+          <Route path="/admin/super" element={<ProtectedAdminRoute roles={["owner"]}><Navigate to="/admin/dashboard" replace /></ProtectedAdminRoute>} />
+          <Route path="/admin/staff" element={<ProtectedAdminRoute roles={["owner", "manager", "waiter", "chef"]}><Navigate to="/admin/dashboard?tab=orders&view=service" replace /></ProtectedAdminRoute>} />
+          <Route path="/admin/kitchen" element={<ProtectedAdminRoute roles={["owner", "manager", "waiter", "chef"]}><Navigate to="/admin/dashboard?tab=orders&view=kitchen" replace /></ProtectedAdminRoute>} />
+          <Route path="/menu" element={<Menu />} />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/orders" element={<GuestOrders />} />
+          <Route path="/orders/:orderId" element={<OrderDetails />} />
+          <Route path="/profile" element={<ProtectedCustomerRoute><Profile /></ProtectedCustomerRoute>} />
+          <Route path="/about" element={<About />} />
+          <Route path="/events" element={<Events />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/product/:id" element={<ProductDetail />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </div>
 
       {backgroundLocation && (
         <Routes>

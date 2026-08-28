@@ -22,7 +22,7 @@ import Navbar from "../components/Navbar"
 import { useToast } from "../components/ui/toastContext"
 import { useAuth, useCart } from "../hooks"
 import { cartService, checkoutService, customizationSummary, hasUnavailableCartItems, productService } from "../services"
-import { rememberActiveOrder } from "../components/orderStatusStorage"
+import { readGuestOrderAccesses, rememberGuestOrderAccess } from "../components/orderStatusStorage"
 import type { CartItem, GuestCartItem } from "../types/cart"
 import type { Coupon, CouponValidation, FulfillmentMethod, PaymentMethod } from "../types/checkout"
 import type { Product } from "../types/product"
@@ -385,7 +385,7 @@ function Checkout() {
       setOrderNumber(order.orderNumber)
       setEarnedCoupon(order.generatedCoupon ?? null)
       setShowStatusPopup(true)
-      rememberActiveOrder(
+      rememberGuestOrderAccess(
         order.orderId,
         order.orderAccessToken,
         order.orderAccessExpiresAt,
@@ -400,7 +400,15 @@ function Checkout() {
             setActiveOrderCount(null)
           })
       } else {
-        setActiveOrderCount(1)
+        const guestAccesses = readGuestOrderAccesses()
+        Promise.allSettled(
+          guestAccesses.map((access) => checkoutService.getOrder(access.orderId, access.accessToken)),
+        ).then((results) => {
+          const activeCount = results.filter(
+            (result) => result.status === "fulfilled" && !TERMINAL_ORDER_STATUSES.has(result.value.status),
+          ).length
+          setActiveOrderCount(activeCount || guestAccesses.length)
+        })
       }
       cartService.finishCheckout()
       if (isAuthenticated && !user?.taxId && form.taxId.trim()) {
@@ -727,7 +735,7 @@ function Checkout() {
                     <ShoppingBag size={18} strokeWidth={2.4} aria-hidden="true" />
                     <span>
                       {t("checkout.confirmation.multipleOrders", { count: activeOrderCount })}{" "}
-                      <Link to="/profile?tab=orders">{t("checkout.confirmation.myOrders")}</Link>.
+                      <Link to={confirmationIsGuest ? "/orders" : "/profile?tab=orders"}>{t("checkout.confirmation.myOrders")}</Link>.
                     </span>
                   </div>
                 )}

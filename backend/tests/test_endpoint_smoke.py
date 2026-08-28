@@ -876,6 +876,82 @@ class EndpointSmokeTests(unittest.TestCase):
         self.assertEqual(expired.status_code, 401, expired.text)
         self.assertEqual(expired.json()["error"], "order_access_expired")
 
+    def test_authenticated_customer_claims_valid_guest_orders_in_one_batch(self):
+        first = self.client.post("/checkout/orders", json=self._checkout_payload()).json()
+        second = self.client.post("/checkout/orders", json=self._checkout_payload()).json()
+        expired = self.client.post("/checkout/orders", json=self._checkout_payload()).json()
+        owned_elsewhere = self.client.post("/checkout/orders", json=self._checkout_payload()).json()
+
+        with self.Session() as db:
+            loyalty_before = db.scalar(select(func.count()).select_from(CustomerLoyalty))
+            expired_order = db.get(Order, expired["order_id"])
+            expired_order.order_access_expires_at = datetime.utcnow() - timedelta(seconds=1)
+            other_order = db.get(Order, owned_elsewhere["order_id"])
+            other_order.customer_id = self.admin_id
+            db.commit()
+
+        payload = {
+            "orders": [
+                {"order_id": first["order_id"], "access_token": first["order_access_token"]},
+                {"order_id": second["order_id"], "access_token": second["order_access_token"]},
+                {"order_id": expired["order_id"], "access_token": expired["order_access_token"]},
+                {"order_id": owned_elsewhere["order_id"], "access_token": owned_elsewhere["order_access_token"]},
+            ]
+        }
+        anonymous = self.client.post("/checkout/orders/claim", json=payload)
+        claimed = self.client.post(
+            "/checkout/orders/claim",
+            json=payload,
+            headers=self.customer_headers,
+        )
+
+        self.assertEqual(anonymous.status_code, 401, anonymous.text)
+        self.assertEqual(claimed.status_code, 200, claimed.text)
+        self.assertEqual(
+            set(claimed.json()["claimed_order_ids"]),
+            {first["order_id"], second["order_id"]},
+        )
+        self.assertEqual(
+            set(claimed.json()["rejected_order_ids"]),
+            {expired["order_id"], owned_elsewhere["order_id"]},
+        )
+
+        with self.Session() as db:
+            for order_id in (first["order_id"], second["order_id"]):
+                order = db.get(Order, order_id)
+                self.assertEqual(order.customer_id, self.customer_id)
+                self.assertIsNone(order.order_access_token_hash)
+                self.assertIsNone(order.order_access_expires_at)
+            self.assertEqual(
+                db.scalar(select(func.count()).select_from(CustomerLoyalty)),
+                loyalty_before,
+            )
+
+        history_ids = {
+            order["order_id"]
+            for order in self.client.get(
+                "/checkout/orders/history",
+                headers=self.customer_headers,
+            ).json()
+        }
+        self.assertTrue({first["order_id"], second["order_id"]}.issubset(history_ids))
+        old_guest_access = self.client.get(
+            f"/checkout/orders/{first['order_id']}",
+            headers={"X-Order-Token": first["order_access_token"]},
+        )
+        self.assertEqual(old_guest_access.status_code, 404, old_guest_access.text)
+
+        repeated = self.client.post(
+            "/checkout/orders/claim",
+            json={"orders": payload["orders"][:2]},
+            headers=self.customer_headers,
+        )
+        self.assertEqual(repeated.status_code, 200, repeated.text)
+        self.assertEqual(
+            set(repeated.json()["claimed_order_ids"]),
+            {first["order_id"], second["order_id"]},
+        )
+
     def test_paid_guest_can_download_receipt_with_order_token(self):
         created = self.client.post("/checkout/orders", json=self._checkout_payload()).json()
         with patch("routers.admin.send_purchase_receipt", return_value=True):

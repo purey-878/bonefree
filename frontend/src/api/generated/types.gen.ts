@@ -1015,6 +1015,44 @@ export type GuestCartItem = {
 };
 
 /**
+ * GuestOrderClaimItem
+ */
+export type GuestOrderClaimItem = {
+    /**
+     * Access Token
+     */
+    access_token: string;
+    /**
+     * Order Id
+     */
+    order_id: number;
+};
+
+/**
+ * GuestOrderClaimRequest
+ */
+export type GuestOrderClaimRequest = {
+    /**
+     * Orders
+     */
+    orders: Array<GuestOrderClaimItem>;
+};
+
+/**
+ * GuestOrderClaimResponse
+ */
+export type GuestOrderClaimResponse = {
+    /**
+     * Claimed Order Ids
+     */
+    claimed_order_ids: Array<number>;
+    /**
+     * Rejected Order Ids
+     */
+    rejected_order_ids: Array<number>;
+};
+
+/**
  * HealthResponse
  */
 export type HealthResponse = {
@@ -6990,6 +7028,55 @@ export type CheckoutCreateOrderResponses = {
 };
 
 export type CheckoutCreateOrderResponse = CheckoutCreateOrderResponses[keyof CheckoutCreateOrderResponses];
+
+export type CheckoutClaimGuestOrdersData = {
+    body: GuestOrderClaimRequest;
+    path?: never;
+    query?: never;
+    url: '/checkout/orders/claim';
+};
+
+export type CheckoutClaimGuestOrdersErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type CheckoutClaimGuestOrdersError = CheckoutClaimGuestOrdersErrors[keyof CheckoutClaimGuestOrdersErrors];
+
+export type CheckoutClaimGuestOrdersResponses = {
+    /**
+     * Successful Response
+     */
+    200: GuestOrderClaimResponse;
+};
+
+export type CheckoutClaimGuestOrdersResponse = CheckoutClaimGuestOrdersResponses[keyof CheckoutClaimGuestOrdersResponses];
 
 export type CheckoutListOrderHistoryData = {
     body?: never;
