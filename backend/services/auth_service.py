@@ -20,6 +20,7 @@ from utils.datetime_utils import to_naive_utc
 STAFF_ADMIN_ROLE = UserRole.MANAGER
 SUPER_ADMIN_ROLE = UserRole.OWNER
 CHEF_ROLE = UserRole.CHEF
+WAITER_ROLE = UserRole.WAITER
 
 
 def hash_password(password: str) -> str:

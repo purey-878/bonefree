@@ -29,6 +29,7 @@ import AdminDashboard from './pages/AdminDashboard'
 import type { AdminRole } from './types/admin'
 import { useAuth } from './hooks'
 import { readActiveOrder } from './components/orderStatusStorage'
+import { adminDashboardPathForRole } from './utils/adminOrderViews'
 
 type CartRouteState = {
   backgroundLocation?: Location
@@ -56,9 +57,7 @@ function ProtectedAdminRoute({
   if (!token) return <Navigate to="/admin/login" replace />
   if (adminRole) localStorage.setItem("admin_role", adminRole)
   if (roles && (!adminRole || !roles.includes(adminRole))) {
-    if (adminRole === "owner") return <Navigate to="/admin/dashboard" replace />
-    if (adminRole === "chef") return <Navigate to="/admin/kitchen" replace />
-    return <Navigate to="/admin/staff" replace />
+    return <Navigate to={adminRole ? adminDashboardPathForRole(adminRole) : "/admin/login"} replace />
   }
   return <>{children}</>
 }
@@ -115,10 +114,10 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin/dashboard" element={<ProtectedAdminRoute roles={["owner"]}><AdminDashboard experience="super" /></ProtectedAdminRoute>} />
-        <Route path="/admin/super" element={<ProtectedAdminRoute roles={["owner"]}><AdminDashboard experience="super" /></ProtectedAdminRoute>} />
-        <Route path="/admin/staff" element={<ProtectedAdminRoute roles={["owner", "manager", "waiter"]}><AdminDashboard experience="staff" /></ProtectedAdminRoute>} />
-        <Route path="/admin/kitchen" element={<ProtectedAdminRoute roles={["owner", "manager", "chef"]}><AdminDashboard experience="kitchen" /></ProtectedAdminRoute>} />
+        <Route path="/admin/dashboard" element={<ProtectedAdminRoute roles={["owner", "manager", "waiter", "chef"]}><AdminDashboard /></ProtectedAdminRoute>} />
+        <Route path="/admin/super" element={<ProtectedAdminRoute roles={["owner"]}><Navigate to="/admin/dashboard" replace /></ProtectedAdminRoute>} />
+        <Route path="/admin/staff" element={<ProtectedAdminRoute roles={["owner", "manager", "waiter"]}><Navigate to="/admin/dashboard?tab=orders&view=service" replace /></ProtectedAdminRoute>} />
+        <Route path="/admin/kitchen" element={<ProtectedAdminRoute roles={["owner", "manager", "waiter", "chef"]}><Navigate to="/admin/dashboard?tab=orders&view=kitchen" replace /></ProtectedAdminRoute>} />
         <Route path="/menu" element={<Menu />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/checkout" element={<Checkout />} />

@@ -297,11 +297,11 @@ export default function StaffOrdersBoard({ orders, onRefresh, onMarkPaid, onUpda
                     {order.state === "pending" && order.paymentMethod === "counter" && order.paymentStatus !== "paid" && (
                       <button className="ad-btn ad-btn-primary" onClick={() => onMarkPaid(order.orderId)}>{t("orders.staff.confirmPayment")}</button>
                     )}
-                    {order.state === "pending" && order.paymentStatus === "paid" && (
-                      <button className="ad-btn ad-btn-primary" onClick={() => onUpdateStatus(order.orderId, "confirmed")}>{t("orders.staff.sendKitchen")}</button>
-                    )}
                     {order.state === "ready" && (
                       <button className="ad-btn ad-btn-primary" onClick={() => onUpdateStatus(order.orderId, "delivered")}>{t("orders.staff.completeHandoff")}</button>
+                    )}
+                    {order.paymentStatus !== "paid" && !["delivered", "cancelled"].includes(order.state) && (
+                      <button className="ad-btn ad-btn-danger" onClick={() => onUpdateStatus(order.orderId, "cancelled")}>{t("orders.common.cancel")}</button>
                     )}
                     <button className="ad-btn ad-btn-ghost" onClick={() => setSelectedOrderId(order.orderId)}>{t("orders.common.viewDetails")}</button>
                   </div>

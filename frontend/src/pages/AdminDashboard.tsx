@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { FormEvent, MouseEvent, ReactNode, SyntheticEvent } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import { Heart, MessageCircle, MoreHorizontal, RefreshCw, Search, Send, Star, ThumbsUp, Trash2, X, Menu } from "lucide-react"
 import {
   Area,
@@ -113,6 +113,7 @@ import { defaultCompanyDetails, defaultSocialMediaSettings } from "../utils/foot
 import StaffOrdersBoard from "../components/admin-orders/StaffOrdersBoard"
 import KitchenOrdersBoard from "../components/admin-orders/KitchenOrdersBoard"
 import SuperAdminOrdersView from "../components/admin-orders/SuperAdminOrdersView"
+import OrderViewSwitcher from "../components/admin-orders/OrderViewSwitcher"
 import CustomSelect from "../components/ui/CustomSelect"
 import ConfirmDialog from "../components/ui/ConfirmDialog"
 import { useToast } from "../components/ui/toastContext"
@@ -125,6 +126,8 @@ import { primaryProductMediaUrl, productMediaUrl } from "../utils/productMedia"
 import LanguageSwitcher from "../components/LanguageSwitcher"
 import AdminI18nBoundary from "../components/AdminI18nBoundary"
 import { resolvedLocale } from "../i18n"
+import { canManageKitchenOrders, orderViewForRole, orderViewsForRole } from "../utils/adminOrderViews"
+import type { AdminOrderView } from "../utils/adminOrderViews"
 
 function getImageUrl(imagePath: string): string {
   return resolveProductImageUrl(imagePath)
@@ -135,7 +138,6 @@ function handleAdminImageError(event: SyntheticEvent<HTMLImageElement>) {
 }
 
 type TabType = "dashboard" | "products" | "ingredients" | "categories" | "orders" | "reviews" | "analytics" | "clientes" | "staff" | "settings"
-type AdminExperience = "staff" | "super" | "kitchen"
 type AdminTheme = "light" | "dark"
 type SiteSettingsTab = "promote" | "coupons" | "theme" | "company" | "social" | "events"
 
@@ -1358,9 +1360,16 @@ function SiteSettingsPanel({
   )
 }
 
-export default function AdminDashboard({ experience = "super" }: { experience?: AdminExperience }) {
-  const routeDefaultTab: TabType = experience === "super" ? "dashboard" : "orders"
-  const [activeTab, setActiveTab] = useState<TabType>(routeDefaultTab)
+export default function AdminDashboard() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const storedRole = (localStorage.getItem("admin_role") || "manager") as AdminRole
+  const storedRoleTabs = storedRole === "owner" ? OWNER_TABS : storedRole === "chef" ? CHEF_TABS : storedRole === "waiter" ? WAITER_TABS : MANAGER_TABS
+  const requestedInitialTab = searchParams.get("tab") as TabType | null
+  const [activeTab, setActiveTab] = useState<TabType>(() => (
+    requestedInitialTab && storedRoleTabs.includes(requestedInitialTab)
+      ? requestedInitialTab
+      : storedRole === "owner" ? "dashboard" : "orders"
+  ))
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("admin_sidebar_collapsed") === "true")
   const [isMobileAdminNav, setIsMobileAdminNav] = useState(() => (
     typeof window !== "undefined" ? window.matchMedia(ADMIN_NAV_MOBILE_QUERY).matches : false
@@ -1516,6 +1525,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const productImageInputRef = useRef<HTMLInputElement | null>(null)
   const categoryFilterRef = useRef<HTMLDivElement | null>(null)
+  const orderLoadRequestRef = useRef(0)
   const confirmActionRef = useRef<(() => Promise<boolean>) | null>(null)
   const confirmResolveRef = useRef<((confirmed: boolean) => void) | null>(null)
 
@@ -1524,9 +1534,11 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
   const toast = useToast()
   const role = (currentAdmin?.role || localStorage.getItem("admin_role") || "manager") as AdminRole
   const isOwner = role === "owner"
-  const isKitchenExperience = experience === "kitchen"
   const canManageProducts = role === "owner" || role === "manager"
-  const allowedTabs = isOwner && experience === "super" ? OWNER_TABS : isKitchenExperience ? CHEF_TABS : role === "waiter" ? WAITER_TABS : MANAGER_TABS
+  const allowedTabs = isOwner ? OWNER_TABS : role === "chef" ? CHEF_TABS : role === "waiter" ? WAITER_TABS : MANAGER_TABS
+  const availableOrderViews = orderViewsForRole(role)
+  const orderView = orderViewForRole(role, searchParams.get("view"))
+  const kitchenReadOnly = !canManageKitchenOrders(role)
   const visibleNavItems = NAV_ITEMS.filter((item) => allowedTabs.includes(item.tab))
   const visibleNavGroups = NAV_GROUPS
     .map((group) => ({
@@ -1537,7 +1549,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
     }))
     .filter((group) => group.items.length > 0)
   const currentNavLabel = NAV_ITEMS.find((item) => item.tab === activeTab)?.label ?? "Admin"
-  const shellTitle = experience === "kitchen" ? "Kitchen" : isOwner && experience === "super" ? "Admin Console" : "Staff Console"
+  const shellTitle = role === "chef" ? "Kitchen Console" : isOwner ? "Admin Console" : "Staff Console"
   const adminInitials = (currentAdmin?.name || "Admin")
     .split(" ")
     .filter(Boolean)
@@ -1640,17 +1652,20 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
   }, [])
 
   const handleLoadOrders = useCallback(async () => {
+    const requestId = ++orderLoadRequestRef.current
     try {
-      const loadedOrders = experience === "kitchen"
+      const loadedOrders = orderView === "kitchen"
         ? await listKitchenOrders(0, 100)
-        : experience === "staff"
+        : orderView === "service"
           ? await listStaffOrders(0, 100)
           : await listOrders(0, 100)
-      setOrders(loadedOrders)
+      if (requestId === orderLoadRequestRef.current) setOrders(loadedOrders)
     } catch (err) {
-      setError(getErrorMessage(err, "Failed to load orders"))
+      if (requestId === orderLoadRequestRef.current) {
+        setError(getErrorMessage(err, "Failed to load orders"))
+      }
     }
-  }, [experience])
+  }, [orderView])
 
   const handleLoadAnalyticsMetric = useCallback(async (metric: AnalyticsMetric, nextRange?: AnalyticsRange) => {
     const activeRange = nextRange ?? analyticsRanges[metric]
@@ -1749,19 +1764,11 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
         localStorage.setItem("admin_role", admin.role)
         localStorage.setItem("admin_name", admin.name)
 
-        if (experience === "super" && admin.role !== "owner") {
-          navigate(admin.role === "chef" ? "/admin/kitchen" : "/admin/staff", { replace: true })
-          return
-        }
-
-        if (admin.role === "owner" && experience === "super") {
+        if (admin.role === "owner") {
           void loadDashboard()
           void loadProductsForFilters(EMPTY_PRODUCT_FILTERS)
           void handleLoadCategories()
           void handleLoadIngredients()
-        } else {
-          setActiveTab("orders")
-          void handleLoadOrders()
         }
       })
         .catch(() => {
@@ -1770,7 +1777,32 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
           localStorage.removeItem("admin_name")
           navigate("/admin/login", { replace: true })
         })
-  }, [experience, handleLoadCategories, handleLoadIngredients, handleLoadOrders, loadDashboard, loadProductsForFilters, navigate])
+  }, [handleLoadCategories, handleLoadIngredients, loadDashboard, loadProductsForFilters, navigate])
+
+  useEffect(() => {
+    if (!currentAdmin) return
+
+    const requestedTab = searchParams.get("tab") as TabType | null
+    const fallbackTab: TabType = role === "owner" ? "dashboard" : "orders"
+    const nextTab = requestedTab && allowedTabs.includes(requestedTab) ? requestedTab : fallbackTab
+    const nextParams = new URLSearchParams(searchParams)
+
+    if (nextTab === "dashboard") {
+      nextParams.delete("tab")
+    } else {
+      nextParams.set("tab", nextTab)
+    }
+    if (nextTab === "orders") {
+      nextParams.set("view", orderView)
+    } else {
+      nextParams.delete("view")
+    }
+
+    if (activeTab !== nextTab) setActiveTab(nextTab)
+    if (nextParams.toString() !== searchParams.toString()) {
+      setSearchParams(nextParams, { replace: true })
+    }
+  }, [activeTab, allowedTabs, currentAdmin, orderView, role, searchParams, setSearchParams])
 
   useEffect(() => {
     localStorage.setItem("admin_sidebar_collapsed", String(sidebarCollapsed))
@@ -1865,6 +1897,13 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
   useEffect(() => {
     if (!currentAdmin || activeTab !== "orders") return
 
+    setOrders([])
+    void handleLoadOrders()
+  }, [activeTab, currentAdmin, handleLoadOrders])
+
+  useEffect(() => {
+    if (!currentAdmin || activeTab !== "orders") return
+
     const intervalId = window.setInterval(() => {
       void handleLoadOrders()
     }, 5000)
@@ -1884,36 +1923,53 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
   }, [activeTab, currentAdmin, handleLoadOrders])
 
   const handleTabChange = (tab: TabType) => {
-    if (!allowedTabs.includes(tab)) {
-      setActiveTab("orders")
-      void handleLoadOrders()
-      return
+    const nextTab = allowedTabs.includes(tab) ? tab : "orders"
+    const nextParams = new URLSearchParams(searchParams)
+    setActiveTab(nextTab)
+    if (nextTab === "dashboard") {
+      nextParams.delete("tab")
+    } else {
+      nextParams.set("tab", nextTab)
     }
-    setActiveTab(tab)
-    if (tab === "products") {
+    if (nextTab === "orders") {
+      nextParams.set("view", orderView)
+    } else {
+      nextParams.delete("view")
+    }
+    setSearchParams(nextParams)
+
+    if (nextTab === "products") {
       if (categories.length === 0) void handleLoadCategories()
       if (ingredients.length === 0) void handleLoadIngredients()
       void handleLoadProducts()
-    } else if (tab === "ingredients") {
+    } else if (nextTab === "ingredients") {
       void handleLoadIngredients()
       void handleLoadAllProducts()
-    } else if (tab === "categories") {
+    } else if (nextTab === "categories") {
       if (categories.length === 0) void handleLoadCategories()
       if (products.length === 0 && deletedProducts.length === 0) void handleLoadProducts()
-    } else if (tab === "orders" && orders.length === 0) {
-      void handleLoadOrders()
-    } else if (tab === "reviews" && reviews.length === 0) {
+    } else if (nextTab === "reviews" && reviews.length === 0) {
       void handleLoadReviews()
-    } else if (tab === "clientes" && clientes.length === 0) {
+    } else if (nextTab === "clientes" && clientes.length === 0) {
       void handleLoadClientes()
-    } else if (tab === "staff" && staffAdmins.length === 0) {
+    } else if (nextTab === "staff" && staffAdmins.length === 0) {
       void handleLoadStaff()
-    } else if (tab === "analytics" && ANALYTICS_METRICS.some((item) => !analyticsSeries[item.metric])) {
+    } else if (nextTab === "analytics" && ANALYTICS_METRICS.some((item) => !analyticsSeries[item.metric])) {
       handleLoadAllAnalytics()
-    } else if (tab === "settings") {
+    } else if (nextTab === "settings") {
       void handleLoadSiteTheme()
       void loadProductsForFilters(EMPTY_PRODUCT_FILTERS)
     }
+  }
+
+  const handleOrderViewChange = (nextView: AdminOrderView) => {
+    if (!availableOrderViews.includes(nextView)) return
+    orderLoadRequestRef.current += 1
+    setOrders([])
+    const nextParams = new URLSearchParams(searchParams)
+    nextParams.set("tab", "orders")
+    nextParams.set("view", nextView)
+    setSearchParams(nextParams)
   }
 
   const handleAdminNavItemClick = (tab: TabType) => {
@@ -2294,7 +2350,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
   }
 
   const handleOpenLinkedIngredientProduct = (product: AdminProduct) => {
-    setActiveTab("products")
+    handleTabChange("products")
     setFilters({ ...EMPTY_PRODUCT_FILTERS })
     setShowProductForm(false)
     if (product.status === "inactive") setShowDeletedProducts(true)
@@ -2811,7 +2867,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
   const handlePayCounterOrder = async (orderId: number) => {
     try {
       refreshOrder(await payCounterOrder(orderId))
-      toast.success("Order marked as paid.")
+      toast.success("Pagamento confirmado; pedido enviado para a cozinha.")
     } catch (err) {
       const message = getErrorMessage(err, "Failed to mark order as paid")
       setError(message)
@@ -3513,7 +3569,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                               className="ad-btn ad-btn-primary ad-btn-sm"
                               onClick={async () => {
                                 try {
-                                  setActiveTab("products")
+                                  handleTabChange("products")
                                   const availableProducts = products.length === 0
                                     ? await listProducts(0, 100, true)
                                     : products
@@ -5190,9 +5246,14 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
 
         {activeTab === "orders" && (
           <div className="ad-content">
-            {experience === "kitchen" ? (
-              <KitchenOrdersBoard orders={orders} onRefresh={handleLoadOrders} onUpdateStatus={handleOrderStatusChange} />
-            ) : experience === "staff" ? (
+            <OrderViewSwitcher
+              availableViews={availableOrderViews}
+              currentView={orderView}
+              onChange={handleOrderViewChange}
+            />
+            {orderView === "kitchen" ? (
+              <KitchenOrdersBoard orders={orders} onRefresh={handleLoadOrders} onUpdateStatus={handleOrderStatusChange} readOnly={kitchenReadOnly} />
+            ) : orderView === "service" ? (
               <StaffOrdersBoard orders={orders} onRefresh={handleLoadOrders} onMarkPaid={handlePayCounterOrder} onUpdateStatus={handleOrderStatusChange} />
             ) : (
               <SuperAdminOrdersView orders={orders} onRefresh={handleLoadOrders} onUpdateStatus={handleOrderStatusChange} onDelete={handleDeleteOrder} />

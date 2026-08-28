@@ -17,6 +17,7 @@ type Props = {
   orders: AdminOrder[];
   onRefresh: () => void;
   onUpdateStatus: (orderId: number, status: string) => Promise<void> | void;
+  readOnly?: boolean;
 };
 
 const columns = [
@@ -25,7 +26,7 @@ const columns = [
   { id: "ready", titleKey: "orders.kitchen.columns.readyTitle", emptyKey: "orders.kitchen.columns.readyEmpty" },
 ];
 
-export default function KitchenOrdersBoard({ orders, onRefresh, onUpdateStatus }: Props) {
+export default function KitchenOrdersBoard({ orders, onRefresh, onUpdateStatus, readOnly = false }: Props) {
   const { t } = useTranslation("admin");
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [quickFilter, setQuickFilter] = useState("all");
@@ -126,10 +127,10 @@ export default function KitchenOrdersBoard({ orders, onRefresh, onUpdateStatus }
                   </div>
 
                   <div className="order-card-actions">
-                    {order.state === "confirmed" && (
+                    {!readOnly && order.state === "confirmed" && (
                       <button className="ad-btn ad-btn-primary" onClick={() => onUpdateStatus(order.orderId, "in_preparation")}>{t("orders.kitchen.start")}</button>
                     )}
-                    {order.state === "in_preparation" && (
+                    {!readOnly && order.state === "in_preparation" && (
                       <button className="ad-btn ad-btn-primary" onClick={() => onUpdateStatus(order.orderId, "ready")}>{t("orders.kitchen.markReady")}</button>
                     )}
                     <button className="ad-btn ad-btn-ghost" onClick={() => setSelectedOrderId(order.orderId)}>{formatOrderStatus(order.state)}</button>

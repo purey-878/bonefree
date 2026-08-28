@@ -22,6 +22,7 @@ from services.auth_service import (
     CHEF_ROLE,
     STAFF_ADMIN_ROLE,
     SUPER_ADMIN_ROLE,
+    WAITER_ROLE,
     authenticate_admin,
     hash_password,
 )
@@ -65,6 +66,7 @@ logger = logging.getLogger(__name__)
 
 KITCHEN_VISIBLE_STATES = (OrderState.CONFIRMED, OrderState.IN_PREPARATION, OrderState.READY)
 CHEF_ALLOWED_STATES = {OrderState.CONFIRMED, OrderState.IN_PREPARATION, OrderState.READY}
+WAITER_ALLOWED_STATES = {OrderState.DELIVERED, OrderState.CANCELLED}
 STAFF_ALLOWED_STATES = {
     OrderState.PENDING,
     OrderState.CONFIRMED,
@@ -689,6 +691,19 @@ def _ensure_order_status_allowed(current_admin: Admin, order: Order, next_status
     next_state = OrderState(next_status)
     if current_admin.role == SUPER_ADMIN_ROLE:
         return
+    if current_admin.role == WAITER_ROLE:
+        if next_state not in WAITER_ALLOWED_STATES:
+            raise AppHTTPException(status_code=403, error="permission_denied", message="Permission denied.", details={"reason": "request_failed"})
+        if next_state == OrderState.DELIVERED and (
+            order.state != OrderState.READY
+            or order.payment_status != PaymentStatus.PAID
+        ):
+            raise AppHTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                error="invalid_order_state_transition",
+                message="Only a paid order that is ready can be delivered.",
+                details={"order_id": order.order_id, "state": str(order.state)},
+            )
     if current_admin.role == CHEF_ROLE and next_state not in CHEF_ALLOWED_STATES:
         raise AppHTTPException(status_code=403, error="permission_denied", message="Permission denied.", details={"reason": "request_failed"})
     if current_admin.role == STAFF_ADMIN_ROLE and next_state not in STAFF_ALLOWED_STATES:
@@ -1565,7 +1580,7 @@ def list_orders(
 def list_staff_orders(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=200),
-    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
+    current_admin: Admin = Depends(require_role(WAITER_ROLE, STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     orders = db.scalars(
@@ -1587,7 +1602,7 @@ def list_staff_orders(
 def list_kitchen_orders(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
-    current_admin: Admin = Depends(require_role(CHEF_ROLE, STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
+    current_admin: Admin = Depends(require_role(WAITER_ROLE, CHEF_ROLE, STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     orders = db.scalars(
@@ -1617,7 +1632,7 @@ def list_kitchen_orders(
 )
 def get_kitchen_order(
     order_id: int,
-    current_admin: Admin = Depends(require_role(CHEF_ROLE, STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
+    current_admin: Admin = Depends(require_role(WAITER_ROLE, CHEF_ROLE, STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     order = _get_order_or_404(db, order_id)
@@ -1671,7 +1686,7 @@ def delete_cancelled_order(
 def update_order_status(
     order_id: int,
     body: OrderStatusUpdate,
-    current_admin: Admin = Depends(require_role(CHEF_ROLE, STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
+    current_admin: Admin = Depends(require_role(WAITER_ROLE, CHEF_ROLE, STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     order = _get_order_or_404(db, order_id)
@@ -1702,7 +1717,7 @@ def update_order_status(
 def pay_counter_order(
     order_id: int,
     background_tasks: BackgroundTasks,
-    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
+    current_admin: Admin = Depends(require_role(WAITER_ROLE, STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     order = _get_order_or_404(db, order_id)

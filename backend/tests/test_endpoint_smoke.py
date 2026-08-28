@@ -367,6 +367,107 @@ class EndpointSmokeTests(unittest.TestCase):
             self.assertIsNone(db.get(Order, order_id))
             self.assertIsNone(db.scalar(select(Payment).where(Payment.order_id == order_id)))
 
+    def test_waiter_permissions_match_service_and_read_only_kitchen_views(self):
+        cancellable_order_id = self._create_order()["order_id"]
+        waiter_headers = self.role_headers(self.waiter_token)
+        manager_headers = self.role_headers(self.manager_token)
+        chef_headers = self.role_headers(self.chef_token)
+
+        staff_orders = self.client.get("/admin/staff/orders", headers=waiter_headers)
+        kitchen_orders = self.client.get("/admin/kitchen/orders", headers=waiter_headers)
+        management_orders = self.client.get("/admin/orders", headers=waiter_headers)
+        self.assertEqual(staff_orders.status_code, 200, staff_orders.text)
+        self.assertEqual(kitchen_orders.status_code, 200, kitchen_orders.text)
+        self.assertEqual(management_orders.status_code, 403, management_orders.text)
+
+        forbidden_kitchen_advance = self.client.patch(
+            f"/admin/orders/{cancellable_order_id}/status",
+            json={"state": "confirmed"},
+            headers=waiter_headers,
+        )
+        invalid_delivery = self.client.patch(
+            f"/admin/orders/{cancellable_order_id}/status",
+            json={"state": "delivered"},
+            headers=waiter_headers,
+        )
+        self.assertEqual(forbidden_kitchen_advance.status_code, 403, forbidden_kitchen_advance.text)
+        self.assertEqual(invalid_delivery.status_code, 409, invalid_delivery.text)
+
+        cancelled = self.client.patch(
+            f"/admin/orders/{cancellable_order_id}/status",
+            json={"state": "cancelled"},
+            headers=waiter_headers,
+        )
+        self.assertEqual(cancelled.status_code, 200, cancelled.text)
+        self.assertEqual(cancelled.json()["state"], "cancelled")
+
+        kitchen_order_id = self._create_order()["order_id"]
+        with patch("routers.admin.send_purchase_receipt", return_value=True):
+            paid = self.client.post(
+                f"/admin/orders/{kitchen_order_id}/pay-counter",
+                headers=waiter_headers,
+            )
+        self.assertEqual(paid.status_code, 200, paid.text)
+        self.assertEqual(paid.json()["order"]["state"], "confirmed")
+        self.assertEqual(paid.json()["order"]["payment_status"], "paid")
+
+        kitchen_detail = self.client.get(
+            f"/admin/kitchen/orders/{kitchen_order_id}",
+            headers=waiter_headers,
+        )
+        self.assertEqual(kitchen_detail.status_code, 200, kitchen_detail.text)
+
+        waiter_prepare = self.client.patch(
+            f"/admin/orders/{kitchen_order_id}/status",
+            json={"state": "in_preparation"},
+            headers=waiter_headers,
+        )
+        self.assertEqual(waiter_prepare.status_code, 403, waiter_prepare.text)
+
+        chef_prepare = self.client.patch(
+            f"/admin/orders/{kitchen_order_id}/status",
+            json={"state": "in_preparation"},
+            headers=chef_headers,
+        )
+        self.assertEqual(chef_prepare.status_code, 200, chef_prepare.text)
+
+        waiter_deliver_early = self.client.patch(
+            f"/admin/orders/{kitchen_order_id}/status",
+            json={"state": "delivered"},
+            headers=waiter_headers,
+        )
+        self.assertEqual(waiter_deliver_early.status_code, 409, waiter_deliver_early.text)
+
+        manager_ready = self.client.patch(
+            f"/admin/orders/{kitchen_order_id}/status",
+            json={"state": "ready"},
+            headers=manager_headers,
+        )
+        waiter_delivered = self.client.patch(
+            f"/admin/orders/{kitchen_order_id}/status",
+            json={"state": "delivered"},
+            headers=waiter_headers,
+        )
+        self.assertEqual(manager_ready.status_code, 200, manager_ready.text)
+        self.assertEqual(waiter_delivered.status_code, 200, waiter_delivered.text)
+        self.assertEqual(waiter_delivered.json()["state"], "delivered")
+
+        paid_cancel = self.client.patch(
+            f"/admin/orders/{kitchen_order_id}/status",
+            json={"state": "cancelled"},
+            headers=waiter_headers,
+        )
+        self.assertEqual(paid_cancel.status_code, 409, paid_cancel.text)
+
+        self.assertEqual(
+            self.client.get("/admin/staff/orders", headers=chef_headers).status_code,
+            403,
+        )
+        self.assertEqual(
+            self.client.post(f"/admin/orders/{kitchen_order_id}/pay-counter", headers=chef_headers).status_code,
+            403,
+        )
+
     def test_availability_quick_actions_are_idempotent_and_role_protected(self):
         product_path = f"/admin/products/{self.product_id}/availability"
         for available in (False, False):

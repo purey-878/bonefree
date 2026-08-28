@@ -8,18 +8,13 @@ import Footer from "../components/Footer"
 import { adminLogin } from "../services/adminService"
 import type { AdminRole } from "../types/admin"
 import { useTranslation } from "react-i18next"
+import { adminDashboardPathForRole } from "../utils/adminOrderViews"
 
 function normalizeAdminRole(role: unknown): AdminRole {
   if (role === "owner") return "owner"
   if (role === "chef") return "chef"
   if (role === "waiter") return "waiter"
   return "manager"
-}
-
-function adminHomeForRole(role: AdminRole): string {
-  if (role === "owner") return "/admin/dashboard"
-  if (role === "chef") return "/admin/kitchen"
-  return "/admin/staff"
 }
 
 export default function AdminLogin() {
@@ -44,7 +39,7 @@ export default function AdminLogin() {
       localStorage.setItem("admin_name", adminName)
       localStorage.setItem("admin_role", adminRole)
 
-      navigate(adminHomeForRole(adminRole), { replace: true })
+      navigate(adminDashboardPathForRole(adminRole), { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : t("admin.failed"))
     } finally {
