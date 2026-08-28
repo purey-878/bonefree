@@ -9655,3 +9655,499 @@
   from { opacity: 0; transform: translateY(-5px) scale(0.985); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
+
+/* Product cards: clean media surface and controlled action menu. */
+.ad-admin-product-card-hero {
+  display: block;
+  background: var(--ad-surface);
+  border-bottom: 1px solid var(--ad-border);
+}
+
+.ad-admin-product-card-hero::after {
+  display: none;
+}
+
+.ad-admin-product-card-hero img {
+  inset: 42px 18px 82px;
+  width: calc(100% - 36px);
+  height: calc(100% - 124px);
+  opacity: 1;
+  object-position: center top;
+}
+
+.ad-admin-product-card-top {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  left: 18px;
+  width: auto;
+}
+
+.ad-admin-product-card-top .ad-card-action-menu {
+  margin-left: auto;
+}
+
+.ad-admin-product-card-top > span {
+  color: var(--ad-primary);
+  text-shadow: none;
+}
+
+.ad-admin-product-card-hero h3 {
+  position: absolute;
+  right: 22px;
+  bottom: 18px;
+  left: 22px;
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--ad-heading);
+  font-size: clamp(1.25rem, 4vw, 1.65rem);
+  text-shadow: none;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.ad-card-action-menu {
+  position: relative;
+  z-index: 3;
+}
+
+.ad-card-action-trigger {
+  display: inline-grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--ad-primary) 22%, var(--ad-border));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--ad-primary) 8%, transparent);
+  color: var(--ad-heading);
+  cursor: pointer;
+  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.ad-card-action-trigger:hover,
+.ad-card-action-trigger:focus-visible,
+.ad-card-action-trigger[aria-expanded="true"] {
+  border-color: color-mix(in srgb, var(--ad-primary) 48%, var(--ad-border));
+  background: color-mix(in srgb, var(--ad-primary) 16%, transparent);
+  color: var(--ad-primary);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--ad-primary) 14%, transparent);
+  outline: none;
+  transform: translateY(-1px) scale(1.03);
+}
+
+.ad-card-action-popover {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  animation: none;
+  transform: translateY(-6px) scale(0.97);
+  transform-origin: top right;
+  transition: visibility 0s linear 180ms, opacity 180ms ease, transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ad-card-action-popover.is-open {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+  transition-delay: 0s;
+}
+
+.ad-card-action-popover button {
+  transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.ad-card-action-popover button:hover,
+.ad-card-action-popover button:focus-visible {
+  background: color-mix(in srgb, var(--ad-primary) 10%, var(--ad-surface));
+  color: var(--ad-heading);
+  outline: none;
+  transform: translateX(2px);
+}
+
+.ad-card-action-popover button.danger:hover,
+.ad-card-action-popover button.danger:focus-visible {
+  background: color-mix(in srgb, #dc2626 10%, var(--ad-surface));
+  color: #dc2626;
+}
+
+/* Product analytics: reusable non-blocking drawer, blocking modal and mobile fullscreen panel. */
+.ad-product-analytics-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--ad-border);
+  background: color-mix(in srgb, var(--ad-surface) 97%, var(--ad-bg));
+  color: var(--ad-text);
+  box-shadow: 0 28px 72px rgba(15, 23, 42, 0.2);
+}
+
+.ad-product-analytics-panel-drawer {
+  position: fixed;
+  z-index: 1200;
+  top: 0;
+  right: 0;
+  width: min(560px, 100vw);
+  height: 100vh;
+  height: 100dvh;
+  border-width: 0 0 0 1px;
+  box-shadow: -18px 0 42px rgba(15, 23, 42, 0.1);
+  animation: ad-product-analytics-drawer-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.ad-product-analytics-panel-modal {
+  position: fixed;
+  z-index: 1310;
+  top: 50%;
+  left: 50%;
+  width: min(940px, calc(100vw - 48px));
+  max-height: min(90vh, 900px);
+  max-height: min(90dvh, 900px);
+  border-radius: 18px;
+  animation: ad-product-analytics-modal-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.ad-product-analytics-panel-fullscreen {
+  position: fixed;
+  z-index: 1310;
+  top: var(--admin-topbar-height);
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100vw;
+  height: calc(100vh - var(--admin-topbar-height));
+  height: calc(100dvh - var(--admin-topbar-height));
+  border: 0;
+  border-radius: 0;
+  animation: ad-product-analytics-fullscreen-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.ad-product-analytics-backdrop {
+  position: fixed;
+  z-index: 1300;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.28);
+  backdrop-filter: blur(7px) saturate(125%);
+  -webkit-backdrop-filter: blur(7px) saturate(125%);
+  animation: ad-product-analytics-backdrop-in 220ms ease both;
+}
+
+.ad-product-analytics-toolbar {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 58px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--ad-border);
+  background: var(--ad-surface);
+}
+
+.ad-product-analytics-view-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--ad-border);
+  border-radius: 11px;
+  background: var(--ad-surface-soft);
+}
+
+.ad-product-analytics-view-toggle button,
+.ad-product-analytics-close {
+  display: inline-grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ad-muted);
+  cursor: pointer;
+  transition: background-color 170ms ease, border-color 170ms ease, color 170ms ease, transform 170ms ease;
+}
+
+.ad-product-analytics-view-toggle button:hover,
+.ad-product-analytics-view-toggle button:focus-visible,
+.ad-product-analytics-view-toggle button.active {
+  border-color: color-mix(in srgb, var(--ad-primary) 28%, var(--ad-border));
+  background: var(--ad-surface);
+  color: var(--ad-primary);
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.08);
+  outline: none;
+}
+
+.ad-product-analytics-close {
+  margin-left: auto;
+  border-color: var(--ad-border);
+  background: var(--ad-surface);
+  color: var(--ad-heading);
+}
+
+.ad-product-analytics-close:hover,
+.ad-product-analytics-close:focus-visible {
+  background: var(--ad-surface-hover);
+  color: var(--ad-primary);
+  outline: none;
+  transform: rotate(3deg) scale(1.04);
+}
+
+.ad-product-analytics-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 22px;
+}
+
+.ad-product-analytics-panel .ad-product-drawer-head {
+  margin-bottom: 22px;
+}
+
+.ad-product-analytics-panel-modal .ad-product-drawer-title img,
+.ad-product-analytics-panel-modal .ad-product-avatar {
+  width: 132px;
+  height: 132px;
+}
+
+.ad-product-analytics-panel-modal .ad-product-analytics-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ad-product-analytics-panel.is-closing {
+  pointer-events: none;
+}
+
+.ad-product-analytics-panel-drawer.is-closing {
+  animation: ad-product-analytics-drawer-out 180ms ease both;
+}
+
+.ad-product-analytics-panel-modal.is-closing {
+  animation: ad-product-analytics-modal-out 180ms ease both;
+}
+
+.ad-product-analytics-panel-fullscreen.is-closing {
+  animation: ad-product-analytics-fullscreen-out 180ms ease both;
+}
+
+.ad-product-analytics-backdrop.is-closing {
+  pointer-events: none;
+  animation: ad-product-analytics-backdrop-out 180ms ease both;
+}
+
+@keyframes ad-product-analytics-drawer-in {
+  from { opacity: 0; transform: translateX(34px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes ad-product-analytics-drawer-out {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(34px); }
+}
+
+@keyframes ad-product-analytics-modal-in {
+  from { opacity: 0; transform: translate(-50%, calc(-50% + 12px)) scale(0.982); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes ad-product-analytics-modal-out {
+  from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  to { opacity: 0; transform: translate(-50%, calc(-50% + 10px)) scale(0.985); }
+}
+
+@keyframes ad-product-analytics-fullscreen-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ad-product-analytics-fullscreen-out {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(14px); }
+}
+
+@keyframes ad-product-analytics-backdrop-in {
+  from { opacity: 0; backdrop-filter: blur(0); -webkit-backdrop-filter: blur(0); }
+  to { opacity: 1; backdrop-filter: blur(7px) saturate(125%); -webkit-backdrop-filter: blur(7px) saturate(125%); }
+}
+
+@keyframes ad-product-analytics-backdrop-out {
+  from { opacity: 1; backdrop-filter: blur(7px) saturate(125%); -webkit-backdrop-filter: blur(7px) saturate(125%); }
+  to { opacity: 0; backdrop-filter: blur(0); -webkit-backdrop-filter: blur(0); }
+}
+
+@media (min-width: 999px) {
+  .ad-product-modal {
+    max-width: 1160px;
+  }
+}
+
+@media (max-width: 760px) {
+  .ad-product-analytics-toolbar {
+    min-height: 52px;
+    justify-content: flex-end;
+    padding: 8px 12px;
+  }
+
+  .ad-product-analytics-close {
+    width: 40px;
+    height: 40px;
+    border: 0;
+    background: transparent;
+  }
+
+  .ad-product-analytics-close svg {
+    width: 24px;
+    height: 24px;
+    stroke-width: 3;
+  }
+
+  .ad-product-analytics-scroll {
+    padding: 0 16px 24px;
+  }
+
+  .ad-product-analytics-panel .ad-product-drawer-head {
+    display: block;
+    margin-bottom: 18px;
+  }
+
+  .ad-product-analytics-panel .ad-product-drawer-title {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+    width: 100%;
+  }
+
+  .ad-product-analytics-panel .ad-product-drawer-title img,
+  .ad-product-analytics-panel .ad-product-avatar {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4 / 3;
+    border-radius: 14px;
+    box-shadow: none;
+    object-fit: contain;
+  }
+
+  .ad-product-analytics-panel .ad-product-drawer-title > div:last-child {
+    width: 100%;
+  }
+
+  .ad-product-analytics-panel .ad-product-analytics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ad-card-action-trigger,
+  .ad-card-action-popover,
+  .ad-card-action-popover button,
+  .ad-product-analytics-panel,
+  .ad-product-analytics-backdrop,
+  .ad-product-analytics-view-toggle button,
+  .ad-product-analytics-close {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+/* Shared adaptive editors for categories, ingredients and customers. */
+.ad-admin-editor-panel-drawer {
+  width: min(620px, 100vw);
+}
+
+.ad-admin-editor-panel-modal {
+  width: min(820px, calc(100vw - 48px));
+}
+
+.ad-admin-editor-heading {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 22px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--ad-border);
+}
+
+.ad-admin-editor-heading span {
+  color: var(--ad-primary);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ad-admin-editor-heading h3,
+.ad-admin-editor-heading p {
+  margin: 0;
+}
+
+.ad-admin-editor-heading h3 {
+  color: var(--ad-heading);
+  font-size: clamp(1.35rem, 3vw, 1.8rem);
+  line-height: 1.1;
+}
+
+.ad-admin-editor-heading p {
+  color: var(--ad-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.ad-admin-editor-panel .ad-form-actions {
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+.ad-product-filter-check,
+.ad-product-filter-check input[type="checkbox"],
+.ad-checkbox-row,
+.ad-checkbox-row input[type="checkbox"],
+.ad-content label:has(input[type="checkbox"]),
+.ad-content input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.ad-content input[type="checkbox"] {
+  width: 16px;
+  min-width: 16px;
+  height: 16px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  box-shadow: none !important;
+  accent-color: var(--ad-primary);
+  transition: accent-color 160ms ease;
+}
+
+.ad-content input[type="checkbox"]:focus-visible {
+  outline: none;
+  box-shadow: none !important;
+}
+
+.ad-product-filter-check:focus-within,
+.ad-checkbox-row:focus-within {
+  background: color-mix(in srgb, var(--ad-primary) 10%, var(--ad-surface-soft));
+}
+
+.ad-content input[type="checkbox"]:disabled,
+.ad-content label:has(input[type="checkbox"]:disabled) {
+  cursor: not-allowed;
+}
+
+@media (max-width: 760px) {
+  .ad-admin-editor-heading {
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+  }
+
+  .ad-admin-editor-panel .ad-form-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .ad-admin-editor-panel .ad-form-actions .ad-btn {
+    width: 100%;
+  }
+}

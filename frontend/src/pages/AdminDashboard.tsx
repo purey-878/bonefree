@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { FormEvent, MouseEvent, ReactNode, SyntheticEvent } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { Heart, MessageCircle, MoreHorizontal, RefreshCw, Search, Send, Star, ThumbsUp, Trash2, X, Menu } from "lucide-react"
+import { Heart, Menu, MessageCircle, MoreHorizontal, RefreshCw, Search, Send, Star, ThumbsUp, Trash2, X } from "lucide-react"
 import {
   Area,
   AreaChart,
@@ -133,9 +133,17 @@ import { persistOptimisticUpdate } from "../utils/optimisticUpdate"
 import { primaryProductMediaUrl, productMediaUrl } from "../utils/productMedia"
 import LanguageSwitcher from "../components/LanguageSwitcher"
 import AdminI18nBoundary from "../components/AdminI18nBoundary"
+import AdaptivePanel from "../components/admin/AdaptivePanel"
 import { resolvedLocale } from "../i18n"
 import { adminTabsForRole, canEditCatalog, canManageKitchenOrders, canManageServiceOrders, canViewCatalog, orderViewForRole, orderViewsForRole } from "../utils/adminOrderViews"
 import type { AdminDashboardTab, AdminOrderView } from "../utils/adminOrderViews"
+import {
+  normalizeProductAnalyticsViewMode,
+  PRODUCT_ANALYTICS_VIEW_MODE_STORAGE_KEY,
+} from "../utils/productAnalyticsView"
+import type { ProductAnalyticsViewMode } from "../utils/productAnalyticsView"
+import { normalizeAdaptivePanelMode } from "../utils/adaptivePanelMode"
+import type { AdaptivePanelMode } from "../utils/adaptivePanelMode"
 import type { Page } from "../types/pagination"
 
 function getImageUrl(imagePath: string): string {
@@ -206,6 +214,7 @@ const EMPTY_PRODUCT_FILTERS: ProductFilterState = {
 
 const ADMIN_NAV_MOBILE_QUERY = "(max-width: 998px)"
 const ADMIN_SIDEBAR_AUTO_COLLAPSE_QUERY = "(max-width: 1299.98px)"
+const ADMIN_EDITOR_VIEW_MODE_STORAGE_KEY = "admin_editor_view_mode"
 
 function getErrorMessage(error: unknown, fallback: string): string {
   return translateUserMessage(error instanceof Error ? error.message : fallback)
@@ -643,12 +652,16 @@ function AnalyticsChartCard({
   )
 }
 
-function ProductAnalyticsDrawer({
+function ProductAnalyticsPanel({
   product,
   analytics,
   loading,
   rangeDays,
+  mode,
+  closing,
   onClose,
+  onExited,
+  onModeChange,
   onEdit,
   onDelete,
   onRangeChange,
@@ -658,7 +671,11 @@ function ProductAnalyticsDrawer({
   analytics: ProductAnalytics | null
   loading: boolean
   rangeDays: number
+  mode: ProductAnalyticsViewMode
+  closing: boolean
   onClose: () => void
+  onExited: () => void
+  onModeChange: (mode: ProductAnalyticsViewMode) => void
   onEdit: (product: AdminProduct) => void
   onDelete: (product: AdminProduct) => void
   onRangeChange: (days: number) => void
@@ -676,11 +693,21 @@ function ProductAnalyticsDrawer({
 
   return (
     <AdminI18nBoundary>
-    <>
-      <div className="ad-drawer-backdrop" onClick={onClose} />
-      <aside className="ad-product-drawer" aria-label={`Análises de ${product.name}`}>
-        <div className="ad-product-drawer-head">
-          <div className="ad-product-drawer-title">
+      <AdaptivePanel
+        ariaLabel={`Análises de ${product.name}`}
+        closeLabel="Fechar análises"
+        closing={closing}
+        drawerLabel="Mostrar análises no painel lateral"
+        modalLabel="Mostrar análises num modal"
+        mode={mode}
+        modeGroupLabel="Modo de visualização das análises"
+        onExited={onExited}
+        onModeChange={onModeChange}
+        onRequestClose={onClose}
+        panelClassName="ad-product-analytics-panel"
+      >
+          <div className="ad-product-drawer-head">
+            <div className="ad-product-drawer-title">
             {image ? (
               <img src={getImageUrl(image)} alt={product.name} onError={handleAdminImageError} />
             ) : (
@@ -692,11 +719,6 @@ function ProductAnalyticsDrawer({
               <span>{product.productDisplayId ?? formatProductId(product.productId)}</span>
             </div>
           </div>
-          <button type="button" className="ad-icon-btn" onClick={onClose} aria-label="Fechar análises">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
-          </button>
         </div>
 
         {loading ? (
@@ -780,8 +802,7 @@ function ProductAnalyticsDrawer({
         ) : (
           <p className="ad-empty">Sem análises disponíveis.</p>
         )}
-      </aside>
-    </>
+      </AdaptivePanel>
     </AdminI18nBoundary>
   )
 }
@@ -1418,6 +1439,10 @@ export default function AdminDashboard() {
   const [productAnalytics, setProductAnalytics] = useState<ProductAnalytics | null>(null)
   const [productAnalyticsLoading, setProductAnalyticsLoading] = useState(false)
   const [productAnalyticsDays, setProductAnalyticsDays] = useState(30)
+  const [productAnalyticsViewMode, setProductAnalyticsViewMode] = useState<ProductAnalyticsViewMode>(() => (
+    normalizeProductAnalyticsViewMode(localStorage.getItem(PRODUCT_ANALYTICS_VIEW_MODE_STORAGE_KEY))
+  ))
+  const [productAnalyticsClosing, setProductAnalyticsClosing] = useState(false)
   const [orders, setOrders] = useState<AdminOrder[]>([])
   const [managementOrderFilters, setManagementOrderFilters] = useState<ManagementOrderFilters>(() => {
     const today = new Date().toLocaleDateString("sv-SE")
@@ -1459,6 +1484,7 @@ export default function AdminDashboard() {
   const [categories, setCategories] = useState<Category[]>([])
   const [catalogCategories, setCatalogCategories] = useState<Category[]>([])
   const [showCategoryForm, setShowCategoryForm] = useState(false)
+  const [categoryFormClosing, setCategoryFormClosing] = useState(false)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   const [categoryForm, setCategoryForm] = useState<CategoryPayload>({
     categoryName: "",
@@ -1470,6 +1496,7 @@ export default function AdminDashboard() {
   const [relatedIngredientLoadingId, setRelatedIngredientLoadingId] = useState<number | null>(null)
   const [ingredientProducts, setIngredientProducts] = useState<Record<number, Page<AdminProduct>>>({})
   const [showIngredientForm, setShowIngredientForm] = useState(false)
+  const [ingredientFormClosing, setIngredientFormClosing] = useState(false)
   const [editingIngredient, setEditingIngredient] = useState<AdminIngredient | null>(null)
   const [ingredientForm, setIngredientForm] = useState<AdminIngredientPayload>({
     name: "",
@@ -1532,7 +1559,11 @@ export default function AdminDashboard() {
   const [deletingProductMediaId, setDeletingProductMediaId] = useState<number | null>(null)
   const [isProductImageDragging, setIsProductImageDragging] = useState(false)
   const [showClienteForm, setShowClienteForm] = useState(false)
+  const [clienteFormClosing, setClienteFormClosing] = useState(false)
   const [editingCliente, setEditingCliente] = useState<AdminCustomer | null>(null)
+  const [adminEditorViewMode, setAdminEditorViewMode] = useState<AdaptivePanelMode>(() => (
+    normalizeAdaptivePanelMode(localStorage.getItem(ADMIN_EDITOR_VIEW_MODE_STORAGE_KEY))
+  ))
   const [clienteForm, setClienteForm] = useState<AdminCustomerPayload>({
     name: "",
     lastName: "",
@@ -1546,6 +1577,7 @@ export default function AdminDashboard() {
     status: "active",
   })
   const [showStaffForm, setShowStaffForm] = useState(false)
+  const [staffFormClosing, setStaffFormClosing] = useState(false)
   const [editingStaff, setEditingStaff] = useState<CurrentAdmin | null>(null)
   const [staffForm, setStaffForm] = useState<AdminUserPayload>({
     name: "",
@@ -2192,6 +2224,14 @@ export default function AdminDashboard() {
   }, [])
 
   useEffect(() => {
+    localStorage.setItem(PRODUCT_ANALYTICS_VIEW_MODE_STORAGE_KEY, productAnalyticsViewMode)
+  }, [productAnalyticsViewMode])
+
+  useEffect(() => {
+    localStorage.setItem(ADMIN_EDITOR_VIEW_MODE_STORAGE_KEY, adminEditorViewMode)
+  }, [adminEditorViewMode])
+
+  useEffect(() => {
     if (!isMobileAdminNav || !isAdminSidebarOpen) return
 
     const previousOverflow = document.body.style.overflow
@@ -2279,6 +2319,27 @@ export default function AdminDashboard() {
   }, [categoryFilterOpen])
 
   useEffect(() => {
+    if (openProductActionMenuId === null) return
+
+    const handleProductMenuPointerDown = (event: PointerEvent) => {
+      const target = event.target as HTMLElement
+      if (!target.closest(`[data-product-action-menu="${openProductActionMenuId}"]`)) {
+        setOpenProductActionMenuId(null)
+      }
+    }
+    const handleProductMenuKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpenProductActionMenuId(null)
+    }
+
+    document.addEventListener("pointerdown", handleProductMenuPointerDown)
+    document.addEventListener("keydown", handleProductMenuKeyDown)
+    return () => {
+      document.removeEventListener("pointerdown", handleProductMenuPointerDown)
+      document.removeEventListener("keydown", handleProductMenuKeyDown)
+    }
+  }, [openProductActionMenuId])
+
+  useEffect(() => {
     if (!currentAdmin || activeTab !== "orders") return
 
     setOrders([])
@@ -2309,7 +2370,14 @@ export default function AdminDashboard() {
   const handleTabChange = (tab: TabType) => {
     const nextTab = allowedTabs.includes(tab) ? tab : "orders"
     const nextParams = new URLSearchParams(searchParams)
+    setOpenProductActionMenuId(null)
     if (nextTab !== "ingredients") setRelatedIngredientId(null)
+    if (nextTab !== "products") {
+      setSelectedAnalyticsProduct(null)
+      setProductAnalytics(null)
+      setProductAnalyticsLoading(false)
+      setProductAnalyticsClosing(false)
+    }
     if (nextTab === "dashboard") {
       nextParams.delete("tab")
     } else {
@@ -2706,6 +2774,7 @@ export default function AdminDashboard() {
 
   const handleOpenProductAnalytics = async (product: AdminProduct) => {
     setOpenProductActionMenuId(null)
+    setProductAnalyticsClosing(false)
     setSelectedAnalyticsProduct(product)
     setProductAnalytics(null)
     await handleLoadProductAnalytics(product, productAnalyticsDays)
@@ -2724,9 +2793,15 @@ export default function AdminDashboard() {
   }
 
   const handleCloseProductAnalytics = () => {
+    if (!selectedAnalyticsProduct || productAnalyticsClosing) return
+    setProductAnalyticsClosing(true)
+  }
+
+  const handleProductAnalyticsExited = () => {
     setSelectedAnalyticsProduct(null)
     setProductAnalytics(null)
     setProductAnalyticsLoading(false)
+    setProductAnalyticsClosing(false)
   }
 
   const handleOpenLinkedIngredientProduct = (product: AdminProduct) => {
@@ -3003,12 +3078,14 @@ export default function AdminDashboard() {
   }
 
   const openNewCategoryForm = () => {
+    setCategoryFormClosing(false)
     setEditingCategory(null)
     setCategoryForm({ categoryName: "", categoryDescription: "" })
     setShowCategoryForm(true)
   }
 
   const openEditCategoryForm = (category: Category) => {
+    setCategoryFormClosing(false)
     setEditingCategory(category)
     setCategoryForm({
       categoryName: category.categoryName,
@@ -3018,7 +3095,12 @@ export default function AdminDashboard() {
   }
 
   const closeCategoryForm = () => {
+    setCategoryFormClosing(true)
+  }
+
+  const handleCategoryFormExited = () => {
     setShowCategoryForm(false)
+    setCategoryFormClosing(false)
     setEditingCategory(null)
     setCategoryForm({ categoryName: "", categoryDescription: "" })
   }
@@ -3085,12 +3167,14 @@ export default function AdminDashboard() {
   }
 
   const openNewIngredientForm = () => {
+    setIngredientFormClosing(false)
     setEditingIngredient(null)
     setIngredientForm({ name: "", type: "normal", status: "active", available: true, caloriesPerGram: null })
     setShowIngredientForm(true)
   }
 
   const openEditIngredientForm = (ingredient: AdminIngredient) => {
+    setIngredientFormClosing(false)
     setEditingIngredient(ingredient)
     setIngredientForm({
       name: ingredient.name,
@@ -3103,7 +3187,12 @@ export default function AdminDashboard() {
   }
 
   const closeIngredientForm = () => {
+    setIngredientFormClosing(true)
+  }
+
+  const handleIngredientFormExited = () => {
     setShowIngredientForm(false)
+    setIngredientFormClosing(false)
     setEditingIngredient(null)
     setIngredientForm({ name: "", type: "normal", status: "active", available: true, caloriesPerGram: null })
   }
@@ -3286,12 +3375,14 @@ export default function AdminDashboard() {
   }
 
   const openNewClienteForm = () => {
+    setClienteFormClosing(false)
     setEditingCliente(null)
     setClienteForm({ name: "", lastName: "", email: "", password: "", phone: "", taxId: "", address: "", city: "", postalCode: "", status: "active" })
     setShowClienteForm(true)
   }
 
   const openEditClienteForm = (cliente: AdminCustomer) => {
+    setClienteFormClosing(false)
     setEditingCliente(cliente)
     setClienteForm({
       name: cliente.name ?? "",
@@ -3308,6 +3399,17 @@ export default function AdminDashboard() {
     setShowClienteForm(true)
   }
 
+  const closeClienteForm = () => {
+    setClienteFormClosing(true)
+  }
+
+  const handleClienteFormExited = () => {
+    setShowClienteForm(false)
+    setClienteFormClosing(false)
+    setEditingCliente(null)
+    setClienteForm({ name: "", lastName: "", email: "", password: "", phone: "", taxId: "", address: "", city: "", postalCode: "", status: "active" })
+  }
+
   const handleClienteSubmit = async (e: FormEvent) => {
     e.preventDefault()
     try {
@@ -3315,7 +3417,7 @@ export default function AdminDashboard() {
       if (!payload.password) delete payload.password
       if (editingCliente) await updateCustomer(editingCliente.customerId, payload)
       else await createCustomer(payload)
-      setShowClienteForm(false)
+      closeClienteForm()
       await handleLoadClientes()
       await handleLoadOrders()
       toast.success(editingCliente ? "Customer updated successfully." : "Customer created successfully.")
@@ -3370,15 +3472,28 @@ export default function AdminDashboard() {
   }
 
   const openNewStaffForm = () => {
+    setStaffFormClosing(false)
     setEditingStaff(null)
     setStaffForm({ name: "", email: "", password: "", role: "manager", status: "active" })
     setShowStaffForm(true)
   }
 
   const openEditStaffForm = (admin: CurrentAdmin) => {
+    setStaffFormClosing(false)
     setEditingStaff(admin)
     setStaffForm({ name: admin.name, email: admin.email, password: "", role: admin.role, status: admin.status })
     setShowStaffForm(true)
+  }
+
+  const closeStaffForm = () => {
+    setStaffFormClosing(true)
+  }
+
+  const handleStaffFormExited = () => {
+    setShowStaffForm(false)
+    setStaffFormClosing(false)
+    setEditingStaff(null)
+    setStaffForm({ name: "", email: "", password: "", role: "manager", status: "active" })
   }
 
   const handleStaffSubmit = async (e: FormEvent) => {
@@ -3392,7 +3507,7 @@ export default function AdminDashboard() {
         if (!payload.password) throw new Error("A palavra-passe é obrigatória para um novo administrador")
         await createStaffAdmin(payload as AdminUserPayload & { password: string })
       }
-      setShowStaffForm(false)
+      closeStaffForm()
       await handleLoadStaff()
       toast.success(editingStaff ? "Staff admin updated successfully." : "Staff admin created successfully.")
     } catch (err) {
@@ -3982,8 +4097,24 @@ export default function AdminDashboard() {
             </div>
 
             {showCategoryForm && (
-              <div className="ad-card ad-category-form-card">
-                <h3 className="ad-card-title">{editingCategory ? "Editar categoria" : "Adicionar categoria"}</h3>
+              <AdaptivePanel
+                ariaLabel={editingCategory ? "Editar categoria" : "Adicionar categoria"}
+                closeLabel="Fechar editor de categoria"
+                closing={categoryFormClosing}
+                drawerLabel="Mostrar editor no painel lateral"
+                modalLabel="Mostrar editor num modal"
+                mode={adminEditorViewMode}
+                modeGroupLabel="Modo de visualização do editor"
+                onExited={handleCategoryFormExited}
+                onModeChange={setAdminEditorViewMode}
+                onRequestClose={closeCategoryForm}
+                panelClassName="ad-admin-editor-panel"
+              >
+                <div className="ad-admin-editor-heading">
+                  <span>Catálogo</span>
+                  <h3>{editingCategory ? "Editar categoria" : "Adicionar categoria"}</h3>
+                  <p>Defina o nome e a descrição apresentados na organização do menu.</p>
+                </div>
                 <form className="ad-form" onSubmit={handleCategorySubmit}>
                   <div className="ad-form-row">
                     {editingCategory && (
@@ -4019,7 +4150,7 @@ export default function AdminDashboard() {
                     <button type="button" className="ad-btn ad-btn-ghost" onClick={closeCategoryForm}>Cancelar</button>
                   </div>
                 </form>
-              </div>
+              </AdaptivePanel>
             )}
 
             <div className="ad-card ad-directory-toolbar">
@@ -4132,18 +4263,24 @@ export default function AdminDashboard() {
             </div>
 
             {canEditAdminCatalog && showIngredientForm && (
-              <>
-                <div className="ad-modal-backdrop" onClick={closeIngredientForm} />
-                <div className="ad-modal ad-ingredient-modal" role="dialog" aria-modal="true" aria-labelledby="ingredient-modal-title">
-                  <div className="ad-modal-header">
-                    <h3 className="ad-modal-title" id="ingredient-modal-title">
-                      {editingIngredient ? "Editar ingrediente" : "Adicionar ingrediente"}
-                    </h3>
-                    <button type="button" className="ad-modal-close" onClick={closeIngredientForm} aria-label="Fechar editor de ingrediente">
-                      <X size={20} />
-                    </button>
-                  </div>
-                  <div className="ad-modal-body">
+              <AdaptivePanel
+                ariaLabel={editingIngredient ? "Editar ingrediente" : "Adicionar ingrediente"}
+                closeLabel="Fechar editor de ingrediente"
+                closing={ingredientFormClosing}
+                drawerLabel="Mostrar editor no painel lateral"
+                modalLabel="Mostrar editor num modal"
+                mode={adminEditorViewMode}
+                modeGroupLabel="Modo de visualização do editor"
+                onExited={handleIngredientFormExited}
+                onModeChange={setAdminEditorViewMode}
+                onRequestClose={closeIngredientForm}
+                panelClassName="ad-admin-editor-panel"
+              >
+                <div className="ad-admin-editor-heading">
+                  <span>Catálogo</span>
+                  <h3>{editingIngredient ? "Editar ingrediente" : "Adicionar ingrediente"}</h3>
+                  <p>Atualize a composição, as calorias e a disponibilidade operacional.</p>
+                </div>
                     <form className="ad-form" onSubmit={handleIngredientSubmit}>
                       <div className="ad-form-row">
                         <div className="ad-form-group">
@@ -4202,9 +4339,7 @@ export default function AdminDashboard() {
                         <button type="button" className="ad-btn ad-btn-ghost" onClick={closeIngredientForm}>Cancelar</button>
                       </div>
                     </form>
-                  </div>
-                </div>
-              </>
+              </AdaptivePanel>
             )}
 
             <div className="ad-ingredient-toolbar">
@@ -5469,14 +5604,18 @@ export default function AdminDashboard() {
               </>
             )}
 
-            <ProductAnalyticsDrawer
+            <ProductAnalyticsPanel
               product={selectedAnalyticsProduct}
               analytics={productAnalytics}
               loading={productAnalyticsLoading}
               rangeDays={productAnalyticsDays}
+              mode={productAnalyticsViewMode}
+              closing={productAnalyticsClosing}
               onClose={handleCloseProductAnalytics}
+              onExited={handleProductAnalyticsExited}
+              onModeChange={setProductAnalyticsViewMode}
               onEdit={(product) => {
-                handleCloseProductAnalytics()
+                handleProductAnalyticsExited()
                 void handleEditProduct(product)
               }}
               onDelete={(product) => void handleDeleteProductFromAnalytics(product)}
@@ -5509,19 +5648,40 @@ export default function AdminDashboard() {
                           {image && <img src={getImageUrl(image)} alt="" onError={handleAdminImageError} />}
                           <div className="ad-admin-product-card-top">
                             <span>{p.productDisplayId ?? formatProductId(p.productId)}</span>
-                            {canEditAdminCatalog && <details
-                              className="ad-row-action-menu ad-card-action-menu"
-                              open={openProductActionMenuId === p.productId}
+                            {canEditAdminCatalog && <div
+                              className="ad-card-action-menu"
+                              data-product-action-menu={p.productId}
                               onClick={(event) => event.stopPropagation()}
                             >
-                              <summary aria-label={`Ações para ${p.name}`} onClick={(event) => handleToggleProductActionMenu(event, p.productId)}>
+                              <button
+                                aria-expanded={openProductActionMenuId === p.productId}
+                                aria-haspopup="menu"
+                                aria-label={`Ações para ${p.name}`}
+                                className="ad-card-action-trigger"
+                                onClick={(event) => handleToggleProductActionMenu(event, p.productId)}
+                                type="button"
+                              >
                                 <MoreHorizontal size={18} aria-hidden="true" />
-                              </summary>
-                              <div className="ad-row-action-menu-popover">
+                              </button>
+                              <div
+                                aria-hidden={openProductActionMenuId !== p.productId}
+                                className={`ad-row-action-menu-popover ad-card-action-popover ${openProductActionMenuId === p.productId ? "is-open" : ""}`}
+                                inert={openProductActionMenuId !== p.productId ? true : undefined}
+                                role="menu"
+                              >
                                 <button type="button" onClick={() => void handleOpenProductAnalytics(p)}>Análises</button>
-                                <button type="button" className="danger" onClick={() => handleDeleteProduct(p.productId)}>Eliminar</button>
+                                <button
+                                  type="button"
+                                  className="danger"
+                                  onClick={() => {
+                                    setOpenProductActionMenuId(null)
+                                    void handleDeleteProduct(p.productId)
+                                  }}
+                                >
+                                  Eliminar
+                                </button>
                               </div>
-                            </details>}
+                            </div>}
                           </div>
                           <h3>{p.name}</h3>
                         </div>
@@ -5880,8 +6040,24 @@ export default function AdminDashboard() {
             </div>
 
             {showClienteForm && (
-              <div className="ad-card">
-                <h3 className="ad-card-title">{editingCliente ? "Editar cliente" : "Adicionar cliente"}</h3>
+              <AdaptivePanel
+                ariaLabel={editingCliente ? "Editar cliente" : "Adicionar cliente"}
+                closeLabel="Fechar editor de cliente"
+                closing={clienteFormClosing}
+                drawerLabel="Mostrar editor no painel lateral"
+                modalLabel="Mostrar editor num modal"
+                mode={adminEditorViewMode}
+                modeGroupLabel="Modo de visualização do editor"
+                onExited={handleClienteFormExited}
+                onModeChange={setAdminEditorViewMode}
+                onRequestClose={closeClienteForm}
+                panelClassName="ad-admin-editor-panel"
+              >
+                <div className="ad-admin-editor-heading">
+                  <span>Clientes</span>
+                  <h3>{editingCliente ? "Editar cliente" : "Adicionar cliente"}</h3>
+                  <p>Atualize os dados de contacto, faturação e acesso da conta.</p>
+                </div>
                 <form onSubmit={handleClienteSubmit} className="ad-form">
                   <div className="ad-form-row">
                     <div className="ad-form-group"><label>Nome</label><input value={clienteForm.name} onChange={e => setClienteForm({ ...clienteForm, name: e.target.value })} required /></div>
@@ -5893,12 +6069,18 @@ export default function AdminDashboard() {
                     <div className="ad-form-group"><label>Telefone</label><input value={clienteForm.phone || ""} onChange={e => setClienteForm({ ...clienteForm, phone: e.target.value })} /></div>
                     <div className="ad-form-group"><label>Estado</label><CustomSelect className="ad-select" value={clienteForm.status ?? "active"} onChange={(nextValue) => setClienteForm({ ...clienteForm, status: String(nextValue) as UserStatus })} options={[{ value: "active", label: "Ativo" }, { value: "suspended", label: "Suspenso" }]} /></div>
                   </div>
+                  <div className="ad-form-row">
+                    <div className="ad-form-group"><label>NIF</label><input value={clienteForm.taxId || ""} onChange={e => setClienteForm({ ...clienteForm, taxId: e.target.value })} /></div>
+                    <div className="ad-form-group"><label>Cidade</label><input value={clienteForm.city || ""} onChange={e => setClienteForm({ ...clienteForm, city: e.target.value })} /></div>
+                    <div className="ad-form-group"><label>Código postal</label><input value={clienteForm.postalCode || ""} onChange={e => setClienteForm({ ...clienteForm, postalCode: e.target.value })} /></div>
+                  </div>
+                  <div className="ad-form-group"><label>Morada</label><input value={clienteForm.address || ""} onChange={e => setClienteForm({ ...clienteForm, address: e.target.value })} /></div>
                   <div className="ad-form-actions">
-                    <button type="submit" className="ad-btn ad-btn-primary">Guardar cliente</button>
-                    <button type="button" className="ad-btn ad-btn-ghost" onClick={() => setShowClienteForm(false)}>Cancelar</button>
+                    <button type="submit" className="ad-btn ad-btn-primary">{editingCliente ? "Guardar cliente" : "Criar cliente"}</button>
+                    <button type="button" className="ad-btn ad-btn-ghost" onClick={closeClienteForm}>Cancelar</button>
                   </div>
                 </form>
-              </div>
+              </AdaptivePanel>
             )}
 
             <div className="ad-card ad-directory-toolbar">
@@ -6011,8 +6193,24 @@ export default function AdminDashboard() {
             </div>
 
             {showStaffForm && (
-              <div className="ad-card">
-                <h3 className="ad-card-title">{editingStaff ? "Editar admin" : "Adicionar admin"}</h3>
+              <AdaptivePanel
+                ariaLabel={editingStaff ? "Editar funcionário" : "Adicionar funcionário"}
+                closeLabel="Fechar editor de funcionário"
+                closing={staffFormClosing}
+                drawerLabel="Mostrar editor no painel lateral"
+                modalLabel="Mostrar editor num modal"
+                mode={adminEditorViewMode}
+                modeGroupLabel="Modo de visualização do editor"
+                onExited={handleStaffFormExited}
+                onModeChange={setAdminEditorViewMode}
+                onRequestClose={closeStaffForm}
+                panelClassName="ad-admin-editor-panel"
+              >
+                <div className="ad-admin-editor-heading">
+                  <span>Equipa</span>
+                  <h3>{editingStaff ? "Editar funcionário" : "Adicionar funcionário"}</h3>
+                  <p>Atualize os dados de acesso, o cargo e o estado deste membro da equipa.</p>
+                </div>
                 <form onSubmit={handleStaffSubmit} className="ad-form">
                   <div className="ad-form-row">
                     <div className="ad-form-group"><label>Nome</label><input value={staffForm.name} onChange={e => setStaffForm({ ...staffForm, name: e.target.value })} required /></div>
@@ -6024,11 +6222,11 @@ export default function AdminDashboard() {
                     <div className="ad-form-group"><label>Estado</label><CustomSelect className="ad-select" value={staffForm.status} onChange={(nextValue) => setStaffForm({ ...staffForm, status: String(nextValue) as UserStatus })} options={[{ value: "active", label: "Ativo" }, { value: "suspended", label: "Suspenso" }]} /></div>
                   </div>
                   <div className="ad-form-actions">
-                    <button type="submit" className="ad-btn ad-btn-primary">Guardar admin</button>
-                    <button type="button" className="ad-btn ad-btn-ghost" onClick={() => setShowStaffForm(false)}>Cancelar</button>
+                    <button type="submit" className="ad-btn ad-btn-primary">{editingStaff ? "Guardar funcionário" : "Criar funcionário"}</button>
+                    <button type="button" className="ad-btn ad-btn-ghost" onClick={closeStaffForm}>Cancelar</button>
                   </div>
                 </form>
-              </div>
+              </AdaptivePanel>
             )}
 
             <div className="ad-card ad-directory-toolbar">

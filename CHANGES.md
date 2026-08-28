@@ -368,7 +368,7 @@ Required behavior and shared contract:
 
 Frontend behavior:
 
-- Use the shared `Pagination` component with `storefront` and `admin` variants. It renders a styled page-size selector, visible range/total, previous/next arrows, numeric pages, ellipses, and a clamped manual page field with an “Ir/Go/Los” action that also submits on Enter. The token sequence always includes the first three pages, last two pages, and current-page neighbors.
+- Use the shared `Pagination` component with `storefront` and `admin` variants. It renders the controlled `CustomSelect` instead of a native HTML `<select>` for page size, with variant-specific storefront/admin styling, keyboard support, outside-click dismissal, an animated chevron, and animated menu entry and exit. It also renders the visible range/total, previous/next arrows, numeric pages, ellipses, and a clamped manual page field with an “Ir/Go/Los” action that submits on Enter. The token sequence always includes the first three pages, last two pages, and current-page neighbors.
 - Hide pagination completely for an empty collection. When all results fit on one page, render only the localized result range/count and omit the page-size selector, arrows, page number, ellipses, and manual “Ir” field; render the complete control set only when `total_pages > 1`. This rule lives in the shared component and therefore applies equally to storefront, profile, guest, related-product, and administrative collections.
 - Treat the URL as the source of truth, including browser back/forward navigation. Menu, product reviews, Profile orders/coupons, guest orders, and every administrative result tab read and write page, page size, sort, and filters without discarding unrelated `tab`/`view` values. Filtering or changing page size returns that collection to page 1. Search inputs are debounced and stale responses cannot replace a newer request.
 - Preserve the current scroll position when only query parameters change. Pagination buttons, the manual “Ir” action, page-size selectors, filters, sort controls, and administrative view/tab state update the URL in place without the global route handler scrolling to the top; actual pathname or hash navigation keeps the existing top/anchor behavior.
@@ -390,7 +390,8 @@ Backend files changed:
 
 Frontend files changed:
 
-- `frontend/src/types/pagination.ts`, `frontend/src/components/ui/Pagination.tsx`, `frontend/src/components/ui/Pagination.css`, `frontend/src/components/ui/paginationRange.ts`, `frontend/src/components/ui/Pagination.test.ts`, and `frontend/src/components/ui/index.ts`: shared types, component, two visual variants, page-token algorithm, exports, and tests.
+- `frontend/src/types/pagination.ts`, `frontend/src/components/ui/Pagination.tsx`, `frontend/src/components/ui/Pagination.css`, `frontend/src/components/ui/paginationRange.ts`, `frontend/src/components/ui/Pagination.test.ts`, and `frontend/src/components/ui/index.ts`: shared types, component, modern per-page dropdown in two visual variants, page-token algorithm, exports, and tests.
+- `frontend/src/components/ui/CustomSelect.tsx` and `CustomSelect.css`: optional compact portal-menu width and delayed animated closing used by both pagination variants; existing administrative selects inherit the same smoother close behavior.
 - `frontend/src/services/productService.ts`, `frontend/src/services/checkoutService.ts`, `frontend/src/services/authService.ts`, `frontend/src/services/adminService.ts`, and `frontend/src/services/cartService.ts`: consume envelopes, pass server filters, provide explicit all-page helpers only for auxiliary/operational consumers, and expose the three new endpoints.
 - `frontend/src/types/product.ts` and `frontend/src/types/admin.ts`: facet/count/summary types consumed outside generated models.
 - `frontend/src/pages/Menu.tsx`, `frontend/src/pages/ProductDetail.tsx`, `frontend/src/pages/Profile.tsx`, `frontend/src/pages/GuestOrders.tsx`, and `frontend/src/pages/AdminDashboard.tsx`: per-collection pagination, URL hydration/write-back, page correction, debounced requests, independent archived products, on-demand ingredient relationships, and use of global summaries/facets.
@@ -426,6 +427,47 @@ Files changed:
 
 For the multi-tenant port, retain the target branch's tenant-scoped related-product endpoint and product identifiers/media conventions. Copy the modal behavior and styles, but do not replace the tenant predicate or fetch all related products locally.
 
+## 16. Refine administrative product cards, actions, and analytics presentation
+
+Required behavior:
+
+- Active product cards use a clean semantic surface behind transparent product images. Remove the former grey/dark gradients, overlay veil, image opacity reduction, white title, and heavy title shadow; keep the ID fixed at the upper-left and the three-dot action at the upper-right, raise and constrain the image to its own area, and reserve a separate lower area for up to two title lines so image and text never overlap in either admin theme.
+- Replace the active-card native `<details>` action menu with controlled React state. Only one menu may be open; pointer interaction outside it, Escape, tab navigation, opening analytics, deletion, or opening another menu closes it. Keep the menu mounted but inert/hidden while closed so opacity/scale/translation transitions animate both entrance and exit. The three-dot trigger and menu rows use theme-tinted hover/focus states instead of turning solid white.
+- Product analytics share one content component with desktop `drawer` and `modal` presentations. Store the last desktop preference under `admin_product_analytics_view_mode`; accept only `drawer`/`modal` and default invalid or missing values to `drawer`. Switching presentation retains the selected product, range, and loaded response and must not issue a new analytics request.
+- The desktop drawer has no backdrop and does not lock document scrolling. It owns only the fixed right-hand region, has independent scrolling, and is visually separated by its semantic surface, the same subtle one-pixel border used elsewhere in the console, and a soft lateral shadow; products and controls outside it remain interactive. The modal uses a full-shell blurred backdrop above the topbar/sidebar, locks background scrolling, and closes through its button, Escape, or backdrop.
+- At `max-width: 760px`, resolve either stored desktop preference to one presentation that fills only the administrative content area below the persistent topbar, without rewriting storage or covering/blurring the mobile header. Put a borderless, heavier close icon in its own toolbar above the product image; let the image span the same content width as the metrics below. Hide the desktop view toggle because both desktop modes converge on this mobile presentation.
+- Animate drawer, modal, full-screen panel, and modal backdrop on entrance and exit, delaying data-panel unmount until the panel's own exit animation completes. Ignore descendant animation events and honor reduced-motion preferences.
+- Increase the product create/edit modal desktop maximum width from 1040 px to 1160 px. Existing tablet and phone width constraints remain authoritative.
+
+Frontend files changed:
+
+- `frontend/src/pages/AdminDashboard.tsx` and `frontend/src/pages/AdminDashboard.css`: controlled action menu, outside/Escape cleanup, dual analytics presentation, blocking/non-blocking behavior, mobile full-screen layout, animations, clean cards, and larger desktop editor.
+- `frontend/src/utils/productAnalyticsView.ts` and `frontend/src/utils/productAnalyticsView.test.ts`: preference type, storage key, invalid-value normalization, mobile presentation resolution, and unit coverage.
+- `frontend/src/i18n/adminPhrases.ts`: Portuguese, English, and German accessible labels/titles for the analytics view toggle.
+
+No backend, database, OpenAPI, generated client, role capability, or analytics response changed. For the multi-tenant port, keep that branch's tenant-filtered analytics endpoint and product models; port the frontend state/presentation layer only, reuse the same storage key, and reconcile any tenant-console topbar/sidebar z-index differences while preserving `shell < modal backdrop < analytics modal`.
+
+## 17. Reuse one adaptive modal/sidebar surface for administrative editors
+
+Required behavior:
+
+- Use one controlled React `AdaptivePanel` for product analytics and the category, ingredient, customer, and staff create/edit flows. The component owns presentation resolution, the segmented drawer/modal toggle, responsive mobile behavior, Escape handling, backdrop dismissal, background scroll locking, independent drawer scrolling, accessible roles/labels, and delayed unmount after exit animation.
+- Desktop drawer mode is non-blocking and keeps the underlying directory interactive. Desktop modal mode renders a blurred full-console backdrop and locks background scrolling. At `max-width: 760px`, both preferences resolve to the content area below the persistent administrative topbar, without hiding or blurring that header or overwriting the saved desktop preference.
+- Store the shared category/ingredient/customer/staff editor preference under `admin_editor_view_mode`, accepting only `drawer` or `modal` and falling back to `drawer`. Product analytics retains its existing `admin_product_analytics_view_mode` key while consuming the same adaptive presentation component.
+- Category, customer, and staff editors no longer render as inline cards. Ingredient editing no longer owns a separate hard-coded modal implementation. All four editors share the same heading hierarchy, semantic surfaces, subtle drawer border/shadow, modal blur, close paths, entry/exit motion, responsive action layout, and reduced-motion behavior.
+- Customer editing exposes the already-supported contact and billing payload fields together: name, surname, email, optional replacement password, phone, status, tax ID, city, postal code, and address. Existing API calls and payload shapes remain unchanged.
+- Filter checkboxes and their labels use a pointer cursor when enabled and a not-allowed cursor when disabled. Checkbox dimensions, padding, background, and shadow are explicitly isolated from generic text-input focus rules so selecting a filter cannot produce a tall rectangular outline; keyboard focus is conveyed by the surrounding filter label instead. Conditional panel opening, closing, and presentation changes animate without prematurely unmounting their content.
+
+Frontend files changed:
+
+- `frontend/src/components/admin/AdaptivePanel.tsx` and `AdaptivePanel.css`: reusable controlled adaptive surface, viewport resolution, toggle/close controls, backdrop and scroll policy, event cleanup, animation lifecycle, responsive layout, and reduced-motion support.
+- `frontend/src/utils/adaptivePanelMode.ts` and `adaptivePanelMode.test.ts`: shared mode types, invalid-storage normalization, mobile presentation resolution, and unit coverage.
+- `frontend/src/pages/AdminDashboard.tsx`: product analytics migration, shared editor preference, animated category/ingredient/customer/staff lifecycles, and complete customer form fields.
+- `frontend/src/pages/AdminDashboard.css`: editor-specific widths/headings/actions plus checkbox cursor, focus, and transition states.
+- `frontend/src/i18n/adminPhrases.ts`: Portuguese, English, and German accessible labels for editor presentation and close controls.
+
+No backend, migration, OpenAPI, generated-client, or authorization change is required. In the multi-tenant branch, reuse the component and state lifecycle rather than copying the former inline forms; preserve tenant-aware customer/catalog service calls and verify that its topbar height variable keeps the mobile panel below the visible header.
+
 ## Multi-tenant port verification checklist
 
 1. Reapply backend behavior while preserving tenant ownership filters on every order lookup and list.
@@ -444,6 +486,8 @@ For the multi-tenant port, retain the target branch's tenant-scoped related-prod
 14. Open Ingredients without activating any product count and confirm no linked-product content covers the grid. Open both product and ingredient editors and verify the blur animates continuously across the admin topbar, sidebar, and content in light/dark themes and with reduced motion enabled.
 15. For every paginated endpoint, compare `items`, `total`, `total_pages`, facets, summaries, and related counts against the same tenant-scoped filters. Exercise first/last/empty/out-of-range pages and `per_page` limits; then use back/forward navigation on every paginated frontend surface, independently expand archived products, invalidate one guest token, and confirm Counter/Kitchen still return their complete tenant-scoped operational sets without paginator controls.
 16. Click related-product counts on ingredients near every grid edge and confirm the grid remains unchanged while a centred modal opens. Test loading, empty, multi-page, page-size, narrow viewport, dark theme, backdrop/close dismissal, and product-detail navigation; close the modal before a delayed request resolves and confirm it stays closed.
+17. Inspect active product cards in light/dark themes, exercise the three-dot menu through pointer and keyboard closure paths, and switch loaded analytics between drawer and modal without another request. Confirm drawer background interaction and independent scrolling, modal blur/scroll lock across topbar/sidebar, remembered desktop preference, mobile full-screen image/close alignment, exit animations with reduced motion, and the 1160 px desktop product editor.
+18. Open create and edit flows for categories, ingredients, customers, and staff, alternate each between drawer and modal, and confirm the shared preference survives reload. Test Escape, backdrop, close and Cancel paths, delayed animated unmount, underlying-page interaction in drawer mode, full-console blur/scroll lock in modal mode, persistent mobile topbar, every customer billing field, enabled/disabled filter-checkbox cursors, compact checkbox focus without a text-input outline, dark theme, and reduced motion.
 
 
 # Changes in multi-tenant branch

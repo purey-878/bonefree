@@ -2,6 +2,7 @@ import { useId, useMemo, useState, type FormEvent } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PER_PAGE_OPTIONS } from '../../types/pagination';
+import CustomSelect from './CustomSelect';
 import { paginationTokens } from './paginationRange';
 import './Pagination.css';
 
@@ -54,9 +55,21 @@ export function Pagination({ page, perPage, total, totalPages, onPageChange, onP
     <nav className={`pagination pagination--${variant} ${className}`.trim()} aria-label={t('pagination.navigation')}>
       <div className="pagination__summary">
         <span>{rangeLabel}</span>
-        <label><span>{t('pagination.perPage')}</span><select value={perPage} onChange={(event) => { setTargetPageDraft(null); onPerPageChange(Number(event.target.value)); }} aria-label={t('pagination.perPage')}>
-          {PER_PAGE_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
-        </select></label>
+        <div className="pagination__per-page">
+          <span>{t('pagination.perPage')}</span>
+          <CustomSelect
+            aria-label={t('pagination.perPage')}
+            className={`pagination__per-page-select pagination__per-page-select--${variant}`}
+            menuClassName={`pagination__per-page-menu pagination__per-page-menu--${variant}`}
+            menuMinWidth={96}
+            value={perPage}
+            options={PER_PAGE_OPTIONS.map((option) => ({ value: option, label: option }))}
+            onChange={(nextValue) => {
+              setTargetPageDraft(null);
+              onPerPageChange(Number(nextValue));
+            }}
+          />
+        </div>
       </div>
       <div className="pagination__pages">
         <button type="button" className="pagination__arrow" onClick={() => go(page - 1)} disabled={page <= 1} aria-label={t('pagination.previous')}><ChevronLeft aria-hidden="true" size={17} /></button>
