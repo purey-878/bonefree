@@ -13,6 +13,7 @@ type Props = {
   orders: AdminOrder[];
   onRefresh: () => void;
   onUpdateStatus: (orderId: number, status: string) => Promise<void> | void;
+  onDelete: (orderId: number) => Promise<void> | void;
 };
 
 const allStatuses = ["pending", "confirmed", "in_preparation", "ready", "delivered", "cancelled"];
@@ -39,7 +40,7 @@ function paymentParts(order: AdminOrder): { method: string; status: string } {
   return { method, status };
 }
 
-export default function SuperAdminOrdersView({ orders, onRefresh, onUpdateStatus }: Props) {
+export default function SuperAdminOrdersView({ orders, onRefresh, onUpdateStatus, onDelete }: Props) {
   const { t } = useTranslation("admin");
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [quickFilter, setQuickFilter] = useState("all");
@@ -242,6 +243,9 @@ export default function SuperAdminOrdersView({ orders, onRefresh, onUpdateStatus
                   {order.state !== "cancelled" && (
                     <button className="ad-btn ad-btn-danger" onClick={() => onUpdateStatus(order.orderId, "cancelled")}>{t("orders.common.cancel")}</button>
                   )}
+                  {order.state === "cancelled" && (
+                    <button className="ad-btn ad-btn-danger" onClick={() => onDelete(order.orderId)}>{t("orders.common.delete")}</button>
+                  )}
                   <button className="ad-btn ad-btn-ghost" onClick={() => setSelectedOrderId(order.orderId)}>{t("orders.common.details")}</button>
                 </div>
                 </article>
@@ -285,6 +289,9 @@ export default function SuperAdminOrdersView({ orders, onRefresh, onUpdateStatus
                     <CustomSelect className="ad-select" value={order.state} onChange={(nextValue) => onUpdateStatus(order.orderId, String(nextValue))} options={allStatuses.map((status) => ({ value: status, label: formatOrderStatus(status) }))} />
                     {order.state !== "cancelled" && (
                       <button className="ad-btn ad-btn-sm ad-btn-danger" onClick={() => onUpdateStatus(order.orderId, "cancelled")}>{t("orders.common.cancel")}</button>
+                    )}
+                    {order.state === "cancelled" && (
+                      <button className="ad-btn ad-btn-sm ad-btn-danger" onClick={() => onDelete(order.orderId)}>{t("orders.common.delete")}</button>
                     )}
                     <button className="ad-btn ad-btn-sm ad-btn-ghost" onClick={() => setSelectedOrderId(order.orderId)}>{t("orders.common.details")}</button>
                   </div>

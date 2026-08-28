@@ -6,6 +6,7 @@ import {
   adminManagementCreateProduct,
   adminManagementCreateStaffAdmin,
   adminManagementDeleteCategory,
+  adminManagementDeleteCancelledOrder,
   adminManagementDeleteCustomer,
   adminManagementDeleteIngredient,
   adminManagementDeleteProduct,
@@ -215,6 +216,11 @@ export async function updateOrderStatus(orderId: number, state: string): Promise
   return toDomain(await apiData(adminManagementUpdateOrderStatus({
     path: { order_id: orderId }, body: { state: state as OrderState }, client: adminApiClient, throwOnError: true,
   })));
+}
+export async function deleteOrder(orderId: number): Promise<void> {
+  await apiData(adminManagementDeleteCancelledOrder({
+    path: { order_id: orderId }, client: adminApiClient, throwOnError: true,
+  }));
 }
 export async function payCounterOrder(orderId: number): Promise<AdminOrder> {
   const value = await apiData(adminManagementPayCounterOrder({ path: { order_id: orderId }, client: adminApiClient, throwOnError: true }));

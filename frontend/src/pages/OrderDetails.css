@@ -106,8 +106,7 @@
   gap: 5px;
 }
 
-.order-details-items small,
-.order-details-guest-note {
+.order-details-items small {
   color: #657067;
 }
 
@@ -147,7 +146,6 @@
   cursor: wait;
 }
 
-.order-details-guest-note,
 .order-details-error {
   margin: 18px 0 0;
   padding: 13px 15px;

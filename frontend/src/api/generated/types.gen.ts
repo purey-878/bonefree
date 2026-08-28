@@ -4404,6 +4404,64 @@ export type AdminManagementListOrdersResponses = {
 
 export type AdminManagementListOrdersResponse = AdminManagementListOrdersResponses[keyof AdminManagementListOrdersResponses];
 
+export type AdminManagementDeleteCancelledOrderData = {
+    body?: never;
+    path: {
+        /**
+         * Order Id
+         */
+        order_id: number;
+    };
+    query?: never;
+    url: '/admin/orders/{order_id}';
+};
+
+export type AdminManagementDeleteCancelledOrderErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type AdminManagementDeleteCancelledOrderError = AdminManagementDeleteCancelledOrderErrors[keyof AdminManagementDeleteCancelledOrderErrors];
+
+export type AdminManagementDeleteCancelledOrderResponses = {
+    /**
+     * Successful Response
+     */
+    200: MessageResponse;
+};
+
+export type AdminManagementDeleteCancelledOrderResponse = AdminManagementDeleteCancelledOrderResponses[keyof AdminManagementDeleteCancelledOrderResponses];
+
 export type AdminManagementGetOrderData = {
     body?: never;
     path: {

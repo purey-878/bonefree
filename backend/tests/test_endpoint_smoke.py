@@ -272,12 +272,20 @@ class EndpointSmokeTests(unittest.TestCase):
         )
         self.assertEqual(receipt_before_payment.status_code, 409, receipt_before_payment.text)
 
-        advance_unpaid = self.client.patch(
+        manager_advance_unpaid = self.client.patch(
+            f"/admin/orders/{order_id}/status",
+            json={"state": "confirmed"},
+            headers=self.role_headers(self.manager_token),
+        )
+        self.assertEqual(manager_advance_unpaid.status_code, 409, manager_advance_unpaid.text)
+
+        owner_advance_unpaid = self.client.patch(
             f"/admin/orders/{order_id}/status",
             json={"state": "confirmed"},
             headers=self.admin_headers,
         )
-        self.assertEqual(advance_unpaid.status_code, 409, advance_unpaid.text)
+        self.assertEqual(owner_advance_unpaid.status_code, 200, owner_advance_unpaid.text)
+        self.assertEqual(owner_advance_unpaid.json()["state"], "confirmed")
 
         with patch("routers.admin.send_purchase_receipt", return_value=True) as send_receipt:
             paid = self.client.post(
@@ -317,6 +325,47 @@ class EndpointSmokeTests(unittest.TestCase):
             headers=self.customer_headers,
         )
         self.assertEqual(cancel_paid.status_code, 409, cancel_paid.text)
+
+    def test_owner_can_delete_only_cancelled_orders(self):
+        created = self._create_order()
+        order_id = created["order_id"]
+
+        active_delete = self.client.delete(
+            f"/admin/orders/{order_id}",
+            headers=self.admin_headers,
+        )
+        self.assertEqual(active_delete.status_code, 409, active_delete.text)
+        self.assertEqual(active_delete.json()["error"], "order_must_be_cancelled")
+
+        cancelled = self.client.patch(
+            f"/admin/orders/{order_id}/status",
+            json={"state": "cancelled"},
+            headers=self.admin_headers,
+        )
+        self.assertEqual(cancelled.status_code, 200, cancelled.text)
+        self.assertEqual(cancelled.json()["state"], "cancelled")
+        self.assertEqual(cancelled.json()["cancellation_origin"], "admin")
+        self.assertIsNotNone(cancelled.json()["canceled_at"])
+
+        manager_delete = self.client.delete(
+            f"/admin/orders/{order_id}",
+            headers=self.role_headers(self.manager_token),
+        )
+        self.assertEqual(manager_delete.status_code, 403, manager_delete.text)
+
+        deleted = self.client.delete(
+            f"/admin/orders/{order_id}",
+            headers=self.admin_headers,
+        )
+        self.assertEqual(deleted.status_code, 200, deleted.text)
+        self.assertEqual(deleted.json()["message"], "Order deleted successfully.")
+        self.assertEqual(
+            self.client.get(f"/admin/orders/{order_id}", headers=self.admin_headers).status_code,
+            404,
+        )
+        with self.Session() as db:
+            self.assertIsNone(db.get(Order, order_id))
+            self.assertIsNone(db.scalar(select(Payment).where(Payment.order_id == order_id)))
 
     def test_availability_quick_actions_are_idempotent_and_role_protected(self):
         product_path = f"/admin/products/{self.product_id}/availability"

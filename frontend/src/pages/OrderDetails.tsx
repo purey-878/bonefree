@@ -219,11 +219,6 @@ export default function OrderDetails() {
                   )}
                 </div>
 
-                {guestToken && (
-                  <p className="order-details-guest-note">
-                    {t("order.guestNote")}
-                  </p>
-                )}
               </aside>
             </div>
           </>

@@ -38,6 +38,7 @@ import {
   uploadProductMedia,
   deleteProductMedia,
   updateOrderStatus,
+  deleteOrder,
   payCounterOrder,
   listCustomers,
   createCustomer,
@@ -2785,6 +2786,28 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
     }
   }
 
+  const handleDeleteOrder = async (orderId: number) => {
+    await runConfirmedAction({
+      title: `Eliminar o pedido #${orderId}?`,
+      description: "Esta ação não pode ser anulada. O pedido cancelado e os respetivos dados serão eliminados definitivamente.",
+      confirmText: "Eliminar pedido",
+      cancelText: "Cancelar",
+      danger: true,
+    }, async () => {
+      try {
+        await deleteOrder(orderId)
+        setOrders((current) => current.filter((order) => order.orderId !== orderId))
+        toast.success("Pedido eliminado com sucesso.")
+        return true
+      } catch (err) {
+        const message = getErrorMessage(err, "Failed to delete order")
+        setError(message)
+        toast.error("Não foi possível eliminar o pedido.")
+        return false
+      }
+    })
+  }
+
   const handlePayCounterOrder = async (orderId: number) => {
     try {
       refreshOrder(await payCounterOrder(orderId))
@@ -5172,7 +5195,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
             ) : experience === "staff" ? (
               <StaffOrdersBoard orders={orders} onRefresh={handleLoadOrders} onMarkPaid={handlePayCounterOrder} onUpdateStatus={handleOrderStatusChange} />
             ) : (
-              <SuperAdminOrdersView orders={orders} onRefresh={handleLoadOrders} onUpdateStatus={handleOrderStatusChange} />
+              <SuperAdminOrdersView orders={orders} onRefresh={handleLoadOrders} onUpdateStatus={handleOrderStatusChange} onDelete={handleDeleteOrder} />
             )}
           </div>
         )}

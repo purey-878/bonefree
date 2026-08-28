@@ -12,7 +12,7 @@ from typing import Dict, List, Optional, Union
 
 from database import get_db
 from dependencies import rate_limit_admin_login, require_role
-from schemas.enums import ADMIN_ROLES, EntityStatus, IngredientType, MediaOwnerType, OrderState, PaymentMethod, PaymentState, PaymentStatus, ReviewStatus, UserRole, UserStatus, normalize_admin_role
+from schemas.enums import ADMIN_ROLES, CancellationOrigin, EntityStatus, IngredientType, MediaOwnerType, OrderState, PaymentMethod, PaymentState, PaymentStatus, ReviewStatus, UserRole, UserStatus, normalize_admin_role
 from models import (
     Admin, Product, Cart, CartProduct as CartItem, Customer,
     Category, Order, OrderProduct, Payment, ProductReview,
@@ -687,9 +687,11 @@ def _get_order_or_404(db: Session, order_id: int) -> Order:
 
 def _ensure_order_status_allowed(current_admin: Admin, order: Order, next_status: str | OrderState) -> None:
     next_state = OrderState(next_status)
+    if current_admin.role == SUPER_ADMIN_ROLE:
+        return
     if current_admin.role == CHEF_ROLE and next_state not in CHEF_ALLOWED_STATES:
         raise AppHTTPException(status_code=403, error="permission_denied", message="Permission denied.", details={"reason": "request_failed"})
-    if current_admin.role in {STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE} and next_state not in STAFF_ALLOWED_STATES:
+    if current_admin.role == STAFF_ADMIN_ROLE and next_state not in STAFF_ALLOWED_STATES:
         raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="invalid_order_state_transition", message="Order cannot be moved to the requested state.", details={"order_id": order.order_id, "next_state": str(next_state), "admin_role": str(current_admin.role)})
     if order.payment_status == PaymentStatus.UNPAID and next_state not in {OrderState.PENDING, OrderState.CANCELLED}:
         raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="payment_required", message="Counter payment must be confirmed before advancing the order.", details={"order_id": order.order_id, "next_state": str(next_state)})
@@ -1637,6 +1639,30 @@ def get_order(
     return _order_response(_get_order_or_404(db, order_id))
 
 
+@router.delete(
+    "/orders/{order_id}",
+    response_model=MessageResponse,
+    operation_id="admin_management_delete_cancelled_order",
+)
+def delete_cancelled_order(
+    order_id: int,
+    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
+    db: Session = Depends(get_db),
+):
+    order = _get_order_or_404(db, order_id)
+    if order.state != OrderState.CANCELLED:
+        raise AppHTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            error="order_must_be_cancelled",
+            message="Only a cancelled order can be deleted.",
+            details={"order_id": order.order_id, "state": str(order.state)},
+        )
+
+    db.delete(order)
+    db.commit()
+    return MessageResponse(message="Order deleted successfully.")
+
+
 @router.patch(
     "/orders/{order_id}/status",
     response_model=OrderResponse,
@@ -1652,9 +1678,17 @@ def update_order_status(
     if current_admin.role == CHEF_ROLE and not _is_kitchen_visible(order):
         raise AppHTTPException(status_code=403, error="permission_denied", message="Permission denied.", details={"reason": "request_failed"})
     _ensure_order_status_allowed(current_admin, order, body.state)
+    previous_state = order.state
+    now = datetime.utcnow()
     order.state = body.state
+    if body.state == OrderState.CANCELLED:
+        order.canceled_at = order.canceled_at or now
+        order.cancellation_origin = CancellationOrigin.ADMIN
+    elif previous_state == OrderState.CANCELLED:
+        order.canceled_at = None
+        order.cancellation_origin = None
     order.admin_id = current_admin.admin_id
-    order.updated_at = datetime.utcnow()
+    order.updated_at = now
     db.commit()
     db.refresh(order)
     return _order_response(order)
