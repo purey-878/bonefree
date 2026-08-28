@@ -3362,7 +3362,7 @@
 }
 
 .ad-order-clear {
-  align-self: flex-start;
+  align-self: end;
 }
 
 .ad-order-header {
@@ -3603,6 +3603,7 @@
 
 .orders-kanban {
   display: grid;
+  align-items: start;
   gap: 14px;
 }
 
@@ -3614,12 +3615,22 @@
   grid-template-columns: repeat(3, minmax(280px, 1fr));
 }
 
+.orders-kanban-single {
+  grid-template-columns: minmax(280px, 1fr);
+}
+
 .orders-column {
+  align-self: start;
   min-width: 0;
   background: #f8fafc;
   border: 1px solid #cbd5e1;
   border-radius: 12px;
   padding: 12px;
+}
+
+.orders-column.is-empty,
+.orders-column.is-collapsed {
+  min-height: 180px;
 }
 
 .orders-column-header {
@@ -3628,6 +3639,7 @@
   justify-content: space-between;
   gap: 10px;
   margin-bottom: 12px;
+  transition: margin-bottom 180ms ease;
 }
 
 .orders-column-header h3 {
@@ -3651,10 +3663,108 @@
   font-weight: 700;
 }
 
+.orders-column-header-actions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.orders-column-collapse-toggle {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ad-muted);
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.orders-column-collapse-toggle:hover:not(:disabled),
+.orders-column-collapse-toggle:focus-visible {
+  border-color: var(--ad-border);
+  background: var(--ad-surface);
+  color: var(--ad-heading);
+}
+
+.orders-column-collapse-toggle:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--ad-primary) 14%, transparent);
+  outline-offset: 1px;
+}
+
+.orders-column-collapse-toggle:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+.orders-column-collapse-toggle svg,
+.order-card-collapse-toggle svg {
+  transition: transform 180ms ease;
+}
+
+.orders-column.is-collapsed .orders-column-collapse-toggle svg,
+.order-card-v2.is-collapsed .order-card-collapse-toggle svg {
+  transform: rotate(180deg);
+}
+
+.orders-column-collapsible {
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+  transition: grid-template-rows 200ms ease, opacity 150ms ease, visibility 0s linear 0s;
+}
+
+.orders-column-collapsible > .orders-column-list {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.orders-column.is-collapsed .orders-column-collapsible {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: grid-template-rows 200ms ease, opacity 150ms ease, visibility 0s linear 200ms;
+}
+
+.orders-column-collapsed-summary {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  transition: grid-template-rows 200ms ease, opacity 150ms ease, visibility 0s linear 200ms;
+}
+
+.orders-column-collapsed-summary > .orders-column-empty {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.orders-column.is-collapsed {
+  cursor: pointer;
+}
+
+.orders-column.is-collapsed .orders-column-collapsed-summary {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+  transition: grid-template-rows 200ms ease, opacity 150ms ease, visibility 0s linear 0s;
+}
+
+.orders-column.is-collapsed:hover {
+  border-color: color-mix(in srgb, var(--ad-primary) 22%, var(--ad-border));
+}
+
 .orders-column-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  padding-right: 2px;
 }
 
 .orders-column-empty {
@@ -3673,6 +3783,20 @@
   border-radius: 10px;
   padding: 12px;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  animation: order-card-enter 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+
+@keyframes order-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.99);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .order-card-status-pending,
@@ -3769,6 +3893,27 @@
 .order-card-v2-lines {
   flex-direction: column;
   gap: 4px;
+}
+
+.order-card-v2-collapsible {
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+  transition: grid-template-rows 200ms ease, opacity 150ms ease, visibility 0s linear 0s;
+}
+
+.order-card-v2-collapsible-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.order-card-v2.is-collapsed .order-card-v2-collapsible {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: grid-template-rows 200ms ease, opacity 150ms ease, visibility 0s linear 200ms;
 }
 
 .order-card-v2.is-collapsed {
@@ -8307,6 +8452,26 @@
 .order-admin-filters .ad-btn {
   min-height: 36px;
   border-radius: 8px;
+}
+
+.staff-order-filters .ad-filter-grid,
+.management-order-filters .ad-filter-grid {
+  align-items: end;
+}
+
+.staff-order-filters input,
+.staff-order-filters .custom-select-trigger,
+.staff-order-filters .ad-order-clear,
+.management-order-filters input,
+.management-order-filters .custom-select-trigger,
+.management-order-filters .ad-order-clear {
+  height: 40px;
+  min-height: 40px;
+}
+
+.management-order-filters .ad-order-clear {
+  padding-inline: 10px;
+  font-size: 12px;
 }
 
 .ad-review-search {

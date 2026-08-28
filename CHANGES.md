@@ -255,6 +255,87 @@ Files changed:
 
 No API, authorization, storage, database, OpenAPI, or generated-client behavior changed. Port the same selectors into the multi-tenant frontend after checking whether tenant-specific components use different class names; reuse the timing and reduced-motion behavior instead of copying selectors that do not exist there.
 
+## 9. Translate administrative enum labels and standardize Counter filters
+
+Required behavior:
+
+- Keep backend/OpenAPI enum values unchanged (`counter`, `card`, `mbway`, `paid`, `unpaid`, `owner`, `manager`, `waiter`, and `chef`). Translate only their visible labels at the presentation boundary so requests, filtering, authorization, and stored role values remain stable.
+- Centralize the visible payment-method, payment-status, and administrative-role labels. Known values use the `admin` namespace; an unknown future enum remains readable by replacing underscores with spaces instead of rendering an empty label.
+- Payment summaries and Management filter options must use the same formatter. In Portuguese, for example, `counter`, `paid`, and `unpaid` render as `Balcão`, `Pago`, and `Por pagar`; equivalent English and German labels come from their locale resources.
+- Role selectors, the Team role filter, and role badges in the Team table must render translated labels. In Portuguese the visible hierarchy is `Proprietário`, `Gerente`, `Empregado de mesa`, and `Cozinheiro`; the underlying values remain the English API enums.
+- Replace the native status and payment-method `<select>` elements in the Counter view with the shared `CustomSelect` used by Management. Preserve the existing filter state, option values, filtering behavior, labels, keyboard interaction, portal positioning, and `ad-select` styling.
+
+Files changed:
+
+- `frontend/src/utils/adminEnumLabels.ts`: canonical list of staff roles plus formatters for payment method, payment status, and role labels with safe fallback behavior.
+- `frontend/src/utils/adminEnumLabels.test.ts`: Portuguese payment translations, German role translations, and unknown-enum fallback coverage.
+- `frontend/src/components/admin-orders/orderUtils.ts`: payment summaries now compose the centralized translated method/status labels while retaining the special unpaid-counter message.
+- `frontend/src/components/admin-orders/StaffOrdersBoard.tsx`: Counter status and payment filters migrated from native selects to `CustomSelect`; payment method options are translated.
+- `frontend/src/components/admin-orders/SuperAdminOrdersView.tsx`: Management payment method and payment status options now use the shared formatters instead of raw API values.
+- `frontend/src/pages/AdminDashboard.tsx`: subscribes directly to admin-language changes, builds translated role options for create/edit/filter controls, and formats role badges in the Team table.
+- `frontend/src/i18n/locales/pt-PT.ts`, `frontend/src/i18n/locales/en-GB.ts`, and `frontend/src/i18n/locales/de-DE.ts`: added the explicit role dictionary plus `mbway` and `unpaid` administrative payment labels.
+
+No backend, schema, OpenAPI, or generated-client change is required. When porting to multi-tenant, reuse the presentation helpers and keep tenant roles/permissions represented by their existing canonical enum values; add tenant-specific roles to the label map instead of renaming values in API payloads.
+
+## 10. Correct the order-filter and authentication-page layout regressions
+
+Required behavior:
+
+- Align the Management view's “Clear all filters” action with the bottom edge of the search, status, payment, and date controls. The button remains the final item in the responsive filter grid and keeps its existing action, styling, and mobile full-width behavior.
+- Stack every route component's top-level children vertically inside the animated route stage. This is required for authentication pages such as Login that return their page container and `Footer` as sibling elements: the footer must render below the authentication content, never as a second horizontal column beside it.
+- Keep the shared route-entry animation and route-stage width/flex behavior unchanged; the fix only defines the missing main-axis direction.
+
+Files changed:
+
+- `frontend/src/pages/AdminDashboard.css`: changed `.ad-order-clear` from start alignment to end alignment so its 36 px button baseline matches the compact Management filter controls.
+- `frontend/src/App.css`: added `flex-direction: column` to `.app-route-stage`, preventing fragment siblings such as an authentication page and its footer from being laid out side by side.
+
+No backend, API contract, authorization, data, OpenAPI, or generated-client behavior changed. When porting to multi-tenant, apply the route-stage direction fix wherever the animated route wrapper is shared; then apply the filter-action alignment to the equivalent Management order-filter class, even if that branch names the selector differently.
+
+## 11. Align Counter filters and add per-column order collapsing
+
+Required behavior:
+
+- In both Counter and Management order views, render every filter input, shared select trigger, and “Clear all filters” action with the same 40 px control height and align the controls to the bottom of their filter-grid cells. This corrects the remaining mismatch introduced by combining the compact 36 px admin-button rule with the shared 40 px `CustomSelect` trigger.
+- Keep the global “Collapse all / Expand all” action, and add a small vertical chevron control beside the count in every Counter column: awaiting payment, kitchen/in preparation, ready for delivery, completed today, and cancelled.
+- A column control collapses the complete vertical body of that status column, leaving only its title, count, and downward expansion chevron visible. Expanding restores the full list with every card retaining its previous individual expanded/collapsed state. Empty-column controls remain disabled.
+- Keep column visibility in a dedicated `collapsedColumnIds` set instead of adding every contained order to `collapsedOrderIds`. This prevents a column toggle from mutating individual card preferences or the existing global card action. The column body closes with a grid-row/opacity transition, is hidden from accessibility and pointer interaction while closed, and respects the global reduced-motion rule.
+- Column controls expose translated accessible labels and `aria-expanded` state by composing the existing “Collapse all / Expand all” text with the translated column title.
+- Apply the same complete-column collapse controls to all Kitchen columns: queued, in preparation, and ready.
+- Align Kanban grid items to the start of their grid row. Without this, CSS Grid stretches a collapsed column to the height of the tallest neighbouring column, leaving a large empty panel; the previously isolated Cancelled column appeared correct only because it occupied a row by itself.
+- Animate complete-column bodies, individual Counter card details, chevron rotation, and cards entering after a filter or status change. Closed content becomes non-visible and non-interactive after its transition, while the existing global reduced-motion rule reduces every new transition/animation to effectively instantaneous behavior.
+
+Files changed:
+
+- `frontend/src/components/admin-orders/StaffOrdersBoard.tsx`: added independent column visibility state and rendered the accessible up/down control beside each order count without changing individual card state.
+- `frontend/src/components/admin-orders/KitchenOrdersBoard.tsx`: added the same independent, accessible complete-column collapsing to the three Kitchen workflow columns.
+- `frontend/src/components/admin-orders/SuperAdminOrdersView.tsx`: identifies the Management filter surface with `management-order-filters` so its dimensions can be corrected without changing unrelated compact admin toolbars.
+- `frontend/src/pages/AdminDashboard.css`: standardized Counter and Management filter height/alignment, with compact Management clear-action typography that fits its eighth grid track; stopped Kanban columns stretching vertically, and added animated column bodies, card details, chevrons, and card entry plus hover, keyboard focus, hidden, and disabled states.
+
+No backend, API contract, authorization, storage, OpenAPI, generated client, or new translation key is involved. When porting to multi-tenant, copy the separate `collapsedColumnIds` behavior into the equivalent Counter board so closing a column never rewrites per-order state; apply the explicit Management filter class and 40 px override after that branch's compact-filter rules.
+
+## 12. Default order dates to today, isolate Cancelled, and normalize collapsed columns
+
+Required behavior:
+
+- Initialize both `dateFrom` and `dateTo` with the browser's local calendar date whenever Counter or Management mounts. Build `YYYY-MM-DD` from local date parts rather than `toISOString()` so late-night users do not receive the adjacent UTC day. “Clear all filters” still clears both fields instead of restoring the initial date.
+- Keep only the four operational Counter columns in the default/operational tabs: awaiting payment, kitchen/in preparation, ready for delivery, and completed today. Remove Cancelled from the grid underneath these columns and show it as the sole, full-width column when the existing Cancelled quick-filter tab is active.
+- Selecting `cancelled` in the Counter status selector must activate the same isolated Cancelled view; choosing another status while that tab is active returns to the operational view. Global card collapsing derives IDs only from columns currently displayed, so hidden cancelled orders are never changed by an operational action.
+- Give a collapsed Counter or Kitchen column the same final body height and spacing as an empty column. Replace the empty-state sentence with a translated plural summary such as `3 pedidos em “Em preparação”`, while retaining the header, count, and downward chevron.
+- Keep the list and collapsed summary mounted as opposing animated grid rows. This provides a smooth height/cross-fade transition without leaving a stretched blank panel. Clicking anywhere in the collapsed column's non-interactive interior expands it; clicking its chevron continues to work once and interactive descendants never trigger the container handler.
+
+Files changed:
+
+- `frontend/src/components/admin-orders/orderUtils.ts`: added `localDateInputValue`, a local-time-safe formatter for native date inputs.
+- `frontend/src/components/admin-orders/orderUtils.test.ts`: verifies local date formatting and zero padding without UTC conversion.
+- `frontend/src/components/admin-orders/StaffOrdersBoard.tsx`: separates initial/empty filter values, initializes today's range, isolates the Cancelled column, scopes global card IDs to displayed columns, and adds the clickable animated collapsed summary.
+- `frontend/src/components/admin-orders/SuperAdminOrdersView.tsx`: initializes the Management date range to today while preserving a genuinely empty clear-filter action.
+- `frontend/src/components/admin-orders/KitchenOrdersBoard.tsx`: adds the same translated, clickable collapsed summary to Kitchen columns.
+- `frontend/src/pages/AdminDashboard.css`: adds the one-column Cancelled layout and opposing list/summary transitions; explicit `is-empty`/`is-collapsed` column states share the same 180 px minimum height so both states finish with identical geometry instead of relying on incidental grid-row height. The animated, overflow-clipped list reserves 2 px on the right so Counter and Kitchen card borders/shadows remain fully inside the clipping boundary.
+- `frontend/src/i18n/locales/pt-PT.ts`, `frontend/src/i18n/locales/en-GB.ts`, and `frontend/src/i18n/locales/de-DE.ts`: add singular/plural `collapsedColumnSummary` messages.
+
+No backend query, API contract, authorization, storage, OpenAPI, or generated-client behavior changed. When porting to multi-tenant, preserve tenant filtering before frontend grouping, use the same local-date helper rather than UTC serialization, and ensure the isolated Cancelled tab can never expose cancelled orders belonging to another tenant.
+
 ## Multi-tenant port verification checklist
 
 1. Reapply backend behavior while preserving tenant ownership filters on every order lookup and list.
@@ -266,6 +347,10 @@ No API, authorization, storage, database, OpenAPI, or generated-client behavior 
 7. Create at least two guest orders in one browser, verify both tokens survive, then log in/register and confirm both orders move into the same tenant-scoped customer history while the local secrets and server hashes are removed.
 8. From Profile, open an active order and confirm the URL becomes `/orders/{order_id}`; then verify that nonexistent, cross-customer, cross-tenant, missing-token, and expired-token detail URLs all render the identical branded order 404 without exposing order existence.
 9. Advance one order through every operational state while its detail page is open, confirm each animation runs once per actual status change, and repeat with reduced motion enabled. Open the navbar menus, selects, modals, cart, Profile details, and admin drawers to verify their entrance motion does not move focus or block interaction.
+10. Switch the admin interface among Portuguese, English, and German and verify Counter/Management payment filters plus every Team role selector/badge. Inspect network requests to confirm translated labels never replace the canonical enum values sent to the API.
+11. Open Login, registration, and password-recovery routes at desktop and mobile widths and verify their footers remain below the page content. In Management, verify the clear-filter button shares the lower baseline of the adjacent controls and still becomes a usable full-width grid item on narrow screens.
+12. In Counter and Management, compare the exact height and baseline of every filter control. In Counter, combine individual-card, complete-column, and global card collapse controls; verify that a closed column leaves only its header visible without a stretched blank panel, restores prior card states when reopened, is absent from keyboard navigation while closed, and exposes a disabled control when empty. Repeat complete-column collapse in all three Kitchen columns, then move orders between columns and verify smooth card entry with both normal and reduced-motion settings.
+13. Open Counter and Management around a known local date and confirm both ends of the initial interval equal today while clearing produces blank fields. Verify the operational Counter grid never includes Cancelled, its quick-filter/status selection opens a single Cancelled column, and global collapse does not affect hidden orders. Compare empty and collapsed column heights, validate singular/plural summaries in all three languages, and expand a collapsed Counter/Kitchen column by clicking both its chevron and summary interior.
 
 
 # Changes in multi-tenant branch

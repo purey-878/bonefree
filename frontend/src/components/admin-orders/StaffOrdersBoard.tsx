@@ -1,16 +1,19 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronUp } from "lucide-react";
 import type { AdminOrder } from "../../types/admin";
 import { formatEuro } from "../../utils/money";
 import OrderAgeBadge from "./OrderAgeBadge";
 import OrderDetailsDrawer from "./OrderDetailsDrawer";
 import OrderStatusBadge from "./OrderStatusBadge";
+import CustomSelect from "../ui/CustomSelect";
+import { formatPaymentMethod } from "../../utils/adminEnumLabels";
 import {
   formatOrderStatus,
   fulfillmentLabel,
   handoffLabel,
   hasCustomization,
+  localDateInputValue,
   orderCustomizations,
   paymentLabel,
 } from "./orderUtils";
@@ -23,7 +26,7 @@ type Props = {
   readOnly?: boolean;
 };
 
-const columns = [
+const operationalColumns = [
   {
     id: "needs-payment",
     titleKey: "orders.staff.columns.paymentTitle",
@@ -48,15 +51,16 @@ const columns = [
     statuses: ["delivered"],
     emptyKey: "orders.staff.columns.completedEmpty",
   },
-  {
-    id: "cancelled",
-    titleKey: "orders.staff.columns.cancelledTitle",
-    statuses: ["cancelled"],
-    emptyKey: "orders.staff.columns.cancelledEmpty",
-  },
 ];
 
-const defaultStaffOrderFilters = {
+const cancelledColumn = {
+  id: "cancelled",
+  titleKey: "orders.staff.columns.cancelledTitle",
+  statuses: ["cancelled"],
+  emptyKey: "orders.staff.columns.cancelledEmpty",
+};
+
+const emptyStaffOrderFilters = {
   search: "",
   status: "",
   paymentMethod: "",
@@ -64,12 +68,18 @@ const defaultStaffOrderFilters = {
   dateTo: "",
 };
 
+const initialStaffOrderFilters = () => {
+  const today = localDateInputValue();
+  return { ...emptyStaffOrderFilters, dateFrom: today, dateTo: today };
+};
+
 export default function StaffOrdersBoard({ orders, onRefresh, onMarkPaid, onUpdateStatus, readOnly = false }: Props) {
   const { t } = useTranslation("admin");
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [quickFilter, setQuickFilter] = useState("all");
   const [collapsedOrderIds, setCollapsedOrderIds] = useState<Set<number>>(new Set());
-  const [filters, setFilters] = useState(defaultStaffOrderFilters);
+  const [collapsedColumnIds, setCollapsedColumnIds] = useState<Set<string>>(new Set());
+  const [filters, setFilters] = useState(initialStaffOrderFilters);
 
   const selectedOrder = useMemo(
     () => orders.find((order) => order.orderId === selectedOrderId) ?? null,
@@ -80,7 +90,7 @@ export default function StaffOrdersBoard({ orders, onRefresh, onMarkPaid, onUpda
 
   const clearAllFilters = () => {
     setQuickFilter("all");
-    setFilters(defaultStaffOrderFilters);
+    setFilters(emptyStaffOrderFilters);
     onRefresh();
   };
 
@@ -122,14 +132,24 @@ export default function StaffOrdersBoard({ orders, onRefresh, onMarkPaid, onUpda
     });
   }, [filters, orders, quickFilter]);
 
+  const displayedColumns = useMemo(
+    () => quickFilter === "cancelled" || filters.status === "cancelled"
+      ? [cancelledColumn]
+      : operationalColumns,
+    [filters.status, quickFilter],
+  );
+
   const grouped = useMemo(() => (
-    Object.fromEntries(columns.map((column) => [
+    Object.fromEntries(displayedColumns.map((column) => [
       column.id,
       visibleOrders.filter((order) => column.statuses.includes(order.state)),
     ])) as Record<string, AdminOrder[]>
-  ), [visibleOrders]);
+  ), [displayedColumns, visibleOrders]);
 
-  const visibleOrderIds = useMemo(() => visibleOrders.map((order) => order.orderId), [visibleOrders]);
+  const visibleOrderIds = useMemo(
+    () => displayedColumns.flatMap((column) => grouped[column.id].map((order) => order.orderId)),
+    [displayedColumns, grouped],
+  );
   const allVisibleCollapsed = visibleOrderIds.length > 0 && visibleOrderIds.every((orderId) => collapsedOrderIds.has(orderId));
 
   const handleToggleAllCards = () => {
@@ -152,6 +172,15 @@ export default function StaffOrdersBoard({ orders, onRefresh, onMarkPaid, onUpda
       } else {
         next.add(orderId);
       }
+      return next;
+    });
+  };
+
+  const handleToggleColumn = (columnId: string) => {
+    setCollapsedColumnIds((current) => {
+      const next = new Set(current);
+      if (next.has(columnId)) next.delete(columnId);
+      else next.add(columnId);
       return next;
     });
   };
@@ -195,19 +224,32 @@ export default function StaffOrdersBoard({ orders, onRefresh, onMarkPaid, onUpda
           </div>
           <div className="ad-form-group">
             <label>{t("orders.common.state")}</label>
-            <select value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}>
-              <option value="">{t("orders.status.all")}</option>
-              {["pending", "confirmed", "in_preparation", "ready", "delivered", "cancelled"].map((status) => (
-                <option key={status} value={status}>{formatOrderStatus(status)}</option>
-              ))}
-            </select>
+            <CustomSelect
+              className="ad-select"
+              value={filters.status}
+              onChange={(nextValue) => {
+                const status = String(nextValue);
+                setFilters({ ...filters, status });
+                if (status === "cancelled") setQuickFilter("cancelled");
+                else if (quickFilter === "cancelled") setQuickFilter("all");
+              }}
+              options={[
+                { value: "", label: t("orders.status.all") },
+                ...["pending", "confirmed", "in_preparation", "ready", "delivered", "cancelled"].map((status) => ({ value: status, label: formatOrderStatus(status) })),
+              ]}
+            />
           </div>
           <div className="ad-form-group">
             <label>{t("orders.common.payment")}</label>
-            <select value={filters.paymentMethod} onChange={(e) => setFilters({ ...filters, paymentMethod: e.target.value })}>
-              <option value="">{t("orders.payment.allMethods")}</option>
-              {paymentMethods.map((method) => <option key={method} value={method}>{method}</option>)}
-            </select>
+            <CustomSelect
+              className="ad-select"
+              value={filters.paymentMethod}
+              onChange={(nextValue) => setFilters({ ...filters, paymentMethod: String(nextValue) })}
+              options={[
+                { value: "", label: t("orders.payment.allMethods") },
+                ...paymentMethods.map((method) => ({ value: method, label: formatPaymentMethod(method) })),
+              ]}
+            />
           </div>
           <div className="ad-form-group"><label>{t("orders.common.dateFrom")}</label><input type="date" value={filters.dateFrom} onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })} /></div>
           <div className="ad-form-group"><label>{t("orders.common.dateTo")}</label><input type="date" value={filters.dateTo} onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })} /></div>
@@ -217,16 +259,43 @@ export default function StaffOrdersBoard({ orders, onRefresh, onMarkPaid, onUpda
         </div>
       </div>
 
-      <div className="orders-kanban orders-kanban-staff">
-        {columns.map((column) => (
-          <section key={column.id} className={`orders-column orders-column-${column.id}`}>
+      <div className={`orders-kanban orders-kanban-staff ${displayedColumns.length === 1 ? "orders-kanban-single" : ""}`}>
+        {displayedColumns.map((column) => {
+          const columnOrders = grouped[column.id];
+          const isColumnCollapsed = collapsedColumnIds.has(column.id);
+          const columnToggleLabel = `${t(isColumnCollapsed ? "orders.common.expandAll" : "orders.common.collapseAll")}: ${t(column.titleKey)}`;
+
+          return (
+          <section
+            key={column.id}
+            className={`orders-column orders-column-${column.id} ${columnOrders.length === 0 ? "is-empty" : ""} ${isColumnCollapsed ? "is-collapsed" : ""}`}
+            onClick={isColumnCollapsed ? (event) => {
+              const target = event.target as HTMLElement;
+              if (target.closest("button, a, input, select, textarea")) return;
+              handleToggleColumn(column.id);
+            } : undefined}
+          >
             <header className="orders-column-header">
               <h3>{t(column.titleKey)}</h3>
-              <span>{grouped[column.id].length}</span>
+              <div className="orders-column-header-actions">
+                <span>{columnOrders.length}</span>
+                <button
+                  type="button"
+                  className="orders-column-collapse-toggle"
+                  onClick={() => handleToggleColumn(column.id)}
+                  disabled={columnOrders.length === 0}
+                  aria-expanded={!isColumnCollapsed}
+                  aria-label={columnToggleLabel}
+                  title={columnToggleLabel}
+                >
+                  <ChevronUp size={15} strokeWidth={2.4} />
+                </button>
+              </div>
             </header>
 
+            <div className="orders-column-collapsible" aria-hidden={isColumnCollapsed}>
             <div className="orders-column-list">
-              {grouped[column.id].map((order) => {
+              {columnOrders.map((order) => {
                 const isCollapsed = collapsedOrderIds.has(order.orderId);
                 const customizations = orderCustomizations(order);
 
@@ -267,7 +336,7 @@ export default function StaffOrdersBoard({ orders, onRefresh, onMarkPaid, onUpda
                         aria-label={isCollapsed ? t("orders.staff.expandOrder", { id: order.orderId }) : t("orders.staff.collapseOrder", { id: order.orderId })}
                         title={isCollapsed ? t("orders.staff.expandOrder", { id: order.orderId }) : t("orders.staff.collapseOrder", { id: order.orderId })}
                       >
-                        {isCollapsed ? <ChevronDown size={16} strokeWidth={2.4} /> : <ChevronUp size={16} strokeWidth={2.4} />}
+                        <ChevronUp size={16} strokeWidth={2.4} />
                       </button>
                     </div>
                   </header>
@@ -279,21 +348,20 @@ export default function StaffOrdersBoard({ orders, onRefresh, onMarkPaid, onUpda
                     <strong className="order-card-v2-price">{formatEuro(order.total ?? 0)}</strong>
                   </div>
 
-                  {!isCollapsed && (
+                  <div className="order-card-v2-collapsible" aria-hidden={isCollapsed}>
+                  <div className="order-card-v2-collapsible-inner">
                     <div className="order-card-v2-lines">
                       <span>{order.customerPhone || order.customerEmail || t("orders.common.noContact")}</span>
                       <span>{fulfillmentLabel(order)}</span>
                       <span>{paymentLabel(order)}</span>
                     </div>
-                  )}
 
-                  {!isCollapsed && order.notes && <p className="order-note-inline">{order.notes}</p>}
+                  {order.notes && <p className="order-note-inline">{order.notes}</p>}
 
-                  {!isCollapsed && customizations.length > 0 && (
+                  {customizations.length > 0 && (
                     <p className="order-custom-summary">{t("orders.customization.summary", { count: customizations.length })}</p>
                   )}
 
-                  {!isCollapsed && (
                   <div className="order-card-actions">
                     {!readOnly && order.state === "pending" && order.paymentMethod === "counter" && order.paymentStatus !== "paid" && (
                       <button className="ad-btn ad-btn-primary" onClick={() => onMarkPaid(order.orderId)}>{t("orders.staff.confirmPayment")}</button>
@@ -306,15 +374,23 @@ export default function StaffOrdersBoard({ orders, onRefresh, onMarkPaid, onUpda
                     )}
                     <button className="ad-btn ad-btn-ghost" onClick={() => setSelectedOrderId(order.orderId)}>{t("orders.common.viewDetails")}</button>
                   </div>
-                  )}
+                  </div>
+                  </div>
                 </article>
                 );
               })}
 
-              {grouped[column.id].length === 0 && <p className="orders-column-empty">{t(column.emptyKey)}</p>}
+              {columnOrders.length === 0 && <p className="orders-column-empty">{t(column.emptyKey)}</p>}
+            </div>
+            </div>
+            <div className="orders-column-collapsed-summary" aria-hidden={!isColumnCollapsed}>
+              <p className="orders-column-empty">
+                {t("orders.common.collapsedColumnSummary", { count: columnOrders.length, state: t(column.titleKey) })}
+              </p>
             </div>
           </section>
-        ))}
+          );
+        })}
       </div>
 
       <OrderDetailsDrawer order={selectedOrder} onClose={() => setSelectedOrderId(null)} />

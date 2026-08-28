@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { FormEvent, MouseEvent, ReactNode, SyntheticEvent } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import { Heart, MessageCircle, MoreHorizontal, RefreshCw, Search, Send, Star, ThumbsUp, Trash2, X, Menu } from "lucide-react"
 import {
   Area,
@@ -120,6 +121,7 @@ import { useToast } from "../components/ui/toastContext"
 import { formatCategoryId, formatProductId } from "../utils/ids"
 import { applyApiImageFallback, resolveProductImageUrl } from "../utils/imageFallback"
 import { formatEuro } from "../utils/money"
+import { ADMIN_ROLES, formatAdminRole } from "../utils/adminEnumLabels"
 import { translateUserMessage } from "../utils/messages"
 import { persistOptimisticUpdate } from "../utils/optimisticUpdate"
 import { primaryProductMediaUrl, productMediaUrl } from "../utils/productMedia"
@@ -356,14 +358,6 @@ const DIRECTORY_STATUS_OPTIONS = [
   { value: "all", label: "Todos os estados" },
   { value: "active", label: "Ativo" },
   { value: "inactive", label: "Inativo" },
-]
-
-const STAFF_ROLE_OPTIONS = [
-  { value: "all", label: "Todos os cargos" },
-  { value: "owner", label: "Owner" },
-  { value: "manager", label: "Manager" },
-  { value: "waiter", label: "Waiter" },
-  { value: "chef", label: "Chef" },
 ]
 
 function statusMatchesFilter(status: string | null | undefined, filter: DirectoryStatusFilter): boolean {
@@ -1359,6 +1353,7 @@ function SiteSettingsPanel({
 }
 
 export default function AdminDashboard() {
+  const { t } = useTranslation("admin")
   const [searchParams, setSearchParams] = useSearchParams()
   const storedRole = (localStorage.getItem("admin_role") || "manager") as AdminRole
   const storedRoleTabs = adminTabsForRole(storedRole)
@@ -1520,6 +1515,14 @@ export default function AdminDashboard() {
   const [reviewReplyDrafts, setReviewReplyDrafts] = useState<Record<number, string>>({})
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null)
   const [confirmLoading, setConfirmLoading] = useState(false)
+  const editableStaffRoleOptions = ADMIN_ROLES.map((staffRole) => ({
+    value: staffRole,
+    label: formatAdminRole(staffRole),
+  }))
+  const staffRoleOptions: Array<{ value: StaffRoleFilter; label: string }> = [
+    { value: "all", label: t("roles.all") },
+    ...editableStaffRoleOptions,
+  ]
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const productImageInputRef = useRef<HTMLInputElement | null>(null)
   const categoryFilterRef = useRef<HTMLDivElement | null>(null)
@@ -5583,7 +5586,7 @@ export default function AdminDashboard() {
                     <div className="ad-form-group"><label>Palavra-passe</label><input type="password" value={staffForm.password || ""} onChange={e => setStaffForm({ ...staffForm, password: e.target.value })} required={!editingStaff} /></div>
                   </div>
                   <div className="ad-form-row">
-                    <div className="ad-form-group"><label>Cargo</label><CustomSelect className="ad-select" value={staffForm.role} onChange={(nextValue) => setStaffForm({ ...staffForm, role: nextValue as AdminRole })} options={[{ value: "owner", label: "Owner" }, { value: "manager", label: "Manager" }, { value: "waiter", label: "Waiter" }, { value: "chef", label: "Chef" }]} /></div>
+                    <div className="ad-form-group"><label>Cargo</label><CustomSelect className="ad-select" value={staffForm.role} onChange={(nextValue) => setStaffForm({ ...staffForm, role: nextValue as AdminRole })} options={editableStaffRoleOptions} /></div>
                     <div className="ad-form-group"><label>Estado</label><CustomSelect className="ad-select" value={staffForm.status} onChange={(nextValue) => setStaffForm({ ...staffForm, status: String(nextValue) as UserStatus })} options={[{ value: "active", label: "Ativo" }, { value: "suspended", label: "Suspenso" }]} /></div>
                   </div>
                   <div className="ad-form-actions">
@@ -5612,7 +5615,7 @@ export default function AdminDashboard() {
                     className="ad-select"
                     value={staffRoleFilter}
                     onChange={(nextValue) => setStaffRoleFilter(nextValue as StaffRoleFilter)}
-                    options={STAFF_ROLE_OPTIONS}
+                    options={staffRoleOptions}
                   />
                 </div>
                 <div className="ad-form-group">
@@ -5657,7 +5660,7 @@ export default function AdminDashboard() {
                           <td data-label="ID">{admin.adminId}</td>
                           <td data-label="Nome">{admin.name}</td>
                           <td data-label="Email">{admin.email}</td>
-                          <td data-label="Cargo"><span className="ad-pill ad-pill-blue">{admin.role}</span></td>
+                          <td data-label="Cargo"><span className="ad-pill ad-pill-blue">{formatAdminRole(admin.role)}</span></td>
                           <td data-label="Estado"><span className={`ad-pill ${admin.status === "active" ? "ad-pill-green" : "ad-pill-gray"}`}>{admin.status === "active" ? "ativo" : "inativo"}</span></td>
                           <td data-label="Ações">
                             <div className="ad-actions">

@@ -1,5 +1,6 @@
 import type { AdminOrder, AdminOrderItem } from "../../types/admin";
 import i18n from "../../i18n";
+import { formatPaymentMethod, formatPaymentStatus } from "../../utils/adminEnumLabels";
 
 const ORDER_STATUS_KEYS: Record<string, string> = {
   pending: "orders.status.pending",
@@ -134,17 +135,18 @@ export function isToday(value?: string | null): boolean {
     date.getDate() === today.getDate();
 }
 
+export function localDateInputValue(date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export function paymentLabel(order: AdminOrder): string {
   if (order.paymentMethod === "counter" && order.paymentStatus === "unpaid") {
     return i18n.t("orders.payment.awaitingCounter", { ns: "admin" });
   }
-  const method = order.paymentMethod === "counter"
-    ? i18n.t("orders.payment.counter", { ns: "admin" })
-    : order.paymentMethod === "card"
-      ? i18n.t("orders.payment.card", { ns: "admin" })
-      : order.paymentMethod === "mbway"
-        ? "MB Way"
-        : order.paymentMethod ?? "-";
-  const status = order.paymentStatus === "paid" ? i18n.t("orders.payment.paid", { ns: "admin" }) : order.paymentStatus ? order.paymentStatus.replace(/_/g, " ") : "-";
+  const method = formatPaymentMethod(order.paymentMethod);
+  const status = formatPaymentStatus(order.paymentStatus);
   return `${method} / ${status}`;
 }

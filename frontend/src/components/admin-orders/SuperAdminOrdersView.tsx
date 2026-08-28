@@ -6,8 +6,9 @@ import { formatEuro } from "../../utils/money";
 import OrderAgeBadge from "./OrderAgeBadge";
 import OrderDetailsDrawer from "./OrderDetailsDrawer";
 import OrderStatusBadge from "./OrderStatusBadge";
-import { formatOrderAge, formatOrderStatus, fulfillmentLabel, handoffLabel, hasCustomization, isToday, paymentLabel, shouldShowOrderAge } from "./orderUtils";
+import { formatOrderAge, formatOrderStatus, fulfillmentLabel, handoffLabel, hasCustomization, isToday, localDateInputValue, paymentLabel, shouldShowOrderAge } from "./orderUtils";
 import CustomSelect from "../ui/CustomSelect";
+import { formatPaymentMethod, formatPaymentStatus } from "../../utils/adminEnumLabels";
 
 type Props = {
   orders: AdminOrder[];
@@ -18,7 +19,7 @@ type Props = {
 
 const allStatuses = ["pending", "confirmed", "in_preparation", "ready", "delivered", "cancelled"];
 
-const defaultOrderFilters = {
+const emptyOrderFilters = {
   search: "",
   status: "",
   paymentMethod: "",
@@ -26,6 +27,11 @@ const defaultOrderFilters = {
   dateFrom: "",
   dateTo: "",
   customization: "all",
+};
+
+const initialOrderFilters = () => {
+  const today = localDateInputValue();
+  return { ...emptyOrderFilters, dateFrom: today, dateTo: today };
 };
 
 function customerInitials(order: AdminOrder): string {
@@ -45,7 +51,7 @@ export default function SuperAdminOrdersView({ orders, onRefresh, onUpdateStatus
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [quickFilter, setQuickFilter] = useState("all");
   const [ordersSectionCollapsed, setOrdersSectionCollapsed] = useState(false);
-  const [filters, setFilters] = useState(defaultOrderFilters);
+  const [filters, setFilters] = useState(initialOrderFilters);
 
   const selectedOrder = useMemo(
     () => orders.find((order) => order.orderId === selectedOrderId) ?? null,
@@ -70,7 +76,7 @@ export default function SuperAdminOrdersView({ orders, onRefresh, onUpdateStatus
 
   const clearAllFilters = () => {
     setQuickFilter("all");
-    setFilters(defaultOrderFilters);
+    setFilters(emptyOrderFilters);
     onRefresh();
   };
 
@@ -154,7 +160,7 @@ export default function SuperAdminOrdersView({ orders, onRefresh, onUpdateStatus
         ))}
       </div>
 
-      <div className="ad-card order-admin-filters">
+      <div className="ad-card order-admin-filters management-order-filters">
         <div className="ad-filter-grid">
           <div className="ad-form-group">
             <label>{t("orders.common.search")}</label>
@@ -166,11 +172,11 @@ export default function SuperAdminOrdersView({ orders, onRefresh, onUpdateStatus
           </div>
           <div className="ad-form-group">
             <label>{t("orders.common.paymentMethod")}</label>
-            <CustomSelect className="ad-select" value={filters.paymentMethod} onChange={(nextValue) => setFilters({ ...filters, paymentMethod: String(nextValue) })} options={[{ value: "", label: t("orders.payment.allMethods") }, ...paymentMethods.map((method) => ({ value: method, label: method }))]} />
+            <CustomSelect className="ad-select" value={filters.paymentMethod} onChange={(nextValue) => setFilters({ ...filters, paymentMethod: String(nextValue) })} options={[{ value: "", label: t("orders.payment.allMethods") }, ...paymentMethods.map((method) => ({ value: method, label: formatPaymentMethod(method) }))]} />
           </div>
           <div className="ad-form-group">
             <label>{t("orders.common.paymentStatus")}</label>
-            <CustomSelect className="ad-select" value={filters.paymentStatus} onChange={(nextValue) => setFilters({ ...filters, paymentStatus: String(nextValue) })} options={[{ value: "", label: t("orders.payment.allPayments") }, ...paymentStatuses.map((status) => ({ value: status, label: status }))]} />
+            <CustomSelect className="ad-select" value={filters.paymentStatus} onChange={(nextValue) => setFilters({ ...filters, paymentStatus: String(nextValue) })} options={[{ value: "", label: t("orders.payment.allPayments") }, ...paymentStatuses.map((status) => ({ value: status, label: formatPaymentStatus(status) }))]} />
           </div>
           <div className="ad-form-group"><label>{t("orders.common.dateFrom")}</label><input type="date" value={filters.dateFrom} onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })} /></div>
           <div className="ad-form-group"><label>{t("orders.common.dateTo")}</label><input type="date" value={filters.dateTo} onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })} /></div>
