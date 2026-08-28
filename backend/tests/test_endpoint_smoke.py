@@ -131,6 +131,7 @@ class EndpointSmokeTests(unittest.TestCase):
             )
             db.add(product)
             db.commit()
+            cls.category_id = category.id
             cls.product_id = product.id
 
         import services.media_storage as media_storage
@@ -277,7 +278,8 @@ class EndpointSmokeTests(unittest.TestCase):
             json={"state": "confirmed"},
             headers=self.role_headers(self.manager_token),
         )
-        self.assertEqual(manager_advance_unpaid.status_code, 409, manager_advance_unpaid.text)
+        self.assertEqual(manager_advance_unpaid.status_code, 200, manager_advance_unpaid.text)
+        self.assertEqual(manager_advance_unpaid.json()["state"], "confirmed")
 
         owner_advance_unpaid = self.client.patch(
             f"/admin/orders/{order_id}/status",
@@ -326,7 +328,7 @@ class EndpointSmokeTests(unittest.TestCase):
         )
         self.assertEqual(cancel_paid.status_code, 409, cancel_paid.text)
 
-    def test_owner_can_delete_only_cancelled_orders(self):
+    def test_owner_and_manager_can_delete_only_cancelled_orders(self):
         created = self._create_order()
         order_id = created["order_id"]
 
@@ -351,14 +353,8 @@ class EndpointSmokeTests(unittest.TestCase):
             f"/admin/orders/{order_id}",
             headers=self.role_headers(self.manager_token),
         )
-        self.assertEqual(manager_delete.status_code, 403, manager_delete.text)
-
-        deleted = self.client.delete(
-            f"/admin/orders/{order_id}",
-            headers=self.admin_headers,
-        )
-        self.assertEqual(deleted.status_code, 200, deleted.text)
-        self.assertEqual(deleted.json()["message"], "Order deleted successfully.")
+        self.assertEqual(manager_delete.status_code, 200, manager_delete.text)
+        self.assertEqual(manager_delete.json()["message"], "Order deleted successfully.")
         self.assertEqual(
             self.client.get(f"/admin/orders/{order_id}", headers=self.admin_headers).status_code,
             404,
@@ -367,18 +363,19 @@ class EndpointSmokeTests(unittest.TestCase):
             self.assertIsNone(db.get(Order, order_id))
             self.assertIsNone(db.scalar(select(Payment).where(Payment.order_id == order_id)))
 
-    def test_waiter_permissions_match_service_and_read_only_kitchen_views(self):
+    def test_progressive_staff_order_permissions(self):
         cancellable_order_id = self._create_order()["order_id"]
         waiter_headers = self.role_headers(self.waiter_token)
         manager_headers = self.role_headers(self.manager_token)
         chef_headers = self.role_headers(self.chef_token)
 
-        staff_orders = self.client.get("/admin/staff/orders", headers=waiter_headers)
-        kitchen_orders = self.client.get("/admin/kitchen/orders", headers=waiter_headers)
-        management_orders = self.client.get("/admin/orders", headers=waiter_headers)
-        self.assertEqual(staff_orders.status_code, 200, staff_orders.text)
-        self.assertEqual(kitchen_orders.status_code, 200, kitchen_orders.text)
-        self.assertEqual(management_orders.status_code, 403, management_orders.text)
+        for headers in (chef_headers, waiter_headers, manager_headers, self.admin_headers):
+            self.assertEqual(self.client.get("/admin/staff/orders", headers=headers).status_code, 200)
+            self.assertEqual(self.client.get("/admin/kitchen/orders", headers=headers).status_code, 200)
+        for headers in (chef_headers, waiter_headers):
+            self.assertEqual(self.client.get("/admin/orders", headers=headers).status_code, 403)
+        for headers in (manager_headers, self.admin_headers):
+            self.assertEqual(self.client.get("/admin/orders", headers=headers).status_code, 200)
 
         forbidden_kitchen_advance = self.client.patch(
             f"/admin/orders/{cancellable_order_id}/status",
@@ -422,14 +419,7 @@ class EndpointSmokeTests(unittest.TestCase):
             json={"state": "in_preparation"},
             headers=waiter_headers,
         )
-        self.assertEqual(waiter_prepare.status_code, 403, waiter_prepare.text)
-
-        chef_prepare = self.client.patch(
-            f"/admin/orders/{kitchen_order_id}/status",
-            json={"state": "in_preparation"},
-            headers=chef_headers,
-        )
-        self.assertEqual(chef_prepare.status_code, 200, chef_prepare.text)
+        self.assertEqual(waiter_prepare.status_code, 200, waiter_prepare.text)
 
         waiter_deliver_early = self.client.patch(
             f"/admin/orders/{kitchen_order_id}/status",
@@ -438,17 +428,17 @@ class EndpointSmokeTests(unittest.TestCase):
         )
         self.assertEqual(waiter_deliver_early.status_code, 409, waiter_deliver_early.text)
 
-        manager_ready = self.client.patch(
+        waiter_ready = self.client.patch(
             f"/admin/orders/{kitchen_order_id}/status",
             json={"state": "ready"},
-            headers=manager_headers,
+            headers=waiter_headers,
         )
         waiter_delivered = self.client.patch(
             f"/admin/orders/{kitchen_order_id}/status",
             json={"state": "delivered"},
             headers=waiter_headers,
         )
-        self.assertEqual(manager_ready.status_code, 200, manager_ready.text)
+        self.assertEqual(waiter_ready.status_code, 200, waiter_ready.text)
         self.assertEqual(waiter_delivered.status_code, 200, waiter_delivered.text)
         self.assertEqual(waiter_delivered.json()["state"], "delivered")
 
@@ -460,13 +450,31 @@ class EndpointSmokeTests(unittest.TestCase):
         self.assertEqual(paid_cancel.status_code, 409, paid_cancel.text)
 
         self.assertEqual(
-            self.client.get("/admin/staff/orders", headers=chef_headers).status_code,
-            403,
-        )
-        self.assertEqual(
             self.client.post(f"/admin/orders/{kitchen_order_id}/pay-counter", headers=chef_headers).status_code,
             403,
         )
+
+        chef_order_id = self._create_order()["order_id"]
+        with patch("routers.admin.send_purchase_receipt", return_value=True):
+            self.client.post(f"/admin/orders/{chef_order_id}/pay-counter", headers=manager_headers)
+        chef_prepare = self.client.patch(
+            f"/admin/orders/{chef_order_id}/status",
+            json={"state": "in_preparation"},
+            headers=chef_headers,
+        )
+        chef_ready = self.client.patch(
+            f"/admin/orders/{chef_order_id}/status",
+            json={"state": "ready"},
+            headers=chef_headers,
+        )
+        chef_deliver = self.client.patch(
+            f"/admin/orders/{chef_order_id}/status",
+            json={"state": "delivered"},
+            headers=chef_headers,
+        )
+        self.assertEqual(chef_prepare.status_code, 200, chef_prepare.text)
+        self.assertEqual(chef_ready.status_code, 200, chef_ready.text)
+        self.assertEqual(chef_deliver.status_code, 403, chef_deliver.text)
 
     def test_availability_quick_actions_are_idempotent_and_role_protected(self):
         product_path = f"/admin/products/{self.product_id}/availability"
@@ -482,12 +490,13 @@ class EndpointSmokeTests(unittest.TestCase):
         )
         self.assertEqual(manager_response.status_code, 200, manager_response.text)
         for token in (self.chef_token, self.waiter_token):
-            forbidden = self.client.put(
+            allowed = self.client.put(
                 product_path,
                 json={"available": False},
                 headers=self.role_headers(token),
             )
-            self.assertEqual(forbidden.status_code, 403, forbidden.text)
+            self.assertEqual(allowed.status_code, 200, allowed.text)
+            self.assertFalse(allowed.json()["available"])
 
         created = self.client.post(
             "/admin/ingredients",
@@ -506,12 +515,112 @@ class EndpointSmokeTests(unittest.TestCase):
             self.assertEqual(response.status_code, 200, response.text)
             self.assertEqual(response.json()["available"], available)
         for token in (self.chef_token, self.waiter_token):
-            forbidden = self.client.put(
+            allowed = self.client.put(
                 ingredient_path,
                 json={"available": False},
                 headers=self.role_headers(token),
             )
-            self.assertEqual(forbidden.status_code, 403, forbidden.text)
+            self.assertEqual(allowed.status_code, 200, allowed.text)
+            self.assertFalse(allowed.json()["available"])
+
+        for token in (self.chef_token, self.waiter_token, self.manager_token, self.admin_token):
+            headers = self.role_headers(token)
+            for path in (
+                "/admin/categories?include_inactive=true",
+                "/admin/ingredients?include_inactive=true",
+                "/admin/products?include_deleted=true",
+                f"/admin/products/{self.product_id}",
+                f"/admin/products/{self.product_id}/analytics",
+            ):
+                response = self.client.get(path, headers=headers)
+                self.assertEqual(response.status_code, 200, f"{path}: {response.text}")
+        self.client.put(product_path, json={"available": True}, headers=self.admin_headers)
+
+    def test_chef_and_waiter_cannot_mutate_catalog_structure(self):
+        product_payload = {
+            "name": "Forbidden product",
+            "product_description": "Must not be created",
+            "price": 9.5,
+            "category_id": self.category_id,
+            "ingredients": [],
+        }
+        restricted_requests = (
+            ("post", "/admin/categories", {"category_name": "Forbidden category"}),
+            ("put", f"/admin/categories/{self.category_id}", {"category_name": "Forbidden rename"}),
+            ("delete", f"/admin/categories/{self.category_id}", None),
+            ("post", "/admin/ingredients", {"name": "Forbidden ingredient", "type": "normal"}),
+            ("put", "/admin/ingredients/1", {"name": "Forbidden rename"}),
+            ("delete", "/admin/ingredients/1", None),
+            ("post", "/admin/products", product_payload),
+            ("put", f"/admin/products/{self.product_id}", {"available": False}),
+            ("post", f"/admin/products/{self.product_id}/toggle-status", None),
+            ("delete", f"/admin/products/{self.product_id}", None),
+        )
+        for token in (self.chef_token, self.waiter_token):
+            headers = self.role_headers(token)
+            for method, path, payload in restricted_requests:
+                response = self.client.request(method, path, json=payload, headers=headers)
+                self.assertEqual(response.status_code, 403, f"{method.upper()} {path}: {response.text}")
+
+    def test_manager_retains_catalog_crud_and_waiter_updates_archived_availability(self):
+        manager_headers = self.role_headers(self.manager_token)
+        waiter_headers = self.role_headers(self.waiter_token)
+        category = self.client.post(
+            "/admin/categories",
+            json={"category_name": "Progressive access category"},
+            headers=manager_headers,
+        )
+        ingredient = self.client.post(
+            "/admin/ingredients",
+            json={"name": "Progressive access ingredient", "type": "normal"},
+            headers=manager_headers,
+        )
+        self.assertEqual(category.status_code, 201, category.text)
+        self.assertEqual(ingredient.status_code, 201, ingredient.text)
+        category_id = category.json()["category_id"]
+        ingredient_id = ingredient.json()["ingredient_id"]
+
+        product = self.client.post(
+            "/admin/products",
+            json={
+                "name": "Progressive access product",
+                "product_description": "Catalog permission fixture",
+                "price": 7.5,
+                "category_id": category_id,
+                "ingredients": [{"ingredient_id": ingredient_id, "name": "Progressive access ingredient", "type": "normal"}],
+            },
+            headers=manager_headers,
+        )
+        self.assertEqual(product.status_code, 201, product.text)
+        product_id = product.json()["product_id"]
+        updated = self.client.put(
+            f"/admin/products/{product_id}",
+            json={"name": "Progressive access product updated"},
+            headers=manager_headers,
+        )
+        archived = self.client.delete(f"/admin/products/{product_id}", headers=manager_headers)
+        availability = self.client.put(
+            f"/admin/products/{product_id}/availability",
+            json={"available": False},
+            headers=waiter_headers,
+        )
+        listed = self.client.get("/admin/products?include_deleted=true", headers=waiter_headers)
+        self.assertEqual(updated.status_code, 200, updated.text)
+        self.assertEqual(archived.status_code, 200, archived.text)
+        self.assertEqual(availability.status_code, 200, availability.text)
+        self.assertFalse(availability.json()["available"])
+        self.assertIn(product_id, {item["product_id"] for item in listed.json()})
+
+        archived_ingredient = self.client.delete(f"/admin/ingredients/{ingredient_id}", headers=manager_headers)
+        ingredient_availability = self.client.put(
+            f"/admin/ingredients/{ingredient_id}/availability",
+            json={"available": False},
+            headers=self.role_headers(self.chef_token),
+        )
+        archived_category = self.client.delete(f"/admin/categories/{category_id}", headers=manager_headers)
+        self.assertEqual(archived_ingredient.status_code, 200, archived_ingredient.text)
+        self.assertEqual(ingredient_availability.status_code, 200, ingredient_availability.text)
+        self.assertEqual(archived_category.status_code, 200, archived_category.text)
 
     def test_unavailable_cart_items_remain_visible_and_block_checkout(self):
         self.client.delete("/cart/clear", headers=self.customer_headers)

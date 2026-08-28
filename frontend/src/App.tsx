@@ -116,7 +116,7 @@ function App() {
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin/dashboard" element={<ProtectedAdminRoute roles={["owner", "manager", "waiter", "chef"]}><AdminDashboard /></ProtectedAdminRoute>} />
         <Route path="/admin/super" element={<ProtectedAdminRoute roles={["owner"]}><Navigate to="/admin/dashboard" replace /></ProtectedAdminRoute>} />
-        <Route path="/admin/staff" element={<ProtectedAdminRoute roles={["owner", "manager", "waiter"]}><Navigate to="/admin/dashboard?tab=orders&view=service" replace /></ProtectedAdminRoute>} />
+        <Route path="/admin/staff" element={<ProtectedAdminRoute roles={["owner", "manager", "waiter", "chef"]}><Navigate to="/admin/dashboard?tab=orders&view=service" replace /></ProtectedAdminRoute>} />
         <Route path="/admin/kitchen" element={<ProtectedAdminRoute roles={["owner", "manager", "waiter", "chef"]}><Navigate to="/admin/dashboard?tab=orders&view=kitchen" replace /></ProtectedAdminRoute>} />
         <Route path="/menu" element={<Menu />} />
         <Route path="/cart" element={<Cart />} />

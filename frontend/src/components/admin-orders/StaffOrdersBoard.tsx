@@ -20,6 +20,7 @@ type Props = {
   onRefresh: () => void;
   onMarkPaid: (orderId: number) => Promise<void> | void;
   onUpdateStatus: (orderId: number, status: string) => Promise<void> | void;
+  readOnly?: boolean;
 };
 
 const columns = [
@@ -63,7 +64,7 @@ const defaultStaffOrderFilters = {
   dateTo: "",
 };
 
-export default function StaffOrdersBoard({ orders, onRefresh, onMarkPaid, onUpdateStatus }: Props) {
+export default function StaffOrdersBoard({ orders, onRefresh, onMarkPaid, onUpdateStatus, readOnly = false }: Props) {
   const { t } = useTranslation("admin");
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [quickFilter, setQuickFilter] = useState("all");
@@ -294,13 +295,13 @@ export default function StaffOrdersBoard({ orders, onRefresh, onMarkPaid, onUpda
 
                   {!isCollapsed && (
                   <div className="order-card-actions">
-                    {order.state === "pending" && order.paymentMethod === "counter" && order.paymentStatus !== "paid" && (
+                    {!readOnly && order.state === "pending" && order.paymentMethod === "counter" && order.paymentStatus !== "paid" && (
                       <button className="ad-btn ad-btn-primary" onClick={() => onMarkPaid(order.orderId)}>{t("orders.staff.confirmPayment")}</button>
                     )}
-                    {order.state === "ready" && (
+                    {!readOnly && order.state === "ready" && (
                       <button className="ad-btn ad-btn-primary" onClick={() => onUpdateStatus(order.orderId, "delivered")}>{t("orders.staff.completeHandoff")}</button>
                     )}
-                    {order.paymentStatus !== "paid" && !["delivered", "cancelled"].includes(order.state) && (
+                    {!readOnly && order.paymentStatus !== "paid" && !["delivered", "cancelled"].includes(order.state) && (
                       <button className="ad-btn ad-btn-danger" onClick={() => onUpdateStatus(order.orderId, "cancelled")}>{t("orders.common.cancel")}</button>
                     )}
                     <button className="ad-btn ad-btn-ghost" onClick={() => setSelectedOrderId(order.orderId)}>{t("orders.common.viewDetails")}</button>

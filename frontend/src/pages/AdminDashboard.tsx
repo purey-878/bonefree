@@ -126,8 +126,8 @@ import { primaryProductMediaUrl, productMediaUrl } from "../utils/productMedia"
 import LanguageSwitcher from "../components/LanguageSwitcher"
 import AdminI18nBoundary from "../components/AdminI18nBoundary"
 import { resolvedLocale } from "../i18n"
-import { canManageKitchenOrders, orderViewForRole, orderViewsForRole } from "../utils/adminOrderViews"
-import type { AdminOrderView } from "../utils/adminOrderViews"
+import { adminTabsForRole, canEditCatalog, canManageKitchenOrders, canManageServiceOrders, canViewCatalog, orderViewForRole, orderViewsForRole } from "../utils/adminOrderViews"
+import type { AdminDashboardTab, AdminOrderView } from "../utils/adminOrderViews"
 
 function getImageUrl(imagePath: string): string {
   return resolveProductImageUrl(imagePath)
@@ -137,7 +137,7 @@ function handleAdminImageError(event: SyntheticEvent<HTMLImageElement>) {
   applyApiImageFallback(event.currentTarget)
 }
 
-type TabType = "dashboard" | "products" | "ingredients" | "categories" | "orders" | "reviews" | "analytics" | "clientes" | "staff" | "settings"
+type TabType = AdminDashboardTab
 type AdminTheme = "light" | "dark"
 type SiteSettingsTab = "promote" | "coupons" | "theme" | "company" | "social" | "events"
 
@@ -240,10 +240,6 @@ function isHexColor(value: string) {
   return /^#[0-9a-fA-F]{6}$/.test(value)
 }
 
-const OWNER_TABS: TabType[] = ["dashboard", "products", "ingredients", "categories", "orders", "reviews", "clientes", "staff", "settings", "analytics"]
-const MANAGER_TABS: TabType[] = ["orders", "products", "ingredients", "categories"]
-const WAITER_TABS: TabType[] = ["orders"]
-const CHEF_TABS: TabType[] = ["orders"]
 const NAV_GROUPS: { label: string; tabs: TabType[] }[] = [
   { label: "Principal", tabs: ["dashboard", "orders"] },
   { label: "Menu", tabs: ["products", "ingredients", "categories"] },
@@ -646,6 +642,7 @@ function ProductAnalyticsDrawer({
   onEdit,
   onDelete,
   onRangeChange,
+  canEdit,
 }: {
   product: AdminProduct | null
   analytics: ProductAnalytics | null
@@ -655,6 +652,7 @@ function ProductAnalyticsDrawer({
   onEdit: (product: AdminProduct) => void
   onDelete: (product: AdminProduct) => void
   onRangeChange: (days: number) => void
+  canEdit: boolean
 }) {
   if (!product) return null
 
@@ -764,8 +762,8 @@ function ProductAnalyticsDrawer({
             </div>
 
             <div className="ad-product-drawer-actions">
-              <button className="ad-btn ad-btn-primary" onClick={() => onEdit(product)}>Editar produto</button>
-              <button className="ad-btn ad-btn-danger" onClick={() => onDelete(product)}>Eliminar produto</button>
+              {canEdit && <button className="ad-btn ad-btn-primary" onClick={() => onEdit(product)}>Editar produto</button>}
+              {canEdit && <button className="ad-btn ad-btn-danger" onClick={() => onDelete(product)}>Eliminar produto</button>}
               <button className="ad-btn ad-btn-ghost" onClick={onClose}>Fechar</button>
             </div>
           </>
@@ -1363,7 +1361,7 @@ function SiteSettingsPanel({
 export default function AdminDashboard() {
   const [searchParams, setSearchParams] = useSearchParams()
   const storedRole = (localStorage.getItem("admin_role") || "manager") as AdminRole
-  const storedRoleTabs = storedRole === "owner" ? OWNER_TABS : storedRole === "chef" ? CHEF_TABS : storedRole === "waiter" ? WAITER_TABS : MANAGER_TABS
+  const storedRoleTabs = adminTabsForRole(storedRole)
   const requestedInitialTab = searchParams.get("tab") as TabType | null
   const [activeTab, setActiveTab] = useState<TabType>(() => (
     requestedInitialTab && storedRoleTabs.includes(requestedInitialTab)
@@ -1534,11 +1532,13 @@ export default function AdminDashboard() {
   const toast = useToast()
   const role = (currentAdmin?.role || localStorage.getItem("admin_role") || "manager") as AdminRole
   const isOwner = role === "owner"
-  const canManageProducts = role === "owner" || role === "manager"
-  const allowedTabs = isOwner ? OWNER_TABS : role === "chef" ? CHEF_TABS : role === "waiter" ? WAITER_TABS : MANAGER_TABS
+  const canViewAdminCatalog = canViewCatalog(role)
+  const canEditAdminCatalog = canEditCatalog(role)
+  const allowedTabs = adminTabsForRole(role)
   const availableOrderViews = orderViewsForRole(role)
   const orderView = orderViewForRole(role, searchParams.get("view"))
   const kitchenReadOnly = !canManageKitchenOrders(role)
+  const serviceReadOnly = !canManageServiceOrders(role)
   const visibleNavItems = NAV_ITEMS.filter((item) => allowedTabs.includes(item.tab))
   const visibleNavGroups = NAV_GROUPS
     .map((group) => ({
@@ -1549,7 +1549,7 @@ export default function AdminDashboard() {
     }))
     .filter((group) => group.items.length > 0)
   const currentNavLabel = NAV_ITEMS.find((item) => item.tab === activeTab)?.label ?? "Admin"
-  const shellTitle = role === "chef" ? "Kitchen Console" : isOwner ? "Admin Console" : "Staff Console"
+  const shellTitle = isOwner ? "Admin Console" : "Staff Console"
   const adminInitials = (currentAdmin?.name || "Admin")
     .split(" ")
     .filter(Boolean)
@@ -1645,7 +1645,7 @@ export default function AdminDashboard() {
 
   const handleLoadIngredients = useCallback(async () => {
     try {
-      setIngredients(await listIngredients(true, true))
+      setIngredients(await listIngredients(true, false))
     } catch (err) {
       setError(getErrorMessage(err, "Failed to load ingredients"))
     }
@@ -1864,13 +1864,13 @@ export default function AdminDashboard() {
 
   // Debounced filter effect — only re-fetches active products
   useEffect(() => {
-    if (!canManageProducts || activeTab !== "products") return
+    if (!canViewAdminCatalog || activeTab !== "products") return
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
     debounceTimerRef.current = setTimeout(() => {
       void handleLoadProducts()
     }, 400)
     return () => { if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current) }
-  }, [activeTab, canManageProducts, handleLoadProducts])
+  }, [activeTab, canViewAdminCatalog, handleLoadProducts])
 
   useEffect(() => {
     if (!categoryFilterOpen) return
@@ -3767,12 +3767,16 @@ export default function AdminDashboard() {
                   Admin Console · {new Date().toLocaleDateString(resolvedLocale(), { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
                 </p>
                 <h2 className="ad-section-title">Ingredientes</h2>
-                <p className="ad-section-sub">Gerir os ingredientes removíveis que os clientes veem ao personalizar produtos.</p>
+                <p className="ad-section-sub">
+                  {canEditAdminCatalog
+                    ? "Gerir os ingredientes que os clientes veem ao personalizar produtos."
+                    : "Consulte os ingredientes e altere apenas a disponibilidade operacional."}
+                </p>
               </div>
-              <button className="ad-btn ad-btn-primary" onClick={openNewIngredientForm}>Adicionar ingrediente</button>
+              {canEditAdminCatalog && <button className="ad-btn ad-btn-primary" onClick={openNewIngredientForm}>Adicionar ingrediente</button>}
             </div>
 
-            {showIngredientForm && (
+            {canEditAdminCatalog && showIngredientForm && (
               <>
                 <div className="ad-modal-backdrop" onClick={closeIngredientForm} />
                 <div className="ad-modal ad-ingredient-modal" role="dialog" aria-modal="true" aria-labelledby="ingredient-modal-title">
@@ -3962,12 +3966,12 @@ export default function AdminDashboard() {
                           ? "A guardar..."
                           : ingredient.available ? "Marcar indisponível" : "Marcar disponível"}
                       </button>
-                      <button className="ad-btn ad-btn-sm ad-btn-ghost" onClick={() => openEditIngredientForm(ingredient)}>Editar</button>
-                      {isActive ? (
+                      {canEditAdminCatalog && <button className="ad-btn ad-btn-sm ad-btn-ghost" onClick={() => openEditIngredientForm(ingredient)}>Editar</button>}
+                      {canEditAdminCatalog && (isActive ? (
                         <button className="ad-btn ad-btn-sm ad-btn-danger" onClick={() => handleDeactivateIngredient(ingredient.ingredientId)}>Desativar</button>
                       ) : (
                         <button className="ad-btn ad-btn-sm ad-btn-primary" onClick={() => handleRestoreIngredient(ingredient.ingredientId)}>Restaurar</button>
-                      )}
+                      ))}
                     </div>
                   </article>
                 )
@@ -3981,8 +3985,11 @@ export default function AdminDashboard() {
         {activeTab === "products" && (
           <div className="ad-content">
             <div className="ad-section-bar">
-              <h2 className="ad-section-title">Todos os produtos</h2>
-              <button className="ad-btn ad-btn-primary" onClick={openNewForm}>Adicionar produto</button>
+              <div>
+                <h2 className="ad-section-title">Todos os produtos</h2>
+                {!canEditAdminCatalog && <p className="ad-section-sub">Consulte detalhes e análises ou altere apenas a disponibilidade operacional.</p>}
+              </div>
+              {canEditAdminCatalog && <button className="ad-btn ad-btn-primary" onClick={openNewForm}>Adicionar produto</button>}
             </div>
 
             {/* Filters */}
@@ -4117,7 +4124,7 @@ export default function AdminDashboard() {
             </div>
 
             {/* Product Form Modal */}
-            {showProductForm && (
+            {canEditAdminCatalog && showProductForm && (
               <>
                 <div className="ad-modal-backdrop" />
                 <div className="ad-modal ad-product-modal">
@@ -5054,6 +5061,7 @@ export default function AdminDashboard() {
               }}
               onDelete={(product) => void handleDeleteProductFromAnalytics(product)}
               onRangeChange={(days) => void handleProductAnalyticsRangeChange(days)}
+              canEdit={canEditAdminCatalog}
             />
 
             {/* Active products */}
@@ -5081,7 +5089,7 @@ export default function AdminDashboard() {
                           {image && <img src={getImageUrl(image)} alt="" onError={handleAdminImageError} />}
                           <div className="ad-admin-product-card-top">
                             <span>{p.productDisplayId ?? formatProductId(p.productId)}</span>
-                            <details
+                            {canEditAdminCatalog && <details
                               className="ad-row-action-menu ad-card-action-menu"
                               open={openProductActionMenuId === p.productId}
                               onClick={(event) => event.stopPropagation()}
@@ -5093,7 +5101,7 @@ export default function AdminDashboard() {
                                 <button type="button" onClick={() => void handleOpenProductAnalytics(p)}>Análises</button>
                                 <button type="button" className="danger" onClick={() => handleDeleteProduct(p.productId)}>Eliminar</button>
                               </div>
-                            </details>
+                            </details>}
                           </div>
                           <h3>{p.name}</h3>
                         </div>
@@ -5128,9 +5136,14 @@ export default function AdminDashboard() {
                               ? "A guardar..."
                               : p.available ? "Marcar indisponível" : "Marcar disponível"}
                           </button>
-                          <button className="ad-admin-product-card-edit" onClick={() => handleEditProduct(p)}>
+                          {!canEditAdminCatalog && (
+                            <button className="ad-admin-product-card-edit" onClick={() => void handleOpenProductAnalytics(p)}>
+                              Ver detalhes e análises
+                            </button>
+                          )}
+                          {canEditAdminCatalog && <button className="ad-admin-product-card-edit" onClick={() => handleEditProduct(p)}>
                             Editar produto
-                          </button>
+                          </button>}
                         </div>
                       </article>
                     )
@@ -5198,16 +5211,26 @@ export default function AdminDashboard() {
                           <td data-label="Actions">
                             <div className="ad-actions ad-product-row-actions" onClick={(event) => event.stopPropagation()}>
                               <div className="ad-actions-inline">
-                                <button className="ad-btn ad-btn-sm ad-btn-ghost" onClick={() => handleRestoreProduct(p.productId)}>Restaurar</button>
+                                <button className="ad-btn ad-btn-sm ad-btn-ghost" onClick={() => void handleOpenProductAnalytics(p)}>Ver detalhes</button>
+                                <button
+                                  className="ad-btn ad-btn-sm ad-btn-ghost"
+                                  disabled={availabilityBusyKey === `product-${p.productId}`}
+                                  onClick={() => void handleSetProductAvailability(p, !p.available)}
+                                >
+                                  {availabilityBusyKey === `product-${p.productId}`
+                                    ? "A guardar..."
+                                    : p.available ? "Marcar indisponível" : "Marcar disponível"}
+                                </button>
+                                {canEditAdminCatalog && <button className="ad-btn ad-btn-sm ad-btn-ghost" onClick={() => handleRestoreProduct(p.productId)}>Restaurar</button>}
                               </div>
-                              <details className="ad-row-action-menu">
+                              {canEditAdminCatalog && <details className="ad-row-action-menu">
                                 <summary aria-label={`Ações para ${p.name}`}>
                                   <MoreHorizontal size={18} aria-hidden="true" />
                                 </summary>
                                 <div className="ad-row-action-menu-popover">
                                   <button type="button" onClick={() => handleRestoreProduct(p.productId)}>Restaurar</button>
                                 </div>
-                              </details>
+                              </details>}
                             </div>
                           </td>
                         </tr>
@@ -5254,7 +5277,7 @@ export default function AdminDashboard() {
             {orderView === "kitchen" ? (
               <KitchenOrdersBoard orders={orders} onRefresh={handleLoadOrders} onUpdateStatus={handleOrderStatusChange} readOnly={kitchenReadOnly} />
             ) : orderView === "service" ? (
-              <StaffOrdersBoard orders={orders} onRefresh={handleLoadOrders} onMarkPaid={handlePayCounterOrder} onUpdateStatus={handleOrderStatusChange} />
+              <StaffOrdersBoard orders={orders} onRefresh={handleLoadOrders} onMarkPaid={handlePayCounterOrder} onUpdateStatus={handleOrderStatusChange} readOnly={serviceReadOnly} />
             ) : (
               <SuperAdminOrdersView orders={orders} onRefresh={handleLoadOrders} onUpdateStatus={handleOrderStatusChange} onDelete={handleDeleteOrder} />
             )}

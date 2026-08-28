@@ -65,16 +65,8 @@ router = APIRouter(
 logger = logging.getLogger(__name__)
 
 KITCHEN_VISIBLE_STATES = (OrderState.CONFIRMED, OrderState.IN_PREPARATION, OrderState.READY)
-CHEF_ALLOWED_STATES = {OrderState.CONFIRMED, OrderState.IN_PREPARATION, OrderState.READY}
-WAITER_ALLOWED_STATES = {OrderState.DELIVERED, OrderState.CANCELLED}
-STAFF_ALLOWED_STATES = {
-    OrderState.PENDING,
-    OrderState.CONFIRMED,
-    OrderState.IN_PREPARATION,
-    OrderState.READY,
-    OrderState.DELIVERED,
-    OrderState.CANCELLED,
-}
+CHEF_ALLOWED_STATES = {OrderState.IN_PREPARATION, OrderState.READY}
+WAITER_ALLOWED_STATES = CHEF_ALLOWED_STATES | {OrderState.DELIVERED, OrderState.CANCELLED}
 
 
 SalesStats = Dict[str, Union[float, int]]
@@ -689,7 +681,7 @@ def _get_order_or_404(db: Session, order_id: int) -> Order:
 
 def _ensure_order_status_allowed(current_admin: Admin, order: Order, next_status: str | OrderState) -> None:
     next_state = OrderState(next_status)
-    if current_admin.role == SUPER_ADMIN_ROLE:
+    if current_admin.role in {STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE}:
         return
     if current_admin.role == WAITER_ROLE:
         if next_state not in WAITER_ALLOWED_STATES:
@@ -706,8 +698,17 @@ def _ensure_order_status_allowed(current_admin: Admin, order: Order, next_status
             )
     if current_admin.role == CHEF_ROLE and next_state not in CHEF_ALLOWED_STATES:
         raise AppHTTPException(status_code=403, error="permission_denied", message="Permission denied.", details={"reason": "request_failed"})
-    if current_admin.role == STAFF_ADMIN_ROLE and next_state not in STAFF_ALLOWED_STATES:
-        raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="invalid_order_state_transition", message="Order cannot be moved to the requested state.", details={"order_id": order.order_id, "next_state": str(next_state), "admin_role": str(current_admin.role)})
+    required_previous_state = {
+        OrderState.IN_PREPARATION: OrderState.CONFIRMED,
+        OrderState.READY: OrderState.IN_PREPARATION,
+    }.get(next_state)
+    if required_previous_state is not None and order.state != required_previous_state:
+        raise AppHTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            error="invalid_order_state_transition",
+            message="Order cannot be moved to the requested state.",
+            details={"order_id": order.order_id, "state": str(order.state), "next_state": str(next_state)},
+        )
     if order.payment_status == PaymentStatus.UNPAID and next_state not in {OrderState.PENDING, OrderState.CANCELLED}:
         raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="payment_required", message="Counter payment must be confirmed before advancing the order.", details={"order_id": order.order_id, "next_state": str(next_state)})
     if order.payment_status == PaymentStatus.PAID and next_state == OrderState.CANCELLED:
@@ -776,7 +777,7 @@ def _staff_order_filter():
 )
 def list_categories(
     include_inactive: bool = Query(False),
-    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
+    current_admin: Admin = Depends(require_role(WAITER_ROLE, CHEF_ROLE, STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
     stmt = select(Category)
@@ -881,7 +882,7 @@ def delete_category(
 def list_ingredients(
     include_inactive: bool = Query(False),
     customization_only: bool = Query(False),
-    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
+    current_admin: Admin = Depends(require_role(WAITER_ROLE, CHEF_ROLE, STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     stmt = select(Ingredient)
@@ -995,7 +996,7 @@ def update_ingredient(
 def set_ingredient_availability(
     ingredient_id: int,
     availability: AvailabilityUpdate,
-    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
+    current_admin: Admin = Depends(require_role(WAITER_ROLE, CHEF_ROLE, STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     ingredient = db.scalar(select(Ingredient).where(Ingredient.ingredient_id == ingredient_id))
@@ -1099,7 +1100,7 @@ def list_products(
     gluten_free: bool = Query(None),
     contains_alcohol: bool = Query(None),
     include_deleted: bool = Query(False),
-    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
+    current_admin: Admin = Depends(require_role(WAITER_ROLE, CHEF_ROLE, STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
     stmt = select(Product).options(
@@ -1149,7 +1150,7 @@ def list_products(
 )
 def get_product(
     product_id: str,
-    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
+    current_admin: Admin = Depends(require_role(WAITER_ROLE, CHEF_ROLE, STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
     parsed_product_id = parse_product_id(product_id)
@@ -1178,7 +1179,7 @@ def get_product(
 def get_product_analytics(
     product_id: str,
     days: int = Query(30, ge=1, le=365),
-    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
+    current_admin: Admin = Depends(require_role(WAITER_ROLE, CHEF_ROLE, STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db)
 ):
     parsed_product_id = parse_product_id(product_id)
@@ -1310,7 +1311,7 @@ def update_product(
 def set_product_availability(
     product_id: str,
     availability: AvailabilityUpdate,
-    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
+    current_admin: Admin = Depends(require_role(WAITER_ROLE, CHEF_ROLE, STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     parsed_product_id = parse_product_id(product_id)
@@ -1580,7 +1581,7 @@ def list_orders(
 def list_staff_orders(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=200),
-    current_admin: Admin = Depends(require_role(WAITER_ROLE, STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
+    current_admin: Admin = Depends(require_role(WAITER_ROLE, CHEF_ROLE, STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     orders = db.scalars(
@@ -1661,7 +1662,7 @@ def get_order(
 )
 def delete_cancelled_order(
     order_id: int,
-    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
+    current_admin: Admin = Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE)),
     db: Session = Depends(get_db),
 ):
     order = _get_order_or_404(db, order_id)

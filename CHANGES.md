@@ -19,20 +19,20 @@ Files changed in this branch:
 
 No backend endpoint, database schema, or guest-access security rule changed for this item.
 
-## 2. Give owners unrestricted status control and allow deletion of cancelled orders
+## 2. Give managers and owners unrestricted Management control and allow deletion of cancelled orders
 
 Required backend behavior:
 
-- An `owner` may change an order to any valid `OrderState`, even when the payment is still unpaid. The `payment_required` and operational transition checks must continue to apply to non-owner roles.
+- A `manager` or `owner` may change an order to any valid `OrderState`, even when the payment is still unpaid. Operational payment and transition checks continue to apply to chef/waiter actions.
 - When an administrator changes an order to `cancelled`, set `canceled_at` if it is not already set and set `cancellation_origin` to `ADMIN`.
 - When restoring an order from `cancelled` to another state, clear `canceled_at` and `cancellation_origin`.
-- Add `DELETE /admin/orders/{order_id}` with operation ID `admin_management_delete_cancelled_order`, `MessageResponse`, and exact `Depends(require_role(SUPER_ADMIN_ROLE))` protection (`SUPER_ADMIN_ROLE` maps to the owner role in this branch).
+- Add `DELETE /admin/orders/{order_id}` with operation ID `admin_management_delete_cancelled_order`, `MessageResponse`, and exact `Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE))` protection (manager and owner).
 - The delete endpoint must return `409 order_must_be_cancelled` unless the loaded order is already cancelled. If eligible, delete the loaded ORM entity with `db.delete(order)` and commit once so configured relationships/cascades clean up associated records.
 
 Backend files:
 
-- `backend/routers/admin.py`: owner bypass in `_ensure_order_status_allowed`, cancellation metadata maintenance in `update_order_status`, and the owner-only cancelled-order delete route.
-- `backend/tests/test_endpoint_smoke.py`: coverage for arbitrary owner transitions, retained manager payment restrictions, cancellation metadata, authorization, active-order deletion rejection, successful cancelled-order deletion, and cleanup of related rows.
+- `backend/routers/admin.py`: manager/owner bypass in `_ensure_order_status_allowed`, cancellation metadata maintenance in `update_order_status`, and the manager/owner cancelled-order delete route.
+- `backend/tests/test_endpoint_smoke.py`: coverage for arbitrary manager/owner transitions, cancellation metadata, authorization, active-order deletion rejection, successful cancelled-order deletion, and cleanup of related rows.
 
 Required frontend behavior:
 
@@ -72,39 +72,61 @@ Role/view matrix and defaults:
 | Role | Counter (`service`) | Kitchen (`kitchen`) | Management (`management`) | Default |
 |---|---|---|---|---|
 | Owner | Full actions | Full actions | Full actions | Dashboard overview; Management when Orders opens |
-| Manager | Full actions | Full actions | No access | Counter |
-| Chef | No access | Full preparation actions | No access | Kitchen |
-| Waiter | Payment, eligible cancellation, and ready-order handoff actions | Visible without preparation actions | No access | Counter |
+| Manager | Full actions | Full actions | Unrestricted state/delete actions | Counter |
+| Chef | Read only | Full preparation actions | No access | Kitchen |
+| Waiter | Payment, eligible cancellation, and ready-order handoff actions | Full preparation actions | No access | Counter |
 
 Required order workflow and authorization:
 
 - Counter payment confirmation marks the order paid and moves it directly to `confirmed`; the UI immediately reports `Pagamento confirmado; pedido enviado para a cozinha.` and the card moves to the kitchen-progress column. There is no second `Enviar para a cozinha` action.
-- Waiters may list Counter orders, list/read Kitchen orders, confirm counter payments, change `ready -> delivered` only for paid orders, and cancel only orders allowed by the existing unpaid-cancellation rules.
-- Direct waiter attempts to set `confirmed`, `in_preparation`, or `ready` must return `403 permission_denied`; early/unpaid handoff and paid cancellation must keep returning the relevant `409` transition errors.
-- Owners remain unrestricted. Managers retain operational Counter/Kitchen actions. Chefs remain limited to kitchen-visible orders and kitchen preparation states.
+- Waiters may confirm counter payments, advance `confirmed -> in_preparation -> ready`, deliver only paid ready orders, and cancel only orders allowed by the existing unpaid-cancellation rules. Directly setting `confirmed` remains forbidden because payment confirmation owns that transition.
+- Chefs may list the Counter board without actions and advance only the ordered Kitchen sequence; payment confirmation, Counter cancellation, and handoff remain forbidden.
+- Managers and owners are unrestricted through Management and may permanently delete cancelled orders.
 - The active view chooses its own endpoint: Management uses the management order list, Counter uses the staff/service list, and Kitchen uses the kitchen list. Initial load, polling, window focus, visibility refresh, manual refresh, and stale-request protection must all follow the current URL view.
 
 Backend files:
 
 - `backend/services/auth_service.py`: added the shared `WAITER_ROLE` constant used by route dependencies and transition checks.
-- `backend/routers/admin.py`: allowed waiters on the staff/service list, kitchen list/detail, counter-payment, and generic status endpoints; added waiter-specific allowed states and transition validation without broadening chef/manager permissions.
-- `backend/tests/test_endpoint_smoke.py`: added the full waiter flow and rejection matrix, including Management denial, Kitchen read-only API behavior, automatic payment handoff, invalid preparation transitions, early delivery, paid cancellation, and chef restrictions.
+- `backend/routers/admin.py`: exposes both operational lists to every staff role, lets waiter and chef advance the ordered Kitchen sequence, keeps chef away from Counter mutations, and grants manager/owner unrestricted Management actions.
+- `backend/tests/test_endpoint_smoke.py`: covers the progressive Chef -> Waiter -> Manager -> Owner order matrix, automatic payment handoff, ordered preparation, early delivery, paid cancellation, Management denial, and manager/owner deletion.
 
 Frontend routing and role helpers:
 
 - `frontend/src/App.tsx`: canonical dashboard route for all four roles plus compatibility redirects for `/admin/super`, `/admin/staff`, and `/admin/kitchen`.
 - `frontend/src/pages/AdminLogin.tsx`: role-based post-login navigation now targets the unified console.
-- `frontend/src/utils/adminOrderViews.ts`: defines `AdminOrderView`, the role/view matrix, role defaults, unauthorized-view fallback, kitchen action capability, and canonical dashboard entry paths.
-- `frontend/src/utils/adminOrderViews.test.ts`: tests every role's available views, defaults, entry paths, kitchen read-only capability, and invalid/unauthorized URL fallback.
+- `frontend/src/utils/adminOrderViews.ts`: defines dashboard tabs, `AdminOrderView`, the role/view matrix, role defaults, unauthorized-view fallback, service/kitchen capabilities, catalog capabilities, and canonical dashboard entry paths.
+- `frontend/src/utils/adminOrderViews.test.ts`: tests every role's views, defaults, entry paths, catalog CRUD boundary, operational capabilities, and invalid/unauthorized URL fallback.
 
 Frontend console and boards:
 
 - `frontend/src/pages/AdminDashboard.tsx`: removed the separate `experience` prop; derives tabs and order views from role plus URL; loads the endpoint for the active view; protects against stale requests; keeps polling/focus refresh view-aware; wires payment, status, and delete actions into the appropriate board.
 - `frontend/src/components/admin-orders/OrderViewSwitcher.tsx`: top-of-Orders mode selector with `Store`, `ChefHat`, and `ClipboardList` icons; only authorized modes are rendered and the current mode uses `role="tab"`/`aria-selected`.
 - `frontend/src/pages/AdminDashboard.css`: prominent but neutral, non-gradient selector layout; responsive equal-width mode buttons; clear hover, focus, and selected states without a visible read-only badge.
-- `frontend/src/components/admin-orders/StaffOrdersBoard.tsx`: removed the unreachable `pending + paid` send-to-kitchen button; retains payment confirmation and ready handoff; adds cancellation for eligible unpaid/non-final orders.
-- `frontend/src/components/admin-orders/KitchenOrdersBoard.tsx`: accepts `readOnly`; waiter still sees orders, ages, articles, notes, and details, but preparation buttons are not rendered.
+- `frontend/src/components/admin-orders/StaffOrdersBoard.tsx`: accepts `readOnly` so chef retains filters, cards and details while all payment, delivery and cancellation actions are omitted.
+- `frontend/src/components/admin-orders/KitchenOrdersBoard.tsx`: retains the preparation actions for every staff role.
 - `frontend/src/i18n/locales/pt-PT.ts`, `frontend/src/i18n/locales/en-GB.ts`, `frontend/src/i18n/locales/de-DE.ts`: mode-selector copy and revised Counter terminology; removed the obsolete send-to-kitchen and visible read-only labels.
+
+## 4. Split catalog reading, availability, and structural CRUD by staff level
+
+Required behavior:
+
+- Chef and waiter see the Products and Ingredients tabs, including active, inactive and soft-deleted records, filters, linked products, and the complete product analytics drawer.
+- Their only catalog mutation is the dedicated available/unavailable action. Create/edit forms, media actions, archive/delete, restore, and drawer edit/delete actions must not render.
+- Manager and owner retain full product, ingredient, category, media, archive and restore controls. The Categories tab remains hidden from chef/waiter, although they may read category metadata for product filters.
+- Availability is independent from entity status: lower staff may change availability on an archived record but cannot reactivate it. Unavailable base ingredients continue to affect effective product availability.
+
+Backend files and exact authorization split:
+
+- `backend/routers/admin.py`: product/category/ingredient list routes, product detail/analytics, and the two dedicated availability routes use `Depends(require_role(WAITER_ROLE, CHEF_ROLE, STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE))`; structural POST/PUT/DELETE, status, restore and media routes remain `Depends(require_role(STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE))`.
+- `backend/tests/test_endpoint_smoke.py`: verifies read and availability success for all four roles, structural mutation denial for chef/waiter, manager/owner retention, inactive/deleted visibility, and availability propagation.
+
+Frontend files:
+
+- `frontend/src/pages/AdminDashboard.tsx`: exposes Products/Ingredients to all staff; loads inactive/deleted records; uses separate view/edit capabilities; hides every structural action for chef/waiter; keeps analytics read-only; adds availability to archived product rows.
+- `frontend/src/utils/adminOrderViews.ts` and its test: centralize and verify `canViewCatalog`, `canEditCatalog`, `canManageServiceOrders`, and `canManageKitchenOrders` rather than scattering role comparisons.
+- `ACCESS_MATRIX.md`: source-of-truth staff table ordered progressively as Chef -> Waiter -> Manager -> Owner, based on the accessible SVG/CSS layout in `examples/MATRIZ_ACESSO.md`.
+
+No migration or response model changes are required. Authorization dependencies may not alter the OpenAPI shape, but the target branch must still export and compare its document before considering the port complete.
 
 Brand/browser integration included with the console refinement:
 
@@ -118,7 +140,7 @@ No migration or response-shape change was required for the console consolidation
 1. Reapply backend behavior while preserving tenant ownership filters on every order lookup and list.
 2. Run the complete backend suite and explicitly test cross-tenant denial in addition to the role/transition cases above.
 3. Export the target branch OpenAPI document, regenerate the frontend client, and review the generated diff.
-4. Reapply the frontend routing, role helpers, selector, board actions, translations, and favicon integration using the files listed above as references.
+4. Reapply the frontend routing, role helpers, selector, board actions, catalog capability gates, translations, access matrix, and favicon integration using the files listed above as references.
 5. Test direct canonical URLs and all three legacy redirects for every role, including invalid and unauthorized query values.
 6. Run frontend tests, lint, and production build before marking the branches synchronized.
 
