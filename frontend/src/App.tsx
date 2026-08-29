@@ -9,6 +9,7 @@ import type { Location } from 'react-router-dom'
 import Footer from './components/Footer'
 import CookieBanner from './components/CookieBanner'
 import OrderStatusBar from './components/OrderStatusBar'
+import PrototypeNotice from './components/PrototypeNotice'
 import SiteThemeController from './components/SiteThemeController'
 
 import HomePage from './pages/Home'
@@ -136,6 +137,7 @@ function App() {
         </Routes>
       )}
 
+      <PrototypeNotice />
       <OrderStatusBar />
       <CookieBanner />
       {!hideFooter && <Footer />}

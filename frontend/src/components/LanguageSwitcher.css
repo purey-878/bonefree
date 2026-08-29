@@ -1,6 +1,6 @@
 .language-switcher {
   position: relative;
-  z-index: 5100;
+  z-index: 6400;
   flex: 0 0 auto;
   color: var(--brand-ink, #17211d);
 }
@@ -70,7 +70,7 @@
   position: absolute;
   top: calc(100% + 0.65rem);
   right: 0;
-  z-index: 5200;
+  z-index: 6500;
   display: grid;
   width: 190px;
   gap: 0.2rem;
