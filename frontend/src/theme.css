@@ -401,6 +401,12 @@ footer a.text-light {
   color: var(--brand-secondary) !important;
 }
 
+.footer-prototype-notice {
+  margin-bottom: 0.45rem;
+  color: #3f3000;
+  font-weight: 900;
+}
+
 .footer-socials {
   display: flex;
   flex-wrap: wrap;

@@ -61,6 +61,7 @@ export const authService = {
         last_name: data.lastName,
         phone: data.phone,
         tax_id: data.taxId,
+        accepted_terms: data.acceptedTerms,
       },
       client: publicApiClient,
       throwOnError: true,

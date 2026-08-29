@@ -112,7 +112,7 @@ const ptPT = {
       description: "Utilizamos cookies e armazenamento local para manter a sessão, o carrinho e as preferências, bem como para melhorar a experiência.",
       accept: "Aceitar todos os cookies",
     },
-    footer: { links: "Ligações", contact: "Contacto", follow: "Siga-nos", socialLabel: "Ligações para redes sociais", rights: "Todos os direitos reservados." },
+    footer: { links: "Ligações", contact: "Contacto", follow: "Siga-nos", socialLabel: "Ligações para redes sociais", privacy: "Política de Privacidade", terms: "Termos e Condições", prototypeNotice: "Website de protótipo — não é o website oficial do Bonefree.", rights: "Todos os direitos reservados." },
     resourceNotFound: {
       product: {
         eyebrow: "Item indisponível", title: "Este item não existe ou foi removido.",
@@ -233,6 +233,7 @@ const ptPT = {
       validation: { empty: "O carrinho está vazio.", unavailable: "Remova os itens atualmente indisponíveis antes de fazer o pedido.", unavailableContinue: "Remova os itens atualmente indisponíveis antes de continuar.", fixFields: "Corrija os campos assinalados." },
       errors: { updateItem: "Não foi possível atualizar este artigo.", removeItem: "Não foi possível remover este artigo.", placeOrder: "Não foi possível efetuar o pedido." },
       submit: "Fazer pedido — {{total}}", submitting: "A efetuar pedido...", success: "Pedido efetuado com sucesso.",
+      prototypeNotice: "Este é um ambiente de teste. Pedidos enviados aqui não constituem pedidos oficiais ao Bonefree. Nenhum pedido será processado pelo Bonefree salvo indicação expressa em contrário.",
       confirmation: {
         received: "Pedido recebido", popup: "{{order}} está {{status}}. {{paymentNote}}", guestMessage: "O pedido foi recebido sem necessidade de criar conta e aguarda pagamento ao balcão.", accountMessage: "O pedido foi recebido, ficou associado à sua conta e aguarda pagamento ao balcão.", guestNext: "Consulte todos os seus pedidos em Meus pedidos.", accountNext: "Após o pagamento, a preparação começa, o recibo fica disponível e o pedido permanece no histórico.",
         kicker: "Confirmação do pedido", number: "Número do pedido", atCounter: "Ao balcão", paymentPending: "Pagamento pendente", paymentPendingNote: "A preparação e o recibo ficam disponíveis após o pagamento ao balcão.", nextSteps: "Próximos passos", kitchenHandover: "Entrega à cozinha", afterPayment: "Após pagamento ao balcão", estimated: "Tempo estimado", estimatedAt: "Cerca das {{time}}", summary: "Resumo do pedido", hideSummary: "Ocultar resumo do pedido", showSummary: "Mostrar resumo do pedido", placedAt: "Efetuado em {{date}}", customer: "Cliente", receiptAfterPayment: "Recibo após pagamento", receiptText: "O recibo ficará disponível e será enviado após o pagamento ao balcão.", kitchenUpdates: "Atualizações da cozinha", kitchenUpdatesText: "A barra de progresso inferior é atualizada à medida que o seu pedido avança na cozinha.", supportTitle: "Algo não está bem?", supportText: "Podemos ajudar ao balcão com substituições ou correções do pedido.", receiptDetails: "Dados do recibo", earnedVoucher: "Ganhou um cupão para a próxima vez. Consulte-o no perfil: {{code}}", multipleOrders_one: "Tem {{count}} pedido em curso. Para o acompanhar, abra", multipleOrders_other: "Tem {{count}} pedidos em curso. Para os acompanhar, abra", myOrders: "Os meus pedidos", track: "Acompanhar pedido", viewDetails: "Ver detalhes do pedido", guestAccount: "Iniciar sessão para ter histórico e cupões em pedidos futuros", support: "Contactar apoio", actions: "Ações do pedido", closeStatus: "Fechar estado do pedido", back: "Voltar", continueShopping: "Continuar a comprar", details: "Detalhes do pedido", purchased: "Efetuado em", restaurant: "No restaurante", showProgress: "Mostrar barra de progresso", location: "Local", readyAround: "Pronto por volta das", currentStatus: "Estado atual", items_one: "{{count}} artigo neste pedido", items_other: "{{count}} artigos neste pedido", quantityShort: "Qtd. {{count}}", discounts: "Descontos", supportLabel: "Apoio", supportHeading: "Estamos aqui se precisar de ajuda", shortSummary: "Resumo", orderLabel: "Pedido {{number}}", handoff: "Entrega", statusLabel: "Estado",
@@ -275,6 +276,11 @@ const ptPT = {
     emailPlaceholder: "nome@exemplo.pt",
     registerTitle: "Criar conta.",
     registerSubtitle: "Guarde os seus dados e avance pelo checkout sem esforço.",
+    acceptTermsBefore: "Li e aceito os",
+    acceptTermsLink: "Termos e Condições",
+    acceptTermsRequired: "Tem de aceitar os Termos e Condições para criar a conta.",
+    privacyNoticeBefore: "Ao criar a conta, os seus dados pessoais serão tratados de acordo com a",
+    privacyNoticeLink: "Política de Privacidade",
     reset: {
       progress: "Progresso da reposição da palavra-passe",
       title: "Repor palavra-passe",

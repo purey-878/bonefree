@@ -46,8 +46,11 @@ const Footer: React.FC = () => {
               <li><Link to="/menu" className="text-light text-decoration-none footer-link">{t("navigation.menu", { ns: "common" })}</Link></li>
               <li><Link to="/about" className="text-light text-decoration-none footer-link">{t("navigation.about", { ns: "common" })}</Link></li>
               <li><Link to="/contact" className="text-light text-decoration-none footer-link">{t("navigation.contact", { ns: "common" })}</Link></li>
+              <li><Link to="/privacy" className="text-light text-decoration-none footer-link">{t("footer.privacy")}</Link></li>
+              <li><Link to="/terms" className="text-light text-decoration-none footer-link">{t("footer.terms")}</Link></li>
             </ul>
           </div>
+
 
           <div className="col-lg-3 col-md-6 mb-4">
             <h5 className="fw-bold mb-3">{t("footer.contact")}</h5>
@@ -81,7 +84,9 @@ const Footer: React.FC = () => {
 
         <div className="row">
           <div className="col text-center">
+            <p className="footer-prototype-notice">{t("footer.prototypeNotice")}</p>
             <p className="mb-0">&copy; {new Date().getFullYear()} {companyDetails.brandName}. {t("footer.rights")}</p>
+
           </div>
         </div>
       </div>

@@ -47,3 +47,5 @@ examples/
 .DS_Store
 .idea/
 .vscode/
+
+.kilo

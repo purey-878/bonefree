@@ -20,6 +20,8 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
 import Cart from './pages/Cart'
+import Terms from './pages/Terms'
+import Privacy from './pages/Privacy'
 import Checkout from './pages/Checkout'
 import GuestOrders from './pages/GuestOrders'
 import OrderDetails from './pages/OrderDetails'
@@ -120,8 +122,11 @@ function App() {
           <Route path="/about" element={<About />} />
           <Route path="/events" element={<Events />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<Privacy />} />
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="*" element={<NotFound />} />
+
         </Routes>
       </div>
 

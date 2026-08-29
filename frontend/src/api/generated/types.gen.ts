@@ -3393,6 +3393,12 @@ export type UserProfileUpdate = {
  */
 export type UserRegister = {
     /**
+     * Accepted Terms
+     *
+     * Whether the customer accepted the Terms and Conditions.
+     */
+    accepted_terms: boolean;
+    /**
      * Email
      */
     email: string;

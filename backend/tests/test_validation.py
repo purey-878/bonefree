@@ -96,6 +96,7 @@ class PortugueseValidationTests(unittest.TestCase):
             password="Valid1!x",
             name="Maria",
             last_name="Costa",
+            accepted_terms=True,
         )
         self.assertEqual(user.email, "maria@example.com")
         with self.assertRaises(Exception):
@@ -103,6 +104,16 @@ class PortugueseValidationTests(unittest.TestCase):
                 email="maria@example.com",
                 reset_token="x" * 20,
                 new_password="weakpass",
+            )
+
+    def test_user_register_requires_terms_acceptance(self):
+        with self.assertRaisesRegex(Exception, "You must accept the Terms and Conditions"):
+            UserRegister(
+                email="maria@example.com",
+                password="Valid1!x",
+                name="Maria",
+                last_name="Costa",
+                accepted_terms=False,
             )
 
 

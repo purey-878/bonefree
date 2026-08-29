@@ -5945,6 +5945,11 @@
       "UserRegister": {
         "description": "Request model for user registration.",
         "properties": {
+          "accepted_terms": {
+            "description": "Whether the customer accepted the Terms and Conditions.",
+            "title": "Accepted Terms",
+            "type": "boolean"
+          },
           "email": {
             "maxLength": 150,
             "minLength": 3,
@@ -5996,7 +6001,8 @@
           "email",
           "password",
           "name",
-          "last_name"
+          "last_name",
+          "accepted_terms"
         ],
         "title": "UserRegister",
         "type": "object"

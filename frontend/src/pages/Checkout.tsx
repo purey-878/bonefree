@@ -1146,7 +1146,11 @@ function Checkout() {
                 {hasUnavailableItems && (
                   <p className="checkout-form-error">{t("checkout.validation.unavailableContinue")}</p>
                 )}
+
+                <p className="checkout-prototype-notice">{t("checkout.prototypeNotice")}</p>
+
                 <button type="submit" className="checkout-submit bonefree-button" disabled={isSubmitting || items.length === 0 || hasUnavailableItems}>
+
                   {isSubmitting ? t("checkout.submitting") : t("checkout.submit", { total: formatEuro(total) })}
                 </button>
               </div>

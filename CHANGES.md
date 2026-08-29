@@ -483,6 +483,37 @@ Backend files changed:
 
 No migration, response schema, OpenAPI document, generated client, frontend request, or CORS setting changed. For the multi-tenant port, apply the same predicate replacements inside the tenant-scoped product/catalog and cart queries without removing tenant ownership filters. Validate against PostgreSQL—not only the SQLite test database—and confirm `/products/?sort=popular` returns `200` with the requesting origin in `Access-Control-Allow-Origin`.
 
+## 19. Add prototype legal pages, registration consent, and privacy notices
+
+Required behavior:
+
+- Add public `/terms` and `/privacy` pages with clear, company-style Terms and Conditions and Privacy Policy content for the Bonefree prototype. Both pages must react immediately to the active language switcher in Portuguese, English, and German without requiring a page refresh.
+- State clearly that the website is a prototype for demonstration, testing, and validation; it is not Bonefree's official website and not an official support, reservation, purchase, or ordering channel. The footer must show `Website de protótipo — não é o website oficial do Bonefree.` in Portuguese and equivalent translations in other locales.
+- In the registration form, require a Terms acceptance checkbox before account creation. The visible Portuguese phrase is `Li e aceito os Termos e Condições`, with `Termos e Condições` linking to `/terms`. The checkbox and label use pointer cursor and render inline without a surrounding box.
+- Show the non-checkbox privacy notice below registration consent: `Ao criar a conta, os seus dados pessoais serão tratados de acordo com a Política de Privacidade.`, with the policy text linking to `/privacy`.
+- Enforce Terms acceptance in the backend registration contract with the required `accepted_terms` boolean. A false value must fail validation with an English API validation message.
+- Before checkout submission, show the test-environment warning: `Este é um ambiente de teste. Pedidos enviados aqui não constituem pedidos oficiais ao Bonefree. Nenhum pedido será processado pelo Bonefree salvo indicação expressa em contrário.` and equivalent translations.
+- Use `purabxtha878@gmail.com` as the development responsible contact email in Terms and Privacy legal copy.
+
+Files changed:
+
+- `backend/schemas/user.py`: added required `accepted_terms` to `UserRegister` and validation that it must be true.
+- `backend/tests/test_validation.py` and `backend/tests/test_rate_limit.py`: updated registration schema usage and added false-consent validation coverage.
+- `frontend/src/pages/Terms.tsx`, `frontend/src/pages/Privacy.tsx`, and `frontend/src/pages/Legal.css`: new localized legal pages, translated legal content, responsive layout, and language-reactive rendering through `react-i18next`.
+- `frontend/src/App.tsx`: added `/terms` and `/privacy` routes.
+- `frontend/src/components/Footer.tsx` and `frontend/src/theme.css`: added Privacy/Terms links and prototype notice.
+- `frontend/src/pages/Register.tsx` and `frontend/src/pages/Auth.css`: added required consent checkbox, linked legal copy, privacy notice, validation error, and pointer checkbox styling.
+- `frontend/src/pages/Checkout.tsx` and `frontend/src/pages/Checkout.css`: added the test-environment order notice before submit.
+- `frontend/src/types/user.ts` and `frontend/src/services/authService.ts`: send `acceptedTerms` as `accepted_terms` in registration requests.
+- `frontend/src/i18n/locales/pt-PT.ts`, `frontend/src/i18n/locales/en-GB.ts`, and `frontend/src/i18n/locales/de-DE.ts`: added footer/legal-registration/checkout notice translations.
+- `frontend/openapi/openapi.json` and `frontend/src/api/generated/{index.ts,sdk.gen.ts,types.gen.ts}`: regenerated after the intentional registration contract change.
+
+Multi-tenant synchronization notes:
+
+- Preserve tenant-specific legal identity, controller/processor wording, contact details, DPO status, and tenant ownership boundaries when porting the legal copy. Do not reuse the single-tenant contact blindly if the target tenant has its own development/operator contact.
+- Regenerate the target branch OpenAPI client after adding `accepted_terms`; do not copy generated files by hand.
+- Verification completed here: backend unittest suite passed; frontend ESLint passed; frontend tests passed; production TypeScript/Vite build passed with the existing non-fatal large-chunk advisory.
+
 ## Multi-tenant port verification checklist
 
 1. Reapply backend behavior while preserving tenant ownership filters on every order lookup and list.

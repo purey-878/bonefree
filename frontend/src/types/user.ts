@@ -25,6 +25,7 @@ export interface RegisterRequest {
   lastName: string;
   phone?: string;
   taxId?: string;
+  acceptedTerms: boolean;
 }
 
 export interface ProfileUpdateRequest {
