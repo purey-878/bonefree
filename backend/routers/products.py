@@ -132,9 +132,9 @@ def list_products(
     if max_price is not None:
         filters.append(discounted_price <= max_price)
     if special == "gluten_free":
-        filters.append(Product.gluten_free == 1)
+        filters.append(Product.gluten_free.is_(True))
     elif special == "alcohol":
-        filters.append(Product.contains_alcohol == 1)
+        filters.append(Product.contains_alcohol.is_(True))
     if product_ids is not None:
         filters.append(Product.product_id.in_(product_ids or [-1]))
 
@@ -143,13 +143,13 @@ def list_products(
 
     tag_text = func.lower(func.coalesce(Product.menu_tags, ""))
     default_score = (
-        case((Product.featured == 1, 1000), else_=0)
+        case((Product.featured.is_(True), 1000), else_=0)
         + case((tag_text.like("%popular%"), 600), else_=0)
         + case((tag_text.like("%new%"), 300), else_=0)
         + func.coalesce(Product.sold, 0)
     )
     popular_score = (
-        case((Product.featured == 1, 1000), else_=0)
+        case((Product.featured.is_(True), 1000), else_=0)
         + case((tag_text.like("%popular%"), 700), else_=0)
         + case((func.coalesce(Product.discount_percentage, 0) > 0, 250), else_=0)
         + func.coalesce(Product.sold, 0)
@@ -302,7 +302,7 @@ def get_customization_options(
             .join(ProductIngredient.ingredient)
             .where(
                 ProductIngredient.product_id == parsed_product_id,
-                ProductIngredient.removable == 1,
+                ProductIngredient.removable.is_(True),
                 Ingredient.status == EntityStatus.ACTIVE,
                 Ingredient.available.is_(True),
                 Ingredient.type == IngredientType.NORMAL,

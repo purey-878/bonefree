@@ -468,6 +468,21 @@ Frontend files changed:
 
 No backend, migration, OpenAPI, generated-client, or authorization change is required. In the multi-tenant branch, reuse the component and state lifecycle rather than copying the former inline forms; preserve tenant-aware customer/catalog service calls and verify that its topbar height variable keeps the mobile panel below the visible header.
 
+## 18. Make public product queries portable to PostgreSQL
+
+Required behavior and cause:
+
+- The Docker deployment returned `500 Internal Server Error` for `GET /products/`; browsers reported that response as a CORS failure because the unhandled database exception did not include `Access-Control-Allow-Origin`. The configured origins were already correct.
+- PostgreSQL does not accept comparisons such as `boolean_column = 1`. Public product filters and the default/popular ordering now express boolean predicates with SQLAlchemy's `.is_(True)`, preserving the existing filtering and ranking while generating native Boolean SQL on PostgreSQL and SQLite.
+- Removable-ingredient validation in cart and product customization uses the same portable Boolean predicate, preventing the equivalent runtime failure when loading customization options.
+
+Backend files changed:
+
+- `backend/routers/products.py`: PostgreSQL-safe predicates for gluten-free, alcohol, featured-product ranking, and removable product ingredients.
+- `backend/routers/cart.py`: PostgreSQL-safe predicate when loading removable ingredients for cart validation.
+
+No migration, response schema, OpenAPI document, generated client, frontend request, or CORS setting changed. For the multi-tenant port, apply the same predicate replacements inside the tenant-scoped product/catalog and cart queries without removing tenant ownership filters. Validate against PostgreSQL—not only the SQLite test database—and confirm `/products/?sort=popular` returns `200` with the requesting origin in `Access-Control-Allow-Origin`.
+
 ## Multi-tenant port verification checklist
 
 1. Reapply backend behavior while preserving tenant ownership filters on every order lookup and list.
@@ -488,6 +503,7 @@ No backend, migration, OpenAPI, generated-client, or authorization change is req
 16. Click related-product counts on ingredients near every grid edge and confirm the grid remains unchanged while a centred modal opens. Test loading, empty, multi-page, page-size, narrow viewport, dark theme, backdrop/close dismissal, and product-detail navigation; close the modal before a delayed request resolves and confirm it stays closed.
 17. Inspect active product cards in light/dark themes, exercise the three-dot menu through pointer and keyboard closure paths, and switch loaded analytics between drawer and modal without another request. Confirm drawer background interaction and independent scrolling, modal blur/scroll lock across topbar/sidebar, remembered desktop preference, mobile full-screen image/close alignment, exit animations with reduced motion, and the 1160 px desktop product editor.
 18. Open create and edit flows for categories, ingredients, customers, and staff, alternate each between drawer and modal, and confirm the shared preference survives reload. Test Escape, backdrop, close and Cancel paths, delayed animated unmount, underlying-page interaction in drawer mode, full-console blur/scroll lock in modal mode, persistent mobile topbar, every customer billing field, enabled/disabled filter-checkbox cursors, compact checkbox focus without a text-input outline, dark theme, and reduced motion.
+19. Run the public product list and customization/cart queries against PostgreSQL with Boolean filters and both default/popular ordering. Confirm they return `200`, retain tenant scoping in the multi-tenant branch, and expose the expected CORS header instead of masking a database `500` as a browser CORS error.
 
 
 # Changes in multi-tenant branch

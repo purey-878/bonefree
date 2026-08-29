@@ -190,7 +190,7 @@ def _price_legacy_customization(
             .join(ProductIngredient.ingredient)
             .where(
                 ProductIngredient.product_id == product.product_id,
-                ProductIngredient.removable == 1,
+                ProductIngredient.removable.is_(True),
                 ProductIngredient.ingredient.has(
                     (Ingredient.type == IngredientType.NORMAL)
                     & (Ingredient.status == EntityStatus.ACTIVE)
