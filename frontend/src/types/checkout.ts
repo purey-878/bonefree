@@ -7,7 +7,7 @@ export type PaymentMethod = 'counter';
 export interface CheckoutCustomer {
   firstName: string;
   lastName: string;
-  email: string;
+  email?: string | null;
   phone?: string | null;
   taxId?: string | null;
   tableNumber?: number | null;
@@ -62,4 +62,14 @@ export interface OrderResponse {
 export interface OrderCreateResponse extends OrderResponse {
   orderAccessToken?: string | null;
   orderAccessExpiresAt?: string | null;
+}
+
+export interface GuestOrderClaimInput {
+  orderId: number;
+  accessToken: string;
+}
+
+export interface GuestOrderClaimResult {
+  claimedOrderIds: number[];
+  rejectedOrderIds: number[];
 }

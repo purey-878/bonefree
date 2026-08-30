@@ -1063,6 +1063,7 @@
   padding: 20px;
   background: rgba(13, 22, 18, 0.5);
   backdrop-filter: blur(10px);
+  animation: profile-modal-backdrop-in 180ms ease both;
 }
 
 .profile-order-modal {
@@ -1075,6 +1076,17 @@
   background: #ffffff;
   color: var(--profile-ink);
   box-shadow: 0 24px 80px rgba(13, 22, 18, 0.26);
+  animation: profile-order-modal-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes profile-modal-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes profile-order-modal-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .profile-order-modal .profile-order-detail-list {

@@ -6,15 +6,9 @@ import "./Auth.css"
 import Navbar from "../components/Navbar"
 import Footer from "../components/Footer"
 import { adminLogin } from "../services/adminService"
-import type { AdminRole } from "../types/admin"
 import { useTranslation } from "react-i18next"
 import { normalizeAdminRole, useAdminSession } from '../context/admin-session-context'
-
-function adminHomeForRole(role: AdminRole): string {
-  if (role === "owner") return "/admin/dashboard"
-  if (role === "chef") return "/admin/kitchen"
-  return "/admin/staff"
-}
+import { adminDashboardPathForRole } from "../utils/adminOrderViews"
 
 export default function AdminLogin() {
   const { t } = useTranslation(["account", "common"])
@@ -37,7 +31,7 @@ export default function AdminLogin() {
 
       login({ token: data.accessToken, name: adminName, role: adminRole })
 
-      navigate(adminHomeForRole(adminRole), { replace: true })
+      navigate(adminDashboardPathForRole(adminRole), { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : t("admin.failed"))
     } finally {

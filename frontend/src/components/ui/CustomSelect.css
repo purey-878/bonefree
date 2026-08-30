@@ -83,6 +83,37 @@
   border-radius: 12px;
   background: var(--ad-surface, #ffffff);
   box-shadow: 0 18px 42px rgba(15, 23, 42, 0.18);
+  transform-origin: top center;
+  animation: custom-select-menu-in 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes custom-select-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-5px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.custom-select-menu.is-closing {
+  pointer-events: none;
+  animation: custom-select-menu-out 180ms ease both;
+}
+
+@keyframes custom-select-menu-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.985);
+  }
 }
 
 .custom-select-menu button {
@@ -160,4 +191,13 @@ body:has(.ad-theme-dark) .custom-select-menu button.selected {
 
 body:has(.ad-theme-dark) .custom-select-menu button.selected {
   color: #ffffff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .custom-select-trigger,
+  .custom-select-trigger svg,
+  .custom-select-menu {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
 }

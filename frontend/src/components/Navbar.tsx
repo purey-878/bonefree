@@ -6,6 +6,7 @@ import {
   LogIn,
   LogOut,
   Menu as MenuIcon,
+  ReceiptText,
   ShoppingBag,
   User,
   UtensilsCrossed,
@@ -21,6 +22,11 @@ import { cartService } from "../services";
 import { useOrganization } from '../organization/context/organization-context'
 import { resolveNavigation } from '../organization/experience/navigation'
 import currentManifest from '../app/manifest/currentManifest'
+import {
+  GUEST_ORDERS_UPDATED_EVENT,
+  isGuestOrdersStorageEvent,
+  readGuestOrderAccesses,
+} from "./orderStatusStorage";
 
 const navigationLabelKeys: Readonly<Record<string, string>> = {
   home: 'navigation.home',
@@ -70,7 +76,8 @@ const TopNav = styled.header<{ $glassDark?: boolean }>`
   top: 0;
   right: 0;
   left: 0;
-  z-index: 5000;
+  /* Above sticky page controls, but below application overlays such as the cart drawer. */
+  z-index: 1300;
   height:72px;
 
   --nav-text: ${({ $glassDark }) =>
@@ -214,6 +221,23 @@ const CenterNav = styled.nav`
   @media (min-width: 1280px) and (max-width: 1439px) {
     gap: 0.12rem;
   }
+`;
+
+const popoverIn = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(-7px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+`;
+
+const backdropIn = keyframes`
+  from { opacity: 0; }
+  to { opacity: 1; }
 `;
 
 const PillLink = styled(Link)<{ $active: boolean }>`
@@ -526,6 +550,8 @@ const AccountDropdown = styled.div`
   box-shadow: 0 22px 52px rgba(23, 33, 29, 0.16);
   backdrop-filter: blur(22px) saturate(150%);
   -webkit-backdrop-filter: blur(22px) saturate(150%);
+  transform-origin: top right;
+  animation: ${popoverIn} 190ms cubic-bezier(0.22, 1, 0.36, 1) both;
 `;
 
 const AccountSummary = styled.div`
@@ -598,6 +624,7 @@ const Backdrop = styled.button`
   z-index: 1190;
   border: 0;
   background: rgba(17, 24, 39, 0.28);
+  animation: ${backdropIn} 180ms ease both;
 
   @media (max-width: 767px) {
     inset-block-start: 68px;
@@ -801,6 +828,7 @@ const Navbar = () => {
   const [accountOpenPath, setAccountOpenPath] = useState<string | null>(null);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
+  const [guestOrderCount, setGuestOrderCount] = useState(() => readGuestOrderAccesses().length);
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
   const accountOpen = accountOpenPath === location.pathname;
   const brandName = experience.profile.display_name || organization.name
@@ -917,6 +945,19 @@ const Navbar = () => {
     return () => window.removeEventListener("cartUpdated", handleCartUpdate);
   }, [hasOrdering]);
 
+  useEffect(() => {
+    const refreshGuestOrderCount = () => setGuestOrderCount(readGuestOrderAccesses().length);
+    const refreshGuestOrderCountFromStorage = (event: StorageEvent) => {
+      if (isGuestOrdersStorageEvent(event)) refreshGuestOrderCount();
+    };
+    window.addEventListener(GUEST_ORDERS_UPDATED_EVENT, refreshGuestOrderCount);
+    window.addEventListener("storage", refreshGuestOrderCountFromStorage);
+    return () => {
+      window.removeEventListener(GUEST_ORDERS_UPDATED_EVENT, refreshGuestOrderCount);
+      window.removeEventListener("storage", refreshGuestOrderCountFromStorage);
+    };
+  }, []);
+
   const requestLogout = () => {
     closeDrawer();
     closeAccountMenu();
@@ -934,6 +975,7 @@ const Navbar = () => {
   const fullName = [user?.name, user?.lastName].filter(Boolean).join(" ").trim();
   const displayName = fullName || user?.email || t("navigation.profile");
   const profileInitial = (fullName || user?.email || "P").trim().charAt(0).toUpperCase();
+  const ordersHref = isAuthenticated ? "/profile?tab=orders" : "/orders";
   const glassDarkNav = location.pathname === "/" || location.pathname === "/contact" || location.pathname === "/about";
   const isAuthRoute = ["/login", "/register", "/forgot-password"].includes(location.pathname);
 
@@ -966,6 +1008,12 @@ const Navbar = () => {
 
           <NavActions>
             <LanguageSwitcher />
+            {hasOrdering && (isAuthenticated || guestOrderCount > 0) && (
+              <IconLink aria-label={t("navigation.orders")} to={ordersHref}>
+                <ReceiptText size={21} />
+                {!isAuthenticated && guestOrderCount > 0 && <CartBadge key={guestOrderCount}>{guestOrderCount}</CartBadge>}
+              </IconLink>
+            )}
             {hasOrdering && (
               <IconLink aria-label={t("navigation.cart")} state={cartLinkState} to="/cart">
                 <ShoppingBag size={21} />
@@ -993,6 +1041,10 @@ const Navbar = () => {
                     <AccountMenuLink onClick={closeAccountMenu} role="menuitem" to="/profile">
                       <User size={16} />
                       {t("navigation.profile")}
+                    </AccountMenuLink>
+                    <AccountMenuLink onClick={closeAccountMenu} role="menuitem" to="/profile?tab=orders">
+                      <ReceiptText size={16} />
+                      {t("navigation.orders")}
                     </AccountMenuLink>
                     <AccountMenuButton onClick={requestLogout} role="menuitem" type="button">
                       <LogOut size={16} />
@@ -1051,6 +1103,15 @@ const Navbar = () => {
                     {label}
                   </DrawerLink>
                 ))}
+                {hasOrdering && (isAuthenticated || guestOrderCount > 0) && (
+                  <DrawerLink
+                    $active={isAuthenticated ? location.pathname === "/profile" && location.search.includes("tab=orders") : isActive("/orders")}
+                    onClick={closeDrawer}
+                    to={ordersHref}
+                  >
+                    {t("navigation.orders")}
+                  </DrawerLink>
+                )}
               </DrawerNav>
 
               <DrawerAuth>
@@ -1096,7 +1157,12 @@ const Navbar = () => {
       />
 
       <BottomNav aria-label={t("navigation.mobileBottom")} >
-        {bottomLinks.map(({ path, label, id, icon: Icon }) => (
+        {(isAuthenticated || guestOrderCount === 0 || !hasOrdering
+          ? bottomLinks
+          : bottomLinks.map((link) => link.path === "/profile"
+            ? { ...link, path: "/orders", label: t("navigation.orders"), icon: ReceiptText }
+            : link)
+        ).map(({ path, label, id, icon: Icon }) => (
           <BottomLink
             $active={isActive(path)}
             key={id}

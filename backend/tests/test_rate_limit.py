@@ -270,6 +270,7 @@ class RateLimitDependencyTests(unittest.IsolatedAsyncioTestCase):
                 password="StrongPass1!",
                 name="New",
                 last_name="Customer",
+                accepted_terms=True,
             ),
         )
         await self._assert_credential_dependency_limits(

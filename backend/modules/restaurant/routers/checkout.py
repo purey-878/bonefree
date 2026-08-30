@@ -8,8 +8,8 @@ from typing import Optional, TypedDict
 from uuid import uuid4
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, Response, status
-from sqlalchemy import delete, exists, select
+from fastapi import APIRouter, Depends, Query, Response, status
+from sqlalchemy import delete, exists, func, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from modules.auth.dependencies import (
@@ -38,14 +38,19 @@ from modules.restaurant.models import (
 )
 from modules.restaurant.schemas.checkout import (
     CouponResponse,
+    CouponPageResponse,
     CouponValidationRequest,
     CouponValidationResponse,
     CheckoutItem,
     CheckoutRequest,
+    GuestOrderClaimRequest,
+    GuestOrderClaimResponse,
     OrderCreateResponse,
     OrderItemResponse,
     OrderResponse,
+    OrderPageResponse,
 )
+from modules.restaurant.schemas.pagination import total_pages
 from modules.restaurant.routers.cart import trusted_guest_customization
 from modules.restaurant.services.receipt_email import build_saved_order_receipt_payload
 from modules.restaurant.services.order_customization import customization_from_json, customization_to_json
@@ -475,17 +480,23 @@ def _can_customer_cancel(order: Order) -> bool:
     return order.state == OrderState.PENDING and order.payment_status == PaymentStatus.UNPAID
 
 
-@router.get("/coupons", response_model=list[CouponResponse], operation_id="checkout_list_available_coupons")
+@router.get("/coupons", response_model=CouponPageResponse, operation_id="checkout_list_available_coupons")
 def list_available_coupons(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    statement = _available_coupon_statement(current_user)
+    total = db.scalar(select(func.count()).select_from(statement.subquery())) or 0
     coupons = db.scalars(
-        _available_coupon_statement(current_user).order_by(Coupon.created_at.desc())
+        statement.order_by(Coupon.id.desc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
     ).all()
-    return [
+    items = [
         CouponResponse(
-            coupon_id=coupon.coupon_id,
+            coupon_id=coupon.id,
             code=coupon.code,
             type=coupon.type,
             value=coupon.value,
@@ -494,6 +505,13 @@ def list_available_coupons(
         )
         for coupon in coupons
     ]
+    return CouponPageResponse(
+        items=items,
+        page=page,
+        per_page=per_page,
+        total=int(total),
+        total_pages=total_pages(int(total), per_page),
+    )
 
 
 @router.post(
@@ -650,7 +668,7 @@ def create_order(
         handled_by_user_id=None,
         customer_first_name=body.customer.first_name,
         customer_last_name=body.customer.last_name,
-        customer_email=str(body.customer.email),
+        customer_email=body.customer.email,
         customer_phone=body.customer.phone,
         customer_tax_id=(body.customer.tax_id or "").strip() or None,
         order_access_token_hash=order_access_token_hash,
@@ -711,6 +729,65 @@ def create_order(
         **response.model_dump(),
         order_access_token=order_access_token,
         order_access_expires_at=order_access_expires_at,
+    )
+
+
+@router.post(
+    "/orders/claim",
+    response_model=GuestOrderClaimResponse,
+    operation_id="checkout_claim_guest_orders",
+)
+def claim_guest_orders(
+    body: GuestOrderClaimRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    requested_by_id = {item.order_id: item for item in body.orders}
+    requested_ids = list(requested_by_id)
+    orders = db.scalars(
+        select(Order).where(
+            Order.order_id.in_(requested_ids),
+            Order.organization_id == db.info["organization_id"],
+        )
+    ).all()
+    orders_by_id = {order.order_id: order for order in orders}
+    now = datetime.utcnow()
+    claimed_order_ids: list[int] = []
+    rejected_order_ids: list[int] = []
+
+    for order_id, item in requested_by_id.items():
+        order = orders_by_id.get(order_id)
+        if order and order.customer_id == current_user.id:
+            order.order_access_token_hash = None
+            order.order_access_expires_at = None
+            claimed_order_ids.append(order_id)
+            continue
+
+        can_claim = (
+            order is not None
+            and order.customer_id is None
+            and order.order_access_token_hash is not None
+            and order.order_access_expires_at is not None
+            and order.order_access_expires_at > now
+            and secrets.compare_digest(
+                _hash_order_access_token(item.access_token),
+                order.order_access_token_hash,
+            )
+        )
+        if not can_claim:
+            rejected_order_ids.append(order_id)
+            continue
+
+        order.customer_id = current_user.id
+        order.order_access_token_hash = None
+        order.order_access_expires_at = None
+        order.updated_at = now
+        claimed_order_ids.append(order_id)
+
+    db.commit()
+    return GuestOrderClaimResponse(
+        claimed_order_ids=claimed_order_ids,
+        rejected_order_ids=rejected_order_ids,
     )
 
 
@@ -795,13 +872,17 @@ def download_order_receipt_pdf(
 
 @router.get(
     "/orders/history",
-    response_model=list[OrderResponse],
+    response_model=OrderPageResponse,
     operation_id="checkout_list_order_history",
 )
 def list_order_history(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    order_filter = Order.customer_id == current_user.id
+    total = db.scalar(select(func.count(Order.order_id)).where(order_filter)) or 0
     orders = db.scalars(
         select(Order)
         .options(
@@ -811,10 +892,18 @@ def list_order_history(
             .selectinload(ProductMedia.media)
             .selectinload(Media.variants)
         )
-        .where(Order.customer_id == current_user.id)
-        .order_by(Order.ordered_at.desc())
+        .where(order_filter)
+        .order_by(Order.ordered_at.desc(), Order.order_id.desc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
     ).unique().all()
-    return [_order_response(order) for order in orders]
+    return OrderPageResponse(
+        items=[_order_response(order) for order in orders],
+        page=page,
+        per_page=per_page,
+        total=int(total),
+        total_pages=total_pages(int(total), per_page),
+    )
 
 
 @router.get(

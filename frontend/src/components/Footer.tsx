@@ -65,6 +65,8 @@ const Footer: React.FC = () => {
                   </Link>
                 </li>
               ))}
+              <li><Link to="/privacy" className="text-light text-decoration-none footer-link">{t("footer.privacy")}</Link></li>
+              <li><Link to="/terms" className="text-light text-decoration-none footer-link">{t("footer.terms")}</Link></li>
             </ul>
           </div>
 

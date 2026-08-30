@@ -243,6 +243,26 @@ class OrganizationApiTests(unittest.TestCase):
                 OrganizationFeatureEntitlement(feature_key="customer_accounts", enabled=True),
                 OrganizationFeatureEntitlement(feature_key="ordering", enabled=True),
             ])
+            second_guest_token = "second-guest-order"
+            second_order = Order(
+                customer_first_name="Guest",
+                customer_last_name="Two",
+                customer_email="guest-two@example.com",
+                order_access_token_hash=hashlib.sha256(second_guest_token.encode()).hexdigest(),
+                order_access_expires_at=datetime.utcnow() + timedelta(hours=1),
+                state=OrderState.PENDING,
+                payment_method=PaymentMethod.COUNTER,
+                payment_status=PaymentStatus.UNPAID,
+                subtotal=Decimal("0"),
+                vat_percentage=Decimal("13"),
+                vat_amount=Decimal("0"),
+                total_discount=Decimal("0"),
+                total=Decimal("0"),
+            )
+            db.add(second_order)
+            db.flush()
+            cls.second_order_id = second_order.id
+            cls.second_guest_token = second_guest_token
             db.commit()
 
         cls.app = create_app(run_startup_tasks=False)
@@ -351,6 +371,39 @@ class OrganizationApiTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.json()["error"], "order_not_found")
+
+    def test_guest_order_claim_cannot_transfer_an_order_between_organizations(self):
+        response = self.client.post(
+            "/checkout/orders/claim",
+            json={
+                "orders": [
+                    {
+                        "order_id": self.second_order_id,
+                        "access_token": self.second_guest_token,
+                    }
+                ]
+            },
+            headers={
+                "Authorization": f"Bearer {self.session_token}",
+                "X-Organization-Slug": "first",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()["claimed_order_ids"], [])
+        self.assertEqual(response.json()["rejected_order_ids"], [self.second_order_id])
+
+        with self.Session() as db:
+            db.info["organization_id"] = self.second_id
+            order = db.scalar(
+                select(Order).where(Order.order_id == self.second_order_id)
+            )
+            self.assertIsNotNone(order)
+            self.assertIsNone(order.customer_id)
+            self.assertEqual(
+                order.order_access_token_hash,
+                hashlib.sha256(self.second_guest_token.encode()).hexdigest(),
+            )
 
 
 class OrganizationScriptsAndInvoiceTests(unittest.TestCase):

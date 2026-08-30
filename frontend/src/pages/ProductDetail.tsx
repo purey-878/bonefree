@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import type { MouseEvent } from "react"
-import { Link, useNavigate, useParams } from "react-router-dom"
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import {
   BadgeCheck,
   CakeSlice,
@@ -30,8 +30,9 @@ import "./ProductDetail.css"
 import "../theme.css"
 import { isApiErrorWithStatus } from "../api/errors"
 import Navbar from "../components/Navbar"
+
 import ResourceNotFound from "../components/ResourceNotFound"
-import { AddToCartButton, AvailabilityBadge, Badge, ProductCard, Skeleton, Textarea } from "../components/ui"
+import { AddToCartButton, AvailabilityBadge, Badge, Pagination, ProductCard, Skeleton, Textarea } from "../components/ui"
 import ConfirmDialog from "../components/ui/ConfirmDialog"
 import { useToast } from "../components/ui/toastContext"
 import { useAuth } from "../hooks/useAuth"
@@ -130,6 +131,7 @@ function readRecentlyViewed() {
 export const ProductDetail = () => {
   const { t } = useTranslation("storefront")
   const { id } = useParams<{ id: string }>()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [product, setProduct] = useState<Product | null>(null)
   const [productsById, setProductsById] = useState<Record<string, Product>>({})
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([])
@@ -137,6 +139,10 @@ export const ProductDetail = () => {
   const [availabilitySuggestions, setAvailabilitySuggestions] = useState<ProductAvailabilitySuggestions | null>(null)
   const [reviewStats, setReviewStats] = useState<ProductReviewStats | null>(null)
   const [reviews, setReviews] = useState<ProductReview[]>([])
+  const [reviewPage, setReviewPage] = useState(() => Math.max(1, Number(searchParams.get("review_page")) || 1))
+  const [reviewPerPage, setReviewPerPage] = useState(() => [10, 20, 50, 100].includes(Number(searchParams.get("review_per_page"))) ? Number(searchParams.get("review_per_page")) : 20)
+  const [reviewTotal, setReviewTotal] = useState(0)
+  const [reviewTotalPages, setReviewTotalPages] = useState(0)
   const [reviewEligibility, setReviewEligibility] = useState<ProductReviewEligibility | null>(null)
   const [customizationOptions, setCustomizationOptions] = useState<ProductCustomizationOptions>({
     remove: [],
@@ -152,7 +158,10 @@ export const ProductDetail = () => {
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const [toastError, setToastError] = useState(false)
   const [activeImageIndex, setActiveImageIndex] = useState(0)
-  const [reviewFilter, setReviewFilter] = useState<ReviewFilter>("all")
+  const [reviewFilter, setReviewFilter] = useState<ReviewFilter>(() => {
+    const value = searchParams.get("review_filter")
+    return value === "5" || value === "4" || value === "with-text" ? value : "all"
+  })
   const [reviewRating, setReviewRating] = useState(0)
   const [reviewTitle, setReviewTitle] = useState("")
   const [reviewComment, setReviewComment] = useState("")
@@ -166,6 +175,8 @@ export const ProductDetail = () => {
   const { token } = useAuth()
   const toast = useToast()
   const imageFrameRef = useRef<HTMLDivElement | null>(null)
+  const lastWrittenSearchRef = useRef(searchParams.toString())
+  const skipUrlWriteRef = useRef(false)
   const imageZoomRafRef = useRef<number | null>(null)
 
   useLayoutEffect(() => {
@@ -194,15 +205,22 @@ export const ProductDetail = () => {
         setReviewRating(0)
         setReviewFormOpen(false)
 
-        const all = await productService.getAll()
-        const byId = Object.fromEntries(all.map(p => [p.id, p]))
+        const recentIds = readRecentlyViewed().filter(recentId => recentId !== data.id).slice(0, 8)
+        const [relatedPage, recentPage] = await Promise.all([
+          data.categoryId
+            ? productService.getPage({ page: 1, perPage: 5, categoryId: data.categoryId })
+            : productService.getPage({ page: 1, perPage: 20 }),
+          recentIds.length > 0
+            ? productService.getPage({ page: 1, perPage: Math.min(100, recentIds.length), productIds: recentIds })
+            : Promise.resolve({ items: [] as Product[] }),
+        ])
+        const related = relatedPage.items.filter(p => p.category === data.category && p.id !== data.id).slice(0, 4)
+        const recent = recentPage.items
+        const byId = Object.fromEntries([data, ...related, ...recent].map(p => [p.id, p]))
         setProductsById(byId)
-        setRelatedProducts(
-          all.filter(p => p.category === data.category && p.id !== data.id).slice(0, 4),
-        )
+        setRelatedProducts(related)
         setRecentProducts(
-          readRecentlyViewed()
-            .filter(recentId => recentId !== data.id)
+          recentIds
             .map(recentId => byId[recentId])
             .filter((item): item is Product => Boolean(item))
             .slice(0, 4),
@@ -232,13 +250,11 @@ export const ProductDetail = () => {
         }
 
         try {
-          const [stats, reviewList, eligibility] = await Promise.all([
+          const [stats, eligibility] = await Promise.all([
             productService.getReviewStats(productId),
-            productService.getReviews(productId),
             productService.getReviewEligibility(productId),
           ])
           setReviewStats(stats)
-          setReviews(reviewList)
           setReviewEligibility(eligibility)
           const firstReviewableItem = eligibility.existingReview ? null : eligibility.items.find(item => !item.existingReview)
           setSelectedOrderItemId(firstReviewableItem?.orderProductId ?? "")
@@ -264,6 +280,55 @@ export const ProductDetail = () => {
 
     fetchProduct()
   }, [id, token, t])
+
+  useEffect(() => {
+    if (!id) return
+    let current = true
+    void productService.getReviewsPage(id, {
+      page: reviewPage,
+      perPage: reviewPerPage,
+      rating: reviewFilter === "5" ? 5 : undefined,
+      minRating: reviewFilter === "4" ? 4 : undefined,
+      hasText: reviewFilter === "with-text" ? true : undefined,
+    }).then((result) => {
+      if (!current) return
+      setReviews(result.items)
+      setReviewTotal(result.total)
+      setReviewTotalPages(result.totalPages)
+      if (result.totalPages === 0 && reviewPage !== 1) setReviewPage(1)
+      else if (result.totalPages > 0 && reviewPage > result.totalPages) setReviewPage(result.totalPages)
+    }).catch((reviewLoadError) => {
+      if (current) console.error("Não foi possível carregar avaliações.", reviewLoadError)
+    })
+    return () => { current = false }
+  }, [id, reviewFilter, reviewPage, reviewPerPage, token])
+
+  useEffect(() => {
+    const currentSearch = searchParams.toString()
+    if (currentSearch === lastWrittenSearchRef.current) return
+    lastWrittenSearchRef.current = currentSearch
+    skipUrlWriteRef.current = true
+    const nextFilter = searchParams.get("review_filter")
+    const nextPerPage = Number(searchParams.get("review_per_page"))
+    setReviewPage(Math.max(1, Number(searchParams.get("review_page")) || 1))
+    setReviewPerPage([10, 20, 50, 100].includes(nextPerPage) ? nextPerPage : 20)
+    setReviewFilter(nextFilter === "5" || nextFilter === "4" || nextFilter === "with-text" ? nextFilter : "all")
+  }, [searchParams])
+
+  useEffect(() => {
+    if (skipUrlWriteRef.current) {
+      skipUrlWriteRef.current = false
+      return
+    }
+    const next = new URLSearchParams(searchParams)
+    if (reviewPage === 1) next.delete("review_page"); else next.set("review_page", String(reviewPage))
+    if (reviewPerPage === 20) next.delete("review_per_page"); else next.set("review_per_page", String(reviewPerPage))
+    if (reviewFilter === "all") next.delete("review_filter"); else next.set("review_filter", reviewFilter)
+    if (next.toString() !== searchParams.toString()) {
+      lastWrittenSearchRef.current = next.toString()
+      setSearchParams(next, { replace: true })
+    }
+  }, [reviewFilter, reviewPage, reviewPerPage, searchParams, setSearchParams])
 
   useEffect(() => {
     const frame = imageFrameRef.current
@@ -337,11 +402,21 @@ export const ProductDetail = () => {
   const reloadReviews = async (productId: string | number) => {
     const [stats, reviewList, eligibility] = await Promise.all([
       productService.getReviewStats(productId),
-      productService.getReviews(productId),
+      productService.getReviewsPage(productId, {
+        page: reviewPage,
+        perPage: reviewPerPage,
+        rating: reviewFilter === "5" ? 5 : undefined,
+        minRating: reviewFilter === "4" ? 4 : undefined,
+        hasText: reviewFilter === "with-text" ? true : undefined,
+      }),
       productService.getReviewEligibility(productId),
     ])
     setReviewStats(stats)
-    setReviews(reviewList)
+    setReviews(reviewList.items)
+    setReviewTotal(reviewList.total)
+    setReviewTotalPages(reviewList.totalPages)
+    if (reviewList.totalPages === 0 && reviewPage !== 1) setReviewPage(1)
+    else if (reviewList.totalPages > 0 && reviewPage > reviewList.totalPages) setReviewPage(reviewList.totalPages)
     setReviewEligibility(eligibility)
     const firstReviewableItem = eligibility.existingReview ? null : eligibility.items.find(item => !item.existingReview)
     setSelectedOrderItemId(firstReviewableItem?.orderProductId ?? "")
@@ -574,12 +649,7 @@ export const ProductDetail = () => {
     { key: "add", label: t("productDetail.addEach", { price: formatEuro(customizationAddSurcharge) }), options: customizationOptions.add },
     { key: "preferences", label: t("productDetail.preferences"), options: customizationOptions.preferences },
   ] as const
-  const filteredReviews = reviews.filter(review => {
-    if (reviewFilter === "5") return review.rating === 5
-    if (reviewFilter === "4") return review.rating >= 4
-    if (reviewFilter === "with-text") return Boolean(review.comment?.trim() || review.title?.trim())
-    return true
-  })
+  const filteredReviews = reviews
 
   const handleImageZoomEnter = () => {
     const frame = imageFrameRef.current
@@ -1017,7 +1087,7 @@ export const ProductDetail = () => {
                 key={filter}
                 type="button"
                 className={reviewFilter === filter ? "active" : ""}
-                onClick={() => setReviewFilter(filter)}
+                onClick={() => { setReviewFilter(filter); setReviewPage(1) }}
               >
                 {filter === "all" ? t("productDetail.allReviews") : filter === "with-text" ? t("productDetail.withText") : t("productDetail.stars", { count: filter })}
               </button>
@@ -1137,6 +1207,7 @@ export const ProductDetail = () => {
               </div>
             )}
           </div>
+          <Pagination page={reviewPage} perPage={reviewPerPage} total={reviewTotal} totalPages={reviewTotalPages} onPageChange={setReviewPage} onPerPageChange={(value) => { setReviewPerPage(value); setReviewPage(1) }} />
         </section>
 
         <section className="pd-section pd-faq" id="faq">

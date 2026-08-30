@@ -14,8 +14,8 @@ const MenuSection: React.FC = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const data = await productService.getAll();
-        setProducts(data);
+        const data = await productService.getPage({ page: 1, perPage: 20, sort: "popular" });
+        setProducts(data.items);
       } catch (fetchError) {
         setError(t('menuSection.loadError'));
         console.error(fetchError);

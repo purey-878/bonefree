@@ -4,20 +4,50 @@ from ._shared import *  # noqa: F403 - shared router namespace
 
 @router.get(
     "/staff",
-    response_model=List[AdminResponse],
+    response_model=StaffAdminPageResponse,
     operation_id="admin_management_list_staff_admins",
     summary="List Staff Admins",
 )
 def list_staff_users(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    search: Optional[str] = Query(None, max_length=160),
+    role: Optional[UserRole] = Query(None),
+    status_filter: Optional[UserStatus] = Query(None, alias="status"),
     current_owner: User = Depends(require_organization_role(UserRole.OWNER)),
     db: Session = Depends(get_db),
 ):
+    del current_owner
+    filters = [User.role.in_(ORGANIZATION_STAFF_ROLES)]
+    if search and search.strip():
+        pattern = f"%{search.strip()}%"
+        filters.append(or_(
+            func.cast(User.id, String).ilike(pattern),
+            User.name.ilike(pattern),
+            User.email.ilike(pattern),
+        ))
+    if role is not None:
+        filters.append(User.role == role)
+    if status_filter is not None:
+        filters.append(User.status == status_filter)
+
+    total = db.scalar(select(func.count(User.id)).where(*filters)) or 0
     staff_users = db.scalars(
-        select(User).where(User.role.in_(ORGANIZATION_STAFF_ROLES)).order_by(User.id.asc())
+        select(User)
+        .where(*filters)
+        .order_by(User.id.asc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
     ).all()
     for staff_user in staff_users:
         staff_user.role = normalize_user_role(staff_user.role)
-    return staff_users
+    return StaffAdminPageResponse(
+        items=[AdminResponse.model_validate(staff_user) for staff_user in staff_users],
+        page=page,
+        per_page=per_page,
+        total=int(total),
+        total_pages=total_pages(int(total), per_page),
+    )
 
 
 @router.post(

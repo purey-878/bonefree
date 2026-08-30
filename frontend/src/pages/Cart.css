@@ -31,6 +31,7 @@
   backdrop-filter: blur(3px) saturate(135%);
   -webkit-backdrop-filter: blur(3px) saturate(135%);
   cursor: pointer;
+  animation: cart-backdrop-in 180ms ease both;
 }
 
 .cart-drawer {
@@ -67,6 +68,11 @@
 @keyframes cart-slide-in {
   from { transform: translateX(100%); }
   to { transform: translateX(0); }
+}
+
+@keyframes cart-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .cart-drawer-header {

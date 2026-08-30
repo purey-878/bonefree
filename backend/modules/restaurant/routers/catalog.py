@@ -2,19 +2,58 @@ from ._shared import *  # noqa: F403 - shared router namespace
 
 @router.get(
     "/categories",
-    response_model=List[CategoryResponse],
+    response_model=CategoryPageResponse,
     operation_id="admin_management_list_categories",
     dependencies=CATALOG_FEATURE_DEPENDENCIES,
 )
 def list_categories(
-    include_inactive: bool = Query(False),
-    current_staff: User = Depends(require_organization_role(UserRole.MANAGER, UserRole.OWNER)),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    search: Optional[str] = Query(None, max_length=120),
+    category_id: Optional[int] = Query(None, ge=1),
+    status_filter: Optional[EntityStatus] = Query(None, alias="status"),
+    current_staff: User = Depends(require_organization_role(*ORGANIZATION_STAFF_ROLES)),
     db: Session = Depends(get_db)
 ):
-    stmt = select(Category)
-    if not include_inactive:
-        stmt = stmt.where(Category.status == EntityStatus.ACTIVE)
-    return db.scalars(stmt.order_by(Category.category_name.asc())).all()
+    del current_staff
+    filters = []
+    if search and search.strip():
+        pattern = f"%{search.strip()}%"
+        filters.append(or_(Category.category_name.ilike(pattern), Category.category_description.ilike(pattern)))
+    if category_id is not None:
+        filters.append(Category.category_id == category_id)
+    if status_filter is not None:
+        filters.append(Category.status == status_filter)
+
+    total = db.scalar(select(func.count(Category.category_id)).where(*filters)) or 0
+    categories = db.scalars(
+        select(Category)
+        .where(*filters)
+        .order_by(Category.category_name.asc(), Category.category_id.asc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
+    ).all()
+    category_ids = [category.category_id for category in categories]
+    active_counts: dict[int, int] = {}
+    if category_ids:
+        rows = db.execute(
+            select(Product.category_id, func.count(Product.product_id))
+            .where(Product.category_id.in_(category_ids), active_product_filter(), Product.deleted_at.is_(None))
+            .group_by(Product.category_id)
+        ).all()
+        active_counts = {category_id_value: int(count_value or 0) for category_id_value, count_value in rows}
+    return CategoryPageResponse(
+        items=[
+            CategoryResponse.model_validate(category).model_copy(
+                update={"active_product_count": active_counts.get(category.category_id, 0)}
+            )
+            for category in categories
+        ],
+        page=page,
+        per_page=per_page,
+        total=int(total),
+        total_pages=total_pages(int(total), per_page),
+    )
 
 
 @router.post(
@@ -110,19 +149,29 @@ def delete_category(
 
 @router.get(
     "/ingredients",
-    response_model=List[IngredientResponse],
+    response_model=IngredientPageResponse,
     operation_id="admin_management_list_ingredients",
     dependencies=CATALOG_FEATURE_DEPENDENCIES,
 )
 def list_ingredients(
-    include_inactive: bool = Query(False),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    search: Optional[str] = Query(None, max_length=120),
+    type_filter: Optional[IngredientType] = Query(None, alias="type"),
+    status_filter: Optional[EntityStatus] = Query(None, alias="status"),
     customization_only: bool = Query(False),
-    current_staff: User = Depends(require_organization_role(UserRole.MANAGER, UserRole.OWNER)),
+    current_staff: User = Depends(require_organization_role(*ORGANIZATION_STAFF_ROLES)),
     db: Session = Depends(get_db),
 ):
-    stmt = select(Ingredient)
-    if not include_inactive:
-        stmt = stmt.where(Ingredient.status == EntityStatus.ACTIVE)
+    del current_staff
+    filters = []
+    if search and search.strip():
+        pattern = f"%{search.strip()}%"
+        filters.append(or_(Ingredient.name.ilike(pattern), func.cast(Ingredient.ingredient_id, String).ilike(pattern)))
+    if type_filter is not None:
+        filters.append(Ingredient.type == type_filter)
+    if status_filter is not None:
+        filters.append(Ingredient.status == status_filter)
     if customization_only:
         drink_category_ids = select(Category.category_id).where(
             Category.category_name.ilike("%bebida%")
@@ -133,14 +182,42 @@ def list_ingredients(
             .where(~Product.category_id.in_(drink_category_ids))
         )
         linked_ingredient_ids = select(ProductIngredient.ingredient_id)
-        stmt = stmt.where(
+        filters.append(and_(
             Ingredient.type != IngredientType.DRINK,
             or_(
                 Ingredient.ingredient_id.in_(non_drink_ingredient_ids),
                 ~Ingredient.ingredient_id.in_(linked_ingredient_ids),
             ),
-        )
-    return db.scalars(stmt.order_by(Ingredient.type.asc(), Ingredient.name.asc())).all()
+        ))
+    total = db.scalar(select(func.count(Ingredient.ingredient_id)).where(*filters)) or 0
+    ingredients = db.scalars(
+        select(Ingredient)
+        .where(*filters)
+        .order_by(Ingredient.type.asc(), Ingredient.name.asc(), Ingredient.ingredient_id.asc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
+    ).all()
+    ingredient_ids = [ingredient.ingredient_id for ingredient in ingredients]
+    linked_counts: dict[int, int] = {}
+    if ingredient_ids:
+        rows = db.execute(
+            select(ProductIngredient.ingredient_id, func.count(func.distinct(ProductIngredient.product_id)))
+            .where(ProductIngredient.ingredient_id.in_(ingredient_ids))
+            .group_by(ProductIngredient.ingredient_id)
+        ).all()
+        linked_counts = {ingredient_id_value: int(count_value or 0) for ingredient_id_value, count_value in rows}
+    return IngredientPageResponse(
+        items=[
+            IngredientResponse.model_validate(ingredient).model_copy(
+                update={"linked_product_count": linked_counts.get(ingredient.ingredient_id, 0)}
+            )
+            for ingredient in ingredients
+        ],
+        page=page,
+        per_page=per_page,
+        total=int(total),
+        total_pages=total_pages(int(total), per_page),
+    )
 
 
 @router.post(
@@ -234,7 +311,7 @@ def update_ingredient(
 def set_ingredient_availability(
     ingredient_id: int,
     availability: AvailabilityUpdate,
-    current_staff: User = Depends(require_organization_role(UserRole.MANAGER, UserRole.OWNER)),
+    current_staff: User = Depends(require_organization_role(*ORGANIZATION_STAFF_ROLES)),
     db: Session = Depends(get_db),
 ):
     ingredient = db.scalar(select(Ingredient).where(Ingredient.ingredient_id == ingredient_id))
@@ -298,12 +375,12 @@ def create_product(
         created_by_user_id=current_staff.id,
         sold=0,
         status=EntityStatus.ACTIVE,
-        customizable=1 if product.customizable else 0,
+        customizable=product.customizable,
         menu_tags=product.menu_tags,
-        featured=1 if product.featured else 0,
+        featured=product.featured,
         discount_percentage=product.discount_percentage,
-        gluten_free=1 if product.gluten_free else 0,
-        contains_alcohol=1 if product.contains_alcohol else 0,
+        gluten_free=product.gluten_free,
+        contains_alcohol=product.contains_alcohol,
         total_calories=product.total_calories,
     )
     db.add(new_product)
@@ -326,13 +403,13 @@ def create_product(
 
 @router.get(
     "/products",
-    response_model=List[ProductAdminResponse],
+    response_model=ProductAdminPageResponse,
     operation_id="admin_management_list_products",
     dependencies=CATALOG_FEATURE_DEPENDENCIES,
 )
 def list_products(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=100),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
     name: str = Query(None),
     category: str = Query(None),
     min_price: float = Query(None),
@@ -340,8 +417,8 @@ def list_products(
     featured: bool = Query(None),
     gluten_free: bool = Query(None),
     contains_alcohol: bool = Query(None),
-    include_deleted: bool = Query(False),
-    current_staff: User = Depends(require_organization_role(UserRole.MANAGER, UserRole.OWNER)),
+    catalog_state: str = Query("active", pattern="^(active|archived|all)$"),
+    current_staff: User = Depends(require_organization_role(*ORGANIZATION_STAFF_ROLES)),
     db: Session = Depends(get_db)
 ):
     stmt = select(Product).options(
@@ -350,38 +427,98 @@ def list_products(
         .selectinload(Media.variants)
     )
 
-    if not include_deleted:
-        stmt = stmt.where(active_product_filter(), Product.deleted_at.is_(None))
+    del current_staff
+    filters = []
+    if catalog_state == "active":
+        filters.extend((active_product_filter(), Product.deleted_at.is_(None)))
+    elif catalog_state == "archived":
+        filters.append(or_(Product.status == EntityStatus.INACTIVE, Product.deleted_at.is_not(None)))
 
     if name:
-        stmt = stmt.where(Product.name.ilike(f"%{name}%"))
+        filters.append(Product.name.ilike(f"%{name.strip()}%"))
 
     if category:
-        stmt = stmt.where(Product.category_id == parse_category_id(category))
+        filters.append(Product.category_id == parse_category_id(category))
 
     if min_price is not None:
-        stmt = stmt.where(Product.price >= min_price)
+        filters.append(Product.price >= min_price)
 
     if max_price is not None:
-        stmt = stmt.where(Product.price <= max_price)
+        filters.append(Product.price <= max_price)
 
     if featured is not None:
-        stmt = stmt.where(Product.featured == (1 if featured else 0))
+        filters.append(Product.featured.is_(featured))
 
     if gluten_free is not None:
-        stmt = stmt.where(Product.gluten_free == (1 if gluten_free else 0))
+        filters.append(Product.gluten_free.is_(gluten_free))
 
     if contains_alcohol is not None:
-        stmt = stmt.where(Product.contains_alcohol == (1 if contains_alcohol else 0))
+        filters.append(Product.contains_alcohol.is_(contains_alcohol))
 
-    products = db.scalars(stmt.offset(skip).limit(limit)).unique().all()
+    total = db.scalar(select(func.count(Product.product_id)).where(*filters)) or 0
+    products = db.scalars(
+        stmt.where(*filters)
+        .order_by(Product.name.asc(), Product.product_id.asc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
+    ).unique().all()
     product_ids = [product.product_id for product in products]
     ingredient_lookup = _product_ingredient_lookup(db, product_ids)
     unavailable_base_lookup = unavailable_base_ingredients(db, product_ids)
-    return [
-        _product_staff_response(db, product, ingredient_lookup, unavailable_base_lookup)
-        for product in products
-    ]
+    return ProductAdminPageResponse(
+        items=[
+            _product_staff_response(db, product, ingredient_lookup, unavailable_base_lookup)
+            for product in products
+        ],
+        page=page,
+        per_page=per_page,
+        total=int(total),
+        total_pages=total_pages(int(total), per_page),
+    )
+
+
+@router.get(
+    "/ingredients/{ingredient_id}/products",
+    response_model=ProductAdminPageResponse,
+    operation_id="admin_management_list_ingredient_products",
+    dependencies=CATALOG_FEATURE_DEPENDENCIES,
+)
+def list_ingredient_products(
+    ingredient_id: int,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    current_staff: User = Depends(require_organization_role(*ORGANIZATION_STAFF_ROLES)),
+    db: Session = Depends(get_db),
+):
+    del current_staff
+    if not db.scalar(select(exists().where(Ingredient.ingredient_id == ingredient_id))):
+        raise AppHTTPException(status_code=404, error="ingredient_not_found", message="Ingredient not found.", details={"reason": "request_failed"})
+
+    related_filter = Product.product_id.in_(
+        select(ProductIngredient.product_id).where(ProductIngredient.ingredient_id == ingredient_id)
+    )
+    total = db.scalar(select(func.count(Product.product_id)).where(related_filter)) or 0
+    products = db.scalars(
+        select(Product)
+        .options(selectinload(Product.media_items).selectinload(ProductMedia.media).selectinload(Media.variants))
+        .where(related_filter)
+        .order_by(Product.name.asc(), Product.product_id.asc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
+    ).unique().all()
+    product_ids = [product.product_id for product in products]
+    ingredient_lookup = _product_ingredient_lookup(db, product_ids)
+    unavailable_base_lookup = unavailable_base_ingredients(db, product_ids)
+    return ProductAdminPageResponse(
+        items=[
+            _product_staff_response(db, product, ingredient_lookup, unavailable_base_lookup)
+            for product in products
+        ],
+        page=page,
+        per_page=per_page,
+        total=int(total),
+        total_pages=total_pages(int(total), per_page),
+    )
 
 
 @router.get(
@@ -392,7 +529,7 @@ def list_products(
 )
 def get_product(
     product_id: str,
-    current_staff: User = Depends(require_organization_role(UserRole.MANAGER, UserRole.OWNER)),
+    current_staff: User = Depends(require_organization_role(*ORGANIZATION_STAFF_ROLES)),
     db: Session = Depends(get_db)
 ):
     parsed_product_id = parse_product_id(product_id)
@@ -403,7 +540,6 @@ def get_product(
             .selectinload(Media.variants)
         ).where(
             Product.product_id == parsed_product_id,
-            Product.status == EntityStatus.ACTIVE,
         ).limit(1)
     )
 
@@ -422,7 +558,7 @@ def get_product(
 def get_product_analytics(
     product_id: str,
     days: int = Query(30, ge=1, le=365),
-    current_staff: User = Depends(require_organization_role(UserRole.MANAGER, UserRole.OWNER)),
+    current_staff: User = Depends(require_organization_role(*ORGANIZATION_STAFF_ROLES)),
     db: Session = Depends(get_db)
 ):
     parsed_product_id = parse_product_id(product_id)
@@ -526,17 +662,17 @@ def update_product(
     if product_update.status is not None:
         product.status = product_update.status
     if product_update.customizable is not None:
-        product.customizable = 1 if product_update.customizable else 0
+        product.customizable = product_update.customizable
     if "menu_tags" in getattr(product_update, "model_fields_set", set()):
         product.menu_tags = product_update.menu_tags
     if product_update.featured is not None:
-        product.featured = 1 if product_update.featured else 0
+        product.featured = product_update.featured
     if product_update.discount_percentage is not None:
         product.discount_percentage = product_update.discount_percentage
     if product_update.gluten_free is not None:
-        product.gluten_free = 1 if product_update.gluten_free else 0
+        product.gluten_free = product_update.gluten_free
     if product_update.contains_alcohol is not None:
-        product.contains_alcohol = 1 if product_update.contains_alcohol else 0
+        product.contains_alcohol = product_update.contains_alcohol
     if "total_calories" in getattr(product_update, "model_fields_set", set()):
         product.total_calories = product_update.total_calories
     if product_update.ingredients is not None:
@@ -556,7 +692,7 @@ def update_product(
 def set_product_availability(
     product_id: str,
     availability: AvailabilityUpdate,
-    current_staff: User = Depends(require_organization_role(UserRole.MANAGER, UserRole.OWNER)),
+    current_staff: User = Depends(require_organization_role(*ORGANIZATION_STAFF_ROLES)),
     db: Session = Depends(get_db),
 ):
     parsed_product_id = parse_product_id(product_id)

@@ -56,6 +56,8 @@ function readCachedTheme(cacheKey: string): SiteThemeResponse | null {
 
 export default function SiteThemeController() {
   const { experience } = useOrganization()
+  const organizationName = experience.profile.display_name || experience.organization.name
+  const organizationLogo = experience.experience.assets.logo || experience.profile.logo_url
   const themeConfiguration = experience.experience.theme
   const themeDefinition = currentManifest.theme_registry[themeConfiguration.key]
   const cacheKey = [
@@ -72,6 +74,15 @@ export default function SiteThemeController() {
     ?? null
   ));
   const [previousConfig, setPreviousConfig] = useState<ThemeConfig | null>(null);
+
+  useEffect(() => {
+    document.title = organizationName
+    const iconUrl = organizationLogo || '/favicon.svg'
+    for (const selector of ['link[rel="icon"]', 'link[rel="apple-touch-icon"]']) {
+      const link = document.head.querySelector<HTMLLinkElement>(selector)
+      if (link) link.href = iconUrl
+    }
+  }, [organizationLogo, organizationName])
 
   useEffect(() => {
     if (theme) applySiteTheme(theme);

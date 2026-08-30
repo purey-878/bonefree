@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ChevronUp } from "lucide-react";
 import type { AdminOrder } from "../../types/admin";
 import OrderAgeBadge from "./OrderAgeBadge";
 import OrderDetailsDrawer from "./OrderDetailsDrawer";
@@ -17,6 +18,7 @@ type Props = {
   orders: AdminOrder[];
   onRefresh: () => void;
   onUpdateStatus: (orderId: number, status: string) => Promise<void> | void;
+  readOnly?: boolean;
 };
 
 const columns = [
@@ -25,10 +27,11 @@ const columns = [
   { id: "ready", titleKey: "orders.kitchen.columns.readyTitle", emptyKey: "orders.kitchen.columns.readyEmpty" },
 ];
 
-export default function KitchenOrdersBoard({ orders, onRefresh, onUpdateStatus }: Props) {
+export default function KitchenOrdersBoard({ orders, onRefresh, onUpdateStatus, readOnly = false }: Props) {
   const { t } = useTranslation("admin");
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [quickFilter, setQuickFilter] = useState("all");
+  const [collapsedColumnIds, setCollapsedColumnIds] = useState<Set<string>>(new Set());
 
   const selectedOrder = useMemo(
     () => orders.find((order) => order.orderId === selectedOrderId) ?? null,
@@ -47,6 +50,15 @@ export default function KitchenOrdersBoard({ orders, onRefresh, onUpdateStatus }
       visibleOrders.filter((order) => order.state === column.id),
     ])) as Record<string, AdminOrder[]>
   ), [visibleOrders]);
+
+  const handleToggleColumn = (columnId: string) => {
+    setCollapsedColumnIds((current) => {
+      const next = new Set(current);
+      if (next.has(columnId)) next.delete(columnId);
+      else next.add(columnId);
+      return next;
+    });
+  };
 
   return (
     <div className="orders-workspace kitchen-workspace">
@@ -73,15 +85,42 @@ export default function KitchenOrdersBoard({ orders, onRefresh, onUpdateStatus }
       </div>
 
       <div className="orders-kanban orders-kanban-kitchen">
-        {columns.map((column) => (
-          <section key={column.id} className={`orders-column orders-column-${column.id}`}>
+        {columns.map((column) => {
+          const columnOrders = grouped[column.id];
+          const isColumnCollapsed = collapsedColumnIds.has(column.id);
+          const columnToggleLabel = `${t(isColumnCollapsed ? "orders.common.expandAll" : "orders.common.collapseAll")}: ${t(column.titleKey)}`;
+
+          return (
+          <section
+            key={column.id}
+            className={`orders-column orders-column-${column.id} ${columnOrders.length === 0 ? "is-empty" : ""} ${isColumnCollapsed ? "is-collapsed" : ""}`}
+            onClick={isColumnCollapsed ? (event) => {
+              const target = event.target as HTMLElement;
+              if (target.closest("button, a, input, select, textarea")) return;
+              handleToggleColumn(column.id);
+            } : undefined}
+          >
             <header className="orders-column-header">
               <h3>{t(column.titleKey)}</h3>
-              <span>{grouped[column.id].length}</span>
+              <div className="orders-column-header-actions">
+                <span>{columnOrders.length}</span>
+                <button
+                  type="button"
+                  className="orders-column-collapse-toggle"
+                  onClick={() => handleToggleColumn(column.id)}
+                  disabled={columnOrders.length === 0}
+                  aria-expanded={!isColumnCollapsed}
+                  aria-label={columnToggleLabel}
+                  title={columnToggleLabel}
+                >
+                  <ChevronUp size={15} strokeWidth={2.4} />
+                </button>
+              </div>
             </header>
 
+            <div className="orders-column-collapsible" aria-hidden={isColumnCollapsed}>
             <div className="orders-column-list">
-              {grouped[column.id].map((order) => (
+              {columnOrders.map((order) => (
                 <article key={order.orderId} className={`kitchen-order-card kitchen-order-card-${order.state}`}>
                   <header className="kitchen-order-card-header">
                     <div>
@@ -126,10 +165,10 @@ export default function KitchenOrdersBoard({ orders, onRefresh, onUpdateStatus }
                   </div>
 
                   <div className="order-card-actions">
-                    {order.state === "confirmed" && (
+                    {!readOnly && order.state === "confirmed" && (
                       <button className="ad-btn ad-btn-primary" onClick={() => onUpdateStatus(order.orderId, "in_preparation")}>{t("orders.kitchen.start")}</button>
                     )}
-                    {order.state === "in_preparation" && (
+                    {!readOnly && order.state === "in_preparation" && (
                       <button className="ad-btn ad-btn-primary" onClick={() => onUpdateStatus(order.orderId, "ready")}>{t("orders.kitchen.markReady")}</button>
                     )}
                     <button className="ad-btn ad-btn-ghost" onClick={() => setSelectedOrderId(order.orderId)}>{formatOrderStatus(order.state)}</button>
@@ -137,10 +176,17 @@ export default function KitchenOrdersBoard({ orders, onRefresh, onUpdateStatus }
                 </article>
               ))}
 
-              {grouped[column.id].length === 0 && <p className="orders-column-empty">{t(column.emptyKey)}</p>}
+              {columnOrders.length === 0 && <p className="orders-column-empty">{t(column.emptyKey)}</p>}
+            </div>
+            </div>
+            <div className="orders-column-collapsed-summary" aria-hidden={!isColumnCollapsed}>
+              <p className="orders-column-empty">
+                {t("orders.common.collapsedColumnSummary", { count: columnOrders.length, state: t(column.titleKey) })}
+              </p>
             </div>
           </section>
-        ))}
+          );
+        })}
       </div>
 
       <OrderDetailsDrawer order={selectedOrder} kitchenMode onClose={() => setSelectedOrderId(null)} />

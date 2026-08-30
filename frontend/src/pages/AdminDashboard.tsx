@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { FormEvent, MouseEvent, ReactNode, SyntheticEvent } from "react"
-import { useNavigate } from "react-router-dom"
-import { Heart, MessageCircle, MoreHorizontal, RefreshCw, Search, Send, Star, ThumbsUp, Trash2, X, Menu } from "lucide-react"
+import { useNavigate, useSearchParams } from "react-router-dom"
+import { useTranslation } from "react-i18next"
+import { Heart, Menu, MessageCircle, MoreHorizontal, RefreshCw, Search, Send, Star, ThumbsUp, Trash2, X } from "lucide-react"
 import {
   Area,
   AreaChart,
@@ -16,15 +17,19 @@ import {
   getDashboardAnalytics,
   getCurrentAdmin,
   listProducts,
+  listAllProducts,
   listOrders,
   listStaffOrders,
   listKitchenOrders,
   listCategories,
+  listAllCategories,
   createCategory,
   updateCategory,
   deleteCategory,
   getProductAnalytics,
   listIngredients,
+  listAllIngredients,
+  listIngredientProducts,
   createIngredient,
   updateIngredient,
   deleteIngredient,
@@ -38,6 +43,7 @@ import {
   uploadProductMedia,
   deleteProductMedia,
   updateOrderStatus,
+  deleteOrder,
   payCounterOrder,
   listCustomers,
   createCustomer,
@@ -47,7 +53,7 @@ import {
   createStaffAdmin,
   updateStaffAdmin,
   deleteStaffAdmin,
-  listProductReviews,
+  listAdminReviews,
   createReviewReply,
   updateReviewReply,
   deleteReviewReply,
@@ -113,19 +119,34 @@ import { defaultCompanyDetails, defaultSocialMediaSettings } from "../utils/foot
 import StaffOrdersBoard from "../components/admin-orders/StaffOrdersBoard"
 import KitchenOrdersBoard from "../components/admin-orders/KitchenOrdersBoard"
 import SuperAdminOrdersView from "../components/admin-orders/SuperAdminOrdersView"
+import type { ManagementOrderFilters } from "../components/admin-orders/SuperAdminOrdersView"
+import OrderViewSwitcher from "../components/admin-orders/OrderViewSwitcher"
 import CustomSelect from "../components/ui/CustomSelect"
+import { Pagination } from "../components/ui"
 import ConfirmDialog from "../components/ui/ConfirmDialog"
 import { useToast } from "../components/ui/toastContext"
 import { formatCategoryId, formatProductId } from "../utils/ids"
 import { applyApiImageFallback, resolveProductImageUrl } from "../utils/imageFallback"
 import { formatEuro } from "../utils/money"
+import { ADMIN_ROLES, formatAdminRole } from "../utils/adminEnumLabels"
 import { translateUserMessage } from "../utils/messages"
 import { persistOptimisticUpdate } from "../utils/optimisticUpdate"
 import { primaryProductMediaUrl, productMediaUrl } from "../utils/productMedia"
 import LanguageSwitcher from "../components/LanguageSwitcher"
 import AdminI18nBoundary from "../components/AdminI18nBoundary"
+import AdaptivePanel from "../components/admin/AdaptivePanel"
 import { resolvedLocale } from "../i18n"
 import { useAdminSession } from '../context/admin-session-context'
+import { adminTabsForRole, canEditCatalog, canManageKitchenOrders, canManageServiceOrders, canViewCatalog, orderViewForRole, orderViewsForRole } from "../utils/adminOrderViews"
+import type { AdminDashboardTab, AdminOrderView } from "../utils/adminOrderViews"
+import {
+  normalizeProductAnalyticsViewMode,
+  PRODUCT_ANALYTICS_VIEW_MODE_STORAGE_KEY,
+} from "../utils/productAnalyticsView"
+import type { ProductAnalyticsViewMode } from "../utils/productAnalyticsView"
+import { normalizeAdaptivePanelMode } from "../utils/adaptivePanelMode"
+import type { AdaptivePanelMode } from "../utils/adaptivePanelMode"
+import type { Page } from "../types/pagination"
 
 function getImageUrl(imagePath: string): string {
   return resolveProductImageUrl(imagePath)
@@ -135,8 +156,7 @@ function handleAdminImageError(event: SyntheticEvent<HTMLImageElement>) {
   applyApiImageFallback(event.currentTarget)
 }
 
-type TabType = "dashboard" | "products" | "ingredients" | "categories" | "orders" | "reviews" | "analytics" | "clientes" | "staff" | "settings"
-type AdminExperience = "staff" | "super" | "kitchen"
+type TabType = AdminDashboardTab
 type AdminTheme = "light" | "dark"
 type SiteSettingsTab = "promote" | "coupons" | "theme" | "company" | "social" | "events"
 
@@ -196,6 +216,7 @@ const EMPTY_PRODUCT_FILTERS: ProductFilterState = {
 
 const ADMIN_NAV_MOBILE_QUERY = "(max-width: 998px)"
 const ADMIN_SIDEBAR_AUTO_COLLAPSE_QUERY = "(max-width: 1299.98px)"
+const ADMIN_EDITOR_VIEW_MODE_STORAGE_KEY = "admin_editor_view_mode"
 
 function getErrorMessage(error: unknown, fallback: string): string {
   return translateUserMessage(error instanceof Error ? error.message : fallback)
@@ -239,10 +260,6 @@ function isHexColor(value: string) {
   return /^#[0-9a-fA-F]{6}$/.test(value)
 }
 
-const OWNER_TABS: TabType[] = ["dashboard", "products", "ingredients", "categories", "orders", "reviews", "clientes", "staff", "settings", "analytics"]
-const MANAGER_TABS: TabType[] = ["orders", "products", "ingredients", "categories"]
-const WAITER_TABS: TabType[] = ["orders"]
-const CHEF_TABS: TabType[] = ["orders"]
 const NAV_GROUPS: { label: string; tabs: TabType[] }[] = [
   { label: "Principal", tabs: ["dashboard", "orders"] },
   { label: "Menu", tabs: ["products", "ingredients", "categories"] },
@@ -354,25 +371,26 @@ const ANALYTICS_RANGE_OPTIONS: { range: AnalyticsRange; label: string }[] = [
 
 type DirectoryStatusFilter = "all" | "active" | "inactive"
 type StaffRoleFilter = "all" | AdminRole
+type PaginatedAdminTab = "products" | "ingredients" | "categories" | "reviews" | "clientes" | "staff" | "orders"
+type PageMeta = { page: number; perPage: number; total: number; totalPages: number }
+const EMPTY_PAGE_META: PageMeta = { page: 1, perPage: 20, total: 0, totalPages: 0 }
+const PAGINATED_ADMIN_TABS: PaginatedAdminTab[] = ["products", "ingredients", "categories", "reviews", "clientes", "staff", "orders"]
+const ADMIN_COLLECTION_QUERY_KEYS = [
+  "page", "per_page", "show_archived", "archived_page", "archived_per_page",
+  "product_search", "product_category", "product_min_price", "product_max_price",
+  "product_featured", "product_gluten_free", "product_contains_alcohol",
+  "ingredient_search", "ingredient_type", "ingredient_status",
+  "category_search", "category_id", "category_status", "review_search",
+  "customer_search", "customer_status", "staff_search", "staff_role", "staff_status",
+  "order_search", "order_status", "order_payment_method", "order_payment_status",
+  "order_date_from", "order_date_to", "order_customization",
+] as const
 
 const DIRECTORY_STATUS_OPTIONS = [
   { value: "all", label: "Todos os estados" },
   { value: "active", label: "Ativo" },
   { value: "inactive", label: "Inativo" },
 ]
-
-const STAFF_ROLE_OPTIONS = [
-  { value: "all", label: "Todos os cargos" },
-  { value: "owner", label: "Owner" },
-  { value: "manager", label: "Manager" },
-  { value: "waiter", label: "Waiter" },
-  { value: "chef", label: "Chef" },
-]
-
-function statusMatchesFilter(status: string | null | undefined, filter: DirectoryStatusFilter): boolean {
-  if (filter === "all") return true
-  return filter === "active" ? status === "active" : status !== "active"
-}
 
 function formatSalesTick(value: string, period: SalesChartPeriod): string {
   if (period === "hour") return value.slice(11)
@@ -636,24 +654,34 @@ function AnalyticsChartCard({
   )
 }
 
-function ProductAnalyticsDrawer({
+function ProductAnalyticsPanel({
   product,
   analytics,
   loading,
   rangeDays,
+  mode,
+  closing,
   onClose,
+  onExited,
+  onModeChange,
   onEdit,
   onDelete,
   onRangeChange,
+  canEdit,
 }: {
   product: AdminProduct | null
   analytics: ProductAnalytics | null
   loading: boolean
   rangeDays: number
+  mode: ProductAnalyticsViewMode
+  closing: boolean
   onClose: () => void
+  onExited: () => void
+  onModeChange: (mode: ProductAnalyticsViewMode) => void
   onEdit: (product: AdminProduct) => void
   onDelete: (product: AdminProduct) => void
   onRangeChange: (days: number) => void
+  canEdit: boolean
 }) {
   if (!product) return null
 
@@ -667,11 +695,21 @@ function ProductAnalyticsDrawer({
 
   return (
     <AdminI18nBoundary>
-    <>
-      <div className="ad-drawer-backdrop" onClick={onClose} />
-      <aside className="ad-product-drawer" aria-label={`Análises de ${product.name}`}>
-        <div className="ad-product-drawer-head">
-          <div className="ad-product-drawer-title">
+      <AdaptivePanel
+        ariaLabel={`Análises de ${product.name}`}
+        closeLabel="Fechar análises"
+        closing={closing}
+        drawerLabel="Mostrar análises no painel lateral"
+        modalLabel="Mostrar análises num modal"
+        mode={mode}
+        modeGroupLabel="Modo de visualização das análises"
+        onExited={onExited}
+        onModeChange={onModeChange}
+        onRequestClose={onClose}
+        panelClassName="ad-product-analytics-panel"
+      >
+          <div className="ad-product-drawer-head">
+            <div className="ad-product-drawer-title">
             {image ? (
               <img src={getImageUrl(image)} alt={product.name} onError={handleAdminImageError} />
             ) : (
@@ -683,11 +721,6 @@ function ProductAnalyticsDrawer({
               <span>{product.productDisplayId ?? formatProductId(product.productId)}</span>
             </div>
           </div>
-          <button type="button" className="ad-icon-btn" onClick={onClose} aria-label="Fechar análises">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
-          </button>
         </div>
 
         {loading ? (
@@ -763,16 +796,15 @@ function ProductAnalyticsDrawer({
             </div>
 
             <div className="ad-product-drawer-actions">
-              <button className="ad-btn ad-btn-primary" onClick={() => onEdit(product)}>Editar produto</button>
-              <button className="ad-btn ad-btn-danger" onClick={() => onDelete(product)}>Eliminar produto</button>
+              {canEdit && <button className="ad-btn ad-btn-primary" onClick={() => onEdit(product)}>Editar produto</button>}
+              {canEdit && <button className="ad-btn ad-btn-danger" onClick={() => onDelete(product)}>Eliminar produto</button>}
               <button className="ad-btn ad-btn-ghost" onClick={onClose}>Fechar</button>
             </div>
           </>
         ) : (
           <p className="ad-empty">Sem análises disponíveis.</p>
         )}
-      </aside>
-    </>
+      </AdaptivePanel>
     </AdminI18nBoundary>
   )
 }
@@ -1359,14 +1391,23 @@ function SiteSettingsPanel({
   )
 }
 
-export default function AdminDashboard({ experience = "super" }: { experience?: AdminExperience }) {
+export default function AdminDashboard() {
+  const { t } = useTranslation("admin")
+  const [searchParams, setSearchParams] = useSearchParams()
   const {
     token: adminToken,
+    role: sessionRole,
     updateIdentity: updateAdminSessionIdentity,
     logout: clearAdminSession,
   } = useAdminSession()
-  const routeDefaultTab: TabType = experience === "super" ? "dashboard" : "orders"
-  const [activeTab, setActiveTab] = useState<TabType>(routeDefaultTab)
+  const storedRole = (organizationStorage.getItem("admin_role") || sessionRole || "manager") as AdminRole
+  const storedRoleTabs = adminTabsForRole(storedRole)
+  const requestedInitialTab = searchParams.get("tab") as TabType | null
+  const [activeTab, setActiveTab] = useState<TabType>(() => (
+    requestedInitialTab && storedRoleTabs.includes(requestedInitialTab)
+      ? requestedInitialTab
+      : storedRole === "owner" ? "dashboard" : "orders"
+  ))
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => organizationStorage.getItem("admin_sidebar_collapsed") === "true")
   const [isMobileAdminNav, setIsMobileAdminNav] = useState(() => (
     typeof window !== "undefined" ? window.matchMedia(ADMIN_NAV_MOBILE_QUERY).matches : false
@@ -1380,11 +1421,49 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [products, setProducts] = useState<AdminProduct[]>([])
   const [deletedProducts, setDeletedProducts] = useState<AdminProduct[]>([])
+  const [settingsProducts, setSettingsProducts] = useState<AdminProduct[]>([])
+  const [pageMeta, setPageMeta] = useState<Record<PaginatedAdminTab, PageMeta>>(() => {
+    const urlPage = Math.max(1, Number(searchParams.get("page")) || 1)
+    const requestedPerPage = Number(searchParams.get("per_page"))
+    const urlPerPage = [10, 20, 50, 100].includes(requestedPerPage) ? requestedPerPage : 20
+    const initial = { ...EMPTY_PAGE_META, page: urlPage, perPage: urlPerPage }
+    return {
+      products: { ...initial }, ingredients: { ...initial }, categories: { ...initial }, reviews: { ...initial },
+      clientes: { ...initial }, staff: { ...initial }, orders: { ...initial },
+    }
+  })
+  const [archivedProductPage, setArchivedProductPage] = useState<PageMeta>(() => {
+    const requestedPage = Math.max(1, Number(searchParams.get("archived_page")) || 1)
+    const requestedPerPage = Number(searchParams.get("archived_per_page"))
+    return {
+      ...EMPTY_PAGE_META,
+      page: requestedPage,
+      perPage: [10, 20, 50, 100].includes(requestedPerPage) ? requestedPerPage : 20,
+    }
+  })
+  const [orderSummary, setOrderSummary] = useState({ pending: 0, preparing: 0, ready: 0, completed: 0, revenue: 0 })
+  const [reviewSummary, setReviewSummary] = useState<{ averageRating: number | null; withReply: number; awaitingReply: number }>({ averageRating: null, withReply: 0, awaitingReply: 0 })
   const [selectedAnalyticsProduct, setSelectedAnalyticsProduct] = useState<AdminProduct | null>(null)
   const [productAnalytics, setProductAnalytics] = useState<ProductAnalytics | null>(null)
   const [productAnalyticsLoading, setProductAnalyticsLoading] = useState(false)
   const [productAnalyticsDays, setProductAnalyticsDays] = useState(30)
+  const [productAnalyticsViewMode, setProductAnalyticsViewMode] = useState<ProductAnalyticsViewMode>(() => (
+    normalizeProductAnalyticsViewMode(organizationStorage.getItem(PRODUCT_ANALYTICS_VIEW_MODE_STORAGE_KEY))
+  ))
+  const [productAnalyticsClosing, setProductAnalyticsClosing] = useState(false)
   const [orders, setOrders] = useState<AdminOrder[]>([])
+  const [managementOrderFilters, setManagementOrderFilters] = useState<ManagementOrderFilters>(() => {
+    const today = new Date().toLocaleDateString("sv-SE")
+    return {
+      search: searchParams.get("order_search") ?? "",
+      status: searchParams.get("order_status") ?? "",
+      paymentMethod: searchParams.get("order_payment_method") ?? "",
+      paymentStatus: searchParams.get("order_payment_status") ?? "",
+      dateFrom: searchParams.has("order_date_from") ? (searchParams.get("order_date_from") ?? "") : today,
+      dateTo: searchParams.has("order_date_to") ? (searchParams.get("order_date_to") ?? "") : today,
+      customization: searchParams.get("order_customization") ?? "all",
+    }
+  })
   const [reviews, setReviews] = useState<AdminReview[]>([])
   const [reviewsLoading, setReviewsLoading] = useState(false)
   const [analyticsSeries, setAnalyticsSeries] = useState<Partial<Record<AnalyticsMetric, AnalyticsSeries>>>({})
@@ -1411,14 +1490,21 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
   const [siteThemeSaving, setSiteThemeSaving] = useState(false)
   const [siteThemeSaved, setSiteThemeSaved] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
+  const [catalogCategories, setCatalogCategories] = useState<Category[]>([])
   const [showCategoryForm, setShowCategoryForm] = useState(false)
+  const [categoryFormClosing, setCategoryFormClosing] = useState(false)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   const [categoryForm, setCategoryForm] = useState<CategoryPayload>({
     categoryName: "",
     categoryDescription: "",
   })
   const [ingredients, setIngredients] = useState<AdminIngredient[]>([])
+  const [catalogIngredients, setCatalogIngredients] = useState<AdminIngredient[]>([])
+  const [relatedIngredientId, setRelatedIngredientId] = useState<number | null>(null)
+  const [relatedIngredientLoadingId, setRelatedIngredientLoadingId] = useState<number | null>(null)
+  const [ingredientProducts, setIngredientProducts] = useState<Record<number, Page<AdminProduct>>>({})
   const [showIngredientForm, setShowIngredientForm] = useState(false)
+  const [ingredientFormClosing, setIngredientFormClosing] = useState(false)
   const [editingIngredient, setEditingIngredient] = useState<AdminIngredient | null>(null)
   const [ingredientForm, setIngredientForm] = useState<AdminIngredientPayload>({
     name: "",
@@ -1431,10 +1517,14 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
     search: string
     type: "" | IngredientType
     status: "all" | "active" | "inactive"
-  }>({
-    search: "",
-    type: "",
-    status: "all",
+  }>(() => {
+    const requestedType = searchParams.get("ingredient_type") as IngredientType | null
+    const requestedStatus = searchParams.get("ingredient_status")
+    return {
+      search: searchParams.get("ingredient_search") ?? "",
+      type: requestedType && INGREDIENT_TYPES.includes(requestedType) ? requestedType : "",
+      status: requestedStatus === "active" || requestedStatus === "inactive" ? requestedStatus : "all",
+    }
   })
   const [clientes, setClientes] = useState<AdminCustomer[]>([])
   const [staffAdmins, setStaffAdmins] = useState<CurrentAdmin[]>([])
@@ -1477,7 +1567,11 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
   const [deletingProductMediaId, setDeletingProductMediaId] = useState<number | null>(null)
   const [isProductImageDragging, setIsProductImageDragging] = useState(false)
   const [showClienteForm, setShowClienteForm] = useState(false)
+  const [clienteFormClosing, setClienteFormClosing] = useState(false)
   const [editingCliente, setEditingCliente] = useState<AdminCustomer | null>(null)
+  const [adminEditorViewMode, setAdminEditorViewMode] = useState<AdaptivePanelMode>(() => (
+    normalizeAdaptivePanelMode(organizationStorage.getItem(ADMIN_EDITOR_VIEW_MODE_STORAGE_KEY))
+  ))
   const [clienteForm, setClienteForm] = useState<AdminCustomerPayload>({
     name: "",
     lastName: "",
@@ -1491,6 +1585,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
     status: "active",
   })
   const [showStaffForm, setShowStaffForm] = useState(false)
+  const [staffFormClosing, setStaffFormClosing] = useState(false)
   const [editingStaff, setEditingStaff] = useState<CurrentAdmin | null>(null)
   const [staffForm, setStaffForm] = useState<AdminUserPayload>({
     name: "",
@@ -1501,38 +1596,113 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
   })
 
   // Filter state
-  const [filters, setFilters] = useState<ProductFilterState>({
-    ...EMPTY_PRODUCT_FILTERS,
-  })
-  const [showDeletedProducts, setShowDeletedProducts] = useState(false)
+  const [filters, setFilters] = useState<ProductFilterState>(() => ({
+    name: searchParams.get("product_search") ?? "",
+    category: Number(searchParams.get("product_category")) || "",
+    minPrice: searchParams.get("product_min_price") ?? "",
+    maxPrice: searchParams.get("product_max_price") ?? "",
+    featured: searchParams.get("product_featured") === "true",
+    glutenFree: searchParams.get("product_gluten_free") === "true",
+    containsAlcohol: searchParams.get("product_contains_alcohol") === "true",
+  }))
+  const [showDeletedProducts, setShowDeletedProducts] = useState(() => searchParams.get("show_archived") === "true")
   const [openProductActionMenuId, setOpenProductActionMenuId] = useState<number | null>(null)
   const [categoryFilterOpen, setCategoryFilterOpen] = useState(false)
-  const [categorySearch, setCategorySearch] = useState("")
-  const [categoryIdFilter, setCategoryIdFilter] = useState("")
-  const [categoryStatusFilter, setCategoryStatusFilter] = useState<DirectoryStatusFilter>("all")
-  const [reviewSearch, setReviewSearch] = useState("")
-  const [clienteSearch, setClienteSearch] = useState("")
-  const [clienteStatusFilter, setClienteStatusFilter] = useState<DirectoryStatusFilter>("all")
-  const [staffSearch, setStaffSearch] = useState("")
-  const [staffRoleFilter, setStaffRoleFilter] = useState<StaffRoleFilter>("all")
-  const [staffStatusFilter, setStaffStatusFilter] = useState<DirectoryStatusFilter>("all")
+  const [categorySearch, setCategorySearch] = useState(() => searchParams.get("category_search") ?? "")
+  const [categoryIdFilter, setCategoryIdFilter] = useState(() => searchParams.get("category_id") ?? "")
+  const [categoryStatusFilter, setCategoryStatusFilter] = useState<DirectoryStatusFilter>(() => {
+    const value = searchParams.get("category_status")
+    return value === "active" || value === "inactive" ? value : "all"
+  })
+  const [reviewSearch, setReviewSearch] = useState(() => searchParams.get("review_search") ?? "")
+  const [clienteSearch, setClienteSearch] = useState(() => searchParams.get("customer_search") ?? "")
+  const [clienteStatusFilter, setClienteStatusFilter] = useState<DirectoryStatusFilter>(() => {
+    const value = searchParams.get("customer_status")
+    return value === "active" || value === "inactive" ? value : "all"
+  })
+  const [staffSearch, setStaffSearch] = useState(() => searchParams.get("staff_search") ?? "")
+  const [staffRoleFilter, setStaffRoleFilter] = useState<StaffRoleFilter>(() => {
+    const value = searchParams.get("staff_role") as StaffRoleFilter | null
+    return value && ADMIN_ROLES.includes(value as AdminRole) ? value : "all"
+  })
+  const [staffStatusFilter, setStaffStatusFilter] = useState<DirectoryStatusFilter>(() => {
+    const value = searchParams.get("staff_status")
+    return value === "active" || value === "inactive" ? value : "all"
+  })
   const [reviewReplyDrafts, setReviewReplyDrafts] = useState<Record<number, string>>({})
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null)
   const [confirmLoading, setConfirmLoading] = useState(false)
+  const editableStaffRoleOptions = ADMIN_ROLES.map((staffRole) => ({
+    value: staffRole,
+    label: formatAdminRole(staffRole),
+  }))
+  const staffRoleOptions: Array<{ value: StaffRoleFilter; label: string }> = [
+    { value: "all", label: t("roles.all") },
+    ...editableStaffRoleOptions,
+  ]
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const hydratingAdminUrlRef = useRef(false)
+  const skipAdminUrlWriteRef = useRef(false)
+  const lastWrittenSearchRef = useRef(searchParams.toString())
   const productImageInputRef = useRef<HTMLInputElement | null>(null)
+  const previousDirectoryFiltersRef = useRef({
+    products: JSON.stringify(filters),
+    ingredients: JSON.stringify(ingredientFilters), categories: `${categorySearch}|${categoryIdFilter}|${categoryStatusFilter}`,
+    reviews: reviewSearch, clientes: `${clienteSearch}|${clienteStatusFilter}`,
+    staff: `${staffSearch}|${staffRoleFilter}|${staffStatusFilter}`,
+  })
+  const updatePageMeta = useCallback((tab: PaginatedAdminTab, changes: Partial<PageMeta>) => {
+    setPageMeta((current) => {
+      const merged = { ...current[tab], ...changes }
+      const normalized = {
+        ...merged,
+        page: merged.totalPages > 0 ? Math.min(Math.max(1, merged.page), merged.totalPages) : 1,
+      }
+      return { ...current, [tab]: normalized }
+    })
+  }, [])
+
+  useEffect(() => {
+    const next = {
+      products: JSON.stringify(filters),
+      ingredients: JSON.stringify(ingredientFilters), categories: `${categorySearch}|${categoryIdFilter}|${categoryStatusFilter}`,
+      reviews: reviewSearch, clientes: `${clienteSearch}|${clienteStatusFilter}`,
+      staff: `${staffSearch}|${staffRoleFilter}|${staffStatusFilter}`,
+    }
+    if (hydratingAdminUrlRef.current) {
+      hydratingAdminUrlRef.current = false
+      previousDirectoryFiltersRef.current = next
+      return
+    }
+    ;(Object.keys(next) as Array<keyof typeof next>).forEach((tab) => {
+      if (next[tab] !== previousDirectoryFiltersRef.current[tab]) updatePageMeta(tab, { page: 1 })
+    })
+    previousDirectoryFiltersRef.current = next
+  }, [categoryIdFilter, categorySearch, categoryStatusFilter, clienteSearch, clienteStatusFilter, filters, ingredientFilters, reviewSearch, staffRoleFilter, staffSearch, staffStatusFilter, updatePageMeta])
   const categoryFilterRef = useRef<HTMLDivElement | null>(null)
+  const productLoadRequestRef = useRef(0)
+  const categoryLoadRequestRef = useRef(0)
+  const ingredientLoadRequestRef = useRef(0)
+  const reviewLoadRequestRef = useRef(0)
+  const customerLoadRequestRef = useRef(0)
+  const staffLoadRequestRef = useRef(0)
+  const ingredientProductRequestRef = useRef<Record<number, number>>({})
+  const orderLoadRequestRef = useRef(0)
   const confirmActionRef = useRef<(() => Promise<boolean>) | null>(null)
   const confirmResolveRef = useRef<((confirmed: boolean) => void) | null>(null)
 
   const [salesGraphPeriod, setSalesGraphPeriod] = useState<SalesChartPeriod>("day")
   const navigate = useNavigate()
   const toast = useToast()
-  const role = (currentAdmin?.role || organizationStorage.getItem("admin_role") || "manager") as AdminRole
+  const role = (currentAdmin?.role || organizationStorage.getItem("admin_role") || sessionRole || "manager") as AdminRole
   const isOwner = role === "owner"
-  const isKitchenExperience = experience === "kitchen"
-  const canManageProducts = role === "owner" || role === "manager"
-  const allowedTabs = isOwner && experience === "super" ? OWNER_TABS : isKitchenExperience ? CHEF_TABS : role === "waiter" ? WAITER_TABS : MANAGER_TABS
+  const canViewAdminCatalog = canViewCatalog(role)
+  const canEditAdminCatalog = canEditCatalog(role)
+  const allowedTabs = adminTabsForRole(role)
+  const availableOrderViews = orderViewsForRole(role)
+  const orderView = orderViewForRole(role, searchParams.get("view"))
+  const kitchenReadOnly = !canManageKitchenOrders(role)
+  const serviceReadOnly = !canManageServiceOrders(role)
   const visibleNavItems = NAV_ITEMS.filter((item) => allowedTabs.includes(item.tab))
   const visibleNavGroups = NAV_GROUPS
     .map((group) => ({
@@ -1543,13 +1713,163 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
     }))
     .filter((group) => group.items.length > 0)
   const currentNavLabel = NAV_ITEMS.find((item) => item.tab === activeTab)?.label ?? "Admin"
-  const shellTitle = experience === "kitchen" ? "Kitchen" : isOwner && experience === "super" ? "Admin Console" : "Staff Console"
+  const shellTitle = isOwner ? "Admin Console" : "Staff Console"
   const adminInitials = (currentAdmin?.name || "Admin")
     .split(" ")
     .filter(Boolean)
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join("") || "A"
+
+  useEffect(() => {
+    const currentSearch = searchParams.toString()
+    if (currentSearch === lastWrittenSearchRef.current) return
+    lastWrittenSearchRef.current = currentSearch
+    hydratingAdminUrlRef.current = true
+    skipAdminUrlWriteRef.current = true
+
+    const requestedTab = searchParams.get("tab") as TabType | null
+    const nextTab = requestedTab && allowedTabs.includes(requestedTab)
+      ? requestedTab
+      : role === "owner" ? "dashboard" : "orders"
+    const requestedPerPage = Number(searchParams.get("per_page"))
+    const nextPerPage = [10, 20, 50, 100].includes(requestedPerPage) ? requestedPerPage : 20
+    const nextPage = Math.max(1, Number(searchParams.get("page")) || 1)
+    setActiveTab(nextTab)
+    if (PAGINATED_ADMIN_TABS.includes(nextTab as PaginatedAdminTab)) {
+      setPageMeta((current) => ({
+        ...current,
+        [nextTab]: { ...current[nextTab as PaginatedAdminTab], page: nextPage, perPage: nextPerPage },
+      }))
+    }
+
+    if (nextTab === "products") {
+      setFilters({
+        name: searchParams.get("product_search") ?? "",
+        category: Number(searchParams.get("product_category")) || "",
+        minPrice: searchParams.get("product_min_price") ?? "",
+        maxPrice: searchParams.get("product_max_price") ?? "",
+        featured: searchParams.get("product_featured") === "true",
+        glutenFree: searchParams.get("product_gluten_free") === "true",
+        containsAlcohol: searchParams.get("product_contains_alcohol") === "true",
+      })
+      setShowDeletedProducts(searchParams.get("show_archived") === "true")
+      const archivedPerPage = Number(searchParams.get("archived_per_page"))
+      setArchivedProductPage((current) => ({
+        ...current,
+        page: Math.max(1, Number(searchParams.get("archived_page")) || 1),
+        perPage: [10, 20, 50, 100].includes(archivedPerPage) ? archivedPerPage : 20,
+      }))
+    } else if (nextTab === "ingredients") {
+      const type = searchParams.get("ingredient_type") as IngredientType | null
+      const status = searchParams.get("ingredient_status")
+      setIngredientFilters({
+        search: searchParams.get("ingredient_search") ?? "",
+        type: type && INGREDIENT_TYPES.includes(type) ? type : "",
+        status: status === "active" || status === "inactive" ? status : "all",
+      })
+    } else if (nextTab === "categories") {
+      const status = searchParams.get("category_status")
+      setCategorySearch(searchParams.get("category_search") ?? "")
+      setCategoryIdFilter(searchParams.get("category_id") ?? "")
+      setCategoryStatusFilter(status === "active" || status === "inactive" ? status : "all")
+    } else if (nextTab === "reviews") {
+      setReviewSearch(searchParams.get("review_search") ?? "")
+    } else if (nextTab === "clientes") {
+      const status = searchParams.get("customer_status")
+      setClienteSearch(searchParams.get("customer_search") ?? "")
+      setClienteStatusFilter(status === "active" || status === "inactive" ? status : "all")
+    } else if (nextTab === "staff") {
+      const requestedRole = searchParams.get("staff_role") as StaffRoleFilter | null
+      const status = searchParams.get("staff_status")
+      setStaffSearch(searchParams.get("staff_search") ?? "")
+      setStaffRoleFilter(requestedRole && ADMIN_ROLES.includes(requestedRole as AdminRole) ? requestedRole : "all")
+      setStaffStatusFilter(status === "active" || status === "inactive" ? status : "all")
+    } else if (nextTab === "orders" && orderViewForRole(role, searchParams.get("view")) === "management") {
+      const today = new Date().toLocaleDateString("sv-SE")
+      setManagementOrderFilters({
+        search: searchParams.get("order_search") ?? "",
+        status: searchParams.get("order_status") ?? "",
+        paymentMethod: searchParams.get("order_payment_method") ?? "",
+        paymentStatus: searchParams.get("order_payment_status") ?? "",
+        dateFrom: searchParams.has("order_date_from") ? (searchParams.get("order_date_from") ?? "") : today,
+        dateTo: searchParams.has("order_date_to") ? (searchParams.get("order_date_to") ?? "") : today,
+        customization: searchParams.get("order_customization") ?? "all",
+      })
+    }
+  }, [allowedTabs, role, searchParams])
+
+  useEffect(() => {
+    if (skipAdminUrlWriteRef.current) {
+      skipAdminUrlWriteRef.current = false
+      return
+    }
+    const isPaginatedTab = PAGINATED_ADMIN_TABS.includes(activeTab as PaginatedAdminTab)
+      && !(activeTab === "orders" && orderView !== "management")
+    const next = new URLSearchParams(searchParams)
+    ADMIN_COLLECTION_QUERY_KEYS.forEach((key) => next.delete(key))
+
+    const setOptional = (key: string, value: string | number | boolean | null | undefined, preserveEmpty = false) => {
+      if (value === null || value === undefined || (!preserveEmpty && value === "") || value === false) return
+      next.set(key, String(value))
+    }
+
+    if (isPaginatedTab) {
+      const meta = pageMeta[activeTab as PaginatedAdminTab]
+      next.set("page", String(meta.page))
+      next.set("per_page", String(meta.perPage))
+
+      if (activeTab === "products") {
+        setOptional("product_search", filters.name.trim())
+        setOptional("product_category", filters.category)
+        setOptional("product_min_price", filters.minPrice)
+        setOptional("product_max_price", filters.maxPrice)
+        setOptional("product_featured", filters.featured)
+        setOptional("product_gluten_free", filters.glutenFree)
+        setOptional("product_contains_alcohol", filters.containsAlcohol)
+        setOptional("show_archived", showDeletedProducts)
+        if (showDeletedProducts) {
+          next.set("archived_page", String(archivedProductPage.page))
+          next.set("archived_per_page", String(archivedProductPage.perPage))
+        }
+      } else if (activeTab === "ingredients") {
+        setOptional("ingredient_search", ingredientFilters.search.trim())
+        setOptional("ingredient_type", ingredientFilters.type)
+        setOptional("ingredient_status", ingredientFilters.status === "all" ? "" : ingredientFilters.status)
+      } else if (activeTab === "categories") {
+        setOptional("category_search", categorySearch.trim())
+        setOptional("category_id", categoryIdFilter)
+        setOptional("category_status", categoryStatusFilter === "all" ? "" : categoryStatusFilter)
+      } else if (activeTab === "reviews") {
+        setOptional("review_search", reviewSearch.trim())
+      } else if (activeTab === "clientes") {
+        setOptional("customer_search", clienteSearch.trim())
+        setOptional("customer_status", clienteStatusFilter === "all" ? "" : clienteStatusFilter)
+      } else if (activeTab === "staff") {
+        setOptional("staff_search", staffSearch.trim())
+        setOptional("staff_role", staffRoleFilter === "all" ? "" : staffRoleFilter)
+        setOptional("staff_status", staffStatusFilter === "all" ? "" : staffStatusFilter)
+      } else if (activeTab === "orders") {
+        setOptional("order_search", managementOrderFilters.search.trim())
+        setOptional("order_status", managementOrderFilters.status)
+        setOptional("order_payment_method", managementOrderFilters.paymentMethod)
+        setOptional("order_payment_status", managementOrderFilters.paymentStatus)
+        setOptional("order_date_from", managementOrderFilters.dateFrom, true)
+        setOptional("order_date_to", managementOrderFilters.dateTo, true)
+        setOptional("order_customization", managementOrderFilters.customization === "all" ? "" : managementOrderFilters.customization)
+      }
+    }
+
+    if (next.toString() !== searchParams.toString()) {
+      lastWrittenSearchRef.current = next.toString()
+      setSearchParams(next, { replace: true })
+    }
+  }, [
+    activeTab, archivedProductPage.page, archivedProductPage.perPage, categoryIdFilter, categorySearch,
+    categoryStatusFilter, clienteSearch, clienteStatusFilter, filters, ingredientFilters,
+    managementOrderFilters, orderView, pageMeta, reviewSearch, searchParams, setSearchParams,
+    showDeletedProducts, staffRoleFilter, staffSearch, staffStatusFilter,
+  ])
 
   const runConfirmedAction = (
     config: ConfirmDialogState,
@@ -1597,6 +1917,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
   }, [])
 
   const loadProductsForFilters = useCallback(async (nextFilters: ProductFilterState) => {
+    const requestId = ++productLoadRequestRef.current
     try {
       const filterObj: ProductFilters = {}
       if (nextFilters.name.trim()) filterObj.name = nextFilters.name.trim()
@@ -1607,56 +1928,116 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
       if (nextFilters.glutenFree) filterObj.glutenFree = true
       if (nextFilters.containsAlcohol) filterObj.containsAlcohol = true
 
-      const allProducts = await listProducts(
-        0,
-        100,
-        true,
-        Object.keys(filterObj).length > 0 ? filterObj : undefined,
-      )
-
-      setProducts(allProducts.filter((product) => product.status !== "inactive" && !product.deletedAt))
-      setDeletedProducts(allProducts.filter((product) => product.status === "inactive" || product.deletedAt))
+      const activePage = await listProducts({
+        page: pageMeta.products.page,
+        perPage: pageMeta.products.perPage,
+        catalogState: "active",
+        filters: Object.keys(filterObj).length > 0 ? filterObj : undefined,
+      })
+      if (requestId !== productLoadRequestRef.current) return
+      setProducts(activePage.items)
+      updatePageMeta("products", { page: activePage.page, perPage: activePage.perPage, total: activePage.total, totalPages: activePage.totalPages })
+      if (showDeletedProducts) {
+        const archivedPage = await listProducts({
+          page: archivedProductPage.page,
+          perPage: archivedProductPage.perPage,
+          catalogState: "archived",
+          filters: Object.keys(filterObj).length > 0 ? filterObj : undefined,
+        })
+        if (requestId !== productLoadRequestRef.current) return
+        setDeletedProducts(archivedPage.items)
+        setArchivedProductPage({
+          page: archivedPage.totalPages > 0 ? Math.min(archivedPage.page, archivedPage.totalPages) : 1,
+          perPage: archivedPage.perPage,
+          total: archivedPage.total,
+          totalPages: archivedPage.totalPages,
+        })
+      } else {
+        setDeletedProducts([])
+      }
     } catch (err) {
-      setError(getErrorMessage(err, "Failed to load products"))
+      if (requestId === productLoadRequestRef.current) setError(getErrorMessage(err, "Failed to load products"))
     }
-  }, [])
+  }, [archivedProductPage.page, archivedProductPage.perPage, pageMeta.products.page, pageMeta.products.perPage, showDeletedProducts, updatePageMeta])
 
   const handleLoadProducts = useCallback(async () => {
     await loadProductsForFilters(filters)
   }, [filters, loadProductsForFilters])
 
-  const handleLoadAllProducts = useCallback(async () => {
-    await loadProductsForFilters(EMPTY_PRODUCT_FILTERS)
-  }, [loadProductsForFilters])
-
   const handleLoadCategories = useCallback(async () => {
+    const requestId = ++categoryLoadRequestRef.current
     try {
-      setCategories(await listCategories(true))
+      const result = await listCategories({
+        page: pageMeta.categories.page,
+        perPage: pageMeta.categories.perPage,
+        search: categorySearch,
+        categoryId: Number(categoryIdFilter) || undefined,
+        status: categoryStatusFilter === "all" ? undefined : categoryStatusFilter,
+      })
+      if (requestId !== categoryLoadRequestRef.current) return
+      setCategories(result.items)
+      updatePageMeta("categories", { page: result.page, perPage: result.perPage, total: result.total, totalPages: result.totalPages })
     } catch (err) {
-      setError(getErrorMessage(err, "Failed to load categories"))
+      if (requestId === categoryLoadRequestRef.current) setError(getErrorMessage(err, "Failed to load categories"))
     }
-  }, [])
+  }, [categoryIdFilter, categorySearch, categoryStatusFilter, pageMeta.categories.page, pageMeta.categories.perPage, updatePageMeta])
 
   const handleLoadIngredients = useCallback(async () => {
+    const requestId = ++ingredientLoadRequestRef.current
     try {
-      setIngredients(await listIngredients(true, true))
+      const result = await listIngredients({
+        page: pageMeta.ingredients.page,
+        perPage: pageMeta.ingredients.perPage,
+        search: ingredientFilters.search,
+        type: ingredientFilters.type || undefined,
+        status: ingredientFilters.status === "all" ? "all" : ingredientFilters.status,
+      })
+      if (requestId !== ingredientLoadRequestRef.current) return
+      setIngredients(result.items)
+      updatePageMeta("ingredients", { page: result.page, perPage: result.perPage, total: result.total, totalPages: result.totalPages })
     } catch (err) {
-      setError(getErrorMessage(err, "Failed to load ingredients"))
+      if (requestId === ingredientLoadRequestRef.current) setError(getErrorMessage(err, "Failed to load ingredients"))
     }
-  }, [])
+  }, [ingredientFilters.search, ingredientFilters.status, ingredientFilters.type, pageMeta.ingredients.page, pageMeta.ingredients.perPage, updatePageMeta])
 
   const handleLoadOrders = useCallback(async () => {
+    const requestId = ++orderLoadRequestRef.current
     try {
-      const loadedOrders = experience === "kitchen"
-        ? await listKitchenOrders(0, 100)
-        : experience === "staff"
-          ? await listStaffOrders(0, 100)
-          : await listOrders(0, 100)
-      setOrders(loadedOrders)
+      const loadedOrders = orderView === "kitchen"
+        ? await listKitchenOrders()
+        : orderView === "service"
+          ? await listStaffOrders()
+          : await listOrders({
+            page: pageMeta.orders.page,
+            perPage: pageMeta.orders.perPage,
+            search: managementOrderFilters.search,
+            state: managementOrderFilters.status,
+            paymentMethod: managementOrderFilters.paymentMethod,
+            paymentStatus: managementOrderFilters.paymentStatus,
+            dateFrom: managementOrderFilters.dateFrom,
+            dateTo: managementOrderFilters.dateTo,
+            customization: managementOrderFilters.customization === "all" ? undefined : managementOrderFilters.customization,
+          })
+      if (requestId === orderLoadRequestRef.current) {
+        if (Array.isArray(loadedOrders)) {
+          setOrders(loadedOrders)
+        } else {
+          setOrders(loadedOrders.items)
+          setOrderSummary(loadedOrders.summary)
+          updatePageMeta("orders", { page: loadedOrders.page, perPage: loadedOrders.perPage, total: loadedOrders.total, totalPages: loadedOrders.totalPages })
+        }
+      }
     } catch (err) {
-      setError(getErrorMessage(err, "Failed to load orders"))
+      if (requestId === orderLoadRequestRef.current) {
+        setError(getErrorMessage(err, "Failed to load orders"))
+      }
     }
-  }, [experience])
+  }, [managementOrderFilters, orderView, pageMeta.orders.page, pageMeta.orders.perPage, updatePageMeta])
+
+  const handleManagementOrderFiltersChange = useCallback((nextFilters: ManagementOrderFilters) => {
+    setManagementOrderFilters(nextFilters)
+    updatePageMeta("orders", { page: 1 })
+  }, [updatePageMeta])
 
   const handleLoadAnalyticsMetric = useCallback(async (metric: AnalyticsMetric, nextRange?: AnalyticsRange) => {
     const activeRange = nextRange ?? analyticsRanges[metric]
@@ -1679,20 +2060,39 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
   }, [handleLoadAnalyticsMetric])
 
   const handleLoadClientes = useCallback(async () => {
+    const requestId = ++customerLoadRequestRef.current
     try {
-      setClientes(await listCustomers())
+      const result = await listCustomers({
+        page: pageMeta.clientes.page,
+        perPage: pageMeta.clientes.perPage,
+        search: clienteSearch,
+        status: clienteStatusFilter === "all" ? undefined : clienteStatusFilter,
+      })
+      if (requestId !== customerLoadRequestRef.current) return
+      setClientes(result.items)
+      updatePageMeta("clientes", { page: result.page, perPage: result.perPage, total: result.total, totalPages: result.totalPages })
     } catch (err) {
-      setError(getErrorMessage(err, "Failed to load customers"))
+      if (requestId === customerLoadRequestRef.current) setError(getErrorMessage(err, "Failed to load customers"))
     }
-  }, [])
+  }, [clienteSearch, clienteStatusFilter, pageMeta.clientes.page, pageMeta.clientes.perPage, updatePageMeta])
 
   const handleLoadStaff = useCallback(async () => {
+    const requestId = ++staffLoadRequestRef.current
     try {
-      setStaffAdmins(await listStaffAdmins())
+      const result = await listStaffAdmins({
+        page: pageMeta.staff.page,
+        perPage: pageMeta.staff.perPage,
+        search: staffSearch,
+        role: staffRoleFilter === "all" ? undefined : staffRoleFilter,
+        status: staffStatusFilter === "all" ? undefined : staffStatusFilter,
+      })
+      if (requestId !== staffLoadRequestRef.current) return
+      setStaffAdmins(result.items)
+      updatePageMeta("staff", { page: result.page, perPage: result.perPage, total: result.total, totalPages: result.totalPages })
     } catch (err) {
-      setError(getErrorMessage(err, "Failed to load staff admins"))
+      if (requestId === staffLoadRequestRef.current) setError(getErrorMessage(err, "Failed to load staff admins"))
     }
-  }, [])
+  }, [pageMeta.staff.page, pageMeta.staff.perPage, staffRoleFilter, staffSearch, staffStatusFilter, updatePageMeta])
 
   const handleLoadSiteTheme = useCallback(async () => {
     if (!isOwner) return
@@ -1720,27 +2120,24 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
   }, [isOwner])
 
   const handleLoadReviews = useCallback(async () => {
+    const requestId = ++reviewLoadRequestRef.current
     try {
       setReviewsLoading(true)
-      const reviewProducts = await listProducts(0, 100, false)
-      const reviewGroups = await Promise.all(
-        reviewProducts.map(async (product) => {
-          const productReviews = await listProductReviews(product.productId)
-          return productReviews.map((review) => ({ ...review, productName: product.name }))
-        }),
-      )
-
-      setReviews(
-        reviewGroups
-          .flat()
-          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
-      )
+      const result = await listAdminReviews({
+        page: pageMeta.reviews.page,
+        perPage: pageMeta.reviews.perPage,
+        search: reviewSearch,
+      })
+      if (requestId !== reviewLoadRequestRef.current) return
+      setReviews(result.items)
+      setReviewSummary(result.summary)
+      updatePageMeta("reviews", { page: result.page, perPage: result.perPage, total: result.total, totalPages: result.totalPages })
     } catch (err) {
-      setError(getErrorMessage(err, "Failed to load reviews"))
+      if (requestId === reviewLoadRequestRef.current) setError(getErrorMessage(err, "Failed to load reviews"))
     } finally {
-      setReviewsLoading(false)
+      if (requestId === reviewLoadRequestRef.current) setReviewsLoading(false)
     }
-  }, [])
+  }, [pageMeta.reviews.page, pageMeta.reviews.perPage, reviewSearch, updatePageMeta])
 
   useEffect(() => {
     if (!adminToken) {
@@ -1753,30 +2150,55 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
         setCurrentAdmin(admin)
         updateAdminSessionIdentity({ role: admin.role, name: admin.name })
 
-        if (experience === "super" && admin.role !== "owner") {
-          navigate(admin.role === "chef" ? "/admin/kitchen" : "/admin/staff", { replace: true })
-          return
-        }
-
-        if (admin.role === "owner" && experience === "super") {
+        if (admin.role === "owner") {
           void loadDashboard()
-          void loadProductsForFilters(EMPTY_PRODUCT_FILTERS)
-          void handleLoadCategories()
-          void handleLoadIngredients()
-        } else {
-          setActiveTab("orders")
-          void handleLoadOrders()
         }
       })
         .catch(() => {
           clearAdminSession()
           navigate("/admin/login", { replace: true })
         })
-  }, [adminToken, clearAdminSession, experience, handleLoadCategories, handleLoadIngredients, handleLoadOrders, loadDashboard, loadProductsForFilters, navigate, updateAdminSessionIdentity])
+  }, [adminToken, clearAdminSession, loadDashboard, navigate, updateAdminSessionIdentity])
+
+  useEffect(() => {
+    if (!currentAdmin) return
+
+    const requestedTab = searchParams.get("tab") as TabType | null
+    const fallbackTab: TabType = role === "owner" ? "dashboard" : "orders"
+    const nextTab = requestedTab && allowedTabs.includes(requestedTab) ? requestedTab : fallbackTab
+    const nextParams = new URLSearchParams(searchParams)
+
+    if (nextTab === "dashboard") {
+      nextParams.delete("tab")
+    } else {
+      nextParams.set("tab", nextTab)
+    }
+    if (nextTab === "orders") {
+      nextParams.set("view", orderView)
+    } else {
+      nextParams.delete("view")
+    }
+
+    setActiveTab((currentTab) => currentTab === nextTab ? currentTab : nextTab)
+    if (nextParams.toString() !== searchParams.toString()) {
+      setSearchParams(nextParams, { replace: true })
+    }
+  }, [allowedTabs, currentAdmin, orderView, role, searchParams, setSearchParams])
 
   useEffect(() => {
     organizationStorage.setItem("admin_sidebar_collapsed", String(sidebarCollapsed))
   }, [sidebarCollapsed])
+
+  useEffect(() => {
+    if (relatedIngredientId === null) return
+
+    const handleRelatedProductsKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setRelatedIngredientId(null)
+    }
+
+    document.addEventListener("keydown", handleRelatedProductsKeyDown)
+    return () => document.removeEventListener("keydown", handleRelatedProductsKeyDown)
+  }, [relatedIngredientId])
 
   useEffect(() => {
     const mediaQuery = window.matchMedia(ADMIN_NAV_MOBILE_QUERY)
@@ -1804,6 +2226,14 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
 
     return () => mediaQuery.removeEventListener("change", syncSidebarAutoCollapse)
   }, [])
+
+  useEffect(() => {
+    organizationStorage.setItem(PRODUCT_ANALYTICS_VIEW_MODE_STORAGE_KEY, productAnalyticsViewMode)
+  }, [productAnalyticsViewMode])
+
+  useEffect(() => {
+    organizationStorage.setItem(ADMIN_EDITOR_VIEW_MODE_STORAGE_KEY, adminEditorViewMode)
+  }, [adminEditorViewMode])
 
   useEffect(() => {
     if (!isMobileAdminNav || !isAdminSidebarOpen) return
@@ -1834,13 +2264,41 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
 
   // Debounced filter effect — only re-fetches active products
   useEffect(() => {
-    if (!canManageProducts || activeTab !== "products") return
+    if (!canViewAdminCatalog || activeTab !== "products") return
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
     debounceTimerRef.current = setTimeout(() => {
       void handleLoadProducts()
     }, 400)
     return () => { if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current) }
-  }, [activeTab, canManageProducts, handleLoadProducts])
+  }, [activeTab, canViewAdminCatalog, handleLoadProducts])
+
+  useEffect(() => {
+    if (!currentAdmin || !canViewAdminCatalog || activeTab !== "products") return
+    if (catalogCategories.length === 0) {
+      void listAllCategories({ status: "active" }).then(setCatalogCategories)
+    }
+    if (catalogIngredients.length === 0) {
+      void listAllIngredients({ status: "all", customizationOnly: true }).then(setCatalogIngredients)
+    }
+  }, [activeTab, canViewAdminCatalog, catalogCategories.length, catalogIngredients.length, currentAdmin])
+
+  useEffect(() => {
+    if (!currentAdmin || !isOwner || activeTab !== "settings" || settingsProducts.length > 0) return
+    void listAllProducts({ catalogState: "active" }).then(setSettingsProducts)
+  }, [activeTab, currentAdmin, isOwner, settingsProducts.length])
+
+  useEffect(() => {
+    if (!currentAdmin) return
+    const loader = activeTab === "ingredients" ? handleLoadIngredients
+      : activeTab === "categories" ? handleLoadCategories
+        : activeTab === "reviews" ? handleLoadReviews
+          : activeTab === "clientes" ? handleLoadClientes
+            : activeTab === "staff" ? handleLoadStaff
+              : null
+    if (!loader) return
+    const timer = window.setTimeout(() => void loader(), 350)
+    return () => window.clearTimeout(timer)
+  }, [activeTab, currentAdmin, handleLoadCategories, handleLoadClientes, handleLoadIngredients, handleLoadReviews, handleLoadStaff])
 
   useEffect(() => {
     if (!categoryFilterOpen) return
@@ -1865,6 +2323,34 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
   }, [categoryFilterOpen])
 
   useEffect(() => {
+    if (openProductActionMenuId === null) return
+
+    const handleProductMenuPointerDown = (event: PointerEvent) => {
+      const target = event.target as HTMLElement
+      if (!target.closest(`[data-product-action-menu="${openProductActionMenuId}"]`)) {
+        setOpenProductActionMenuId(null)
+      }
+    }
+    const handleProductMenuKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpenProductActionMenuId(null)
+    }
+
+    document.addEventListener("pointerdown", handleProductMenuPointerDown)
+    document.addEventListener("keydown", handleProductMenuKeyDown)
+    return () => {
+      document.removeEventListener("pointerdown", handleProductMenuPointerDown)
+      document.removeEventListener("keydown", handleProductMenuKeyDown)
+    }
+  }, [openProductActionMenuId])
+
+  useEffect(() => {
+    if (!currentAdmin || activeTab !== "orders") return
+
+    setOrders([])
+    void handleLoadOrders()
+  }, [activeTab, currentAdmin, handleLoadOrders])
+
+  useEffect(() => {
     if (!currentAdmin || activeTab !== "orders") return
 
     const intervalId = window.setInterval(() => {
@@ -1886,36 +2372,58 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
   }, [activeTab, currentAdmin, handleLoadOrders])
 
   const handleTabChange = (tab: TabType) => {
-    if (!allowedTabs.includes(tab)) {
-      setActiveTab("orders")
-      void handleLoadOrders()
-      return
+    const nextTab = allowedTabs.includes(tab) ? tab : "orders"
+    const nextParams = new URLSearchParams(searchParams)
+    setOpenProductActionMenuId(null)
+    if (nextTab !== "ingredients") setRelatedIngredientId(null)
+    if (nextTab !== "products") {
+      setSelectedAnalyticsProduct(null)
+      setProductAnalytics(null)
+      setProductAnalyticsLoading(false)
+      setProductAnalyticsClosing(false)
     }
-    setActiveTab(tab)
-    if (tab === "products") {
-      if (categories.length === 0) void handleLoadCategories()
-      if (ingredients.length === 0) void handleLoadIngredients()
+    if (nextTab === "dashboard") {
+      nextParams.delete("tab")
+    } else {
+      nextParams.set("tab", nextTab)
+    }
+    if (nextTab === "orders") {
+      nextParams.set("view", orderView)
+    } else {
+      nextParams.delete("view")
+    }
+    setSearchParams(nextParams)
+
+    if (nextTab === "products") {
+      if (catalogCategories.length === 0) void listAllCategories({ status: "active" }).then(setCatalogCategories)
+      if (catalogIngredients.length === 0) void listAllIngredients({ status: "all", customizationOnly: true }).then(setCatalogIngredients)
       void handleLoadProducts()
-    } else if (tab === "ingredients") {
+    } else if (nextTab === "ingredients") {
       void handleLoadIngredients()
-      void handleLoadAllProducts()
-    } else if (tab === "categories") {
+    } else if (nextTab === "categories") {
       if (categories.length === 0) void handleLoadCategories()
-      if (products.length === 0 && deletedProducts.length === 0) void handleLoadProducts()
-    } else if (tab === "orders" && orders.length === 0) {
-      void handleLoadOrders()
-    } else if (tab === "reviews" && reviews.length === 0) {
+    } else if (nextTab === "reviews" && reviews.length === 0) {
       void handleLoadReviews()
-    } else if (tab === "clientes" && clientes.length === 0) {
+    } else if (nextTab === "clientes" && clientes.length === 0) {
       void handleLoadClientes()
-    } else if (tab === "staff" && staffAdmins.length === 0) {
+    } else if (nextTab === "staff" && staffAdmins.length === 0) {
       void handleLoadStaff()
-    } else if (tab === "analytics" && ANALYTICS_METRICS.some((item) => !analyticsSeries[item.metric])) {
+    } else if (nextTab === "analytics" && ANALYTICS_METRICS.some((item) => !analyticsSeries[item.metric])) {
       handleLoadAllAnalytics()
-    } else if (tab === "settings") {
+    } else if (nextTab === "settings") {
       void handleLoadSiteTheme()
-      void loadProductsForFilters(EMPTY_PRODUCT_FILTERS)
+      if (settingsProducts.length === 0) void listAllProducts({ catalogState: "active" }).then(setSettingsProducts)
     }
+  }
+
+  const handleOrderViewChange = (nextView: AdminOrderView) => {
+    if (!availableOrderViews.includes(nextView)) return
+    orderLoadRequestRef.current += 1
+    setOrders([])
+    const nextParams = new URLSearchParams(searchParams)
+    nextParams.set("tab", "orders")
+    nextParams.set("view", nextView)
+    setSearchParams(nextParams)
   }
 
   const handleAdminNavItemClick = (tab: TabType) => {
@@ -1947,13 +2455,12 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
 
   const openNewForm = async () => {
     setEditingProduct(null)
-    const nextCategories = categories.length === 0 ? await listCategories() : categories
-    if (categories.length === 0) {
-      setCategories(nextCategories)
-    }
-    if (ingredients.length === 0) {
-      setIngredients(await listIngredients(true, true))
-    }
+    const [nextCategories, nextIngredients] = await Promise.all([
+      listAllCategories({ status: "active" }),
+      listAllIngredients({ status: "all", customizationOnly: true }),
+    ])
+    setCatalogCategories(nextCategories)
+    setCatalogIngredients(nextIngredients)
     const activeCategories = nextCategories.filter((category) => category.status !== "inactive")
     setFormData({
       name: "",
@@ -2003,13 +2510,12 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
 
   const handleEditProduct = async (product: AdminProduct, startStep = 0) => {
     setEditingProduct(product)
-    if (categories.length === 0) {
-      setCategories(await listCategories())
-    }
-    const nextIngredients = ingredients.length === 0 ? await listIngredients(true, true) : ingredients
-    if (ingredients.length === 0) {
-      setIngredients(nextIngredients)
-    }
+    const [nextCategories, nextIngredients] = await Promise.all([
+      listAllCategories({ status: "active" }),
+      listAllIngredients({ status: "all", customizationOnly: true }),
+    ])
+    setCatalogCategories(nextCategories)
+    setCatalogIngredients(nextIngredients)
     const ingredientCaloriesById = new Map(
       nextIngredients.map((ingredient) => [ingredient.ingredientId, ingredient.caloriesPerGram ?? null]),
     )
@@ -2272,6 +2778,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
 
   const handleOpenProductAnalytics = async (product: AdminProduct) => {
     setOpenProductActionMenuId(null)
+    setProductAnalyticsClosing(false)
     setSelectedAnalyticsProduct(product)
     setProductAnalytics(null)
     await handleLoadProductAnalytics(product, productAnalyticsDays)
@@ -2290,17 +2797,23 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
   }
 
   const handleCloseProductAnalytics = () => {
+    if (!selectedAnalyticsProduct || productAnalyticsClosing) return
+    setProductAnalyticsClosing(true)
+  }
+
+  const handleProductAnalyticsExited = () => {
     setSelectedAnalyticsProduct(null)
     setProductAnalytics(null)
     setProductAnalyticsLoading(false)
+    setProductAnalyticsClosing(false)
   }
 
   const handleOpenLinkedIngredientProduct = (product: AdminProduct) => {
-    setActiveTab("products")
+    setRelatedIngredientId(null)
+    handleTabChange("products")
     setFilters({ ...EMPTY_PRODUCT_FILTERS })
     setShowProductForm(false)
     if (product.status === "inactive") setShowDeletedProducts(true)
-    void handleLoadAllProducts()
     void handleOpenProductAnalytics(product)
   }
 
@@ -2391,7 +2904,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
     const name = newProductIngredientName.trim()
     if (!name) return
     const caloriesPerGram = nullableNumberFromInput(newProductIngredientCalories)
-    const existing = ingredients.find((ingredient) => ingredient.name.toLowerCase() === name.toLowerCase())
+    const existing = catalogIngredients.find((ingredient) => ingredient.name.toLowerCase() === name.toLowerCase())
     if (existing) {
       selectSavedProductIngredient(existing, caloriesPerGram)
       setProductFormMessage(`"${existing.name}" já existe e foi selecionado.`)
@@ -2407,7 +2920,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
           available: true,
           caloriesPerGram: caloriesPerGram,
         })
-        setIngredients((current) => (
+        setCatalogIngredients((current) => (
           current.some((ingredient) => ingredient.ingredientId === created.ingredientId)
             ? current
             : [...current, created].sort((a, b) => a.type.localeCompare(b.type) || a.name.localeCompare(b.name))
@@ -2415,10 +2928,10 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
         selectSavedProductIngredient(created, caloriesPerGram)
         toast.success("Ingredient created and selected.")
       } catch (err) {
-        const latestIngredients = await listIngredients(true, true).catch(() => [] as AdminIngredient[])
+        const latestIngredients = await listAllIngredients({ status: "all", customizationOnly: true }).catch(() => [] as AdminIngredient[])
         const duplicate = latestIngredients.find((ingredient) => ingredient.name.toLowerCase() === name.toLowerCase())
         if (duplicate) {
-          setIngredients(latestIngredients)
+          setCatalogIngredients(latestIngredients)
           selectSavedProductIngredient(duplicate, caloriesPerGram)
           setProductFormMessage(`"${duplicate.name}" já existe e foi selecionado.`)
           toast.info("Existing ingredient selected.")
@@ -2569,12 +3082,14 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
   }
 
   const openNewCategoryForm = () => {
+    setCategoryFormClosing(false)
     setEditingCategory(null)
     setCategoryForm({ categoryName: "", categoryDescription: "" })
     setShowCategoryForm(true)
   }
 
   const openEditCategoryForm = (category: Category) => {
+    setCategoryFormClosing(false)
     setEditingCategory(category)
     setCategoryForm({
       categoryName: category.categoryName,
@@ -2584,7 +3099,12 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
   }
 
   const closeCategoryForm = () => {
+    setCategoryFormClosing(true)
+  }
+
+  const handleCategoryFormExited = () => {
     setShowCategoryForm(false)
+    setCategoryFormClosing(false)
     setEditingCategory(null)
     setCategoryForm({ categoryName: "", categoryDescription: "" })
   }
@@ -2602,6 +3122,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
       }
       closeCategoryForm()
       await handleLoadCategories()
+      setCatalogCategories([])
       await loadDashboard()
       toast.success(editingCategory ? "Category updated successfully." : "Category created successfully.")
     } catch (err) {
@@ -2622,6 +3143,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
       try {
         await deleteCategory(categoryId)
         await handleLoadCategories()
+        setCatalogCategories([])
         await loadDashboard()
         toast.success("Category deactivated successfully.")
         return true
@@ -2638,6 +3160,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
     try {
       await updateCategory(categoryId, { status: "active" })
       await handleLoadCategories()
+      setCatalogCategories([])
       await loadDashboard()
       toast.success("Category activated successfully.")
     } catch (err) {
@@ -2648,12 +3171,14 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
   }
 
   const openNewIngredientForm = () => {
+    setIngredientFormClosing(false)
     setEditingIngredient(null)
     setIngredientForm({ name: "", type: "normal", status: "active", available: true, caloriesPerGram: null })
     setShowIngredientForm(true)
   }
 
   const openEditIngredientForm = (ingredient: AdminIngredient) => {
+    setIngredientFormClosing(false)
     setEditingIngredient(ingredient)
     setIngredientForm({
       name: ingredient.name,
@@ -2666,7 +3191,12 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
   }
 
   const closeIngredientForm = () => {
+    setIngredientFormClosing(true)
+  }
+
+  const handleIngredientFormExited = () => {
     setShowIngredientForm(false)
+    setIngredientFormClosing(false)
     setEditingIngredient(null)
     setIngredientForm({ name: "", type: "normal", status: "active", available: true, caloriesPerGram: null })
   }
@@ -2681,6 +3211,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
       }
       closeIngredientForm()
       await handleLoadIngredients()
+      setCatalogIngredients([])
       toast.success(editingIngredient ? "Ingredient updated successfully." : "Ingredient created successfully.")
     } catch (err) {
       const message = getErrorMessage(err, "Failed to save ingredient")
@@ -2700,6 +3231,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
       try {
         await deleteIngredient(ingredientId)
         await handleLoadIngredients()
+        setCatalogIngredients([])
         toast.success("Ingredient deactivated successfully.")
         return true
       } catch (err) {
@@ -2715,6 +3247,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
     try {
       await updateIngredient(ingredientId, { status: "active" })
       await handleLoadIngredients()
+      setCatalogIngredients([])
       toast.success("Ingredient activated successfully.")
     } catch (err) {
       const message = getErrorMessage(err, "Failed to restore ingredient")
@@ -2726,9 +3259,13 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
   const handleSetIngredientAvailability = async (ingredient: AdminIngredient, available: boolean) => {
     const key = `ingredient-${ingredient.ingredientId}`
     const optimistic = { ...ingredient, available }
-    const apply = (next: AdminIngredient) => setIngredients((current) => current.map((item) => (
-      item.ingredientId === ingredient.ingredientId ? next : item
-    )))
+    const apply = (next: AdminIngredient) => {
+      const replace = (items: AdminIngredient[]) => items.map((item) => (
+        item.ingredientId === ingredient.ingredientId ? next : item
+      ))
+      setIngredients(replace)
+      setCatalogIngredients(replace)
+    }
     setAvailabilityBusyKey(key)
     try {
       await persistOptimisticUpdate(
@@ -2745,6 +3282,26 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
       toast.error(message)
     } finally {
       setAvailabilityBusyKey(null)
+    }
+  }
+
+  const handleLoadIngredientProducts = async (ingredientId: number, page = 1, perPage = 20) => {
+    const requestId = (ingredientProductRequestRef.current[ingredientId] ?? 0) + 1
+    ingredientProductRequestRef.current[ingredientId] = requestId
+    setRelatedIngredientId(ingredientId)
+    setRelatedIngredientLoadingId(ingredientId)
+    try {
+      const result = await listIngredientProducts(ingredientId, { page, perPage })
+      if (ingredientProductRequestRef.current[ingredientId] !== requestId) return
+      setIngredientProducts((current) => ({ ...current, [ingredientId]: result }))
+    } catch (err) {
+      if (ingredientProductRequestRef.current[ingredientId] === requestId) {
+        setError(getErrorMessage(err, "Não foi possível carregar os produtos relacionados."))
+      }
+    } finally {
+      if (ingredientProductRequestRef.current[ingredientId] === requestId) {
+        setRelatedIngredientLoadingId((current) => current === ingredientId ? null : current)
+      }
     }
   }
 
@@ -2788,10 +3345,32 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
     }
   }
 
+  const handleDeleteOrder = async (orderId: number) => {
+    await runConfirmedAction({
+      title: `Eliminar o pedido #${orderId}?`,
+      description: "Esta ação não pode ser anulada. O pedido cancelado e os respetivos dados serão eliminados definitivamente.",
+      confirmText: "Eliminar pedido",
+      cancelText: "Cancelar",
+      danger: true,
+    }, async () => {
+      try {
+        await deleteOrder(orderId)
+        setOrders((current) => current.filter((order) => order.orderId !== orderId))
+        toast.success("Pedido eliminado com sucesso.")
+        return true
+      } catch (err) {
+        const message = getErrorMessage(err, "Failed to delete order")
+        setError(message)
+        toast.error("Não foi possível eliminar o pedido.")
+        return false
+      }
+    })
+  }
+
   const handlePayCounterOrder = async (orderId: number) => {
     try {
       refreshOrder(await payCounterOrder(orderId))
-      toast.success("Order marked as paid.")
+      toast.success("Pagamento confirmado; pedido enviado para a cozinha.")
     } catch (err) {
       const message = getErrorMessage(err, "Failed to mark order as paid")
       setError(message)
@@ -2800,12 +3379,14 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
   }
 
   const openNewClienteForm = () => {
+    setClienteFormClosing(false)
     setEditingCliente(null)
     setClienteForm({ name: "", lastName: "", email: "", password: "", phone: "", taxId: "", address: "", city: "", postalCode: "", status: "active" })
     setShowClienteForm(true)
   }
 
   const openEditClienteForm = (cliente: AdminCustomer) => {
+    setClienteFormClosing(false)
     setEditingCliente(cliente)
     setClienteForm({
       name: cliente.name ?? "",
@@ -2822,6 +3403,17 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
     setShowClienteForm(true)
   }
 
+  const closeClienteForm = () => {
+    setClienteFormClosing(true)
+  }
+
+  const handleClienteFormExited = () => {
+    setShowClienteForm(false)
+    setClienteFormClosing(false)
+    setEditingCliente(null)
+    setClienteForm({ name: "", lastName: "", email: "", password: "", phone: "", taxId: "", address: "", city: "", postalCode: "", status: "active" })
+  }
+
   const handleClienteSubmit = async (e: FormEvent) => {
     e.preventDefault()
     try {
@@ -2829,7 +3421,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
       if (!payload.password) delete payload.password
       if (editingCliente) await updateCustomer(editingCliente.customerId, payload)
       else await createCustomer(payload)
-      setShowClienteForm(false)
+      closeClienteForm()
       await handleLoadClientes()
       await handleLoadOrders()
       toast.success(editingCliente ? "Customer updated successfully." : "Customer created successfully.")
@@ -2884,15 +3476,28 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
   }
 
   const openNewStaffForm = () => {
+    setStaffFormClosing(false)
     setEditingStaff(null)
     setStaffForm({ name: "", email: "", password: "", role: "manager", status: "active" })
     setShowStaffForm(true)
   }
 
   const openEditStaffForm = (admin: CurrentAdmin) => {
+    setStaffFormClosing(false)
     setEditingStaff(admin)
     setStaffForm({ name: admin.name, email: admin.email, password: "", role: admin.role, status: admin.status })
     setShowStaffForm(true)
+  }
+
+  const closeStaffForm = () => {
+    setStaffFormClosing(true)
+  }
+
+  const handleStaffFormExited = () => {
+    setShowStaffForm(false)
+    setStaffFormClosing(false)
+    setEditingStaff(null)
+    setStaffForm({ name: "", email: "", password: "", role: "manager", status: "active" })
   }
 
   const handleStaffSubmit = async (e: FormEvent) => {
@@ -2906,7 +3511,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
         if (!payload.password) throw new Error("A palavra-passe é obrigatória para um novo administrador")
         await createStaffAdmin(payload as AdminUserPayload & { password: string })
       }
-      setShowStaffForm(false)
+      closeStaffForm()
       await handleLoadStaff()
       toast.success(editingStaff ? "Staff admin updated successfully." : "Staff admin created successfully.")
     } catch (err) {
@@ -3105,87 +3710,16 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
       })
   }
 
-  const filteredReviews = reviews.filter((review) => {
-    const query = reviewSearch.trim().toLowerCase()
-    if (!query) return true
-
-    return [
-      review.customerName,
-      review.productName,
-      review.title,
-      review.comment,
-      review.status,
-    ].filter(Boolean).join(" ").toLowerCase().includes(query)
-  })
-  const filteredCategories = useMemo(() => {
-    const query = categorySearch.trim().toLowerCase()
-
-    return categories.filter((category) => {
-      if (categoryIdFilter && String(category.categoryId) !== categoryIdFilter) return false
-      if (!statusMatchesFilter(category.status ?? "active", categoryStatusFilter)) return false
-      if (!query) return true
-
-      const statusLabel = category.status !== "inactive" ? "active" : "inactive"
-      return [
-        category.categoryId,
-        category.categoryDisplayId ?? formatCategoryId(category.categoryId),
-        category.categoryName,
-        category.categoryDescription,
-        statusLabel,
-      ].filter(Boolean).join(" ").toLowerCase().includes(query)
-    })
-  }, [categories, categoryIdFilter, categorySearch, categoryStatusFilter])
-  const filteredClientes = useMemo(() => {
-    const query = clienteSearch.trim().toLowerCase()
-
-    return clientes.filter((cliente) => {
-      if (!statusMatchesFilter(cliente.status, clienteStatusFilter)) return false
-      if (!query) return true
-
-      const statusLabel = cliente.status === "active" ? "active" : "inactive"
-      return [
-        String(cliente.customerId),
-        `#${cliente.customerId}`,
-        cliente.name,
-        cliente.lastName,
-        cliente.email,
-        cliente.phone,
-        cliente.taxId,
-        cliente.address,
-        cliente.city,
-        cliente.postalCode,
-        statusLabel,
-      ].filter(Boolean).join(" ").toLowerCase().includes(query)
-    })
-  }, [clienteSearch, clienteStatusFilter, clientes])
-  const filteredStaffAdmins = useMemo(() => {
-    const query = staffSearch.trim().toLowerCase()
-
-    return staffAdmins.filter((admin) => {
-      if (staffRoleFilter !== "all" && admin.role !== staffRoleFilter) return false
-      if (!statusMatchesFilter(admin.status, staffStatusFilter)) return false
-      if (!query) return true
-
-      const statusLabel = admin.status === "active" ? "active" : "inactive"
-      return [
-        String(admin.adminId),
-        `#${admin.adminId}`,
-        admin.name,
-        admin.email,
-        admin.role,
-        statusLabel,
-      ].filter(Boolean).join(" ").toLowerCase().includes(query)
-    })
-  }, [staffAdmins, staffRoleFilter, staffSearch, staffStatusFilter])
+  // These collections are already filtered and counted by the API. Never apply
+  // a second filter to the visible page, otherwise matching rows on later pages
+  // disappear and the pagination metadata becomes misleading.
+  const filteredReviews = reviews
+  const filteredCategories = categories
+  const filteredClientes = clientes
+  const filteredStaffAdmins = staffAdmins
   const hasCategoryFilters = Boolean(categorySearch.trim()) || Boolean(categoryIdFilter) || categoryStatusFilter !== "all"
   const hasClienteFilters = Boolean(clienteSearch.trim()) || clienteStatusFilter !== "all"
   const hasStaffFilters = Boolean(staffSearch.trim()) || staffRoleFilter !== "all" || staffStatusFilter !== "all"
-  const reviewsWithReply = reviews.filter((review) => review.reply?.text?.trim()).length
-  const reviewsAwaitingReply = Math.max(reviews.length - reviewsWithReply, 0)
-  const averageReviewRating = reviews.length
-    ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
-    : 0
-  const allAdminProducts = useMemo(() => [...products, ...deletedProducts], [products, deletedProducts])
   const getBaseUnavailableReason = useCallback((product: AdminProduct) => {
     if (!product.available) return "Indisponível por decisão operacional."
     const names = product.unavailableBaseIngredients ?? []
@@ -3196,21 +3730,11 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
     const remainingCount = names.length - 2
     return `Indisponível: ${remainingCount > 0 ? `${shownNames} e mais ${remainingCount}` : shownNames}.`
   }, [])
-  const filteredIngredients = ingredients.filter((ingredient) => {
-    const query = ingredientFilters.search.trim().toLowerCase()
-    const matchesSearch = !query || [
-      ingredient.name,
-      ingredient.type,
-      String(ingredient.ingredientId),
-    ].join(" ").toLowerCase().includes(query)
-    const matchesType = !ingredientFilters.type || ingredient.type === ingredientFilters.type
-    const matchesStatus =
-      ingredientFilters.status === "all" ||
-      (ingredientFilters.status === "active" && ingredient.status !== "inactive") ||
-      (ingredientFilters.status === "inactive" && ingredient.status === "inactive")
-
-    return matchesSearch && matchesType && matchesStatus
-  })
+  const filteredIngredients = ingredients
+  const relatedIngredient = relatedIngredientId === null
+    ? null
+    : ingredients.find((ingredient) => ingredient.ingredientId === relatedIngredientId) ?? null
+  const relatedIngredientPage = relatedIngredientId === null ? null : ingredientProducts[relatedIngredientId] ?? null
   const clearIngredientFilters = () => {
     setIngredientFilters({ search: "", type: "", status: "all" })
   }
@@ -3219,11 +3743,11 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
       .map((ingredient) => ingredient.ingredientId)
       .filter((id): id is number => typeof id === "number"),
   )
-  const activeCategories = categories.filter((category) => category.status !== "inactive")
+  const activeCategories = catalogCategories.filter((category) => category.status !== "inactive")
   const selectedProductFilterCategory =
     activeCategories.find((category) => category.categoryId === filters.category)?.categoryName ??
     "All categories"
-  const activeProductIngredients = ingredients.filter((ingredient) => ingredient.status !== "inactive")
+  const activeProductIngredients = catalogIngredients.filter((ingredient) => ingredient.status !== "inactive")
   const productIngredientChipGroups = STEP4_INGREDIENT_TYPES
     .map((type) => {
       const query = productIngredientSearch.trim().toLowerCase()
@@ -3272,6 +3796,30 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
     [formData.ingredients],
   )
   const isSidebarCollapsed = sidebarCollapsed || isAdminSidebarAutoCollapsed
+  const renderAdminPagination = (tab: PaginatedAdminTab, meta = pageMeta[tab], archived = false) => (
+    <Pagination
+      variant="admin"
+      page={meta.page}
+      perPage={meta.perPage}
+      total={meta.total}
+      totalPages={meta.totalPages}
+      onPageChange={(nextPage) => {
+        if (archived) setArchivedProductPage((current) => ({ ...current, page: nextPage }))
+        else updatePageMeta(tab, { page: nextPage })
+        const next = new URLSearchParams(searchParams)
+        next.set(archived ? "archived_page" : "page", String(nextPage))
+        setSearchParams(next)
+      }}
+      onPerPageChange={(nextPerPage) => {
+        if (archived) setArchivedProductPage((current) => ({ ...current, page: 1, perPage: nextPerPage }))
+        else updatePageMeta(tab, { page: 1, perPage: nextPerPage })
+        const next = new URLSearchParams(searchParams)
+        next.set(archived ? "archived_page" : "page", "1")
+        next.set(archived ? "archived_per_page" : "per_page", String(nextPerPage))
+        setSearchParams(next)
+      }}
+    />
+  )
   const adminShellClassName = [
     "ad-shell",
     `ad-theme-${adminTheme}`,
@@ -3372,6 +3920,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                 {group.items.map(({ tab, label, icon }) => (
                   <button
                     key={tab}
+                    type="button"
                     className={`ad-nav-item ${activeTab === tab ? "active" : ""}`}
                     onClick={() => handleAdminNavItemClick(tab)}
                     title={!isMobileAdminNav && isSidebarCollapsed ? label : undefined}
@@ -3491,9 +4040,9 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                               className="ad-btn ad-btn-primary ad-btn-sm"
                               onClick={async () => {
                                 try {
-                                  setActiveTab("products")
+                                  handleTabChange("products")
                                   const availableProducts = products.length === 0
-                                    ? await listProducts(0, 100, true)
+                                    ? await listAllProducts({ catalogState: "all" })
                                     : products
                                   if (products.length === 0) {
                                     setProducts(availableProducts.filter((product) => product.status !== "inactive" && !product.deletedAt))
@@ -3550,8 +4099,24 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
             </div>
 
             {showCategoryForm && (
-              <div className="ad-card ad-category-form-card">
-                <h3 className="ad-card-title">{editingCategory ? "Editar categoria" : "Adicionar categoria"}</h3>
+              <AdaptivePanel
+                ariaLabel={editingCategory ? "Editar categoria" : "Adicionar categoria"}
+                closeLabel="Fechar editor de categoria"
+                closing={categoryFormClosing}
+                drawerLabel="Mostrar editor no painel lateral"
+                modalLabel="Mostrar editor num modal"
+                mode={adminEditorViewMode}
+                modeGroupLabel="Modo de visualização do editor"
+                onExited={handleCategoryFormExited}
+                onModeChange={setAdminEditorViewMode}
+                onRequestClose={closeCategoryForm}
+                panelClassName="ad-admin-editor-panel"
+              >
+                <div className="ad-admin-editor-heading">
+                  <span>Catálogo</span>
+                  <h3>{editingCategory ? "Editar categoria" : "Adicionar categoria"}</h3>
+                  <p>Defina o nome e a descrição apresentados na organização do menu.</p>
+                </div>
                 <form className="ad-form" onSubmit={handleCategorySubmit}>
                   <div className="ad-form-row">
                     {editingCategory && (
@@ -3587,7 +4152,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                     <button type="button" className="ad-btn ad-btn-ghost" onClick={closeCategoryForm}>Cancelar</button>
                   </div>
                 </form>
-              </div>
+              </AdaptivePanel>
             )}
 
             <div className="ad-card ad-directory-toolbar">
@@ -3628,7 +4193,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                 </div>
               </div>
               <div className="ad-review-toolbar-meta">
-                <span>{filteredCategories.length} apresentadas</span>
+                <span>{pageMeta.categories.total} apresentadas</span>
                 {hasCategoryFilters && (
                   <button
                     type="button"
@@ -3647,7 +4212,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
 
             <div className="ad-category-grid">
               {filteredCategories.map((category) => {
-                const activeCount = products.filter((product) => product.categoryId === category.categoryId && product.status === "active").length
+                const activeCount = category.activeProductCount ?? 0
                 const isActive = category.status !== "inactive"
 
                 return (
@@ -3678,6 +4243,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
               {categories.length === 0 && <p className="ad-empty">No categories found.</p>}
               {categories.length > 0 && filteredCategories.length === 0 && <p className="ad-empty">No categories match these filters.</p>}
             </div>
+            {renderAdminPagination("categories")}
           </div>
         )}
 
@@ -3689,24 +4255,34 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                   Admin Console · {new Date().toLocaleDateString(resolvedLocale(), { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
                 </p>
                 <h2 className="ad-section-title">Ingredientes</h2>
-                <p className="ad-section-sub">Gerir os ingredientes removíveis que os clientes veem ao personalizar produtos.</p>
+                <p className="ad-section-sub">
+                  {canEditAdminCatalog
+                    ? "Gerir os ingredientes que os clientes veem ao personalizar produtos."
+                    : "Consulte os ingredientes e altere apenas a disponibilidade operacional."}
+                </p>
               </div>
-              <button className="ad-btn ad-btn-primary" onClick={openNewIngredientForm}>Adicionar ingrediente</button>
+              {canEditAdminCatalog && <button className="ad-btn ad-btn-primary" onClick={openNewIngredientForm}>Adicionar ingrediente</button>}
             </div>
 
-            {showIngredientForm && (
-              <>
-                <div className="ad-modal-backdrop" onClick={closeIngredientForm} />
-                <div className="ad-modal ad-ingredient-modal" role="dialog" aria-modal="true" aria-labelledby="ingredient-modal-title">
-                  <div className="ad-modal-header">
-                    <h3 className="ad-modal-title" id="ingredient-modal-title">
-                      {editingIngredient ? "Editar ingrediente" : "Adicionar ingrediente"}
-                    </h3>
-                    <button type="button" className="ad-modal-close" onClick={closeIngredientForm} aria-label="Fechar editor de ingrediente">
-                      <X size={20} />
-                    </button>
-                  </div>
-                  <div className="ad-modal-body">
+            {canEditAdminCatalog && showIngredientForm && (
+              <AdaptivePanel
+                ariaLabel={editingIngredient ? "Editar ingrediente" : "Adicionar ingrediente"}
+                closeLabel="Fechar editor de ingrediente"
+                closing={ingredientFormClosing}
+                drawerLabel="Mostrar editor no painel lateral"
+                modalLabel="Mostrar editor num modal"
+                mode={adminEditorViewMode}
+                modeGroupLabel="Modo de visualização do editor"
+                onExited={handleIngredientFormExited}
+                onModeChange={setAdminEditorViewMode}
+                onRequestClose={closeIngredientForm}
+                panelClassName="ad-admin-editor-panel"
+              >
+                <div className="ad-admin-editor-heading">
+                  <span>Catálogo</span>
+                  <h3>{editingIngredient ? "Editar ingrediente" : "Adicionar ingrediente"}</h3>
+                  <p>Atualize a composição, as calorias e a disponibilidade operacional.</p>
+                </div>
                     <form className="ad-form" onSubmit={handleIngredientSubmit}>
                       <div className="ad-form-row">
                         <div className="ad-form-group">
@@ -3765,9 +4341,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                         <button type="button" className="ad-btn ad-btn-ghost" onClick={closeIngredientForm}>Cancelar</button>
                       </div>
                     </form>
-                  </div>
-                </div>
-              </>
+              </AdaptivePanel>
             )}
 
             <div className="ad-ingredient-toolbar">
@@ -3812,7 +4386,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                 />
               </div>
               <div className="ad-ingredient-toolbar-meta">
-                <span>{filteredIngredients.length} de {ingredients.length}</span>
+                <span>{pageMeta.ingredients.total} apresentados</span>
                 <button type="button" className="ad-btn ad-btn-ghost" onClick={clearIngredientFilters}>Limpar filtros</button>
               </div>
             </div>
@@ -3820,9 +4394,8 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
             <div className="ad-ingredient-grid">
               {filteredIngredients.map((ingredient) => {
                 const isActive = ingredient.status !== "inactive"
-                const linkedProducts = allAdminProducts.filter((product) => (
-                  product.ingredients?.some((item) => item.ingredientId === ingredient.ingredientId)
-                ))
+                const relatedPage = ingredientProducts[ingredient.ingredientId]
+                const linkedProductCount = ingredient.linkedProductCount ?? relatedPage?.total ?? 0
 
                 return (
                   <article key={ingredient.ingredientId} className={`ad-ingredient-card ${!isActive ? "inactive" : ""}`}>
@@ -3843,29 +4416,17 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                         <button
                           type="button"
                           className="ad-ingredient-linked-trigger"
-                          aria-haspopup="true"
-                          aria-label={`${linkedProducts.length} produtos associados a ${ingredient.name}`}
+                          aria-haspopup="dialog"
+                          aria-expanded={relatedIngredientId === ingredient.ingredientId}
+                          aria-label={`${linkedProductCount} produtos associados a ${ingredient.name}`}
+                          onClick={() => {
+                            if (relatedIngredientId === ingredient.ingredientId) setRelatedIngredientId(null)
+                            else void handleLoadIngredientProducts(ingredient.ingredientId)
+                          }}
                         >
-                          <strong>{linkedProducts.length}</strong>
-                          <span>{linkedProducts.length === 1 ? "produto" : "produtos"}</span>
+                          <strong>{linkedProductCount}</strong>
+                          <span>{linkedProductCount === 1 ? "produto" : "produtos"}</span>
                         </button>
-                        <div className="ad-ingredient-products-popover" role="tooltip">
-                          {linkedProducts.length > 0 ? (
-                            linkedProducts.map((product) => (
-                              <button
-                                key={product.productId}
-                                type="button"
-                                className={`ad-linked-product-row ${product.status === "inactive" ? "disabled" : ""}`}
-                                onClick={() => handleOpenLinkedIngredientProduct(product)}
-                              >
-                                <code>{product.productDisplayId ?? formatProductId(product.productId)}</code>
-                                <span>{product.name}</span>
-                              </button>
-                            ))
-                          ) : (
-                            <span className="ad-linked-product-empty">Sem produtos associados</span>
-                          )}
-                        </div>
                       </div>
                     </div>
                     {!isActive && (
@@ -3884,12 +4445,12 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                           ? "A guardar..."
                           : ingredient.available ? "Marcar indisponível" : "Marcar disponível"}
                       </button>
-                      <button className="ad-btn ad-btn-sm ad-btn-ghost" onClick={() => openEditIngredientForm(ingredient)}>Editar</button>
-                      {isActive ? (
+                      {canEditAdminCatalog && <button className="ad-btn ad-btn-sm ad-btn-ghost" onClick={() => openEditIngredientForm(ingredient)}>Editar</button>}
+                      {canEditAdminCatalog && (isActive ? (
                         <button className="ad-btn ad-btn-sm ad-btn-danger" onClick={() => handleDeactivateIngredient(ingredient.ingredientId)}>Desativar</button>
                       ) : (
                         <button className="ad-btn ad-btn-sm ad-btn-primary" onClick={() => handleRestoreIngredient(ingredient.ingredientId)}>Restaurar</button>
-                      )}
+                      ))}
                     </div>
                   </article>
                 )
@@ -3897,14 +4458,95 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
               {ingredients.length === 0 && <p className="ad-empty">Nenhum ingrediente encontrado.</p>}
               {ingredients.length > 0 && filteredIngredients.length === 0 && <p className="ad-empty">Nenhum ingrediente corresponde a estes filtros.</p>}
             </div>
+            {relatedIngredient && (
+              <>
+                <div className="ad-modal-backdrop" onClick={() => setRelatedIngredientId(null)} />
+                <section
+                  className="ad-modal ad-related-products-modal"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="related-products-title"
+                >
+                  <header className="ad-modal-header ad-related-products-header">
+                    <div>
+                      <span className="ad-related-products-kicker">Produtos associados</span>
+                      <h3 className="ad-modal-title" id="related-products-title">{relatedIngredient.name}</h3>
+                      <p>
+                        {relatedIngredientPage?.total ?? relatedIngredient.linkedProductCount ?? 0}
+                        {` ${(relatedIngredientPage?.total ?? relatedIngredient.linkedProductCount ?? 0) === 1 ? "produto utiliza" : "produtos utilizam"} este ingrediente`}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="ad-modal-close"
+                      onClick={() => setRelatedIngredientId(null)}
+                      aria-label="Fechar produtos associados"
+                    >
+                      <X size={20} />
+                    </button>
+                  </header>
+                  <div className="ad-modal-body ad-related-products-body">
+                    {relatedIngredientLoadingId === relatedIngredient.ingredientId && !relatedIngredientPage ? (
+                      <p className="ad-related-products-state" role="status">A carregar produtos associados...</p>
+                    ) : (relatedIngredientPage?.items.length ?? 0) > 0 ? (
+                      <div className="ad-related-products-list">
+                        {relatedIngredientPage!.items.map((product) => (
+                          <button
+                            key={product.productId}
+                            type="button"
+                            className={`ad-related-product-card ${product.status === "inactive" ? "disabled" : ""}`}
+                            onClick={() => handleOpenLinkedIngredientProduct(product)}
+                          >
+                            <span className="ad-related-product-main">
+                              <code>{product.productDisplayId ?? formatProductId(product.productId)}</code>
+                              <strong>{product.name}</strong>
+                              <small>{product.categoryDisplayId}</small>
+                            </span>
+                            <span className="ad-related-product-meta">
+                              <strong>{formatEuro(product.price)}</strong>
+                              <span className={`ad-pill ${product.status === "inactive" ? "ad-pill-gray" : "ad-pill-green"}`}>
+                                {product.status === "inactive" ? "inativo" : product.effectiveAvailable ? "disponível" : "indisponível"}
+                              </span>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="ad-related-products-state">Nenhum produto utiliza este ingrediente.</p>
+                    )}
+
+                    {relatedIngredientLoadingId === relatedIngredient.ingredientId && relatedIngredientPage && (
+                      <span className="ad-related-products-loading" role="status">A atualizar resultados...</span>
+                    )}
+
+                    {relatedIngredientPage && (
+                      <Pagination
+                        variant="admin"
+                        className="ad-related-products-pagination"
+                        page={relatedIngredientPage.page}
+                        perPage={relatedIngredientPage.perPage}
+                        total={relatedIngredientPage.total}
+                        totalPages={relatedIngredientPage.totalPages}
+                        onPageChange={(page) => void handleLoadIngredientProducts(relatedIngredient.ingredientId, page, relatedIngredientPage.perPage)}
+                        onPerPageChange={(perPage) => void handleLoadIngredientProducts(relatedIngredient.ingredientId, 1, perPage)}
+                      />
+                    )}
+                  </div>
+                </section>
+              </>
+            )}
+            {renderAdminPagination("ingredients")}
           </div>
         )}
 
         {activeTab === "products" && (
           <div className="ad-content">
             <div className="ad-section-bar">
-              <h2 className="ad-section-title">Todos os produtos</h2>
-              <button className="ad-btn ad-btn-primary" onClick={openNewForm}>Adicionar produto</button>
+              <div>
+                <h2 className="ad-section-title">Todos os produtos</h2>
+                {!canEditAdminCatalog && <p className="ad-section-sub">Consulte detalhes e análises ou altere apenas a disponibilidade operacional.</p>}
+              </div>
+              {canEditAdminCatalog && <button className="ad-btn ad-btn-primary" onClick={openNewForm}>Adicionar produto</button>}
             </div>
 
             {/* Filters */}
@@ -4039,7 +4681,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
             </div>
 
             {/* Product Form Modal */}
-            {showProductForm && (
+            {canEditAdminCatalog && showProductForm && (
               <>
                 <div className="ad-modal-backdrop" />
                 <div className="ad-modal ad-product-modal">
@@ -4117,10 +4759,10 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                             <CustomSelect
                               value={formData.categoryId}
                               onChange={(nextValue) => setFormData({ ...formData, categoryId: Number(nextValue) || 0 })}
-                              placeholder={categories.length === 0 ? "A carregar categorias..." : "Selecione uma categoria"}
+                              placeholder={catalogCategories.length === 0 ? "A carregar categorias..." : "Selecione uma categoria"}
                               options={[
-                                { value: "", label: categories.length === 0 ? "A carregar categorias..." : "Selecione uma categoria" },
-                                ...categories.filter((cat) => cat.status !== "inactive").map((cat) => ({
+                                { value: "", label: catalogCategories.length === 0 ? "A carregar categorias..." : "Selecione uma categoria" },
+                                ...catalogCategories.filter((cat) => cat.status !== "inactive").map((cat) => ({
                                   value: cat.categoryId,
                                   label: cat.categoryName,
                                 })),
@@ -4732,10 +5374,10 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                             className="ad-select"
                             value={formData.categoryId}
                             onChange={(nextValue) => setFormData({ ...formData, categoryId: Number(nextValue) || 0 })}
-                            placeholder={categories.length === 0 ? "A carregar categorias..." : "Selecione uma categoria"}
+                            placeholder={catalogCategories.length === 0 ? "A carregar categorias..." : "Selecione uma categoria"}
                             options={[
-                              { value: "", label: categories.length === 0 ? "A carregar categorias..." : "Selecione uma categoria" },
-                              ...categories.filter((cat) => cat.status !== "inactive").map((cat) => ({
+                              { value: "", label: catalogCategories.length === 0 ? "A carregar categorias..." : "Selecione uma categoria" },
+                              ...catalogCategories.filter((cat) => cat.status !== "inactive").map((cat) => ({
                                 value: cat.categoryId,
                                 label: cat.categoryName,
                               })),
@@ -4812,7 +5454,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                         </div>
 
                         <div className="ad-ingredient-picker">
-                          {ingredients.filter((ingredient) => ingredient.status !== "inactive").map((ingredient) => (
+                          {activeProductIngredients.map((ingredient) => (
                             <button
                               key={ingredient.ingredientId}
                               type="button"
@@ -4823,7 +5465,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                               <small>{ingredientTypeLabel(ingredient.type)}</small>
                             </button>
                           ))}
-                          {ingredients.filter((ingredient) => ingredient.status !== "inactive").length === 0 && (
+                          {activeProductIngredients.length === 0 && (
                             <p className="ad-empty ad-empty-compact">Ainda não há ingredientes guardados.</p>
                           )}
                         </div>
@@ -4964,18 +5606,23 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
               </>
             )}
 
-            <ProductAnalyticsDrawer
+            <ProductAnalyticsPanel
               product={selectedAnalyticsProduct}
               analytics={productAnalytics}
               loading={productAnalyticsLoading}
               rangeDays={productAnalyticsDays}
+              mode={productAnalyticsViewMode}
+              closing={productAnalyticsClosing}
               onClose={handleCloseProductAnalytics}
+              onExited={handleProductAnalyticsExited}
+              onModeChange={setProductAnalyticsViewMode}
               onEdit={(product) => {
-                handleCloseProductAnalytics()
+                handleProductAnalyticsExited()
                 void handleEditProduct(product)
               }}
               onDelete={(product) => void handleDeleteProductFromAnalytics(product)}
               onRangeChange={(days) => void handleProductAnalyticsRangeChange(days)}
+              canEdit={canEditAdminCatalog}
             />
 
             {/* Active products */}
@@ -5003,19 +5650,40 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                           {image && <img src={getImageUrl(image)} alt="" onError={handleAdminImageError} />}
                           <div className="ad-admin-product-card-top">
                             <span>{p.productDisplayId ?? formatProductId(p.productId)}</span>
-                            <details
-                              className="ad-row-action-menu ad-card-action-menu"
-                              open={openProductActionMenuId === p.productId}
+                            {canEditAdminCatalog && <div
+                              className="ad-card-action-menu"
+                              data-product-action-menu={p.productId}
                               onClick={(event) => event.stopPropagation()}
                             >
-                              <summary aria-label={`Ações para ${p.name}`} onClick={(event) => handleToggleProductActionMenu(event, p.productId)}>
+                              <button
+                                aria-expanded={openProductActionMenuId === p.productId}
+                                aria-haspopup="menu"
+                                aria-label={`Ações para ${p.name}`}
+                                className="ad-card-action-trigger"
+                                onClick={(event) => handleToggleProductActionMenu(event, p.productId)}
+                                type="button"
+                              >
                                 <MoreHorizontal size={18} aria-hidden="true" />
-                              </summary>
-                              <div className="ad-row-action-menu-popover">
+                              </button>
+                              <div
+                                aria-hidden={openProductActionMenuId !== p.productId}
+                                className={`ad-row-action-menu-popover ad-card-action-popover ${openProductActionMenuId === p.productId ? "is-open" : ""}`}
+                                inert={openProductActionMenuId !== p.productId ? true : undefined}
+                                role="menu"
+                              >
                                 <button type="button" onClick={() => void handleOpenProductAnalytics(p)}>Análises</button>
-                                <button type="button" className="danger" onClick={() => handleDeleteProduct(p.productId)}>Eliminar</button>
+                                <button
+                                  type="button"
+                                  className="danger"
+                                  onClick={() => {
+                                    setOpenProductActionMenuId(null)
+                                    void handleDeleteProduct(p.productId)
+                                  }}
+                                >
+                                  Eliminar
+                                </button>
                               </div>
-                            </details>
+                            </div>}
                           </div>
                           <h3>{p.name}</h3>
                         </div>
@@ -5050,19 +5718,25 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                               ? "A guardar..."
                               : p.available ? "Marcar indisponível" : "Marcar disponível"}
                           </button>
-                          <button className="ad-admin-product-card-edit" onClick={() => handleEditProduct(p)}>
+                          {!canEditAdminCatalog && (
+                            <button className="ad-admin-product-card-edit" onClick={() => void handleOpenProductAnalytics(p)}>
+                              Ver detalhes e análises
+                            </button>
+                          )}
+                          {canEditAdminCatalog && <button className="ad-admin-product-card-edit" onClick={() => handleEditProduct(p)}>
                             Editar produto
-                          </button>
+                          </button>}
                         </div>
                       </article>
                     )
                   })}
                 </div>
               ) : <p className="ad-empty">Nenhum produto ativo</p>}
+              {renderAdminPagination("products")}
             </div>
 
             {/* Soft-deleted products */}
-            {deletedProducts.length > 0 && (
+            {(
               <div className="ad-card ad-product-table-card ad-product-deleted-table-card" style={{ marginTop: "1.5rem" }}>
                 <button
                   onClick={() => setShowDeletedProducts(!showDeletedProducts)}
@@ -5073,7 +5747,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                   }}
                 >
                   <span style={{ transform: `rotate(${showDeletedProducts ? 90 : 0}deg)`, display: "inline-block", transition: "transform 0.2s" }}>▶</span>
-                  Produtos eliminados suavemente ({deletedProducts.length})
+                  Produtos arquivados ({archivedProductPage.total})
                 </button>
 
                 {showDeletedProducts && (
@@ -5120,16 +5794,26 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                           <td data-label="Actions">
                             <div className="ad-actions ad-product-row-actions" onClick={(event) => event.stopPropagation()}>
                               <div className="ad-actions-inline">
-                                <button className="ad-btn ad-btn-sm ad-btn-ghost" onClick={() => handleRestoreProduct(p.productId)}>Restaurar</button>
+                                <button className="ad-btn ad-btn-sm ad-btn-ghost" onClick={() => void handleOpenProductAnalytics(p)}>Ver detalhes</button>
+                                <button
+                                  className="ad-btn ad-btn-sm ad-btn-ghost"
+                                  disabled={availabilityBusyKey === `product-${p.productId}`}
+                                  onClick={() => void handleSetProductAvailability(p, !p.available)}
+                                >
+                                  {availabilityBusyKey === `product-${p.productId}`
+                                    ? "A guardar..."
+                                    : p.available ? "Marcar indisponível" : "Marcar disponível"}
+                                </button>
+                                {canEditAdminCatalog && <button className="ad-btn ad-btn-sm ad-btn-ghost" onClick={() => handleRestoreProduct(p.productId)}>Restaurar</button>}
                               </div>
-                              <details className="ad-row-action-menu">
+                              {canEditAdminCatalog && <details className="ad-row-action-menu">
                                 <summary aria-label={`Ações para ${p.name}`}>
                                   <MoreHorizontal size={18} aria-hidden="true" />
                                 </summary>
                                 <div className="ad-row-action-menu-popover">
                                   <button type="button" onClick={() => handleRestoreProduct(p.productId)}>Restaurar</button>
                                 </div>
-                              </details>
+                              </details>}
                             </div>
                           </td>
                         </tr>
@@ -5138,6 +5822,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                     </tbody>
                   </table>
                 )}
+                {showDeletedProducts && renderAdminPagination("products", archivedProductPage, true)}
               </div>
             )}
           </div>
@@ -5153,7 +5838,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
             socialMedia={socialMedia}
             eventsSettings={eventsSettings}
             loading={siteThemeLoading}
-            products={products}
+            products={settingsProducts}
             saving={siteThemeSaving}
             saved={siteThemeSaved}
             onChange={setSiteTheme}
@@ -5168,12 +5853,30 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
 
         {activeTab === "orders" && (
           <div className="ad-content">
-            {experience === "kitchen" ? (
-              <KitchenOrdersBoard orders={orders} onRefresh={handleLoadOrders} onUpdateStatus={handleOrderStatusChange} />
-            ) : experience === "staff" ? (
-              <StaffOrdersBoard orders={orders} onRefresh={handleLoadOrders} onMarkPaid={handlePayCounterOrder} onUpdateStatus={handleOrderStatusChange} />
+            <OrderViewSwitcher
+              availableViews={availableOrderViews}
+              currentView={orderView}
+              onChange={handleOrderViewChange}
+            />
+            {orderView === "kitchen" ? (
+              <KitchenOrdersBoard orders={orders} onRefresh={handleLoadOrders} onUpdateStatus={handleOrderStatusChange} readOnly={kitchenReadOnly} />
+            ) : orderView === "service" ? (
+              <StaffOrdersBoard orders={orders} onRefresh={handleLoadOrders} onMarkPaid={handlePayCounterOrder} onUpdateStatus={handleOrderStatusChange} readOnly={serviceReadOnly} />
             ) : (
-              <SuperAdminOrdersView orders={orders} onRefresh={handleLoadOrders} onUpdateStatus={handleOrderStatusChange} />
+              <SuperAdminOrdersView
+                orders={orders}
+                onRefresh={handleLoadOrders}
+                onUpdateStatus={handleOrderStatusChange}
+                onDelete={handleDeleteOrder}
+                onFiltersChange={handleManagementOrderFiltersChange}
+                page={pageMeta.orders.page}
+                perPage={pageMeta.orders.perPage}
+                total={pageMeta.orders.total}
+                totalPages={pageMeta.orders.totalPages}
+                summary={orderSummary}
+                onPageChange={(page) => updatePageMeta("orders", { page })}
+                onPerPageChange={(perPage) => updatePageMeta("orders", { page: 1, perPage })}
+              />
             )}
           </div>
         )}
@@ -5194,19 +5897,19 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
             <div className="ad-review-stats" aria-label="Resumo das avaliações">
               <div>
                 <span>Total de avaliações</span>
-                <strong>{reviews.length}</strong>
+                <strong>{pageMeta.reviews.total}</strong>
               </div>
               <div>
                 <span>Public replies</span>
-                <strong>{reviewsWithReply}</strong>
+                <strong>{reviewSummary.withReply}</strong>
               </div>
               <div>
                 <span>Needs reply</span>
-                <strong>{reviewsAwaitingReply}</strong>
+                <strong>{reviewSummary.awaitingReply}</strong>
               </div>
               <div>
                 <span>Average rating</span>
-                <strong>{averageReviewRating ? averageReviewRating.toFixed(1) : "-"}</strong>
+                <strong>{reviewSummary.averageRating ? reviewSummary.averageRating.toFixed(1) : "-"}</strong>
               </div>
             </div>
 
@@ -5221,7 +5924,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                 />
               </label>
               <div className="ad-review-toolbar-meta">
-                <span>{filteredReviews.length} apresentados</span>
+                <span>{pageMeta.reviews.total} apresentados</span>
 
               </div>
             </div>
@@ -5326,6 +6029,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                 })}
               </div>
             )}
+            {renderAdminPagination("reviews")}
           </div>
         )}
 
@@ -5338,8 +6042,24 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
             </div>
 
             {showClienteForm && (
-              <div className="ad-card">
-                <h3 className="ad-card-title">{editingCliente ? "Editar cliente" : "Adicionar cliente"}</h3>
+              <AdaptivePanel
+                ariaLabel={editingCliente ? "Editar cliente" : "Adicionar cliente"}
+                closeLabel="Fechar editor de cliente"
+                closing={clienteFormClosing}
+                drawerLabel="Mostrar editor no painel lateral"
+                modalLabel="Mostrar editor num modal"
+                mode={adminEditorViewMode}
+                modeGroupLabel="Modo de visualização do editor"
+                onExited={handleClienteFormExited}
+                onModeChange={setAdminEditorViewMode}
+                onRequestClose={closeClienteForm}
+                panelClassName="ad-admin-editor-panel"
+              >
+                <div className="ad-admin-editor-heading">
+                  <span>Clientes</span>
+                  <h3>{editingCliente ? "Editar cliente" : "Adicionar cliente"}</h3>
+                  <p>Atualize os dados de contacto, faturação e acesso da conta.</p>
+                </div>
                 <form onSubmit={handleClienteSubmit} className="ad-form">
                   <div className="ad-form-row">
                     <div className="ad-form-group"><label>Nome</label><input value={clienteForm.name} onChange={e => setClienteForm({ ...clienteForm, name: e.target.value })} required /></div>
@@ -5351,12 +6071,18 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                     <div className="ad-form-group"><label>Telefone</label><input value={clienteForm.phone || ""} onChange={e => setClienteForm({ ...clienteForm, phone: e.target.value })} /></div>
                     <div className="ad-form-group"><label>Estado</label><CustomSelect className="ad-select" value={clienteForm.status ?? "active"} onChange={(nextValue) => setClienteForm({ ...clienteForm, status: String(nextValue) as UserStatus })} options={[{ value: "active", label: "Ativo" }, { value: "suspended", label: "Suspenso" }]} /></div>
                   </div>
+                  <div className="ad-form-row">
+                    <div className="ad-form-group"><label>NIF</label><input value={clienteForm.taxId || ""} onChange={e => setClienteForm({ ...clienteForm, taxId: e.target.value })} /></div>
+                    <div className="ad-form-group"><label>Cidade</label><input value={clienteForm.city || ""} onChange={e => setClienteForm({ ...clienteForm, city: e.target.value })} /></div>
+                    <div className="ad-form-group"><label>Código postal</label><input value={clienteForm.postalCode || ""} onChange={e => setClienteForm({ ...clienteForm, postalCode: e.target.value })} /></div>
+                  </div>
+                  <div className="ad-form-group"><label>Morada</label><input value={clienteForm.address || ""} onChange={e => setClienteForm({ ...clienteForm, address: e.target.value })} /></div>
                   <div className="ad-form-actions">
-                    <button type="submit" className="ad-btn ad-btn-primary">Guardar cliente</button>
-                    <button type="button" className="ad-btn ad-btn-ghost" onClick={() => setShowClienteForm(false)}>Cancelar</button>
+                    <button type="submit" className="ad-btn ad-btn-primary">{editingCliente ? "Guardar cliente" : "Criar cliente"}</button>
+                    <button type="button" className="ad-btn ad-btn-ghost" onClick={closeClienteForm}>Cancelar</button>
                   </div>
                 </form>
-              </div>
+              </AdaptivePanel>
             )}
 
             <div className="ad-card ad-directory-toolbar">
@@ -5382,7 +6108,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                 </div>
               </div>
               <div className="ad-review-toolbar-meta">
-                <span>{filteredClientes.length} apresentados</span>
+                <span>{pageMeta.clientes.total} apresentados</span>
                 {hasClienteFilters && (
                   <button
                     type="button"
@@ -5457,6 +6183,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                 </div>
               )}
             </div>
+            {renderAdminPagination("clientes")}
           </div>
         )}
 
@@ -5468,8 +6195,24 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
             </div>
 
             {showStaffForm && (
-              <div className="ad-card">
-                <h3 className="ad-card-title">{editingStaff ? "Editar admin" : "Adicionar admin"}</h3>
+              <AdaptivePanel
+                ariaLabel={editingStaff ? "Editar funcionário" : "Adicionar funcionário"}
+                closeLabel="Fechar editor de funcionário"
+                closing={staffFormClosing}
+                drawerLabel="Mostrar editor no painel lateral"
+                modalLabel="Mostrar editor num modal"
+                mode={adminEditorViewMode}
+                modeGroupLabel="Modo de visualização do editor"
+                onExited={handleStaffFormExited}
+                onModeChange={setAdminEditorViewMode}
+                onRequestClose={closeStaffForm}
+                panelClassName="ad-admin-editor-panel"
+              >
+                <div className="ad-admin-editor-heading">
+                  <span>Equipa</span>
+                  <h3>{editingStaff ? "Editar funcionário" : "Adicionar funcionário"}</h3>
+                  <p>Atualize os dados de acesso, o cargo e o estado deste membro da equipa.</p>
+                </div>
                 <form onSubmit={handleStaffSubmit} className="ad-form">
                   <div className="ad-form-row">
                     <div className="ad-form-group"><label>Nome</label><input value={staffForm.name} onChange={e => setStaffForm({ ...staffForm, name: e.target.value })} required /></div>
@@ -5477,15 +6220,15 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                     <div className="ad-form-group"><label>Palavra-passe</label><input type="password" value={staffForm.password || ""} onChange={e => setStaffForm({ ...staffForm, password: e.target.value })} required={!editingStaff} /></div>
                   </div>
                   <div className="ad-form-row">
-                    <div className="ad-form-group"><label>Cargo</label><CustomSelect className="ad-select" value={staffForm.role} onChange={(nextValue) => setStaffForm({ ...staffForm, role: nextValue as AdminRole })} options={[{ value: "owner", label: "Owner" }, { value: "manager", label: "Manager" }, { value: "waiter", label: "Waiter" }, { value: "chef", label: "Chef" }]} /></div>
+                    <div className="ad-form-group"><label>Cargo</label><CustomSelect className="ad-select" value={staffForm.role} onChange={(nextValue) => setStaffForm({ ...staffForm, role: nextValue as AdminRole })} options={editableStaffRoleOptions} /></div>
                     <div className="ad-form-group"><label>Estado</label><CustomSelect className="ad-select" value={staffForm.status} onChange={(nextValue) => setStaffForm({ ...staffForm, status: String(nextValue) as UserStatus })} options={[{ value: "active", label: "Ativo" }, { value: "suspended", label: "Suspenso" }]} /></div>
                   </div>
                   <div className="ad-form-actions">
-                    <button type="submit" className="ad-btn ad-btn-primary">Guardar admin</button>
-                    <button type="button" className="ad-btn ad-btn-ghost" onClick={() => setShowStaffForm(false)}>Cancelar</button>
+                    <button type="submit" className="ad-btn ad-btn-primary">{editingStaff ? "Guardar funcionário" : "Criar funcionário"}</button>
+                    <button type="button" className="ad-btn ad-btn-ghost" onClick={closeStaffForm}>Cancelar</button>
                   </div>
                 </form>
-              </div>
+              </AdaptivePanel>
             )}
 
             <div className="ad-card ad-directory-toolbar">
@@ -5506,7 +6249,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                     className="ad-select"
                     value={staffRoleFilter}
                     onChange={(nextValue) => setStaffRoleFilter(nextValue as StaffRoleFilter)}
-                    options={STAFF_ROLE_OPTIONS}
+                    options={staffRoleOptions}
                   />
                 </div>
                 <div className="ad-form-group">
@@ -5520,7 +6263,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                 </div>
               </div>
               <div className="ad-review-toolbar-meta">
-                <span>{filteredStaffAdmins.length} apresentados</span>
+                <span>{pageMeta.staff.total} apresentados</span>
                 {hasStaffFilters && (
                   <button
                     type="button"
@@ -5551,7 +6294,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                           <td data-label="ID">{admin.adminId}</td>
                           <td data-label="Nome">{admin.name}</td>
                           <td data-label="Email">{admin.email}</td>
-                          <td data-label="Cargo"><span className="ad-pill ad-pill-blue">{admin.role}</span></td>
+                          <td data-label="Cargo"><span className="ad-pill ad-pill-blue">{formatAdminRole(admin.role)}</span></td>
                           <td data-label="Estado"><span className={`ad-pill ${admin.status === "active" ? "ad-pill-green" : "ad-pill-gray"}`}>{admin.status === "active" ? "ativo" : "inativo"}</span></td>
                           <td data-label="Ações">
                             <div className="ad-actions">
@@ -5570,6 +6313,7 @@ export default function AdminDashboard({ experience = "super" }: { experience?: 
                 </table>
               )}
             </div>
+            {renderAdminPagination("staff")}
           </div>
         )}
 

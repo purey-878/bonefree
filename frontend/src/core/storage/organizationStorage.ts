@@ -12,16 +12,20 @@ const bonefreeLocalStorageMigrations: ReadonlyArray<readonly [string, string]> =
   ['active_order_id', 'active_order_id'],
   ['active_order_access_token', 'active_order_access_token'],
   ['active_order_access_expires_at', 'active_order_access_expires_at'],
+  ['bonefree_guest_order_accesses_v1', 'guest_order_accesses_v1'],
   ['bonefree_site_theme', 'site_theme'],
   ['bonefree_cookie_consent', 'cookie_consent'],
   ['bonefree_recently_viewed', 'recently_viewed'],
   ['bonefree-loyalty-banner-dismissed', 'loyalty_banner_dismissed'],
   ['admin_sidebar_collapsed', 'admin_sidebar_collapsed'],
   ['admin_theme', 'admin_theme'],
+  ['admin_product_analytics_view_mode', 'admin_product_analytics_view_mode'],
+  ['admin_editor_view_mode', 'admin_editor_view_mode'],
 ]
 
 const bonefreeSessionStorageMigrations: ReadonlyArray<readonly [string, string]> = [
   ['bonefree-menu-filters', 'menu_filters'],
+  ['bonefree-prototype-notice-dismissed', 'prototype_notice_dismissed'],
 ]
 
 function storage(name: StorageName): Storage | null {

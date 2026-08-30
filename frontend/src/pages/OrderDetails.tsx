@@ -1,23 +1,46 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { ArrowLeft, Clock, Download, LoaderCircle, ReceiptText, X } from "lucide-react"
+import {
+  ArrowLeft,
+  Check,
+  ChefHat,
+  Clock,
+  Download,
+  LoaderCircle,
+  PackageCheck,
+  ReceiptText,
+  ShoppingBag,
+  WalletCards,
+  X,
+} from "lucide-react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 
 import { ApiError, isApiErrorWithStatus } from "../api/errors"
 import Navbar from "../components/Navbar"
 import ResourceNotFound from "../components/ResourceNotFound"
 import {
-  clearActiveOrder,
-  readActiveOrder,
+  GUEST_ORDERS_UPDATED_EVENT,
+  readGuestOrderAccess,
+  removeGuestOrderAccess,
 } from "../components/orderStatusStorage"
 import { useAuth } from "../hooks"
 import { checkoutService, customizationSummary } from "../services"
 import type { OrderResponse } from "../types/checkout"
+import { applyApiImageFallback, resolveProductImageUrl } from "../utils/imageFallback"
 import { formatEuro } from "../utils/money"
+import { ORDER_PROGRESS_STATUSES, orderProgressStepState } from "../utils/orderProgress"
+import { productMediaUrl } from "../utils/productMedia"
 import "./OrderDetails.css"
 import { useTranslation } from "react-i18next"
 import i18n, { resolvedLocale } from "../i18n"
 
 const TERMINAL_STATUSES = new Set(["delivered", "cancelled"])
+const progressIcons = {
+  pending: WalletCards,
+  confirmed: ReceiptText,
+  in_preparation: ChefHat,
+  ready: PackageCheck,
+  delivered: Check,
+} as const
 
 function statusLabel(status: string) {
   return ({
@@ -34,6 +57,7 @@ export default function OrderDetails() {
   const { t } = useTranslation("storefront")
   const { orderId: orderIdParam } = useParams()
   const orderId = Number(orderIdParam)
+  const orderLookupKey = Number.isInteger(orderId) && orderId > 0 ? orderId : -1
   const navigate = useNavigate()
   const { isAuthenticated, loading: authLoading } = useAuth()
   const [order, setOrder] = useState<OrderResponse | null>(null)
@@ -45,22 +69,22 @@ export default function OrderDetails() {
 
   const activeAccess = useMemo(() => {
     void accessVersion
-    const active = readActiveOrder()
-    return active?.orderId === orderId ? active : null
+    return readGuestOrderAccess(orderId)
   }, [accessVersion, orderId])
   const guestToken = activeAccess?.accessToken ?? null
 
   const loadOrder = useCallback(async () => {
     if (!Number.isInteger(orderId) || orderId <= 0) {
-      setNotFoundOrderId(null)
-      setError(t("order.invalid"))
+      setOrder(null)
+      setNotFoundOrderId(orderLookupKey)
+      setError(null)
       return
     }
     if (!guestToken && authLoading) return
     if (!guestToken && !isAuthenticated) {
       setOrder(null)
-      setNotFoundOrderId(null)
-      setError(t("order.accessRequired"))
+      setNotFoundOrderId(orderId)
+      setError(null)
       return
     }
 
@@ -75,11 +99,15 @@ export default function OrderDetails() {
         && requestError instanceof ApiError
         && (requestError.status === 401 || requestError.status === 404)
       ) {
-        clearActiveOrder(false)
+        removeGuestOrderAccess(orderId)
         setAccessVersion((current) => current + 1)
       }
       setOrder(null)
-      if (isApiErrorWithStatus(requestError, 404)) {
+      if (
+        isApiErrorWithStatus(requestError, 404)
+        || isApiErrorWithStatus(requestError, 401)
+        || isApiErrorWithStatus(requestError, 403)
+      ) {
         setNotFoundOrderId(orderId)
         setError(null)
         return
@@ -87,20 +115,24 @@ export default function OrderDetails() {
       setNotFoundOrderId(null)
       setError(requestError instanceof Error ? requestError.message : t("order.loadFailed"))
     }
-  }, [authLoading, guestToken, isAuthenticated, orderId, t])
+  }, [authLoading, guestToken, isAuthenticated, orderId, orderLookupKey, t])
 
   useEffect(() => {
     const refreshAccess = () => setAccessVersion((current) => current + 1)
-    window.addEventListener("active-order-updated", refreshAccess)
-    return () => window.removeEventListener("active-order-updated", refreshAccess)
+    window.addEventListener(GUEST_ORDERS_UPDATED_EVENT, refreshAccess)
+    window.addEventListener("storage", refreshAccess)
+    return () => {
+      window.removeEventListener(GUEST_ORDERS_UPDATED_EVENT, refreshAccess)
+      window.removeEventListener("storage", refreshAccess)
+    }
   }, [])
 
   useEffect(() => {
-    if (notFoundOrderId === orderId) return
+    if (notFoundOrderId === orderLookupKey) return
     void loadOrder()
     const intervalId = window.setInterval(() => void loadOrder(), 5000)
     return () => window.clearInterval(intervalId)
-  }, [loadOrder, notFoundOrderId, orderId])
+  }, [loadOrder, notFoundOrderId, orderLookupKey])
 
   const cancelOrder = async () => {
     if (!order?.canCancel) return
@@ -137,20 +169,20 @@ export default function OrderDetails() {
   }
 
   const dismissOrder = () => {
-    if (activeAccess) clearActiveOrder(false)
-    navigate(isAuthenticated ? "/profile?tab=orders" : "/menu", { replace: true })
+    navigate(isAuthenticated ? "/profile?tab=orders" : "/orders", { replace: true })
   }
 
   const waitingForAccess = authLoading && !guestToken
+  const backToOrdersHref = isAuthenticated ? "/profile?tab=orders" : "/orders"
 
-  if (notFoundOrderId === orderId) return <ResourceNotFound kind="order" />
+  if (notFoundOrderId === orderLookupKey) return <ResourceNotFound kind="order" />
 
   return (
     <section className="order-details-page site-page">
       <Navbar />
       <main className="order-details-shell">
         <div className="order-details-topbar">
-          <Link to="/orders" className="order-details-back"><ArrowLeft size={17} /> {t("order.back")}</Link>
+          <Link to={backToOrdersHref} className="order-details-back"><ArrowLeft size={17} /> {t("order.back")}</Link>
           <Link to="/menu">{t("order.viewMenu")}</Link>
         </div>
 
@@ -168,14 +200,55 @@ export default function OrderDetails() {
           <>
             <header className="order-details-header">
               <div>
-                <p>{t("order.current")}</p>
+                <p className="order-details-eyebrow"><ShoppingBag size={15} /> {t("order.current")}</p>
                 <h1>{order.orderNumber}</h1>
                 <span><Clock size={16} /> {new Date(order.createdAt).toLocaleString(resolvedLocale())}</span>
               </div>
-              <strong className={`order-details-status status-${order.status}`}>{statusLabel(order.status)}</strong>
+              <strong
+                key={order.status}
+                className={`order-details-status order-details-status-change status-${order.status}`}
+                aria-live="polite"
+              >
+                {statusLabel(order.status)}
+              </strong>
             </header>
 
             {error && <p className="order-details-error" role="alert">{error}</p>}
+
+            {order.status === "cancelled" ? (
+              <section key={`cancelled-${order.status}`} className="order-details-cancelled order-details-status-panel-change" aria-live="polite">
+                <span><X size={22} /></span>
+                <div>
+                  <strong>{statusLabel(order.status)}</strong>
+                  <p>{t("order.tracker.cancelledMessage")}</p>
+                </div>
+              </section>
+            ) : (
+              <section
+                key={`progress-${order.status}`}
+                className="order-details-progress-card order-details-status-panel-change"
+                aria-label={t("order.progressAria")}
+              >
+                <div className="order-details-section-heading">
+                  <span>{t("order.progress")}</span>
+                  <strong>{statusLabel(order.status)}</strong>
+                </div>
+                <ol className="order-details-progress">
+                  {ORDER_PROGRESS_STATUSES.map((status) => {
+                    const Icon = progressIcons[status]
+                    const state = orderProgressStepState(order.status, status)
+                    return (
+                      <li key={status} className={`is-${state}`} aria-current={state === "current" ? "step" : undefined}>
+                        <span className="order-details-progress-icon">
+                          <Icon size={18} />
+                        </span>
+                        <span className="order-details-progress-label">{statusLabel(status)}</span>
+                      </li>
+                    )
+                  })}
+                </ol>
+              </section>
+            )}
 
             <div className="order-details-grid">
               <section className="order-details-card">
@@ -183,13 +256,22 @@ export default function OrderDetails() {
                 <div className="order-details-items">
                   {order.items.map((item, index) => {
                     const customizations = customizationSummary(item.customization)
+                    const imageUrl = resolveProductImageUrl(productMediaUrl(item.media, "card"))
                     return (
                       <article key={`${item.productId}-${index}`}>
-                        <div>
-                          <strong>{item.quantity} × {item.productName}</strong>
-                          {customizations.length > 0 && <small>{customizations.join(" | ")}</small>}
+                        <div className="order-details-item-image">
+                          <img
+                            src={imageUrl}
+                            alt={item.media?.altText || item.productName}
+                            onError={(event) => applyApiImageFallback(event.currentTarget)}
+                          />
+                          <span>{item.quantity}×</span>
                         </div>
-                        <span>{formatEuro(item.subtotal)}</span>
+                        <div className="order-details-item-copy">
+                          <strong>{item.productName}</strong>
+                          {customizations.length > 0 && <small>{customizations.join(" · ")}</small>}
+                        </div>
+                        <strong className="order-details-item-price">{formatEuro(item.subtotal)}</strong>
                       </article>
                     )
                   })}
@@ -219,11 +301,6 @@ export default function OrderDetails() {
                   )}
                 </div>
 
-                {guestToken && (
-                  <p className="order-details-guest-note">
-                    {t("order.guestNote")}
-                  </p>
-                )}
               </aside>
             </div>
           </>

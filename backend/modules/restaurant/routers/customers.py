@@ -63,23 +63,49 @@ def _customer_owner_response(customer: User) -> CustomerAdminResponse:
 
 @router.get(
     "/customers",
-    response_model=List[CustomerAdminResponse],
+    response_model=CustomerAdminPageResponse,
     operation_id="admin_management_list_customers",
     dependencies=CUSTOMER_ACCOUNT_FEATURE_DEPENDENCIES,
 )
 def list_customers(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=200),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
     search: str = Query(None),
+    status_filter: Optional[UserStatus] = Query(None, alias="status"),
     current_owner: User = Depends(require_organization_role(UserRole.OWNER)),
     db: Session = Depends(get_db),
 ):
-    stmt = select(User).options(joinedload(User.billing_address)).where(User.role == UserRole.CLIENT)
-    if search:
-        pattern = f"%{search}%"
-        stmt = stmt.where(or_(User.name.ilike(pattern), User.last_name.ilike(pattern), User.email.ilike(pattern)))
-    customers = db.scalars(stmt.order_by(User.id.desc()).offset(skip).limit(limit)).unique().all()
-    return [_customer_owner_response(customer) for customer in customers]
+    del current_owner
+    filters = [User.role == UserRole.CLIENT]
+    if search and search.strip():
+        pattern = f"%{search.strip()}%"
+        filters.append(or_(
+            func.cast(User.id, String).ilike(pattern),
+            User.name.ilike(pattern),
+            User.last_name.ilike(pattern),
+            User.email.ilike(pattern),
+            User.phone.ilike(pattern),
+            User.tax_id.ilike(pattern),
+        ))
+    if status_filter is not None:
+        filters.append(User.status == status_filter)
+
+    total = db.scalar(select(func.count(User.id)).where(*filters)) or 0
+    customers = db.scalars(
+        select(User)
+        .options(joinedload(User.billing_address))
+        .where(*filters)
+        .order_by(User.id.desc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
+    ).unique().all()
+    return CustomerAdminPageResponse(
+        items=[_customer_owner_response(customer) for customer in customers],
+        page=page,
+        per_page=per_page,
+        total=int(total),
+        total_pages=total_pages(int(total), per_page),
+    )
 
 
 @router.post(

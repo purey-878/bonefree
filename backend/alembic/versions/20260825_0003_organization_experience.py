@@ -82,7 +82,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["organization_id"],
             ["organization.id"],
-            name="fk_organization_feature_entitlement_organization_id_organization",
+            name="fk_org_feature_entitlement_organization",
             ondelete="CASCADE",
         ),
         sa.PrimaryKeyConstraint("id"),

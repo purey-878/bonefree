@@ -1,13 +1,19 @@
 
 import re
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import and_, exists, or_, select
+from sqlalchemy import and_, case, exists, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 from database import get_db
 from modules.restaurant.models import EntityStatus, IngredientType, ProductCustomizationOptionType
-from modules.restaurant.models import Ingredient, Media, Product, ProductIngredient, ProductCustomizationOption, ProductMedia
-from modules.restaurant.schemas.product import ProductResponse
-from modules.restaurant.schemas.product import ProductIngredientNutrition
+from modules.restaurant.models import Category, Ingredient, Media, Product, ProductIngredient, ProductCustomizationOption, ProductMedia
+from modules.restaurant.schemas.product import (
+    ProductCatalogFacets,
+    ProductCategoryFacet,
+    ProductIngredientNutrition,
+    ProductPageResponse,
+    ProductResponse,
+)
+from modules.restaurant.schemas.pagination import total_pages
 from modules.restaurant.schemas.customization import (
     CustomizationIngredientResponse,
     CustomizationOptionResponse,
@@ -105,19 +111,75 @@ def _product_ingredient_nutrition(db: Session, product_id: int) -> list[ProductI
     return _product_ingredient_nutrition_lookup(db, [product_id]).get(product_id, [])
 
 
-@router.get('/', response_model=list[ProductResponse], operation_id="products_list_products")
-def list_products(db: Session = Depends(get_db)):
-    """Get all active products with their media."""
-    query = select(Product).where(active_product_filter()).options(
+@router.get('/', response_model=ProductPageResponse, operation_id="products_list_products")
+def list_products(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    search: str | None = Query(None, max_length=120),
+    category_id: int | None = Query(None, ge=1),
+    min_price: float | None = Query(None, ge=0),
+    max_price: float | None = Query(None, ge=0),
+    special: str = Query("all", pattern="^(all|gluten_free|alcohol)$"),
+    sort: str = Query("default", pattern="^(default|popular|price_asc|price_desc|name_asc)$"),
+    product_ids: list[int] | None = Query(None),
+    db: Session = Depends(get_db),
+):
+    """Return a filtered page of active products and stable catalog facets."""
+    discounted_price = Product.price * (1 - (func.coalesce(Product.discount_percentage, 0) / 100.0))
+    filters = [active_product_filter()]
+    if search and search.strip():
+        pattern = f"%{search.strip()}%"
+        filters.append(or_(Product.name.ilike(pattern), Product.product_description.ilike(pattern)))
+    if category_id is not None:
+        filters.append(Product.category_id == category_id)
+    if min_price is not None:
+        filters.append(discounted_price >= min_price)
+    if max_price is not None:
+        filters.append(discounted_price <= max_price)
+    if special == "gluten_free":
+        filters.append(Product.gluten_free.is_(True))
+    elif special == "alcohol":
+        filters.append(Product.contains_alcohol.is_(True))
+    if product_ids is not None:
+        filters.append(Product.product_id.in_(product_ids or [-1]))
+
+    base_statement = select(Product).where(*filters)
+    total = db.scalar(select(func.count(Product.product_id)).where(*filters)) or 0
+
+    tag_text = func.lower(func.coalesce(Product.menu_tags, ""))
+    default_score = (
+        case((Product.featured.is_(True), 1000), else_=0)
+        + case((tag_text.like("%popular%"), 600), else_=0)
+        + case((tag_text.like("%new%"), 300), else_=0)
+        + func.coalesce(Product.sold, 0)
+    )
+    popular_score = (
+        case((Product.featured.is_(True), 1000), else_=0)
+        + case((tag_text.like("%popular%"), 700), else_=0)
+        + case((func.coalesce(Product.discount_percentage, 0) > 0, 250), else_=0)
+        + func.coalesce(Product.sold, 0)
+    )
+    if sort == "price_asc":
+        ordering = (discounted_price.asc(), Product.product_id.asc())
+    elif sort == "price_desc":
+        ordering = (discounted_price.desc(), Product.product_id.asc())
+    elif sort == "name_asc":
+        ordering = (Product.name.asc(), Product.product_id.asc())
+    elif sort == "popular":
+        ordering = (popular_score.desc(), Product.product_id.asc())
+    else:
+        ordering = (default_score.desc(), Product.product_id.asc())
+
+    query = base_statement.options(
         selectinload(Product.media_items)
         .selectinload(ProductMedia.media)
         .selectinload(Media.variants)
-    )
+    ).order_by(*ordering).offset((page - 1) * per_page).limit(per_page)
     products = db.scalars(query).unique().all()
     product_ids = [product.product_id for product in products]
     unavailable_base_ids = unavailable_base_product_ids(db, product_ids)
     ingredient_lookup = _product_ingredient_nutrition_lookup(db, product_ids)
-    return [
+    items = [
         ProductResponse.from_orm_custom(
             product,
             unavailable_due_to_unavailable_base=product.product_id in unavailable_base_ids,
@@ -126,6 +188,37 @@ def list_products(db: Session = Depends(get_db)):
         )
         for product in products
     ]
+
+    facet_rows = db.execute(
+        select(Category.category_id, Category.category_name, func.count(Product.product_id))
+        .join(Product, Product.category_id == Category.category_id)
+        .where(active_product_filter())
+        .group_by(Category.category_id, Category.category_name)
+        .order_by(Category.category_name.asc(), Category.category_id.asc())
+    ).all()
+    catalog_total = sum(int(row[2] or 0) for row in facet_rows)
+    catalog_max_price = db.scalar(select(func.max(discounted_price)).where(active_product_filter())) or 0
+    facets = ProductCatalogFacets(
+        total_products=catalog_total,
+        max_price=float(catalog_max_price),
+        categories=[
+            ProductCategoryFacet(
+                category_id=category_id_value,
+                category_display_id=f"CAT-{category_id_value:03d}",
+                name=category_name,
+                count=int(count_value or 0),
+            )
+            for category_id_value, category_name, count_value in facet_rows
+        ],
+    )
+    return ProductPageResponse(
+        items=items,
+        page=page,
+        per_page=per_page,
+        total=int(total),
+        total_pages=total_pages(int(total), per_page),
+        facets=facets,
+    )
 
 
 @router.get(
@@ -214,7 +307,7 @@ def get_customization_options(
             .join(ProductIngredient.ingredient)
             .where(
                 ProductIngredient.product_id == parsed_product_id,
-                ProductIngredient.removable == 1,
+                ProductIngredient.removable.is_(True),
                 Ingredient.status == EntityStatus.ACTIVE,
                 Ingredient.available.is_(True),
                 Ingredient.type == IngredientType.NORMAL,

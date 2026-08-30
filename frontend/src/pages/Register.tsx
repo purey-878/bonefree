@@ -26,7 +26,8 @@ function Register() {
     lastName: '',
     phone: '',
   })
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors<keyof typeof formData>>({})
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors<keyof typeof formData | 'acceptedTerms'>>({})
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
@@ -51,7 +52,7 @@ function Register() {
     e.preventDefault()
     setError('')
 
-    const errors: FieldErrors<keyof typeof formData> = {}
+    const errors: FieldErrors<keyof typeof formData | 'acceptedTerms'> = {}
     const nomeError = validateName(formData.name)
     const apelidoError = validateName(formData.lastName)
     const emailError = validateEmail(formData.email)
@@ -65,6 +66,10 @@ function Register() {
     if (formData.password !== formData.confirmPassword) {
       errors.confirmPassword = t('passwordMismatch')
     }
+    if (!acceptedTerms) {
+      errors.acceptedTerms = t('acceptTermsRequired')
+    }
+
     setFieldErrors(errors)
     if (Object.keys(errors).length > 0) {
       setError(t('fixFields'))
@@ -81,6 +86,7 @@ function Register() {
         name: formData.name.trim(),
         lastName: formData.lastName.trim(),
         phone: formData.phone.trim() || undefined,
+        acceptedTerms,
       })
       navigate(redirectAfterRegister(from, hadGuestCart), { replace: true })
     } catch (err) {
@@ -128,6 +134,7 @@ function Register() {
           <p className="auth-subtitle">{t('registerSubtitle')}</p>
 
           {error && <div className="alert alert-danger">{error}</div>}
+
 
           <form onSubmit={handleSubmit} className="auth-form">
             <div className="form-group">
@@ -234,9 +241,34 @@ function Register() {
               {fieldErrors.confirmPassword && <small className="field-error">{fieldErrors.confirmPassword}</small>}
             </div>
 
+            <div className="auth-legal-check">
+              <label className="auth-checkbox-row">
+                <input
+                  type="checkbox"
+                  checked={acceptedTerms}
+                  onChange={(event) => {
+                    setAcceptedTerms(event.target.checked)
+                    setFieldErrors((current) => ({ ...current, acceptedTerms: undefined }))
+                  }}
+                  required
+                  aria-invalid={Boolean(fieldErrors.acceptedTerms)}
+                />
+                <span>
+                  {t('acceptTermsBefore')}{' '}
+                  <Link to="/terms" className="auth-link">{t('acceptTermsLink')}</Link>
+                </span>
+              </label>
+              {fieldErrors.acceptedTerms && <small className="field-error">{fieldErrors.acceptedTerms}</small>}
+              <p>
+                {t('privacyNoticeBefore')}{' '}
+                <Link to="/privacy" className="auth-link">{t('privacyNoticeLink')}</Link>.
+              </p>
+            </div>
+
             <button type="submit" className="auth-btn bonefree-button" disabled={loading}>
               {loading ? t('creatingAccount') : t('createAccount')}
             </button>
+
           </form>
                  </div>
           <p className="auth-footer">

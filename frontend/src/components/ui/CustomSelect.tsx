@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 import type { CSSProperties, KeyboardEvent, ReactNode } from "react"
 import { createPortal } from "react-dom"
 import "./CustomSelect.css"
@@ -14,6 +14,8 @@ export type CustomSelectOption = {
 type CustomSelectProps = {
   id?: string
   className?: string
+  menuClassName?: string
+  menuMinWidth?: number
   disabled?: boolean
   options: CustomSelectOption[]
   value: CustomSelectValue
@@ -29,6 +31,8 @@ function valuesEqual(a: CustomSelectValue, b: CustomSelectValue) {
 export default function CustomSelect({
   id,
   className = "",
+  menuClassName = "",
+  menuMinWidth = 320,
   disabled = false,
   options,
   value,
@@ -39,10 +43,13 @@ export default function CustomSelect({
   const fallbackId = useId()
   const selectId = id ?? fallbackId
   const [open, setOpen] = useState(false)
+  const [menuMounted, setMenuMounted] = useState(false)
+  const [menuClosing, setMenuClosing] = useState(false)
   const [menuStyle, setMenuStyle] = useState<CSSProperties>({})
   const rootRef = useRef<HTMLDivElement | null>(null)
   const triggerRef = useRef<HTMLButtonElement | null>(null)
   const menuRef = useRef<HTMLDivElement | null>(null)
+  const closeTimerRef = useRef<number | null>(null)
 
   const selectedIndex = useMemo(
     () => options.findIndex((option) => valuesEqual(option.value, value)),
@@ -50,7 +57,7 @@ export default function CustomSelect({
   )
   const selected = selectedIndex >= 0 ? options[selectedIndex] : null
 
-  const updateMenuPosition = () => {
+  const updateMenuPosition = useCallback(() => {
     const trigger = triggerRef.current
     if (!trigger) return
 
@@ -62,7 +69,7 @@ export default function CustomSelect({
     const openUp = spaceBelow < 180 && spaceAbove > spaceBelow
     const availableHeight = Math.max(150, Math.min(maxHeight, openUp ? spaceAbove : spaceBelow))
 
-    const preferredMenuWidth = Math.max(rect.width, 320)
+    const preferredMenuWidth = Math.max(rect.width, menuMinWidth)
     const menuWidth = Math.min(preferredMenuWidth, window.innerWidth - viewportGap * 2)
     const menuLeft = Math.min(
       Math.max(viewportGap, rect.left),
@@ -76,6 +83,31 @@ export default function CustomSelect({
       width: menuWidth,
       maxHeight: availableHeight,
     })
+  }, [menuMinWidth])
+
+  const openMenu = () => {
+    if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current)
+    closeTimerRef.current = null
+    setMenuMounted(true)
+    setMenuClosing(false)
+    setOpen(true)
+  }
+
+  const closeMenu = useCallback(() => {
+    if (!menuMounted) return
+    if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current)
+    setOpen(false)
+    setMenuClosing(true)
+    closeTimerRef.current = window.setTimeout(() => {
+      setMenuMounted(false)
+      setMenuClosing(false)
+      closeTimerRef.current = null
+    }, 180)
+  }, [menuMounted])
+
+  const toggleMenu = () => {
+    if (open) closeMenu()
+    else openMenu()
   }
 
   useEffect(() => {
@@ -86,7 +118,7 @@ export default function CustomSelect({
     const handlePointerDown = (event: PointerEvent) => {
       const target = event.target as Node
       if (rootRef.current?.contains(target) || menuRef.current?.contains(target)) return
-      setOpen(false)
+      closeMenu()
     }
 
     window.addEventListener("resize", updateMenuPosition)
@@ -98,12 +130,16 @@ export default function CustomSelect({
       window.removeEventListener("scroll", updateMenuPosition, true)
       document.removeEventListener("pointerdown", handlePointerDown)
     }
-  }, [open])
+  }, [closeMenu, open, updateMenuPosition])
+
+  useEffect(() => () => {
+    if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current)
+  }, [])
 
   const selectOption = (option: CustomSelectOption) => {
     if (option.disabled) return
     onChange(option.value)
-    setOpen(false)
+    closeMenu()
     triggerRef.current?.focus()
   }
 
@@ -126,11 +162,11 @@ export default function CustomSelect({
 
     if (event.key === "ArrowDown") {
       event.preventDefault()
-      setOpen(true)
+      openMenu()
       moveSelection(1)
     } else if (event.key === "ArrowUp") {
       event.preventDefault()
-      setOpen(true)
+      openMenu()
       moveSelection(-1)
     } else if (event.key === "Home") {
       event.preventDefault()
@@ -142,9 +178,9 @@ export default function CustomSelect({
       if (last) onChange(last.value)
     } else if (event.key === "Enter" || event.key === " ") {
       event.preventDefault()
-      setOpen((current) => !current)
+      toggleMenu()
     } else if (event.key === "Escape") {
-      setOpen(false)
+      closeMenu()
     }
   }
 
@@ -159,7 +195,7 @@ export default function CustomSelect({
         aria-haspopup="listbox"
         aria-label={ariaLabel}
         disabled={disabled}
-        onClick={() => setOpen((current) => !current)}
+        onClick={toggleMenu}
         onKeyDown={handleKeyDown}
       >
         <span className={!selected ? "placeholder" : ""}>{selected?.label ?? placeholder}</span>
@@ -168,10 +204,10 @@ export default function CustomSelect({
         </svg>
       </button>
 
-      {open && createPortal(
+      {menuMounted && createPortal(
         <div
           ref={menuRef}
-          className="custom-select-menu"
+          className={`custom-select-menu ${menuClosing ? "is-closing" : ""} ${menuClassName}`.trim()}
           role="listbox"
           aria-labelledby={selectId}
           style={menuStyle}

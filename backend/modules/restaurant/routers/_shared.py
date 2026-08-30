@@ -6,15 +6,15 @@ import logging
 from decimal import Decimal
 from fastapi import APIRouter, BackgroundTasks, Depends, Request, status, Query, UploadFile, File
 from sqlalchemy.orm import Session, joinedload, selectinload
-from sqlalchemy import and_, desc, exists, extract, func, or_, select
-from datetime import datetime, timedelta
+from sqlalchemy import String, and_, case, desc, exists, extract, func, or_, select
+from datetime import date, datetime, timedelta
 from typing import Dict, List, Optional, Union
 
 from database import get_db
 from modules.auth.dependencies import rate_limit_staff_login, require_organization_feature, require_organization_header_context, require_organization_role
 from modules.auth.models import ORGANIZATION_STAFF_ROLES, User, UserRole, UserStatus, normalize_user_role
 from modules.restaurant.models import (
-    EntityStatus, IngredientType, MediaOwnerType, OrderState, PaymentMethod,
+    CancellationOrigin, EntityStatus, IngredientType, MediaOwnerType, OrderState, PaymentMethod,
     PaymentState, PaymentStatus, ReviewStatus,
     Product, Cart, CartProduct as CartItem,
     Category, Order, OrderProduct, Payment, ProductReview,
@@ -38,7 +38,9 @@ from modules.restaurant.schemas.owner import (
     CustomerAdminCreate, CustomerAdminResponse, CustomerAdminUpdate,
     CounterPaymentResponse, KitchenOrderResponse, OrderStatusUpdate,
     StaffAdminCreate, StaffAdminUpdate, AdminResponse,
-    AvailabilityUpdate,
+    AvailabilityUpdate, AdminOrderPageResponse, AdminOrderSummary,
+    ProductAdminPageResponse, IngredientPageResponse, CategoryPageResponse,
+    CustomerAdminPageResponse, StaffAdminPageResponse,
 )
 from modules.auth.schemas.user import MessageResponse
 from modules.restaurant.services.invoices import ensure_invoice_for_order
@@ -54,6 +56,7 @@ from modules.restaurant.services.product_media import product_media_response, pr
 from utils.id_format import format_category_id, format_product_id, parse_category_id, parse_product_id
 from core.errors import AppHTTPException
 from core.rate_limit import RATE_LIMIT_OPENAPI_RESPONSES
+from modules.restaurant.schemas.pagination import total_pages
 
 router = APIRouter(
     prefix="/admin",
@@ -562,9 +565,9 @@ def _sync_product_ingredients(db: Session, product_id: int, ingredients: List[Pr
         db.add(ProductIngredient(
             product_id=product_id,
             ingredient_id=ingredient.ingredient_id,
-            included_by_default=1 if payload.included_by_default else 0,
-            removable=1 if payload.removable and ingredient.type == IngredientType.NORMAL else 0,
-            substitutable=1 if payload.substitutable else 0,
+            included_by_default=payload.included_by_default,
+            removable=payload.removable and ingredient.type == IngredientType.NORMAL,
+            substitutable=payload.substitutable,
             quantity=payload.quantity,
         ))
 
@@ -687,10 +690,45 @@ def _get_order_or_404(db: Session, order_id: int) -> Order:
 
 def _ensure_order_status_allowed(current_staff: User, order: Order, next_status: str | OrderState) -> None:
     next_state = OrderState(next_status)
-    if current_staff.role == UserRole.CHEF and next_state not in CHEF_ALLOWED_STATES:
-        raise AppHTTPException(status_code=403, error="permission_denied", message="Permission denied.", details={"reason": "request_failed"})
-    if current_staff.role in {UserRole.MANAGER, UserRole.OWNER} and next_state not in STAFF_ALLOWED_STATES:
+    role = normalize_user_role(current_staff.role)
+    if next_state not in STAFF_ALLOWED_STATES:
         raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="invalid_order_state_transition", message="Order cannot be moved to the requested state.", details={"order_id": order.order_id, "next_state": str(next_state), "admin_role": str(current_staff.role)})
+
+    # Management is intentionally exceptional: managers and owners can repair any
+    # valid order state from the management table, regardless of payment state.
+    if role in {UserRole.MANAGER, UserRole.OWNER}:
+        return
+
+    if next_state == order.state:
+        return
+
+    kitchen_transition = {
+        OrderState.CONFIRMED: OrderState.IN_PREPARATION,
+        OrderState.IN_PREPARATION: OrderState.READY,
+    }.get(order.state)
+    if role == UserRole.CHEF:
+        if kitchen_transition != next_state:
+            raise AppHTTPException(status_code=403, error="permission_denied", message="Permission denied.", details={"reason": "request_failed"})
+    elif role == UserRole.WAITER:
+        if next_state == OrderState.DELIVERED and order.state != OrderState.READY:
+            raise AppHTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                error="invalid_order_state_transition",
+                message="Only a ready order can be delivered.",
+                details={"order_id": order.order_id, "state": str(order.state)},
+            )
+        waiter_allowed = (
+            kitchen_transition == next_state
+            or (order.state == OrderState.READY and next_state == OrderState.DELIVERED)
+            or next_state == OrderState.CANCELLED
+        )
+        if not waiter_allowed:
+            raise AppHTTPException(status_code=403, error="permission_denied", message="Permission denied.", details={"reason": "request_failed"})
+        if order.state == OrderState.DELIVERED and next_state == OrderState.CANCELLED:
+            raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="invalid_order_state_transition", message="Delivered orders cannot be cancelled.", details={"order_id": order.order_id})
+    else:
+        raise AppHTTPException(status_code=403, error="permission_denied", message="Permission denied.", details={"reason": "request_failed"})
+
     if order.payment_status == PaymentStatus.UNPAID and next_state not in {OrderState.PENDING, OrderState.CANCELLED}:
         raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="payment_required", message="Counter payment must be confirmed before advancing the order.", details={"order_id": order.order_id, "next_state": str(next_state)})
     if order.payment_status == PaymentStatus.PAID and next_state == OrderState.CANCELLED:

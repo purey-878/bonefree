@@ -1,8 +1,9 @@
-"""Checkout/order schemas."""
+"""Checkout and customer-order schemas."""
 
 from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from modules.restaurant.models import (
@@ -14,16 +15,17 @@ from modules.restaurant.models import (
     PaymentMethod,
     PaymentStatus,
 )
-from .customization import ItemCustomization
-from .media import ProductMediaResponse
-from .id_types import ProductId
 from utils.validation import normalize_phone, validate_email, validate_name, validate_portuguese_tax_id
+from .customization import ItemCustomization
+from .id_types import ProductId
+from .media import ProductMediaResponse
+from .pagination import PaginatedResponse
 
 
 class CheckoutCustomer(BaseModel):
     first_name: str = Field(..., min_length=1, max_length=80)
     last_name: str = Field(..., min_length=1, max_length=80)
-    email: str = Field(..., min_length=3, max_length=150)
+    email: Optional[str] = Field(None, min_length=3, max_length=150)
     phone: Optional[str] = Field(None, max_length=30)
     tax_id: Optional[str] = Field(None, max_length=20)
     table_number: Optional[int] = Field(None, ge=1, le=999)
@@ -38,14 +40,13 @@ class CheckoutCustomer(BaseModel):
 
     @field_validator("email")
     @classmethod
-    def check_email(cls, value: str) -> str:
-        return validate_email(value)
+    def check_email(cls, value: Optional[str]) -> Optional[str]:
+        return validate_email(value) if value is not None else None
 
     @field_validator("phone")
     @classmethod
     def check_phone(cls, value: Optional[str]) -> Optional[str]:
-        phone = normalize_phone(value)
-        return phone
+        return normalize_phone(value)
 
     @field_validator("tax_id")
     @classmethod
@@ -89,6 +90,10 @@ class CouponResponse(BaseModel):
     expires_at: Optional[datetime] = None
 
 
+class CouponPageResponse(PaginatedResponse[CouponResponse]):
+    pass
+
+
 class OrderItemResponse(BaseModel):
     product_id: int
     product_display_id: str
@@ -104,7 +109,6 @@ class OrderItemResponse(BaseModel):
 
 
 class OrderResponse(BaseModel):
-    # Preserve the established OpenAPI component key after modularization.
     __module__ = "schemas.checkout"
 
     order_id: int
@@ -129,6 +133,50 @@ class OrderResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class OrderPageResponse(PaginatedResponse[OrderResponse]):
+    pass
+
+
+class ProfileFavoriteProductResponse(BaseModel):
+    product_id: int
+    product_display_id: str
+    name: str
+    quantity: int = Field(ge=0)
+    total: Decimal = Decimal("0")
+
+
+class ProfileLoyaltyProgressResponse(BaseModel):
+    current: int = Field(ge=0)
+    required: int = Field(ge=1)
+    remaining: int = Field(ge=0)
+    percent: float = Field(ge=0, le=100)
+    minimum_subtotal: Decimal = Decimal("0")
+
+
+class ProfileOverviewResponse(BaseModel):
+    order_count: int = Field(ge=0)
+    total_spent: Decimal = Decimal("0")
+    total_items: int = Field(ge=0)
+    average_order_value: Decimal = Decimal("0")
+    favorite_products: List[ProfileFavoriteProductResponse] = Field(default_factory=list)
+    latest_order: Optional[OrderResponse] = None
+    loyalty_progress: ProfileLoyaltyProgressResponse
+
+
 class OrderCreateResponse(OrderResponse):
     order_access_token: Optional[str] = None
     order_access_expires_at: Optional[datetime] = None
+
+
+class GuestOrderClaimItem(BaseModel):
+    order_id: int = Field(..., gt=0)
+    access_token: str = Field(..., min_length=1, max_length=255)
+
+
+class GuestOrderClaimRequest(BaseModel):
+    orders: List[GuestOrderClaimItem] = Field(..., min_length=1, max_length=50)
+
+
+class GuestOrderClaimResponse(BaseModel):
+    claimed_order_ids: List[int]
+    rejected_order_ids: List[int]

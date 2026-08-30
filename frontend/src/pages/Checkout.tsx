@@ -20,9 +20,10 @@ import { Link, useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import Navbar from "../components/Navbar"
 import { useToast } from "../components/ui/toastContext"
+
 import { useAuth, useCart } from "../hooks"
 import { cartService, checkoutService, customizationSummary, hasUnavailableCartItems, productService } from "../services"
-import { rememberActiveOrder } from "../components/orderStatusStorage"
+import { readGuestOrderAccesses, rememberGuestOrderAccess } from "../components/orderStatusStorage"
 import type { CartItem, GuestCartItem } from "../types/cart"
 import type { Coupon, CouponValidation, FulfillmentMethod, PaymentMethod } from "../types/checkout"
 import type { Product } from "../types/product"
@@ -32,6 +33,7 @@ import type { FieldErrors } from "../utils/validation"
 import { formatEuro } from "../utils/money"
 import { resolvedLocale } from "../i18n"
 import { primaryProductMediaUrl, productMediaUrl } from "../utils/productMedia"
+import { useOrganization } from "../organization/context/organization-context"
 import "./Checkout.css"
 
 interface CheckoutForm {
@@ -132,6 +134,8 @@ function checkoutImageUrl(src?: string | null) {
 
 function Checkout() {
   const { t } = useTranslation(["storefront", "common"])
+  const { organization, experience } = useOrganization()
+  const organizationName = experience.profile.display_name || organization.name
   const navigate = useNavigate()
   const { user, isAuthenticated, loading: authLoading, refreshUser } = useAuth()
   const { cart, loading, error, clearError, addItem, updateQuantity, removeItem } = useCart()
@@ -211,14 +215,14 @@ function Checkout() {
   useEffect(() => {
     if (!isAuthenticated) return
 
-    checkoutService.getCoupons()
+      checkoutService.getAllCoupons()
       .then(setAvailableCoupons)
       .catch((err) => console.error("Não foi possível carregar cupões.", err))
   }, [isAuthenticated])
 
   useEffect(() => {
-    productService.getAll()
-      .then(setUpsellProducts)
+    productService.getPage({ page: 1, perPage: 20, sort: "popular" })
+      .then((result) => setUpsellProducts(result.items))
       .catch((err) => console.error("Não foi possível carregar extras do checkout.", err))
   }, [])
 
@@ -229,8 +233,8 @@ function Checkout() {
     const validators: Partial<Record<keyof CheckoutForm, (input: string) => string>> = {
       firstName: validateName,
       lastName: validateName,
-      email: validateEmail,
-      phone: (input) => validatePhone(input),
+      email: (input) => input.trim() ? validateEmail(input) : "",
+      phone: (input) => validatePhone(input, false),
       taxId: (input) => validateNif(input),
     }
     const nextError = validators[field]?.(nextValue) ?? ""
@@ -242,8 +246,8 @@ function Checkout() {
     const errors: FieldErrors<keyof CheckoutForm> = {}
     const firstNameError = validateName(form.firstName)
     const lastNameError = validateName(form.lastName)
-    const emailError = validateEmail(form.email)
-    const phoneError = validatePhone(form.phone)
+    const emailError = form.email.trim() ? validateEmail(form.email) : ""
+    const phoneError = validatePhone(form.phone, false)
     const nifError = validateNif(form.taxId)
     if (firstNameError) errors.firstName = firstNameError
     if (lastNameError) errors.lastName = lastNameError
@@ -357,8 +361,8 @@ function Checkout() {
         customer: {
           firstName: form.firstName.trim(),
           lastName: form.lastName.trim(),
-          email: form.email.trim(),
-          phone: form.phone.trim(),
+          email: form.email.trim() || null,
+          phone: form.phone.trim() || null,
           taxId: form.taxId.trim() || null,
           tableNumber: fulfillment === "dine_in" && form.tableNumber.trim() ? parseInt(form.tableNumber, 10) : null,
         },
@@ -385,13 +389,15 @@ function Checkout() {
       setOrderNumber(order.orderNumber)
       setEarnedCoupon(order.generatedCoupon ?? null)
       setShowStatusPopup(true)
-      rememberActiveOrder(
+      rememberGuestOrderAccess(
         order.orderId,
         order.orderAccessToken,
         order.orderAccessExpiresAt,
+        true,
+        order.createdAt,
       )
       if (isAuthenticated) {
-        checkoutService.getHistory()
+        checkoutService.getAllHistory()
           .then((history) => {
             setActiveOrderCount(history.filter((historyOrder) => !TERMINAL_ORDER_STATUSES.has(historyOrder.status)).length)
           })
@@ -400,7 +406,15 @@ function Checkout() {
             setActiveOrderCount(null)
           })
       } else {
-        setActiveOrderCount(1)
+        const guestAccesses = readGuestOrderAccesses()
+        Promise.allSettled(
+          guestAccesses.map((access) => checkoutService.getOrder(access.orderId, access.accessToken)),
+        ).then((results) => {
+          const activeCount = results.filter(
+            (result) => result.status === "fulfilled" && !TERMINAL_ORDER_STATUSES.has(result.value.status),
+          ).length
+          setActiveOrderCount(activeCount || guestAccesses.length)
+        })
       }
       cartService.finishCheckout()
       if (isAuthenticated && !user?.taxId && form.taxId.trim()) {
@@ -465,9 +479,6 @@ function Checkout() {
     const confirmationMessage = confirmationIsGuest
       ? t("checkout.confirmation.guestMessage")
       : t("checkout.confirmation.accountMessage")
-    const nextStepMessage = confirmationIsGuest
-      ? t("checkout.confirmation.guestNext")
-      : t("checkout.confirmation.accountNext")
     const hasMultipleActiveOrders = activeOrderCount !== null && activeOrderCount > 1
     const highlightOrderStatus = () => {
       window.dispatchEvent(new Event("order-status-highlight"))
@@ -493,7 +504,6 @@ function Checkout() {
             <div>
               <p className="order-status-popup-title">{t("checkout.confirmation.received")}</p>
               <p className="order-status-popup-copy">{t("checkout.confirmation.popup", { order: orderNumber, status: readableStatus, paymentNote })}</p>
-              <p className="order-status-popup-next">{nextStepMessage}</p>
             </div>
             <button type="button" onClick={() => setShowStatusPopup(false)} aria-label={t("checkout.confirmation.closeStatus")}>
               x
@@ -513,6 +523,7 @@ function Checkout() {
             </div>
 
             <section className="confirmation-premium-hero" aria-labelledby="order-confirmation-title">
+
               <div className="confirmation-success-motion" aria-hidden="true">
                 <svg className="confirmation-checkmark" viewBox="0 0 100 100">
                   <circle cx="50" cy="50" r="44" />
@@ -731,7 +742,7 @@ function Checkout() {
                     <ShoppingBag size={18} strokeWidth={2.4} aria-hidden="true" />
                     <span>
                       {t("checkout.confirmation.multipleOrders", { count: activeOrderCount })}{" "}
-                      <Link to="/profile?tab=orders">{t("checkout.confirmation.myOrders")}</Link>.
+                      <Link to={confirmationIsGuest ? "/orders" : "/profile?tab=orders"}>{t("checkout.confirmation.myOrders")}</Link>.
                     </span>
                   </div>
                 )}
@@ -885,7 +896,7 @@ function Checkout() {
 
                 <div className="checkout-fields two-columns">
                   <label>
-                    {t("fields.email", { ns: "common" })}
+                    {t("fields.email", { ns: "common" })} ({t("checkout.fulfillment.optional").toLocaleLowerCase(resolvedLocale())})
                     <input
                       className={fieldErrors.email ? "is-invalid" : ""}
                       type="email"
@@ -901,7 +912,7 @@ function Checkout() {
                   </label>
 
                   <label>
-                    {t("fields.phone", { ns: "common" })}
+                    {t("fields.phone", { ns: "common" })} ({t("checkout.fulfillment.optional").toLocaleLowerCase(resolvedLocale())})
                     <input
                       value={form.phone}
                       onChange={(e) => updateForm("phone", e.target.value)}
@@ -1140,7 +1151,11 @@ function Checkout() {
                 {hasUnavailableItems && (
                   <p className="checkout-form-error">{t("checkout.validation.unavailableContinue")}</p>
                 )}
+
+                <p className="checkout-prototype-notice">{t("checkout.prototypeNotice", { organization: organizationName })}</p>
+
                 <button type="submit" className="checkout-submit bonefree-button" disabled={isSubmitting || items.length === 0 || hasUnavailableItems}>
+
                   {isSubmitting ? t("checkout.submitting") : t("checkout.submit", { total: formatEuro(total) })}
                 </button>
               </div>

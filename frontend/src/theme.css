@@ -281,7 +281,7 @@ img {
 }
 
 .menu {
-  
+
   background: url('/assets/images/index-menu-background.jpeg') center/cover no-repeat;
   background-attachment: fixed;
   min-height: 100vh;
@@ -368,7 +368,7 @@ footer.footer {
   background: var(--brand-accent);
   border-top: 2px solid var(--glass-border);
   padding: 2rem 1rem;
- 
+
 }
 
 footer p {
@@ -399,6 +399,12 @@ footer a.text-light {
 
 .footer-link:hover {
   color: var(--brand-secondary) !important;
+}
+
+.footer-prototype-notice {
+  margin-bottom: 0.45rem;
+  color: #3f3000;
+  font-weight: 900;
 }
 
 .footer-socials {
@@ -461,7 +467,7 @@ footer a.text-light {
   left: 0;
   width: 100%;
   z-index: 1000;
-  background: transparent; 
+  background: transparent;
   box-shadow: none;
 }
 .logo-bonefree{

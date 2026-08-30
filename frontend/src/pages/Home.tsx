@@ -71,6 +71,7 @@ const HomePage = () => {
   const chefSpecialEnabled = renderableHomeSections.has("chef_special");
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
+  const [catalogCategories, setCatalogCategories] = useState<CategorySummary[]>([]);
   const [homeReviews, setHomeReviews] = useState<Awaited<ReturnType<typeof productService.getFeaturedReviews>>>([]);
   const [reviewsLoading, setReviewsLoading] = useState(true);
   const [chefSpecialProductId, setChefSpecialProductId] = useState<number | null>(null);
@@ -84,12 +85,11 @@ const HomePage = () => {
   const skipHeroCardClickRef = useRef(false);
   const popularCarouselRef = useRef<HTMLDivElement | null>(null);
   const [activePopularIndex, setActivePopularIndex] = useState(0);
-
   useEffect(() => {
     const fetchHomeData = async () => {
       try {
-        const [data, chefSpecialSetting, couponSettings, featuredReviews] = await Promise.all([
-          productService.getAll(),
+        const [catalogPage, chefSpecialSetting, couponSettings, featuredReviews] = await Promise.all([
+          productService.getPage({ page: 1, perPage: 20, sort: "popular" }),
           chefSpecialEnabled
             ? getPublicChefSpecial().catch(() => ({ productId: null }))
             : Promise.resolve({ productId: null }),
@@ -100,10 +100,19 @@ const HomePage = () => {
             ? productService.getFeaturedReviews(HOME_REVIEW_LIMIT).catch(() => [])
             : Promise.resolve([]),
         ]);
+        const data = catalogPage.items;
         setProducts(data);
+        setCatalogCategories(
+          catalogPage.facets.categories
+            .map((category) => ({ name: category.name, count: category.count }))
+            .slice(0, 7),
+        );
         setChefSpecialProductId(chefSpecialSetting.productId ?? null);
         setLoyaltyCouponSettings(couponSettings);
         setHomeReviews(featuredReviews);
+        if (chefSpecialSetting.productId && !data.some((product) => product.id === chefSpecialSetting.productId)) {
+          void productService.getById(chefSpecialSetting.productId).then((special) => setProducts((current) => [...current, special])).catch(() => undefined);
+        }
       } catch (fetchError) {
         setError(t("home.loadError"));
         setReviewsLoading(false);
@@ -127,15 +136,7 @@ const HomePage = () => {
     [visibleProducts],
   );
 
-  const categories = useMemo<CategorySummary[]>(() => {
-    const counts = new Map<string, number>();
-    visibleProducts.forEach((product) => {
-      const name = product.category || t("home.fallbackCategory");
-      counts.set(name, (counts.get(name) ?? 0) + 1);
-    });
-
-    return Array.from(counts, ([name, count]) => ({ count, name })).slice(0, 7);
-  }, [t, visibleProducts]);
+  const categories = catalogCategories;
 
   const featuredDish = availableProducts.find((product) => product.media.length > 0) ?? availableProducts[0] ?? visibleProducts[0];
   const sortedPopularProducts = [...availableProducts]

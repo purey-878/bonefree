@@ -4,7 +4,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
 from fastapi import APIRouter, Depends, Query, status
-from sqlalchemy import String, cast, select
+from sqlalchemy import String, cast, exists, func, or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from modules.auth.dependencies import get_current_user
@@ -13,9 +13,18 @@ from modules.restaurant.models import FulfillmentMethod, OrderState, PaymentMeth
 from modules.auth.models import User
 from modules.restaurant.models import CustomerBillingAddress, Media, Order, OrderProduct, Product, ProductMedia
 from modules.auth.schemas.user import CustomerBillingAddressBase, UserProfileUpdate, UserResponse
-from modules.restaurant.schemas.checkout import OrderItemResponse, OrderResponse
+from modules.restaurant.schemas.checkout import (
+    OrderItemResponse,
+    OrderPageResponse,
+    OrderResponse,
+    ProfileFavoriteProductResponse,
+    ProfileLoyaltyProgressResponse,
+    ProfileOverviewResponse,
+)
+from modules.restaurant.schemas.pagination import total_pages
 from modules.restaurant.services.order_customization import customization_from_json
 from modules.restaurant.services.product_media import primary_product_media_response
+from modules.restaurant.services.site_settings import get_loyalty_coupon_settings
 from utils.id_format import format_product_id
 from core.errors import AppHTTPException
 
@@ -189,8 +198,10 @@ def update_profile(
     return profile_user
 
 
-@router.get("/orders", response_model=list[OrderResponse], operation_id="profile_get_purchase_history")
+@router.get("/orders", response_model=OrderPageResponse, operation_id="profile_get_purchase_history")
 def get_purchase_history(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
     status: Optional[str] = Query(None),
     payment: Optional[str] = Query(None),
     date_from: Optional[date] = Query(None),
@@ -199,7 +210,35 @@ def get_purchase_history(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    statement = (
+    filters = [Order.customer_id == current_user.id]
+
+    if status:
+        filters.append(Order.state == status)
+
+    if payment:
+        filters.append(Order.payment_method.in_(_payment_filter_values(payment)))
+
+    if date_from:
+        filters.append(Order.ordered_at >= datetime.combine(date_from, datetime.min.time()))
+
+    if date_to:
+        filters.append(Order.ordered_at <= datetime.combine(date_to, datetime.max.time()))
+
+    if search:
+        pattern = f"%{search}%"
+        filters.append(or_(
+            cast(Order.order_id, String).ilike(pattern),
+            exists().where(
+                OrderProduct.order_id == Order.order_id,
+                or_(
+                    cast(OrderProduct.product_id, String).ilike(pattern),
+                    OrderProduct.product_name_snapshot.ilike(pattern),
+                ),
+            ),
+        ))
+
+    total = db.scalar(select(func.count(Order.order_id)).where(*filters)) or 0
+    orders = db.scalars(
         select(Order)
         .options(
             selectinload(Order.items)
@@ -208,26 +247,92 @@ def get_purchase_history(
             .selectinload(ProductMedia.media)
             .selectinload(Media.variants)
         )
-        .where(Order.customer_id == current_user.id)
+        .where(*filters)
+        .order_by(Order.ordered_at.desc(), Order.order_id.desc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
+    ).unique().all()
+    return OrderPageResponse(
+        items=[_order_response(order) for order in orders],
+        page=page,
+        per_page=per_page,
+        total=int(total),
+        total_pages=total_pages(int(total), per_page),
     )
 
-    if status:
-        statement = statement.where(Order.state == status)
 
-    if payment:
-        statement = statement.where(Order.payment_method.in_(_payment_filter_values(payment)))
-
-    if date_from:
-        statement = statement.where(Order.ordered_at >= datetime.combine(date_from, datetime.min.time()))
-
-    if date_to:
-        statement = statement.where(Order.ordered_at <= datetime.combine(date_to, datetime.max.time()))
-
-    if search:
-        pattern = f"%{search}%"
-        statement = statement.join(Order.items).join(OrderProduct.product).where(
-            cast(OrderProduct.product_id, String).ilike(pattern)
+@router.get("/overview", response_model=ProfileOverviewResponse, operation_id="profile_get_overview")
+def get_profile_overview(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    order_filter = Order.customer_id == current_user.id
+    order_count, total_spent = db.execute(
+        select(func.count(Order.order_id), func.coalesce(func.sum(Order.total), 0)).where(order_filter)
+    ).one()
+    total_items = db.scalar(
+        select(func.coalesce(func.sum(OrderProduct.quantity), 0))
+        .join(Order, Order.order_id == OrderProduct.order_id)
+        .where(order_filter)
+    ) or 0
+    favorite_rows = db.execute(
+        select(
+            OrderProduct.product_id,
+            func.max(OrderProduct.product_name_snapshot),
+            func.sum(OrderProduct.quantity),
+            func.sum(OrderProduct.unit_price * OrderProduct.quantity),
         )
-
-    orders = db.scalars(statement.order_by(Order.ordered_at.desc())).unique().all()
-    return [_order_response(order) for order in orders]
+        .join(Order, Order.order_id == OrderProduct.order_id)
+        .where(order_filter)
+        .group_by(OrderProduct.product_id)
+        .order_by(func.sum(OrderProduct.quantity).desc(), OrderProduct.product_id.asc())
+        .limit(6)
+    ).all()
+    latest_order = db.scalar(
+        select(Order)
+        .options(
+            selectinload(Order.items)
+            .joinedload(OrderProduct.product)
+            .selectinload(Product.media_items)
+            .selectinload(ProductMedia.media)
+            .selectinload(Media.variants)
+        )
+        .where(order_filter)
+        .order_by(Order.ordered_at.desc(), Order.order_id.desc())
+        .limit(1)
+    )
+    loyalty_settings = get_loyalty_coupon_settings(db)
+    required = max(1, int(loyalty_settings.qualifying_order_count))
+    qualifying_count = db.scalar(
+        select(func.count(Order.order_id)).where(
+            order_filter,
+            Order.subtotal >= loyalty_settings.qualifying_order_minimum,
+        )
+    ) or 0
+    current = int(qualifying_count) % required
+    total_spent_decimal = Decimal(str(total_spent or 0))
+    order_count_value = int(order_count or 0)
+    return ProfileOverviewResponse(
+        order_count=order_count_value,
+        total_spent=total_spent_decimal,
+        total_items=int(total_items or 0),
+        average_order_value=(total_spent_decimal / order_count_value) if order_count_value else Decimal("0"),
+        favorite_products=[
+            ProfileFavoriteProductResponse(
+                product_id=product_id,
+                product_display_id=format_product_id(product_id),
+                name=name,
+                quantity=int(quantity or 0),
+                total=Decimal(str(total or 0)),
+            )
+            for product_id, name, quantity, total in favorite_rows
+        ],
+        latest_order=_order_response(latest_order) if latest_order else None,
+        loyalty_progress=ProfileLoyaltyProgressResponse(
+            current=current,
+            required=required,
+            remaining=required - current,
+            percent=min(100, max(0, (current / required) * 100)),
+            minimum_subtotal=loyalty_settings.qualifying_order_minimum,
+        ),
+    )

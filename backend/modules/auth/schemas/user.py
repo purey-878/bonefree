@@ -32,6 +32,7 @@ class UserRegister(BaseModel):
     last_name: str = Field(..., min_length=1, max_length=80)
     phone: Optional[str] = None
     tax_id: Optional[str] = None
+    accepted_terms: bool = Field(..., description="Whether the customer accepted the Terms and Conditions.")
 
     @field_validator("email")
     @classmethod
@@ -57,6 +58,13 @@ class UserRegister(BaseModel):
     @classmethod
     def check_tax_id(cls, value: Optional[str]) -> Optional[str]:
         return validate_portuguese_tax_id(value)
+
+    @field_validator("accepted_terms")
+    @classmethod
+    def check_accepted_terms(cls, value: bool) -> bool:
+        if value is not True:
+            raise ValueError("You must accept the Terms and Conditions to create an account.")
+        return value
 
 
 class CustomerBillingAddressBase(BaseModel):
