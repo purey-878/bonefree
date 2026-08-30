@@ -661,3 +661,17 @@ Validation completed on 2026-08-30:
 - Docker/PostgreSQL: the rebuilt API, PostgreSQL, Redis and Caddy containers became healthy. `https://localhost/health` returned `200`; `GET /products/?page=1&per_page=20&sort=popular` returned `200` and `Access-Control-Allow-Origin: http://localhost:5173`.
 - Two-organization isolation: the existing Bonefree tenant returned `54` catalog items while a temporary capability-enabled organization returned `0` items and its own display name/capabilities. A PostgreSQL-backed batch claim made as a Bonefree customer against that temporary tenant's order returned the order only in `rejected_order_ids`; its `customer_id` stayed null and its token hash stayed unchanged. The temporary organization, order and customer were removed immediately after verification.
 - Browser isolation: the frontend storage test configures two organization slugs against the same `localStorage` instance and confirms that guest-order IDs/tokens never cross between the prefixed collections.
+
+## Interactive SQLAlchemy database console
+
+Added `backend/scripts/db_console.py` as a repeatable, PHPMyAdmin-like developer console for SQLAlchemy expressions. Running it without flags creates a database-enforced read-only connection: SQLite uses `PRAGMA query_only = ON` and PostgreSQL sets session transactions to `READ ONLY`. The console automatically executes expressions such as `select(Organization).where(Organization.id == 1)`, formats ORM entities and selected columns as a bounded table, and keeps accepting further expressions in the same session.
+
+Tenant isolation remains explicit. `--organization SLUG_OR_ID` sets the initial session scope, while `use_organization(...)`, `clear_organization()` and `current_organization()` manage it interactively. Queries for tenant models without a scope continue to be rejected by the existing SQLAlchemy session hook. All models and the common SQLAlchemy statement helpers are preloaded.
+
+Mutations require `--write`. For PostgreSQL, the script prompts through `getpass` and builds the connection with the freshly supplied password, so the secret is not shown or accepted as a command-line argument. Write-mode transactions require an explicit `commit()` and are rolled back on exit when left pending. SQLite write mode requires the explicit flag but no inapplicable database password.
+
+Files:
+
+- `backend/scripts/db_console.py`: console, read-only connection enforcement, password-gated PostgreSQL write mode, tenant helpers, automatic statement execution and tabular output.
+- `backend/tests/test_db_console.py`: verifies SQLite read-only rejection, explicit write commits, PostgreSQL password prompting/replacement and absence of prompts in read-only mode.
+- `README.md`: documents local/Docker usage, tenant scope, query examples, output limits and explicit transaction behavior.

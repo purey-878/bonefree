@@ -508,6 +508,42 @@ Restart only the application:
 docker compose restart api
 ```
 
+### Inspect the database with SQLAlchemy
+
+The interactive console is read-only by default. PostgreSQL enforces that mode at the connection level, so an accidental `UPDATE`, ORM flush, or `db.commit()` cannot write data. Select the organization explicitly before querying tenant-scoped models:
+
+```bash
+docker compose exec api python scripts/db_console.py --organization bonefree
+```
+
+Expressions are executed automatically and displayed as a table:
+
+```python
+select(Organization).where(Organization.id == 1)
+select(Product).where(Product.available.is_(True)).limit(20)
+db.scalar(select(func.count()).select_from(Order))
+use_organization("another-tenant")
+```
+
+Use model-qualified columns such as `Organization.id` or `Product.available`; a bare `organization_id` is ambiguous between models. Results display at most 100 rows by default. Change only the display limit with `--display-limit 200`.
+
+To edit data, add `--write`. PostgreSQL then asks for its database password without echoing it. Changes are not committed automatically; call `commit()` explicitly or `rollback()` to discard them. Pending changes are always rolled back when the console exits:
+
+```bash
+docker compose exec api python scripts/db_console.py --write --organization bonefree
+```
+
+```python
+update(Product).where(Product.id == 1).values(available=False)
+commit()
+```
+
+On a local virtual environment, the equivalent command from the repository root is:
+
+```powershell
+.\.venv\Scripts\python.exe backend\scripts\db_console.py --organization bonefree
+```
+
 Stop and restart the stack while preserving data:
 
 ```bash
