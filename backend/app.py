@@ -160,7 +160,7 @@ if __name__ == "__main__":
     if settings.environment in ("development", "test"):
         uvicorn.run(
             "app:app",
-            host="127.0.0.1",
+            host="0.0.0.0",
             port=settings.port,
             reload=settings.environment == "development",
             log_level="debug" if settings.debug else "info",
