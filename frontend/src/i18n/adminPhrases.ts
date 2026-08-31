@@ -13,6 +13,7 @@ const phrases = {
   navCustomers: ["Clientes", "Clientes", "Customers", "Kunden"],
   navStaff: ["Equipa", "Equipa", "Staff", "Team"],
   navSettings: ["Definições", "Definições", "Settings", "Einstellungen"],
+  navPrivacy: ["Dados e privacidade", "Dados e privacidade", "Data and privacy", "Daten und Datenschutz"],
   navAnalytics: ["Análises", "Análises", "Analytics", "Analysen"],
   groupMain: ["Principal", "Principal", "Main", "Hauptbereich"],
   groupCommunity: ["Comunidade", "Comunidade", "Community", "Community"],

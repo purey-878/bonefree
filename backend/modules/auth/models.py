@@ -16,6 +16,29 @@ class OrganizationType(StrEnum):
     RESTAURANT = "restaurant"
 
 
+class SessionMode(StrEnum):
+    OPERATIONAL = "operational"
+    DATA_ACCESS = "data_access"
+
+
+class DataExportKind(StrEnum):
+    TENANT = "tenant"
+    CUSTOMER = "customer"
+    CUSTOMERS = "customers"
+    ORDERS = "orders"
+    CATALOG = "catalog"
+    MEDIA = "media"
+
+
+class DataExportStatus(StrEnum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    READY = "ready"
+    CANCELLED = "cancelled"
+    FAILED = "failed"
+    EXPIRED = "expired"
+
+
 class UserRole(StrEnum):
     OWNER = "owner"
     MANAGER = "manager"
@@ -197,6 +220,13 @@ class Organization(AppBaseModel):
     )
     email: Mapped[str] = mapped_column(String(150), nullable=False)
     phone: Mapped[str] = mapped_column(String(30), nullable=True)
+    access_expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    purged_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    access_notice_notified_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    data_access_started_notified_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    data_access_reminder_7d_notified_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    data_access_reminder_1d_notified_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    data_access_closed_notified_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
 
     users: Mapped[list["User"]] = relationship("User", back_populates="organization")
     domains: Mapped[list["OrganizationDomain"]] = relationship(
@@ -229,6 +259,7 @@ class OrganizationDomain(OrganizationModel):
     domain: Mapped[str] = mapped_column(String(255), nullable=False, unique=True, index=True)
     is_primary: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
     is_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
+    deactivated_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     organization: Mapped[Organization] = relationship("Organization", back_populates="domains")
 
 
@@ -242,6 +273,7 @@ class OrganizationProfile(OrganizationModel):
     description: Mapped[str] = mapped_column(String(500), nullable=True)
     about_text: Mapped[str] = mapped_column(Text, nullable=True)
     email: Mapped[str] = mapped_column(String(150), nullable=True)
+    privacy_contact_email: Mapped[str] = mapped_column(String(150), nullable=True)
     phone: Mapped[str] = mapped_column(String(30), nullable=True)
     address_line_1: Mapped[str] = mapped_column(String(255), nullable=True)
     address_line_2: Mapped[NullableString] = mapped_column(String(255), nullable=True)
@@ -335,10 +367,62 @@ class Session(OrganizationModel):
     ip_address: Mapped[str] = mapped_column(String(45), nullable=True)
     user_agent: Mapped[str] = mapped_column(String(500), nullable=True)
     revoked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="0")
+    mode: Mapped[SessionMode] = mapped_column(
+        StrEnumType(SessionMode, length=50),
+        default=SessionMode.OPERATIONAL,
+        server_default=SessionMode.OPERATIONAL.value,
+        nullable=False,
+        index=True,
+    )
     user: Mapped[User] = relationship("User", back_populates="sessions")
 
 
+class DataExport(OrganizationModel):
+    __tablename__ = "data_export"
+
+    public_id: Mapped[str] = mapped_column(String(36), nullable=False, unique=True, index=True)
+    kind: Mapped[DataExportKind] = mapped_column(
+        StrEnumType(DataExportKind, length=50), nullable=False, index=True
+    )
+    status: Mapped[DataExportStatus] = mapped_column(
+        StrEnumType(DataExportStatus, length=50),
+        nullable=False,
+        default=DataExportStatus.PENDING,
+        server_default=DataExportStatus.PENDING.value,
+        index=True,
+    )
+    customer_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("user.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    requested_by_user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("user.id", ondelete="SET NULL"), nullable=True
+    )
+    file_name: Mapped[str] = mapped_column(String(255), nullable=True)
+    storage_path: Mapped[str] = mapped_column(String(500), nullable=True)
+    sha256: Mapped[str] = mapped_column(String(64), nullable=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=True, index=True)
+    completed_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    downloaded_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    error_message: Mapped[str] = mapped_column(String(500), nullable=True)
+
+
+class DataAccessLoginChallenge(OrganizationModel):
+    __tablename__ = "data_access_login_challenge"
+
+    public_id: Mapped[str] = mapped_column(String(36), nullable=False, unique=True, index=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    code_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    consumed_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+
+
 __all__ = [
+    "DataExport",
+    "DataExportKind",
+    "DataExportStatus",
     "ExperienceAssetsData",
     "ExperiencePagesData",
     "FeatureEntitlementConfigurationData",
@@ -352,9 +436,11 @@ __all__ = [
     "OrganizationFeatureEntitlement",
     "OrganizationProfile",
     "OrganizationType",
+    "DataAccessLoginChallenge",
     "ORGANIZATION_STAFF_ROLES",
     "SectionType",
     "Session",
+    "SessionMode",
     "SocialLinksData",
     "SocialPlatformKey",
     "ThemeTokenOverridesData",

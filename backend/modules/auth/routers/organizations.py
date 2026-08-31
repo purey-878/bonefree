@@ -13,6 +13,11 @@ from modules.auth.models import (
     OrganizationFeatureEntitlement,
     OrganizationProfile,
 )
+from modules.auth.services.organization_lifecycle import (
+    OrganizationAccessState,
+    data_access_expires_at,
+    organization_access_state,
+)
 from modules.auth.schemas.organization import (
     PageConfiguration,
     PublicExperienceConfiguration,
@@ -53,10 +58,15 @@ def resolve_organization(
         .where(
             OrganizationDomain.domain == normalized_hostname,
             OrganizationDomain.is_verified.is_(True),
+            OrganizationDomain.deactivated_at.is_(None),
+            Organization.purged_at.is_(None),
         )
         .execution_options(skip_organization_scope=True)
     )
-    if organization is None:
+    if organization is None or organization_access_state(organization) not in {
+        OrganizationAccessState.OPERATIONAL,
+        OrganizationAccessState.FROZEN,
+    }:
         raise AppHTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             error="organization_not_found",
@@ -64,7 +74,17 @@ def resolve_organization(
             details={"hostname": normalized_hostname},
         )
 
-    return ResolvedOrganizationResponse(slug=organization.slug, name=organization.name)
+    access_state = organization_access_state(organization)
+    return ResolvedOrganizationResponse(
+        slug=organization.slug,
+        name=organization.name,
+        state=access_state.value,
+        data_access_expires_at=(
+            data_access_expires_at(organization)
+            if access_state == OrganizationAccessState.FROZEN
+            else None
+        ),
+    )
 
 
 @experience_router.get(
@@ -110,6 +130,7 @@ def get_public_organization_experience(
                 description=profile.description,
                 about_text=profile.about_text,
                 email=profile.email,
+                privacy_contact_email=profile.privacy_contact_email,
                 phone=profile.phone,
                 address_line_1=profile.address_line_1,
                 address_line_2=profile.address_line_2,

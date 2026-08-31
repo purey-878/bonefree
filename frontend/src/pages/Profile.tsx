@@ -270,10 +270,8 @@ function Profile() {
   const [loadingOrders, setLoadingOrders] = useState(true)
   const [saving, setSaving] = useState(false)
   const [busyKey, setBusyKey] = useState<string | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -386,7 +384,6 @@ function Profile() {
   const updateForm = (field: keyof ProfileForm, value: string) => {
     setForm((current) => ({ ...current, [field]: field === "phone" ? normalizePhone(value) : value }))
     setFieldErrors((current) => ({ ...current, [field]: undefined }))
-    setMessage(null)
     setError(null)
   }
 
@@ -484,10 +481,8 @@ function Profile() {
     try {
       setBusyKey(key)
       setActionError(null)
-      setSuccessMessage(null)
       await addHistoricalItem(item)
-      setSuccessMessage(t("profile.messages.itemAdded", { count: item.quantity, name: item.productName }))
-      toast.success(t("profile.messages.itemAddedToast"))
+      toast.success(t("profile.messages.itemAdded", { count: item.quantity, name: item.productName }))
     } catch (err) {
       const message = translateUserMessage(err instanceof Error ? err.message : t("errors:messages.itemAdd"))
       setActionError(message)
@@ -505,8 +500,6 @@ function Profile() {
     try {
       setBusyKey(key)
       setActionError(null)
-      setSuccessMessage(null)
-
       for (const item of order.items) {
         try {
           await addHistoricalItem(item)
@@ -518,7 +511,6 @@ function Profile() {
 
       if (addedCount > 0) {
         const message = t("profile.messages.itemsAdded", { count: addedCount })
-        setSuccessMessage(message)
         toast.success(message)
       }
       if (failures.length > 0) {
@@ -538,7 +530,6 @@ function Profile() {
 
   const handleTrackOrder = (order: OrderResponse) => {
     setActionError(null)
-    setSuccessMessage(null)
     navigate(`/orders/${order.orderId}`)
   }
 
@@ -549,8 +540,6 @@ function Profile() {
     try {
       setBusyKey(key)
       setActionError(null)
-      setSuccessMessage(null)
-
       const { blob } = await checkoutService.downloadReceipt(order.orderId)
       const receiptUrl = URL.createObjectURL(blob)
 
@@ -600,8 +589,6 @@ function Profile() {
 
       setSaving(true)
       setError(null)
-      setMessage(null)
-
       const payload: ProfileUpdateRequest = {
         name: nullableText(form.name),
         lastName: nullableText(form.lastName),
@@ -619,8 +606,7 @@ function Profile() {
 
       await authService.updateProfile(payload)
       await refreshUser()
-        setMessage(t("profile.messages.updated"))
-        toast.success(t("profile.messages.saved"))
+      toast.success(t("profile.messages.saved"))
     } catch (err) {
       const message = translateUserMessage(err instanceof Error ? err.message : t("profile.errors.save"))
       setError(message)
@@ -716,9 +702,9 @@ function Profile() {
           )}
         </section>
 
-        {(message || error || successMessage || actionError) && (
-          <div className={`profile-alert ${error || actionError ? "error" : ""}`}>
-            <span>{error || actionError || successMessage || message}</span>
+        {(error || actionError) && (
+          <div className="profile-alert error">
+            <span>{error || actionError}</span>
 
           </div>
         )}

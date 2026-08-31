@@ -15,6 +15,7 @@ from core.errors import AppHTTPException
 from core.rate_limit import get_client_ip
 from modules.auth.models import (
     Session,
+    SessionMode,
     User,
     UserStatus,
     is_organization_staff_role,
@@ -93,6 +94,29 @@ def create_staff_session(
         expires_at=to_naive_utc(expires_at),
     )
     db.add(session)
+    return token
+
+
+def create_data_access_session(
+    db: DBSession,
+    owner_user_id: int,
+    ip_address: str | None,
+    user_agent: str | None,
+) -> str:
+    token = secrets.token_urlsafe(32)
+    expires_at = datetime.now(UTC) + timedelta(
+        minutes=settings.data_access_session_expiration_minutes
+    )
+    db.add(
+        Session(
+            user_id=owner_user_id,
+            token_hash=hash_session_token(token),
+            ip_address=ip_address,
+            user_agent=user_agent,
+            expires_at=to_naive_utc(expires_at),
+            mode=SessionMode.DATA_ACCESS,
+        )
+    )
     return token
 
 

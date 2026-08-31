@@ -71,6 +71,7 @@ export function toOrganizationExperience(
       description: dto.profile.description ?? null,
       about_text: dto.profile.about_text ?? null,
       email: dto.profile.email ?? null,
+      privacy_contact_email: dto.profile.privacy_contact_email ?? null,
       phone: dto.profile.phone ?? null,
       address_line_1: dto.profile.address_line_1 ?? null,
       address_line_2: dto.profile.address_line_2 ?? null,

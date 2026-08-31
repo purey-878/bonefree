@@ -14,29 +14,18 @@ import PrototypeNotice from './components/PrototypeNotice'
 import SiteThemeController from './components/SiteThemeController'
 import currentManifest from './app/manifest/currentManifest'
 import type { FeatureRoute } from './app/manifest/types'
-import { useAdminSession } from './context/admin-session-context'
 import { useAuth } from './hooks'
 import { useOrganization } from './organization/context/organization-context'
-import type { AdminRole } from './types/admin'
 
 const AboutPage = lazy(() => import('./pages/About'))
 const ContactPage = lazy(() => import('./pages/Contact'))
 const NotFoundPage = lazy(() => import('./pages/NotFound'))
 const TermsPage = lazy(() => import('./pages/Terms'))
 const PrivacyPage = lazy(() => import('./pages/Privacy'))
-const AdminLoginPage = lazy(() => import('./pages/AdminLogin'))
-const AdminDashboardPage = lazy(() => import('./pages/AdminDashboard'))
+const AdminApplication = lazy(() => import('./admin/AdminApplication'))
 
 type CartRouteState = {
   backgroundLocation?: Location
-}
-
-function ProtectedAdminRoute({ children, roles }: { children: ReactNode; roles?: AdminRole[] }) {
-  const { isAuthenticated, role } = useAdminSession()
-
-  if (!isAuthenticated) return <Navigate to="/admin/login" replace />
-  if (roles && !roles.includes(role)) return <Navigate to="/admin/dashboard" replace />
-  return <>{children}</>
 }
 
 function ProtectedCustomerRoute({ children }: { children: ReactNode }) {
@@ -93,11 +82,7 @@ function App() {
           {mainFeatureRoutes.map((route) => (
             <Route key={route.id} path={route.path} element={<FeatureRouteElement route={route} />} />
           ))}
-          <Route path="/admin/login" element={<Suspense fallback={null}><AdminLoginPage /></Suspense>} />
-          <Route path="/admin/dashboard" element={<ProtectedAdminRoute roles={['owner', 'manager', 'waiter', 'chef']}><Suspense fallback={null}><AdminDashboardPage /></Suspense></ProtectedAdminRoute>} />
-          <Route path="/admin/super" element={<ProtectedAdminRoute roles={['owner']}><Navigate to="/admin/dashboard" replace /></ProtectedAdminRoute>} />
-          <Route path="/admin/staff" element={<ProtectedAdminRoute roles={['owner', 'manager', 'waiter', 'chef']}><Navigate to="/admin/dashboard?tab=orders&view=service" replace /></ProtectedAdminRoute>} />
-          <Route path="/admin/kitchen" element={<ProtectedAdminRoute roles={['owner', 'manager', 'waiter', 'chef']}><Navigate to="/admin/dashboard?tab=orders&view=kitchen" replace /></ProtectedAdminRoute>} />
+          <Route path="/admin/*" element={<Suspense fallback={null}><AdminApplication /></Suspense>} />
           <Route path="/about" element={<Suspense fallback={null}><AboutPage /></Suspense>} />
           <Route path="/contact" element={<Suspense fallback={null}><ContactPage /></Suspense>} />
           <Route path="/terms" element={<Suspense fallback={null}><TermsPage /></Suspense>} />

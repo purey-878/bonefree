@@ -63,6 +63,7 @@ export interface OrganizationProfile {
   description: string | null
   about_text: string | null
   email: string | null
+  privacy_contact_email: string | null
   phone: string | null
   address_line_1: string | null
   address_line_2: string | null

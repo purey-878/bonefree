@@ -64,6 +64,7 @@ def create_organization(
     slug: str,
     organization_type: OrganizationType,
     email: str,
+    privacy_contact_email: str | None = None,
     phone: str | None = None,
     display_name: str | None = None,
     legal_name: str | None = None,
@@ -76,6 +77,7 @@ def create_organization(
         raise ValueError("Organization name is required.")
     normalized_slug = normalize_organization_slug(slug)
     normalized_email = normalize_email(email)
+    normalized_privacy_email = normalize_email(privacy_contact_email or normalized_email)
     normalized_currency = currency_code.strip().upper()
     if len(normalized_currency) != 3 or not normalized_currency.isalpha():
         raise ValueError("Currency code must be a three-letter ISO code.")
@@ -105,6 +107,7 @@ def create_organization(
                 legal_name=(legal_name or "").strip() or None,
                 tax_id=(tax_id or "").strip() or None,
                 email=normalized_email,
+                privacy_contact_email=normalized_privacy_email,
                 phone=(phone or "").strip() or None,
                 country=country.strip() or "Portugal",
                 currency_code=normalized_currency,
@@ -136,6 +139,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--organization-type", default=OrganizationType.RESTAURANT.value)
     parser.add_argument("--email")
     parser.add_argument("--phone")
+    parser.add_argument("--privacy-contact-email")
     parser.add_argument("--display-name")
     parser.add_argument("--legal-name")
     parser.add_argument("--tax-id")
@@ -164,6 +168,7 @@ def main(argv: list[str] | None = None) -> int:
                 slug=args.slug,
                 organization_type=normalize_organization_type(args.organization_type),
                 email=args.email,
+                privacy_contact_email=args.privacy_contact_email,
                 phone=args.phone,
                 display_name=args.display_name,
                 legal_name=args.legal_name,

@@ -71,6 +71,7 @@ services:
       - "8000"
     volumes:
       - uploads_data:/app/uploads
+      - private_exports_data:/app/private_exports
     networks:
       - edge
       - data
@@ -88,6 +89,38 @@ services:
       timeout: 5s
       retries: 5
       start_period: 40s
+    logging: *default-logging
+
+  data-worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    init: true
+    command: ["python", "-m", "scripts.process_data_exports", "--watch", "--all"]
+    env_file:
+      - ${API_ENV_FILE:-.env}
+    environment:
+      ENVIRONMENT: production
+      AUTO_APPLY_MIGRATIONS: "false"
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379/0
+      DATA_EXPORTS_DIR: /app/private_exports
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - uploads_data:/app/uploads:ro
+      - private_exports_data:/app/private_exports
+    networks:
+      - data
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     logging: *default-logging
 
   caddy:
@@ -122,5 +155,6 @@ volumes:
   postgres_data:
   redis_data:
   uploads_data:
+  private_exports_data:
   caddy_data:
   caddy_config:

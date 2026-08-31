@@ -3,6 +3,7 @@ export interface ApplicationBuildConfiguration {
   expectedTenantSlug?: string
   features: string[]
   themes: string[]
+  capabilities?: string[]
 }
 
 export interface ApplicationBuildMetadata {
@@ -10,6 +11,7 @@ export interface ApplicationBuildMetadata {
   expected_tenant_slug?: string
   features: string[]
   themes: string[]
+  capabilities?: string[]
   experience_schema_version: number
   build_id: string
 }

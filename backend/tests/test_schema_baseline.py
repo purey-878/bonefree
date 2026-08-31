@@ -25,7 +25,8 @@ BASELINE_REVISION = "20260822_0001"
 TENANCY_REVISION = "20260823_0002"
 EXPERIENCE_REVISION = "20260825_0003"
 ADMIN_REVISION = "20260826_0004"
-HEAD_REVISION = "20260826_0005"
+STR_ENUM_REVISION = "20260826_0005"
+HEAD_REVISION = "20260831_0006"
 LEGACY_HEAD_REVISION = "b6d8f0a2c4e7"
 
 ENUM_COLUMN_VALUES = {
@@ -200,18 +201,20 @@ class SchemaBaselineTests(unittest.TestCase):
             [revision.revision for revision in revisions],
             [
                 HEAD_REVISION,
+                STR_ENUM_REVISION,
                 ADMIN_REVISION,
                 EXPERIENCE_REVISION,
                 TENANCY_REVISION,
                 BASELINE_REVISION,
             ],
         )
-        self.assertEqual(revisions[0].down_revision, ADMIN_REVISION)
-        self.assertEqual(revisions[1].down_revision, EXPERIENCE_REVISION)
-        self.assertEqual(revisions[2].down_revision, TENANCY_REVISION)
-        self.assertEqual(revisions[3].down_revision, BASELINE_REVISION)
-        self.assertIsNone(revisions[4].down_revision)
-        baseline_source = Path(revisions[4].path).read_text(encoding="utf-8")
+        self.assertEqual(revisions[0].down_revision, STR_ENUM_REVISION)
+        self.assertEqual(revisions[1].down_revision, ADMIN_REVISION)
+        self.assertEqual(revisions[2].down_revision, EXPERIENCE_REVISION)
+        self.assertEqual(revisions[3].down_revision, TENANCY_REVISION)
+        self.assertEqual(revisions[4].down_revision, BASELINE_REVISION)
+        self.assertIsNone(revisions[5].down_revision)
+        baseline_source = Path(revisions[5].path).read_text(encoding="utf-8")
         self.assertNotIn("Base.metadata", baseline_source)
         self.assertNotIn("product_image", baseline_source)
 
@@ -278,7 +281,7 @@ class SchemaBaselineTests(unittest.TestCase):
         finally:
             engine.dispose()
 
-        self._alembic("upgrade", HEAD_REVISION)
+        self._alembic("upgrade", STR_ENUM_REVISION)
         engine = create_engine(self.database_url)
         try:
             with engine.connect() as connection:
@@ -310,7 +313,7 @@ class SchemaBaselineTests(unittest.TestCase):
         self._alembic("upgrade", ADMIN_REVISION)
         self._insert_representative_enum_rows()
 
-        self._alembic("upgrade", HEAD_REVISION)
+        self._alembic("upgrade", STR_ENUM_REVISION)
         self._assert_representative_enum_values()
 
         engine = create_engine(self.database_url)
@@ -349,7 +352,7 @@ class SchemaBaselineTests(unittest.TestCase):
         finally:
             engine.dispose()
 
-        result = self._alembic("upgrade", HEAD_REVISION, check=False)
+        result = self._alembic("upgrade", STR_ENUM_REVISION, check=False)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn(
             "invalid organizationtype values: 'unknown'",
@@ -383,7 +386,7 @@ class SchemaBaselineTests(unittest.TestCase):
                 )
         finally:
             engine.dispose()
-        self._alembic("upgrade", HEAD_REVISION)
+        self._alembic("upgrade", STR_ENUM_REVISION)
 
         engine = create_engine(self.database_url)
         try:
@@ -408,7 +411,7 @@ class SchemaBaselineTests(unittest.TestCase):
             with engine.connect() as connection:
                 self.assertEqual(
                     connection.scalar(text("SELECT version_num FROM alembic_version")),
-                    HEAD_REVISION,
+                    STR_ENUM_REVISION,
                 )
                 self.assertEqual(
                     connection.scalar(
@@ -528,7 +531,8 @@ class SchemaBaselineTests(unittest.TestCase):
             with engine.connect() as connection:
                 profile = connection.execute(
                     text(
-                        "SELECT display_name, legal_name, tax_id, address_line_1, email, description, currency_code "
+                        "SELECT display_name, legal_name, tax_id, address_line_1, email, "
+                        "privacy_contact_email, description, currency_code "
                         "FROM organization_profile"
                     )
                 ).mappings().one()
@@ -537,6 +541,7 @@ class SchemaBaselineTests(unittest.TestCase):
                 self.assertEqual(profile["tax_id"], "501964843")
                 self.assertEqual(profile["address_line_1"], "Legacy street 1")
                 self.assertEqual(profile["email"], "legacy@example.com")
+                self.assertEqual(profile["privacy_contact_email"], "legacy@example.com")
                 self.assertEqual(profile["description"], "Restaurant description")
                 self.assertEqual(profile["currency_code"], "EUR")
                 domains = set(connection.scalars(text("SELECT domain FROM organization_domain")))

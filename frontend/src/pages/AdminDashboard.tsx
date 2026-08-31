@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import type { FormEvent, MouseEvent, ReactNode, SyntheticEvent } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { Heart, Menu, MessageCircle, MoreHorizontal, RefreshCw, Search, Send, Star, ThumbsUp, Trash2, X } from "lucide-react"
+import { BriefcaseBusiness, ChefHat, ConciergeBell, Crown, Heart, Menu, MessageCircle, MoreHorizontal, RefreshCw, Search, Send, Star, ThumbsUp, Trash2, X } from "lucide-react"
 import {
   Area,
   AreaChart,
@@ -135,6 +135,8 @@ import { primaryProductMediaUrl, productMediaUrl } from "../utils/productMedia"
 import LanguageSwitcher from "../components/LanguageSwitcher"
 import AdminI18nBoundary from "../components/AdminI18nBoundary"
 import AdaptivePanel from "../components/admin/AdaptivePanel"
+import DataPrivacyPanel from "../components/admin/DataPrivacyPanel"
+import { createCustomerDataExport } from "../services/dataPrivacyService"
 import { resolvedLocale } from "../i18n"
 import { useAdminSession } from '../context/admin-session-context'
 import { adminTabsForRole, canEditCatalog, canManageKitchenOrders, canManageServiceOrders, canViewCatalog, orderViewForRole, orderViewsForRole } from "../utils/adminOrderViews"
@@ -215,7 +217,6 @@ const EMPTY_PRODUCT_FILTERS: ProductFilterState = {
 }
 
 const ADMIN_NAV_MOBILE_QUERY = "(max-width: 998px)"
-const ADMIN_SIDEBAR_AUTO_COLLAPSE_QUERY = "(max-width: 1299.98px)"
 const ADMIN_EDITOR_VIEW_MODE_STORAGE_KEY = "admin_editor_view_mode"
 
 function getErrorMessage(error: unknown, fallback: string): string {
@@ -232,8 +233,16 @@ const NAV_ITEMS: { tab: TabType; label: string; icon: string }[] = [
   { tab: "clientes", label: "Clientes", icon: "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100-8 4 4 0 000 8M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" },
   { tab: "staff", label: "Equipa", icon: "M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8M16 11l2 2 4-4" },
   { tab: "settings", label: "Definições", icon: "M12 15.5A3.5 3.5 0 1112 8a3.5 3.5 0 010 7.5zM19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06A1.65 1.65 0 0015 19.4a1.65 1.65 0 00-1 .6 1.65 1.65 0 00-.33 1.06V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-.6-1 1.65 1.65 0 00-1.06-.33H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-.6 1.65 1.65 0 00.33-1.06V3a2 2 0 014 0v.09A1.65 1.65 0 0015 4.6a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.14.38.37.72.68 1a1.65 1.65 0 001.06.33H21a2 2 0 010 4h-.09A1.65 1.65 0 0019.4 15z" },
+  { tab: "privacy", label: "Dados e privacidade", icon: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10zm-3-10 2 2 4-4" },
   { tab: "analytics", label: "Análises", icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" },
 ]
+
+const ADMIN_ROLE_ICONS = {
+  owner: Crown,
+  manager: BriefcaseBusiness,
+  waiter: ConciergeBell,
+  chef: ChefHat,
+} satisfies Record<AdminRole, typeof Crown>
 
 const SETTINGS_TABS: { id: SiteSettingsTab; label: string; description: string }[] = [
   { id: "promote", label: "Promover produtos", description: "Produto em destaque na página inicial" },
@@ -264,7 +273,7 @@ const NAV_GROUPS: { label: string; tabs: TabType[] }[] = [
   { label: "Principal", tabs: ["dashboard", "orders"] },
   { label: "Menu", tabs: ["products", "ingredients", "categories"] },
   { label: "Comunidade", tabs: ["reviews", "clientes"] },
-  { label: "Admin", tabs: ["staff", "settings", "analytics"] },
+  { label: "Admin", tabs: ["staff", "settings", "privacy", "analytics"] },
 ]
 const REVIEW_REACTION_OPTIONS = [
   { type: "like", label: "Gosto", Icon: ThumbsUp },
@@ -819,7 +828,6 @@ function SiteSettingsPanel({
   loading,
   products,
   saving,
-  saved,
   onChange,
   onChefSpecialChange,
   onLoyaltyCouponChange,
@@ -837,7 +845,6 @@ function SiteSettingsPanel({
   loading: boolean
   products: AdminProduct[]
   saving: boolean
-  saved: boolean
   onChange: (value: SiteThemeResponse) => void
   onChefSpecialChange: (value: ChefSpecialSettings) => void
   onLoyaltyCouponChange: (value: LoyaltyCouponSettings) => void
@@ -952,7 +959,6 @@ function SiteSettingsPanel({
           <p className="ad-section-sub">Gerir promoções, cupões, tema, detalhes da empresa e links sociais do rodapé.</p>
         </div>
         <div className="ad-settings-actions">
-          {saved && <span className="ad-settings-saved">Guardado</span>}
           {activeSettingsTab === "theme" && (
             <button className="ad-btn ad-btn-ghost" disabled={saving || loading} onClick={() => onChange(defaultSiteThemeResponse)}>Repor tema</button>
           )}
@@ -1412,13 +1418,11 @@ export default function AdminDashboard() {
   const [isMobileAdminNav, setIsMobileAdminNav] = useState(() => (
     typeof window !== "undefined" ? window.matchMedia(ADMIN_NAV_MOBILE_QUERY).matches : false
   ))
-  const [isAdminSidebarAutoCollapsed, setIsAdminSidebarAutoCollapsed] = useState(() => (
-    typeof window !== "undefined" ? window.matchMedia(ADMIN_SIDEBAR_AUTO_COLLAPSE_QUERY).matches : false
-  ))
   const [isAdminSidebarOpen, setIsAdminSidebarOpen] = useState(false)
   const [adminTheme, setAdminTheme] = useState<AdminTheme>(() => (organizationStorage.getItem("admin_theme") === "dark" ? "dark" : "light"))
   const [currentAdmin, setCurrentAdmin] = useState<CurrentAdmin | null>(null)
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
+  const [dashboardLoading, setDashboardLoading] = useState(storedRole === "owner")
   const [products, setProducts] = useState<AdminProduct[]>([])
   const [deletedProducts, setDeletedProducts] = useState<AdminProduct[]>([])
   const [settingsProducts, setSettingsProducts] = useState<AdminProduct[]>([])
@@ -1488,7 +1492,6 @@ export default function AdminDashboard() {
   const [eventsSettings, setEventsSettings] = useState<EventsSettings>(defaultEventsSettings)
   const [siteThemeLoading, setSiteThemeLoading] = useState(false)
   const [siteThemeSaving, setSiteThemeSaving] = useState(false)
-  const [siteThemeSaved, setSiteThemeSaved] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
   const [catalogCategories, setCatalogCategories] = useState<Category[]>([])
   const [showCategoryForm, setShowCategoryForm] = useState(false)
@@ -1527,6 +1530,9 @@ export default function AdminDashboard() {
     }
   })
   const [clientes, setClientes] = useState<AdminCustomer[]>([])
+  const [customerExportingIds, setCustomerExportingIds] = useState<Set<number>>(() => new Set())
+  const customerExportingIdsRef = useRef<Set<number>>(new Set())
+  const [privacyQueueFocusRequest, setPrivacyQueueFocusRequest] = useState(0)
   const [staffAdmins, setStaffAdmins] = useState<CurrentAdmin[]>([])
   const [error, setError] = useState<string | null>(null)
   const [availabilityBusyKey, setAvailabilityBusyKey] = useState<string | null>(null)
@@ -1714,12 +1720,10 @@ export default function AdminDashboard() {
     .filter((group) => group.items.length > 0)
   const currentNavLabel = NAV_ITEMS.find((item) => item.tab === activeTab)?.label ?? "Admin"
   const shellTitle = isOwner ? "Admin Console" : "Staff Console"
-  const adminInitials = (currentAdmin?.name || "Admin")
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("") || "A"
+  const adminDisplayName = currentAdmin?.name?.trim() || currentAdmin?.email || "Administrador"
+  const adminInitial = adminDisplayName.charAt(0).toUpperCase() || "A"
+  const AdminRoleIcon = ADMIN_ROLE_ICONS[role]
+  const adminRoleLabel = t(`roles.${role}`)
 
   useEffect(() => {
     const currentSearch = searchParams.toString()
@@ -1909,10 +1913,13 @@ export default function AdminDashboard() {
   }
 
   const loadDashboard = useCallback(async () => {
+    setDashboardLoading(true)
     try {
       setDashboardData(await getDashboardAnalytics())
     } catch (err) {
       setError(getErrorMessage(err, "Failed to load dashboard"))
+    } finally {
+      setDashboardLoading(false)
     }
   }, [])
 
@@ -2148,7 +2155,7 @@ export default function AdminDashboard() {
     void getCurrentAdmin()
       .then((admin) => {
         setCurrentAdmin(admin)
-        updateAdminSessionIdentity({ role: admin.role, name: admin.name })
+        updateAdminSessionIdentity({ role: admin.role, name: admin.name, mode: 'operational' })
 
         if (admin.role === "owner") {
           void loadDashboard()
@@ -2200,31 +2207,26 @@ export default function AdminDashboard() {
     return () => document.removeEventListener("keydown", handleRelatedProductsKeyDown)
   }, [relatedIngredientId])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const mediaQuery = window.matchMedia(ADMIN_NAV_MOBILE_QUERY)
 
-    const syncAdminNavMode = () => {
-      setIsMobileAdminNav(mediaQuery.matches)
+    const handleAdminNavModeChange = (event: MediaQueryListEvent) => {
+      setIsMobileAdminNav(event.matches)
       setIsAdminSidebarOpen(false)
     }
 
-    syncAdminNavMode()
-    mediaQuery.addEventListener("change", syncAdminNavMode)
-
-    return () => mediaQuery.removeEventListener("change", syncAdminNavMode)
-  }, [])
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia(ADMIN_SIDEBAR_AUTO_COLLAPSE_QUERY)
-
-    const syncSidebarAutoCollapse = () => {
-      setIsAdminSidebarAutoCollapsed(mediaQuery.matches)
+    const syncAdminNavMode = () => {
+      setIsMobileAdminNav(mediaQuery.matches)
     }
 
-    syncSidebarAutoCollapse()
-    mediaQuery.addEventListener("change", syncSidebarAutoCollapse)
+    syncAdminNavMode()
+    mediaQuery.addEventListener("change", handleAdminNavModeChange)
+    window.addEventListener("resize", syncAdminNavMode)
 
-    return () => mediaQuery.removeEventListener("change", syncSidebarAutoCollapse)
+    return () => {
+      mediaQuery.removeEventListener("change", handleAdminNavModeChange)
+      window.removeEventListener("resize", syncAdminNavMode)
+    }
   }, [])
 
   useEffect(() => {
@@ -2432,7 +2434,7 @@ export default function AdminDashboard() {
   }
 
   const toggleAdminSidebar = () => {
-    if (isMobileAdminNav) {
+    if (window.matchMedia(ADMIN_NAV_MOBILE_QUERY).matches) {
       setIsAdminSidebarOpen((open) => !open)
       return
     }
@@ -3489,6 +3491,25 @@ export default function AdminDashboard() {
     setShowStaffForm(true)
   }
 
+  const handleExportCliente = async (cliente: AdminCustomer) => {
+    if (customerExportingIdsRef.current.has(cliente.customerId)) return
+    customerExportingIdsRef.current.add(cliente.customerId)
+    setCustomerExportingIds(new Set(customerExportingIdsRef.current))
+    try {
+      await createCustomerDataExport(cliente.customerId)
+      setPrivacyQueueFocusRequest((current) => current + 1)
+      handleTabChange("privacy")
+      toast.success("Os dados do cliente foram enviados para a fila. Baixe o ficheiro quando estiver pronto.")
+    } catch (err) {
+      const message = getErrorMessage(err, "Não foi possível criar a exportação do cliente.")
+      setError(message)
+      toast.error("Não foi possível criar a exportação do cliente.")
+    } finally {
+      customerExportingIdsRef.current.delete(cliente.customerId)
+      setCustomerExportingIds(new Set(customerExportingIdsRef.current))
+    }
+  }
+
   const closeStaffForm = () => {
     setStaffFormClosing(true)
   }
@@ -3541,8 +3562,6 @@ export default function AdminDashboard() {
       setEventsSettings(savedEventsSettings)
       organizationStorage.setItem("site_theme", JSON.stringify(savedTheme))
       window.dispatchEvent(new Event("siteThemeUpdated"))
-      setSiteThemeSaved(true)
-      window.setTimeout(() => setSiteThemeSaved(false), 2200)
       toast.success("Definições do site guardadas com sucesso.")
     } catch (err) {
       const message = getErrorMessage(err, "Não foi possível guardar as definições do site.")
@@ -3795,7 +3814,7 @@ export default function AdminDashboard() {
     () => calculateProductCalories(formData.ingredients),
     [formData.ingredients],
   )
-  const isSidebarCollapsed = sidebarCollapsed || isAdminSidebarAutoCollapsed
+  const isSidebarCollapsed = sidebarCollapsed
   const renderAdminPagination = (tab: PaginatedAdminTab, meta = pageMeta[tab], archived = false) => (
     <Pagination
       variant="admin"
@@ -3825,7 +3844,7 @@ export default function AdminDashboard() {
     `ad-theme-${adminTheme}`,
     isSidebarCollapsed && !isMobileAdminNav ? "ad-shell-collapsed" : "",
     isMobileAdminNav ? "ad-shell-mobile-nav" : "",
-    isAdminSidebarOpen ? "ad-sidebar-open" : "",
+    isAdminSidebarOpen ? "bf-console-nav-open" : "",
   ].filter(Boolean).join(" ")
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -3836,7 +3855,7 @@ export default function AdminDashboard() {
       <header className="ad-topbar">
         <div className="ad-topbar-left">
           <button
-            aria-controls="admin-sidebar"
+            aria-controls="console-navigation"
             aria-expanded={isMobileAdminNav ? isAdminSidebarOpen : !isSidebarCollapsed}
             aria-label="Abrir ou fechar menu de administração"
             className="ad-admin-menu-btn"
@@ -3876,8 +3895,15 @@ export default function AdminDashboard() {
               </span>
             </span>
           </button>
-          <div className="ad-user-pill" title={currentAdmin?.email}>
-            <span className="ad-user-avatar">{adminInitials}</span>
+          <div className={`ad-user-pill ad-user-pill-${role}`} title={currentAdmin?.email}>
+            <span className="ad-user-avatar" aria-hidden="true">{adminInitial}</span>
+            <span className="ad-user-copy">
+              <strong>{adminDisplayName}</strong>
+              <span className="ad-user-role">
+                <AdminRoleIcon className="ad-user-role-icon" size={14} strokeWidth={2.2} aria-hidden="true" />
+                {adminRoleLabel}
+              </span>
+            </span>
           </div>
         </div>
       </header>
@@ -3886,8 +3912,8 @@ export default function AdminDashboard() {
       <aside
         aria-hidden={isMobileAdminNav && !isAdminSidebarOpen}
         aria-label="Navegação da administração"
-        className="ad-sidebar"
-        id="admin-sidebar"
+        className="bf-console-nav-panel"
+        id="console-navigation"
         inert={isMobileAdminNav && !isAdminSidebarOpen ? true : undefined}
       >
         <div className="ad-brand">
@@ -3903,7 +3929,7 @@ export default function AdminDashboard() {
           {isMobileAdminNav && (
             <button
               aria-label="Fechar menu de administração"
-              className="ad-sidebar-close"
+              className="bf-console-nav-close"
               onClick={() => setIsAdminSidebarOpen(false)}
               type="button"
             >
@@ -3936,7 +3962,7 @@ export default function AdminDashboard() {
           ))}
         </nav>
 
-        <div className="ad-sidebar-footer">
+        <div className="bf-console-nav-footer">
           <button className="ad-collapse-btn" onClick={() => setSidebarCollapsed((value) => !value)} title={isSidebarCollapsed ? "Expandir barra lateral" : "Recolher barra lateral"}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
               <path d={isSidebarCollapsed ? "M9 18l6-6-6-6" : "M15 18l-6-6 6-6"} />
@@ -3953,13 +3979,11 @@ export default function AdminDashboard() {
         </div>
       </aside>
 
-      {isMobileAdminNav && (
+      {isMobileAdminNav && isAdminSidebarOpen && (
         <button
-          aria-hidden={!isAdminSidebarOpen}
           aria-label="Fechar menu de administração"
-          className="ad-sidebar-backdrop"
+          className="bf-console-nav-backdrop"
           onClick={() => setIsAdminSidebarOpen(false)}
-          tabIndex={isAdminSidebarOpen ? 0 : -1}
           type="button"
         />
       )}
@@ -3974,6 +3998,31 @@ export default function AdminDashboard() {
         )}
 
         {/* ── DASHBOARD ── */}
+        {activeTab === "dashboard" && !dashboardData && (
+          <div className="ad-content">
+            <section className="ad-dashboard-loading" aria-live="polite" role="status">
+              {dashboardLoading ? (
+                <>
+                  <span className="ad-dashboard-loading-spinner" aria-hidden="true" />
+                  <div>
+                    <strong>A carregar a visão geral</strong>
+                    <span>Estamos a preparar os dados da organização.</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <strong>Não foi possível apresentar a visão geral</strong>
+                    <span>Tente carregar os dados novamente.</span>
+                  </div>
+                  <button className="ad-btn ad-btn-ghost" onClick={() => void loadDashboard()} type="button">
+                    Tentar novamente
+                  </button>
+                </>
+              )}
+            </section>
+          </div>
+        )}
         {activeTab === "dashboard" && dashboardData && (
           <div className="ad-content">
             <section className="ad-dashboard-overview">
@@ -5840,7 +5889,6 @@ export default function AdminDashboard() {
             loading={siteThemeLoading}
             products={settingsProducts}
             saving={siteThemeSaving}
-            saved={siteThemeSaved}
             onChange={setSiteTheme}
             onChefSpecialChange={setChefSpecial}
             onLoyaltyCouponChange={setLoyaltyCoupon}
@@ -6176,6 +6224,13 @@ export default function AdminDashboard() {
 
                         <div className="ad-client-card-actions">
                           <button className="ad-btn ad-btn-sm ad-btn-ghost" onClick={() => openEditClienteForm(cliente)}>Editar cliente</button>
+                          <button
+                            className="ad-btn ad-btn-sm ad-btn-primary"
+                            disabled={customerExportingIds.has(cliente.customerId)}
+                            onClick={() => void handleExportCliente(cliente)}
+                          >
+                            {customerExportingIds.has(cliente.customerId) ? "A preparar…" : "Exportar dados"}
+                          </button>
                         </div>
                       </article>
                     )
@@ -6315,6 +6370,10 @@ export default function AdminDashboard() {
             </div>
             {renderAdminPagination("staff")}
           </div>
+        )}
+
+        {activeTab === "privacy" && isOwner && (
+          <DataPrivacyPanel focusExportQueueRequest={privacyQueueFocusRequest} />
         )}
 
         {activeTab === "analytics" && (

@@ -38,6 +38,7 @@ const environment = {
   APPLICATION_BUILD_TARGET: tenant ?? '',
   APPLICATION_BUILD_ID: process.env.BUILD_ID ?? process.env.GITHUB_SHA ?? 'local',
   APPLICATION_OUT_DIR: outDir ?? '',
+  APPLICATION_BUILD_MODE: 'application',
 }
 runNodeScript(typeScriptBin, ['-b'], environment)
 runNodeScript(viteBin, ['build'], environment)

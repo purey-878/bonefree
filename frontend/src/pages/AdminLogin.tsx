@@ -29,7 +29,7 @@ export default function AdminLogin() {
       const adminRole = normalizeAdminRole(data.admin?.role) ?? 'manager'
       const adminName = data.admin?.name ?? ""
 
-      login({ token: data.accessToken, name: adminName, role: adminRole })
+      login({ token: data.accessToken, name: adminName, role: adminRole, mode: 'operational' })
 
       navigate(adminDashboardPathForRole(adminRole), { replace: true })
     } catch (err) {

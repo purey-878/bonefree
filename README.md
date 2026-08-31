@@ -1,6 +1,6 @@
 # Core Platform production deployment
 
-This guide deploys the shared multi-tenant Core Platform backend to an Ubuntu 24.04 VPS and the static frontend to an HTTPS hosting service. Bonefree remains the initial tenant, with its own slug, domains, experience, assets, and catalog; it is not the technical name of the platform. The frontend can be published as one global/shared application or as one tenant-specific application per tenant. Both modes use the same React code and the same backend.
+This guide deploys the shared multi-tenant Core Platform backend to an Ubuntu 24.04 VPS and one shared static frontend to an HTTPS hosting service. Bonefree remains the initial tenant, with its own slug, domains, experience, assets, and catalog; it is not the technical name of the platform. The same build serves the storefront, the operational administration area, and the restricted data-access state selected by the backend.
 
 Before starting, you need:
 
@@ -36,21 +36,21 @@ API domain ──────► Caddy ──► FastAPI :8000
 
 Only Caddy publishes ports on the VPS. PostgreSQL, Redis, and the application's port 8000 are not accessible from the internet.
 
-## Choose the frontend deployment mode
+## Choose the frontend deployment artifact
 
 | Mode | Build command | Artifact | Use it when |
 | --- | --- | --- | --- |
-| Global/shared (recommended) | `npm run build` | `frontend/dist/` | One deployment should serve multiple tenant domains and tenant configuration should change without rebuilding. |
-| Per tenant/app | `npm run build -- --tenant=tenant-slug` | `frontend/dist/` by default, or a directory selected with `--out-dir` | A tenant needs a physically pruned bundle containing only selected themes and features. |
+| Main application (shared) | `npm run build` | `frontend/dist/` | Storefront, operational `/admin`, closure page, and owner-only data access for every supported tenant hostname. |
 
-The modes can coexist. For example, most domains can point to the shared artifact while one customer points to a dedicated artifact. Moving a tenant between modes does not require a database migration.
+Deploy the artifact once. Do not create one frontend deployment per organization. The provider hostname allowlist is generated from `python -m scripts.manage_organizations hosting-plan --format json`; unknown and detached hostnames must not receive the frontend artifact.
 
-These rules apply to both modes:
+The complete lifecycle, data return, and purge runbook is in [Closure and data return](docs/DATA_ACCESS_AND_RETENTION.md).
+
+These rules apply to the shared artifact:
 
 - the backend resolves the browser hostname and remains the authority for tenant identity and feature entitlements;
-- a build target controls only which frontend modules are present; it never grants backend access;
-- the frontend always loads the tenant experience from the backend at runtime;
-- a tenant-specific artifact stops with `deployment_tenant_mismatch` if it is served from a domain that the backend resolves to another tenant;
+- the frontend never grants backend access;
+- an operational hostname loads the tenant experience at runtime; a frozen hostname loads only the restricted interface;
 - every artifact publishes a non-secret `build-manifest.json` for deployment diagnostics.
 
 ## 1. Create and prepare the VPS
@@ -438,7 +438,7 @@ The manifest must report `"build_mode": "shared"`. Publish the **contents** of `
 
 A new tenant does not require another shared build when its required theme and features are already in the shared registries. Create its backend records, configure its domain, experience and entitlements, then point the domain to the existing artifact.
 
-### Per-tenant/app deployment
+### Legacy per-tenant packaging (not used by the production architecture)
 
 Each dedicated build requires a versioned target at `frontend/build/targets/<tenant-slug>.json`. The target describes packaging policy only; it must not contain credentials, database IDs, or authorization state. For example:
 
@@ -462,7 +462,7 @@ cat dist/example-restaurant/build-manifest.json
 
 The manifest must report `"build_mode": "tenant_specific"` and `"expected_tenant_slug": "example-restaurant"`. Publish only the **contents** of that directory to the static site assigned to this tenant's domain. Do not serve this artifact on another tenant's domain.
 
-The repository already includes `frontend/build/targets/bonefree.json`, so the Bonefree-specific command is:
+The packaging tooling remains available for backwards compatibility, but the production architecture described above uses only the two shared artifacts. The repository already includes `frontend/build/targets/bonefree.json`; its legacy command is:
 
 ```bash
 npm run build -- --tenant=bonefree --out-dir=dist/bonefree
@@ -570,11 +570,10 @@ curl --fail --show-error https://api.yourdomain.com/health
 
 Recognized migrations are applied automatically when the new application container starts. If a migration fails, inspect the logs before making any manual database change.
 
-Rebuild and publish the frontend after updating the backend:
+Rebuild and publish the frontend after updating the backend contract:
 
-- for a global/shared deployment, run `npm ci && npm run build` once and replace the shared static artifact;
-- for per-tenant deployments, rebuild every affected target; rebuild all targets when shared frontend code or the build catalogs change;
-- changing only remote experience data or entitlements does not require a frontend rebuild unless the desired theme or feature is absent from that tenant-specific artifact.
+- run `npm ci && npm run build` once and replace the shared artifact;
+- changing only remote experience data, domains or entitlements does not require a frontend rebuild; regenerate and apply the hosting allowlist instead.
 
 ## 12. Backup and restore
 

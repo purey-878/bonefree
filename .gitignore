@@ -5,6 +5,7 @@ frontend/node_modules/
 # Build output
 dist/
 frontend/dist/
+frontend/dist-offboarding/
 
 # Vite / frontend caches
 .vite/
@@ -39,6 +40,7 @@ examples/
 /backend/backups/
 /backups/
 /uploads/
+/private_exports/
 
 # Local Caddy certificate exported for Docker Desktop testing
 /caddy-local-root.crt

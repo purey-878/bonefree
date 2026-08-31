@@ -20,6 +20,7 @@ from modules.auth.models import (
     Organization,
     OrganizationFeatureEntitlement,
     Session,
+    SessionMode,
     User,
     UserRole,
     UserStatus,
@@ -28,6 +29,10 @@ from modules.auth.models import (
 )
 from modules.auth.schemas.user import UserAuth, UserRegister
 from modules.auth.services.authentication import hash_session_token
+from modules.auth.services.organization_lifecycle import (
+    OrganizationAccessState,
+    organization_access_state,
+)
 from utils.datetime_utils import to_naive_utc
 
 
@@ -62,6 +67,22 @@ def _current_naive_utc() -> datetime:
     return to_naive_utc(datetime.now(UTC)) or datetime.utcnow()
 
 
+def _require_operational_organization(organization: Organization | None) -> Organization:
+    if organization is None:
+        raise AppHTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            error="organization_not_found",
+            message="Organization not found.",
+        )
+    if organization_access_state(organization) != OrganizationAccessState.OPERATIONAL:
+        raise AppHTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            error="organization_not_found",
+            message="Organization not found.",
+        )
+    return organization
+
+
 def require_organization_context(
     request: Request,
     organization_slug: str | None = Header(default=None, alias="X-Organization-Slug"),
@@ -87,19 +108,16 @@ def require_organization_context(
             .where(Organization.slug == normalized_slug)
             .execution_options(skip_organization_scope=True)
         )
-        if header_organization is None:
-            raise AppHTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                error="organization_not_found",
-                message="Organization not found.",
-                details={"organization_slug": normalized_slug},
-            )
+        _require_operational_organization(header_organization)
 
     token_organization_id: int | None = None
     if token is not None:
         token_organization_id = db.scalar(
             select(Session.organization_id)
-            .where(Session.token_hash == hash_session_token(token))
+            .where(
+                Session.token_hash == hash_session_token(token),
+                Session.mode == SessionMode.OPERATIONAL,
+            )
             .execution_options(skip_organization_scope=True)
         )
 
@@ -127,6 +145,14 @@ def require_organization_context(
             error="organization_context_required",
             message="Organization context is required.",
         )
+
+    if header_organization is None:
+        token_organization = db.scalar(
+            select(Organization)
+            .where(Organization.id == organization_id)
+            .execution_options(skip_organization_scope=True)
+        )
+        _require_operational_organization(token_organization)
 
     db.info["organization_id"] = organization_id
     request.state.organization_id = organization_id
@@ -163,13 +189,7 @@ def require_organization_header_context(
         .where(Organization.slug == normalized_slug)
         .execution_options(skip_organization_scope=True)
     )
-    if organization is None:
-        raise AppHTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            error="organization_not_found",
-            message="Organization not found.",
-            details={"organization_slug": normalized_slug},
-        )
+    _require_operational_organization(organization)
 
     db.info["organization_id"] = organization.id
     request.state.organization_id = organization.id
@@ -228,6 +248,7 @@ def get_current_user(
         session is None
         or session.user is None
         or session.revoked is True
+        or session.mode != SessionMode.OPERATIONAL
         or session.expires_at <= now
         or normalize_user_role(session.user.role) != UserRole.CLIENT
     ):
@@ -255,6 +276,7 @@ def get_current_user_optional(
         session is None
         or session.user is None
         or session.revoked is True
+        or session.mode != SessionMode.OPERATIONAL
         or session.expires_at <= now
         or session.user.status != UserStatus.ACTIVE
         or normalize_user_role(session.user.role) != UserRole.CLIENT
@@ -279,6 +301,7 @@ def get_current_staff_user(
         session is None
         or session.user is None
         or session.revoked is True
+        or session.mode != SessionMode.OPERATIONAL
         or session.expires_at <= now
         or (
             session.last_seen_at is not None

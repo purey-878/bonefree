@@ -2,7 +2,7 @@
 
 import { type Client, formDataBodySerializer, type Options as Options2, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { AdminManagementAdminLoginData, AdminManagementAdminLoginErrors, AdminManagementAdminLoginResponses, AdminManagementCreateCategoryData, AdminManagementCreateCategoryErrors, AdminManagementCreateCategoryResponses, AdminManagementCreateCustomerData, AdminManagementCreateCustomerErrors, AdminManagementCreateCustomerResponses, AdminManagementCreateIngredientData, AdminManagementCreateIngredientErrors, AdminManagementCreateIngredientResponses, AdminManagementCreateProductData, AdminManagementCreateProductErrors, AdminManagementCreateProductResponses, AdminManagementCreateStaffAdminData, AdminManagementCreateStaffAdminErrors, AdminManagementCreateStaffAdminResponses, AdminManagementDeleteCancelledOrderData, AdminManagementDeleteCancelledOrderErrors, AdminManagementDeleteCancelledOrderResponses, AdminManagementDeleteCategoryData, AdminManagementDeleteCategoryErrors, AdminManagementDeleteCategoryResponses, AdminManagementDeleteCustomerData, AdminManagementDeleteCustomerErrors, AdminManagementDeleteCustomerResponses, AdminManagementDeleteIngredientData, AdminManagementDeleteIngredientErrors, AdminManagementDeleteIngredientResponses, AdminManagementDeleteProductData, AdminManagementDeleteProductErrors, AdminManagementDeleteProductMediaData, AdminManagementDeleteProductMediaErrors, AdminManagementDeleteProductMediaResponses, AdminManagementDeleteProductResponses, AdminManagementDeleteStaffAdminData, AdminManagementDeleteStaffAdminErrors, AdminManagementDeleteStaffAdminResponses, AdminManagementGetAnalyticsSeriesData, AdminManagementGetAnalyticsSeriesErrors, AdminManagementGetAnalyticsSeriesResponses, AdminManagementGetDashboardAnalyticsData, AdminManagementGetDashboardAnalyticsErrors, AdminManagementGetDashboardAnalyticsResponses, AdminManagementGetKitchenOrderData, AdminManagementGetKitchenOrderErrors, AdminManagementGetKitchenOrderResponses, AdminManagementGetOrderData, AdminManagementGetOrderErrors, AdminManagementGetOrderResponses, AdminManagementGetPopularProductsData, AdminManagementGetPopularProductsErrors, AdminManagementGetPopularProductsResponses, AdminManagementGetProductAnalyticsData, AdminManagementGetProductAnalyticsErrors, AdminManagementGetProductAnalyticsResponses, AdminManagementGetProductData, AdminManagementGetProductErrors, AdminManagementGetProductResponses, AdminManagementGetSalesPerformanceData, AdminManagementGetSalesPerformanceErrors, AdminManagementGetSalesPerformanceResponses, AdminManagementListCategoriesData, AdminManagementListCategoriesErrors, AdminManagementListCategoriesResponses, AdminManagementListCustomersData, AdminManagementListCustomersErrors, AdminManagementListCustomersResponses, AdminManagementListIngredientProductsData, AdminManagementListIngredientProductsErrors, AdminManagementListIngredientProductsResponses, AdminManagementListIngredientsData, AdminManagementListIngredientsErrors, AdminManagementListIngredientsResponses, AdminManagementListKitchenOrdersData, AdminManagementListKitchenOrdersErrors, AdminManagementListKitchenOrdersResponses, AdminManagementListOrdersData, AdminManagementListOrdersErrors, AdminManagementListOrdersResponses, AdminManagementListProductsData, AdminManagementListProductsErrors, AdminManagementListProductsResponses, AdminManagementListStaffAdminsData, AdminManagementListStaffAdminsErrors, AdminManagementListStaffAdminsResponses, AdminManagementListStaffOrdersData, AdminManagementListStaffOrdersErrors, AdminManagementListStaffOrdersResponses, AdminManagementPayCounterOrderData, AdminManagementPayCounterOrderErrors, AdminManagementPayCounterOrderResponses, AdminManagementReadCurrentAdminData, AdminManagementReadCurrentAdminErrors, AdminManagementReadCurrentAdminResponses, AdminManagementSetIngredientAvailabilityData, AdminManagementSetIngredientAvailabilityErrors, AdminManagementSetIngredientAvailabilityResponses, AdminManagementSetProductAvailabilityData, AdminManagementSetProductAvailabilityErrors, AdminManagementSetProductAvailabilityResponses, AdminManagementToggleProductStatusData, AdminManagementToggleProductStatusErrors, AdminManagementToggleProductStatusResponses, AdminManagementUpdateCategoryData, AdminManagementUpdateCategoryErrors, AdminManagementUpdateCategoryResponses, AdminManagementUpdateCustomerData, AdminManagementUpdateCustomerErrors, AdminManagementUpdateCustomerResponses, AdminManagementUpdateIngredientData, AdminManagementUpdateIngredientErrors, AdminManagementUpdateIngredientResponses, AdminManagementUpdateOrderStatusData, AdminManagementUpdateOrderStatusErrors, AdminManagementUpdateOrderStatusResponses, AdminManagementUpdateProductData, AdminManagementUpdateProductErrors, AdminManagementUpdateProductResponses, AdminManagementUpdateStaffAdminData, AdminManagementUpdateStaffAdminErrors, AdminManagementUpdateStaffAdminResponses, AdminManagementUploadProductMediaData, AdminManagementUploadProductMediaErrors, AdminManagementUploadProductMediaResponses, AuthForgotPasswordData, AuthForgotPasswordErrors, AuthForgotPasswordResponses, AuthGetMeData, AuthGetMeErrors, AuthGetMeResponses, AuthLoginData, AuthLoginErrors, AuthLoginResponses, AuthLogoutData, AuthLogoutErrors, AuthLogoutResponses, AuthRegisterData, AuthRegisterErrors, AuthRegisterResponses, AuthResetPasswordData, AuthResetPasswordErrors, AuthResetPasswordResponses, AuthVerifyPasswordOtpData, AuthVerifyPasswordOtpErrors, AuthVerifyPasswordOtpResponses, CartAddCustomizedItemData, CartAddCustomizedItemErrors, CartAddCustomizedItemResponses, CartAddItemData, CartAddItemErrors, CartAddItemResponses, CartClearCartData, CartClearCartErrors, CartClearCartResponses, CartGetCartData, CartGetCartErrors, CartGetCartResponses, CartMergeCartData, CartMergeCartErrors, CartMergeCartResponses, CartRemoveItemData, CartRemoveItemErrors, CartRemoveItemResponses, CartUpdateItemData, CartUpdateItemErrors, CartUpdateItemResponses, CheckoutCancelOrderData, CheckoutCancelOrderErrors, CheckoutCancelOrderResponses, CheckoutClaimGuestOrdersData, CheckoutClaimGuestOrdersErrors, CheckoutClaimGuestOrdersResponses, CheckoutCreateOrderData, CheckoutCreateOrderErrors, CheckoutCreateOrderResponses, CheckoutDownloadOrderReceiptPdfData, CheckoutDownloadOrderReceiptPdfErrors, CheckoutDownloadOrderReceiptPdfResponses, CheckoutGetOrderData, CheckoutGetOrderErrors, CheckoutGetOrderResponses, CheckoutListAvailableCouponsData, CheckoutListAvailableCouponsErrors, CheckoutListAvailableCouponsResponses, CheckoutListOrderHistoryData, CheckoutListOrderHistoryErrors, CheckoutListOrderHistoryResponses, CheckoutValidateCouponData, CheckoutValidateCouponErrors, CheckoutValidateCouponResponses, HealthHealthCheckData, HealthHealthCheckErrors, HealthHealthCheckResponses, OrganizationsGetPublicExperienceData, OrganizationsGetPublicExperienceErrors, OrganizationsGetPublicExperienceResponses, OrganizationsResolveData, OrganizationsResolveErrors, OrganizationsResolveResponses, ProductsGetAvailabilitySuggestionsData, ProductsGetAvailabilitySuggestionsErrors, ProductsGetAvailabilitySuggestionsResponses, ProductsGetCustomizationOptionsData, ProductsGetCustomizationOptionsErrors, ProductsGetCustomizationOptionsResponses, ProductsGetProductCustomizationData, ProductsGetProductCustomizationErrors, ProductsGetProductCustomizationResponses, ProductsGetProductData, ProductsGetProductErrors, ProductsGetProductResponses, ProductsListProductsData, ProductsListProductsErrors, ProductsListProductsResponses, ProfileGetOverviewData, ProfileGetOverviewErrors, ProfileGetOverviewResponses, ProfileGetProfileData, ProfileGetProfileErrors, ProfileGetProfileResponses, ProfileGetPurchaseHistoryData, ProfileGetPurchaseHistoryErrors, ProfileGetPurchaseHistoryResponses, ProfileUpdateProfileData, ProfileUpdateProfileErrors, ProfileUpdateProfileResponses, ReviewsCreateProductReviewData, ReviewsCreateProductReviewErrors, ReviewsCreateProductReviewResponses, ReviewsCreateReviewReplyData, ReviewsCreateReviewReplyErrors, ReviewsCreateReviewReplyResponses, ReviewsDeleteProductReviewData, ReviewsDeleteProductReviewErrors, ReviewsDeleteProductReviewResponses, ReviewsDeleteReviewReactionData, ReviewsDeleteReviewReactionErrors, ReviewsDeleteReviewReactionResponses, ReviewsDeleteReviewReplyData, ReviewsDeleteReviewReplyErrors, ReviewsDeleteReviewReplyResponses, ReviewsGetProductReviewEligibilityData, ReviewsGetProductReviewEligibilityErrors, ReviewsGetProductReviewEligibilityResponses, ReviewsGetProductReviewStatsData, ReviewsGetProductReviewStatsErrors, ReviewsGetProductReviewStatsResponses, ReviewsListAdminReviewsData, ReviewsListAdminReviewsErrors, ReviewsListAdminReviewsResponses, ReviewsListFeaturedProductReviewsData, ReviewsListFeaturedProductReviewsErrors, ReviewsListFeaturedProductReviewsResponses, ReviewsListProductReviewsData, ReviewsListProductReviewsErrors, ReviewsListProductReviewsResponses, ReviewsUpdateProductReviewData, ReviewsUpdateProductReviewErrors, ReviewsUpdateProductReviewResponses, ReviewsUpdateReviewReplyData, ReviewsUpdateReviewReplyErrors, ReviewsUpdateReviewReplyResponses, ReviewsUpsertReviewReactionData, ReviewsUpsertReviewReactionErrors, ReviewsUpsertReviewReactionResponses, SiteSettingsReadAdminChefSpecialData, SiteSettingsReadAdminChefSpecialErrors, SiteSettingsReadAdminChefSpecialResponses, SiteSettingsReadAdminCompanyDetailsData, SiteSettingsReadAdminCompanyDetailsErrors, SiteSettingsReadAdminCompanyDetailsResponses, SiteSettingsReadAdminEventsData, SiteSettingsReadAdminEventsErrors, SiteSettingsReadAdminEventsResponses, SiteSettingsReadAdminLoyaltyCouponSettingsData, SiteSettingsReadAdminLoyaltyCouponSettingsErrors, SiteSettingsReadAdminLoyaltyCouponSettingsResponses, SiteSettingsReadAdminOrganizationProfileData, SiteSettingsReadAdminOrganizationProfileErrors, SiteSettingsReadAdminOrganizationProfileResponses, SiteSettingsReadAdminSiteThemeData, SiteSettingsReadAdminSiteThemeErrors, SiteSettingsReadAdminSiteThemeResponses, SiteSettingsReadAdminSocialMediaData, SiteSettingsReadAdminSocialMediaErrors, SiteSettingsReadAdminSocialMediaResponses, SiteSettingsReadPublicChefSpecialData, SiteSettingsReadPublicChefSpecialErrors, SiteSettingsReadPublicChefSpecialResponses, SiteSettingsReadPublicCompanyDetailsData, SiteSettingsReadPublicCompanyDetailsErrors, SiteSettingsReadPublicCompanyDetailsResponses, SiteSettingsReadPublicEventsData, SiteSettingsReadPublicEventsErrors, SiteSettingsReadPublicEventsResponses, SiteSettingsReadPublicLoyaltyCouponSettingsData, SiteSettingsReadPublicLoyaltyCouponSettingsErrors, SiteSettingsReadPublicLoyaltyCouponSettingsResponses, SiteSettingsReadPublicSiteThemeData, SiteSettingsReadPublicSiteThemeErrors, SiteSettingsReadPublicSiteThemeResponses, SiteSettingsReadPublicSocialMediaData, SiteSettingsReadPublicSocialMediaErrors, SiteSettingsReadPublicSocialMediaResponses, SiteSettingsUpdateAdminChefSpecialData, SiteSettingsUpdateAdminChefSpecialErrors, SiteSettingsUpdateAdminChefSpecialResponses, SiteSettingsUpdateAdminCompanyDetailsData, SiteSettingsUpdateAdminCompanyDetailsErrors, SiteSettingsUpdateAdminCompanyDetailsResponses, SiteSettingsUpdateAdminEventsData, SiteSettingsUpdateAdminEventsErrors, SiteSettingsUpdateAdminEventsResponses, SiteSettingsUpdateAdminLoyaltyCouponSettingsData, SiteSettingsUpdateAdminLoyaltyCouponSettingsErrors, SiteSettingsUpdateAdminLoyaltyCouponSettingsResponses, SiteSettingsUpdateAdminOrganizationProfileData, SiteSettingsUpdateAdminOrganizationProfileErrors, SiteSettingsUpdateAdminOrganizationProfileResponses, SiteSettingsUpdateAdminSiteThemeData, SiteSettingsUpdateAdminSiteThemeErrors, SiteSettingsUpdateAdminSiteThemeResponses, SiteSettingsUpdateAdminSocialMediaData, SiteSettingsUpdateAdminSocialMediaErrors, SiteSettingsUpdateAdminSocialMediaResponses } from './types.gen';
+import type { AdminDataPrivacyCancelExportData, AdminDataPrivacyCancelExportErrors, AdminDataPrivacyCancelExportResponses, AdminDataPrivacyCreateCustomerExportData, AdminDataPrivacyCreateCustomerExportErrors, AdminDataPrivacyCreateCustomerExportResponses, AdminDataPrivacyCreateTenantExportData, AdminDataPrivacyCreateTenantExportErrors, AdminDataPrivacyCreateTenantExportResponses, AdminDataPrivacyDownloadExportData, AdminDataPrivacyDownloadExportErrors, AdminDataPrivacyDownloadExportResponses, AdminDataPrivacyListExportsData, AdminDataPrivacyListExportsErrors, AdminDataPrivacyListExportsResponses, AdminDataPrivacyReadOverviewData, AdminDataPrivacyReadOverviewErrors, AdminDataPrivacyReadOverviewResponses, AdminDataPrivacyRegenerateExportData, AdminDataPrivacyRegenerateExportErrors, AdminDataPrivacyRegenerateExportResponses, AdminManagementAdminLoginData, AdminManagementAdminLoginErrors, AdminManagementAdminLoginResponses, AdminManagementCreateCategoryData, AdminManagementCreateCategoryErrors, AdminManagementCreateCategoryResponses, AdminManagementCreateCustomerData, AdminManagementCreateCustomerErrors, AdminManagementCreateCustomerResponses, AdminManagementCreateIngredientData, AdminManagementCreateIngredientErrors, AdminManagementCreateIngredientResponses, AdminManagementCreateProductData, AdminManagementCreateProductErrors, AdminManagementCreateProductResponses, AdminManagementCreateStaffAdminData, AdminManagementCreateStaffAdminErrors, AdminManagementCreateStaffAdminResponses, AdminManagementDeleteCancelledOrderData, AdminManagementDeleteCancelledOrderErrors, AdminManagementDeleteCancelledOrderResponses, AdminManagementDeleteCategoryData, AdminManagementDeleteCategoryErrors, AdminManagementDeleteCategoryResponses, AdminManagementDeleteCustomerData, AdminManagementDeleteCustomerErrors, AdminManagementDeleteCustomerResponses, AdminManagementDeleteIngredientData, AdminManagementDeleteIngredientErrors, AdminManagementDeleteIngredientResponses, AdminManagementDeleteProductData, AdminManagementDeleteProductErrors, AdminManagementDeleteProductMediaData, AdminManagementDeleteProductMediaErrors, AdminManagementDeleteProductMediaResponses, AdminManagementDeleteProductResponses, AdminManagementDeleteStaffAdminData, AdminManagementDeleteStaffAdminErrors, AdminManagementDeleteStaffAdminResponses, AdminManagementGetAnalyticsSeriesData, AdminManagementGetAnalyticsSeriesErrors, AdminManagementGetAnalyticsSeriesResponses, AdminManagementGetDashboardAnalyticsData, AdminManagementGetDashboardAnalyticsErrors, AdminManagementGetDashboardAnalyticsResponses, AdminManagementGetKitchenOrderData, AdminManagementGetKitchenOrderErrors, AdminManagementGetKitchenOrderResponses, AdminManagementGetOrderData, AdminManagementGetOrderErrors, AdminManagementGetOrderResponses, AdminManagementGetPopularProductsData, AdminManagementGetPopularProductsErrors, AdminManagementGetPopularProductsResponses, AdminManagementGetProductAnalyticsData, AdminManagementGetProductAnalyticsErrors, AdminManagementGetProductAnalyticsResponses, AdminManagementGetProductData, AdminManagementGetProductErrors, AdminManagementGetProductResponses, AdminManagementGetSalesPerformanceData, AdminManagementGetSalesPerformanceErrors, AdminManagementGetSalesPerformanceResponses, AdminManagementListCategoriesData, AdminManagementListCategoriesErrors, AdminManagementListCategoriesResponses, AdminManagementListCustomersData, AdminManagementListCustomersErrors, AdminManagementListCustomersResponses, AdminManagementListIngredientProductsData, AdminManagementListIngredientProductsErrors, AdminManagementListIngredientProductsResponses, AdminManagementListIngredientsData, AdminManagementListIngredientsErrors, AdminManagementListIngredientsResponses, AdminManagementListKitchenOrdersData, AdminManagementListKitchenOrdersErrors, AdminManagementListKitchenOrdersResponses, AdminManagementListOrdersData, AdminManagementListOrdersErrors, AdminManagementListOrdersResponses, AdminManagementListProductsData, AdminManagementListProductsErrors, AdminManagementListProductsResponses, AdminManagementListStaffAdminsData, AdminManagementListStaffAdminsErrors, AdminManagementListStaffAdminsResponses, AdminManagementListStaffOrdersData, AdminManagementListStaffOrdersErrors, AdminManagementListStaffOrdersResponses, AdminManagementPayCounterOrderData, AdminManagementPayCounterOrderErrors, AdminManagementPayCounterOrderResponses, AdminManagementReadCurrentAdminData, AdminManagementReadCurrentAdminErrors, AdminManagementReadCurrentAdminResponses, AdminManagementSetIngredientAvailabilityData, AdminManagementSetIngredientAvailabilityErrors, AdminManagementSetIngredientAvailabilityResponses, AdminManagementSetProductAvailabilityData, AdminManagementSetProductAvailabilityErrors, AdminManagementSetProductAvailabilityResponses, AdminManagementToggleProductStatusData, AdminManagementToggleProductStatusErrors, AdminManagementToggleProductStatusResponses, AdminManagementUpdateCategoryData, AdminManagementUpdateCategoryErrors, AdminManagementUpdateCategoryResponses, AdminManagementUpdateCustomerData, AdminManagementUpdateCustomerErrors, AdminManagementUpdateCustomerResponses, AdminManagementUpdateIngredientData, AdminManagementUpdateIngredientErrors, AdminManagementUpdateIngredientResponses, AdminManagementUpdateOrderStatusData, AdminManagementUpdateOrderStatusErrors, AdminManagementUpdateOrderStatusResponses, AdminManagementUpdateProductData, AdminManagementUpdateProductErrors, AdminManagementUpdateProductResponses, AdminManagementUpdateStaffAdminData, AdminManagementUpdateStaffAdminErrors, AdminManagementUpdateStaffAdminResponses, AdminManagementUploadProductMediaData, AdminManagementUploadProductMediaErrors, AdminManagementUploadProductMediaResponses, AuthForgotPasswordData, AuthForgotPasswordErrors, AuthForgotPasswordResponses, AuthGetMeData, AuthGetMeErrors, AuthGetMeResponses, AuthLoginData, AuthLoginErrors, AuthLoginResponses, AuthLogoutData, AuthLogoutErrors, AuthLogoutResponses, AuthRegisterData, AuthRegisterErrors, AuthRegisterResponses, AuthResetPasswordData, AuthResetPasswordErrors, AuthResetPasswordResponses, AuthVerifyPasswordOtpData, AuthVerifyPasswordOtpErrors, AuthVerifyPasswordOtpResponses, CartAddCustomizedItemData, CartAddCustomizedItemErrors, CartAddCustomizedItemResponses, CartAddItemData, CartAddItemErrors, CartAddItemResponses, CartClearCartData, CartClearCartErrors, CartClearCartResponses, CartGetCartData, CartGetCartErrors, CartGetCartResponses, CartMergeCartData, CartMergeCartErrors, CartMergeCartResponses, CartRemoveItemData, CartRemoveItemErrors, CartRemoveItemResponses, CartUpdateItemData, CartUpdateItemErrors, CartUpdateItemResponses, CheckoutCancelOrderData, CheckoutCancelOrderErrors, CheckoutCancelOrderResponses, CheckoutClaimGuestOrdersData, CheckoutClaimGuestOrdersErrors, CheckoutClaimGuestOrdersResponses, CheckoutCreateOrderData, CheckoutCreateOrderErrors, CheckoutCreateOrderResponses, CheckoutDownloadOrderReceiptPdfData, CheckoutDownloadOrderReceiptPdfErrors, CheckoutDownloadOrderReceiptPdfResponses, CheckoutGetOrderData, CheckoutGetOrderErrors, CheckoutGetOrderResponses, CheckoutListAvailableCouponsData, CheckoutListAvailableCouponsErrors, CheckoutListAvailableCouponsResponses, CheckoutListOrderHistoryData, CheckoutListOrderHistoryErrors, CheckoutListOrderHistoryResponses, CheckoutValidateCouponData, CheckoutValidateCouponErrors, CheckoutValidateCouponResponses, DataAccessCancelExportData, DataAccessCancelExportErrors, DataAccessCancelExportResponses, DataAccessCreateCustomerExportData, DataAccessCreateCustomerExportErrors, DataAccessCreateCustomerExportResponses, DataAccessCreateTenantExportData, DataAccessCreateTenantExportErrors, DataAccessCreateTenantExportResponses, DataAccessDownloadExportData, DataAccessDownloadExportErrors, DataAccessDownloadExportResponses, DataAccessListCustomersData, DataAccessListCustomersErrors, DataAccessListCustomersResponses, DataAccessListExportsData, DataAccessListExportsErrors, DataAccessListExportsResponses, DataAccessReadPrivacyOverviewData, DataAccessReadPrivacyOverviewErrors, DataAccessReadPrivacyOverviewResponses, DataAccessReadSessionData, DataAccessReadSessionErrors, DataAccessReadSessionResponses, DataAccessRegenerateExportData, DataAccessRegenerateExportErrors, DataAccessRegenerateExportResponses, DataAccessRequestLoginCodeData, DataAccessRequestLoginCodeErrors, DataAccessRequestLoginCodeResponses, DataAccessVerifyLoginCodeData, DataAccessVerifyLoginCodeErrors, DataAccessVerifyLoginCodeResponses, HealthHealthCheckData, HealthHealthCheckErrors, HealthHealthCheckResponses, OrganizationsGetPublicExperienceData, OrganizationsGetPublicExperienceErrors, OrganizationsGetPublicExperienceResponses, OrganizationsResolveData, OrganizationsResolveErrors, OrganizationsResolveResponses, ProductsGetAvailabilitySuggestionsData, ProductsGetAvailabilitySuggestionsErrors, ProductsGetAvailabilitySuggestionsResponses, ProductsGetCustomizationOptionsData, ProductsGetCustomizationOptionsErrors, ProductsGetCustomizationOptionsResponses, ProductsGetProductCustomizationData, ProductsGetProductCustomizationErrors, ProductsGetProductCustomizationResponses, ProductsGetProductData, ProductsGetProductErrors, ProductsGetProductResponses, ProductsListProductsData, ProductsListProductsErrors, ProductsListProductsResponses, ProfileGetOverviewData, ProfileGetOverviewErrors, ProfileGetOverviewResponses, ProfileGetProfileData, ProfileGetProfileErrors, ProfileGetProfileResponses, ProfileGetPurchaseHistoryData, ProfileGetPurchaseHistoryErrors, ProfileGetPurchaseHistoryResponses, ProfileUpdateProfileData, ProfileUpdateProfileErrors, ProfileUpdateProfileResponses, ReviewsCreateProductReviewData, ReviewsCreateProductReviewErrors, ReviewsCreateProductReviewResponses, ReviewsCreateReviewReplyData, ReviewsCreateReviewReplyErrors, ReviewsCreateReviewReplyResponses, ReviewsDeleteProductReviewData, ReviewsDeleteProductReviewErrors, ReviewsDeleteProductReviewResponses, ReviewsDeleteReviewReactionData, ReviewsDeleteReviewReactionErrors, ReviewsDeleteReviewReactionResponses, ReviewsDeleteReviewReplyData, ReviewsDeleteReviewReplyErrors, ReviewsDeleteReviewReplyResponses, ReviewsGetProductReviewEligibilityData, ReviewsGetProductReviewEligibilityErrors, ReviewsGetProductReviewEligibilityResponses, ReviewsGetProductReviewStatsData, ReviewsGetProductReviewStatsErrors, ReviewsGetProductReviewStatsResponses, ReviewsListAdminReviewsData, ReviewsListAdminReviewsErrors, ReviewsListAdminReviewsResponses, ReviewsListFeaturedProductReviewsData, ReviewsListFeaturedProductReviewsErrors, ReviewsListFeaturedProductReviewsResponses, ReviewsListProductReviewsData, ReviewsListProductReviewsErrors, ReviewsListProductReviewsResponses, ReviewsUpdateProductReviewData, ReviewsUpdateProductReviewErrors, ReviewsUpdateProductReviewResponses, ReviewsUpdateReviewReplyData, ReviewsUpdateReviewReplyErrors, ReviewsUpdateReviewReplyResponses, ReviewsUpsertReviewReactionData, ReviewsUpsertReviewReactionErrors, ReviewsUpsertReviewReactionResponses, SiteSettingsReadAdminChefSpecialData, SiteSettingsReadAdminChefSpecialErrors, SiteSettingsReadAdminChefSpecialResponses, SiteSettingsReadAdminCompanyDetailsData, SiteSettingsReadAdminCompanyDetailsErrors, SiteSettingsReadAdminCompanyDetailsResponses, SiteSettingsReadAdminEventsData, SiteSettingsReadAdminEventsErrors, SiteSettingsReadAdminEventsResponses, SiteSettingsReadAdminLoyaltyCouponSettingsData, SiteSettingsReadAdminLoyaltyCouponSettingsErrors, SiteSettingsReadAdminLoyaltyCouponSettingsResponses, SiteSettingsReadAdminOrganizationProfileData, SiteSettingsReadAdminOrganizationProfileErrors, SiteSettingsReadAdminOrganizationProfileResponses, SiteSettingsReadAdminSiteThemeData, SiteSettingsReadAdminSiteThemeErrors, SiteSettingsReadAdminSiteThemeResponses, SiteSettingsReadAdminSocialMediaData, SiteSettingsReadAdminSocialMediaErrors, SiteSettingsReadAdminSocialMediaResponses, SiteSettingsReadPublicChefSpecialData, SiteSettingsReadPublicChefSpecialErrors, SiteSettingsReadPublicChefSpecialResponses, SiteSettingsReadPublicCompanyDetailsData, SiteSettingsReadPublicCompanyDetailsErrors, SiteSettingsReadPublicCompanyDetailsResponses, SiteSettingsReadPublicEventsData, SiteSettingsReadPublicEventsErrors, SiteSettingsReadPublicEventsResponses, SiteSettingsReadPublicLoyaltyCouponSettingsData, SiteSettingsReadPublicLoyaltyCouponSettingsErrors, SiteSettingsReadPublicLoyaltyCouponSettingsResponses, SiteSettingsReadPublicSiteThemeData, SiteSettingsReadPublicSiteThemeErrors, SiteSettingsReadPublicSiteThemeResponses, SiteSettingsReadPublicSocialMediaData, SiteSettingsReadPublicSocialMediaErrors, SiteSettingsReadPublicSocialMediaResponses, SiteSettingsUpdateAdminChefSpecialData, SiteSettingsUpdateAdminChefSpecialErrors, SiteSettingsUpdateAdminChefSpecialResponses, SiteSettingsUpdateAdminCompanyDetailsData, SiteSettingsUpdateAdminCompanyDetailsErrors, SiteSettingsUpdateAdminCompanyDetailsResponses, SiteSettingsUpdateAdminEventsData, SiteSettingsUpdateAdminEventsErrors, SiteSettingsUpdateAdminEventsResponses, SiteSettingsUpdateAdminLoyaltyCouponSettingsData, SiteSettingsUpdateAdminLoyaltyCouponSettingsErrors, SiteSettingsUpdateAdminLoyaltyCouponSettingsResponses, SiteSettingsUpdateAdminOrganizationProfileData, SiteSettingsUpdateAdminOrganizationProfileErrors, SiteSettingsUpdateAdminOrganizationProfileResponses, SiteSettingsUpdateAdminSiteThemeData, SiteSettingsUpdateAdminSiteThemeErrors, SiteSettingsUpdateAdminSiteThemeResponses, SiteSettingsUpdateAdminSocialMediaData, SiteSettingsUpdateAdminSocialMediaErrors, SiteSettingsUpdateAdminSocialMediaResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -142,6 +142,73 @@ export const adminManagementUpdateCustomer = <ThrowOnError extends boolean = fal
         'Content-Type': 'application/json',
         ...options.headers
     }
+});
+
+/**
+ * Create Admin Customer Export
+ */
+export const adminDataPrivacyCreateCustomerExport = <ThrowOnError extends boolean = false>(options: Options<AdminDataPrivacyCreateCustomerExportData, ThrowOnError>) => (options.client ?? client).post<AdminDataPrivacyCreateCustomerExportResponses, AdminDataPrivacyCreateCustomerExportErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/admin/customers/{customer_id}/data-export',
+    ...options
+});
+
+/**
+ * List Admin Exports
+ */
+export const adminDataPrivacyListExports = <ThrowOnError extends boolean = false>(options?: Options<AdminDataPrivacyListExportsData, ThrowOnError>) => (options?.client ?? client).get<AdminDataPrivacyListExportsResponses, AdminDataPrivacyListExportsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/admin/data-exports',
+    ...options
+});
+
+/**
+ * Create Admin Export
+ */
+export const adminDataPrivacyCreateTenantExport = <ThrowOnError extends boolean = false>(options: Options<AdminDataPrivacyCreateTenantExportData, ThrowOnError>) => (options.client ?? client).post<AdminDataPrivacyCreateTenantExportResponses, AdminDataPrivacyCreateTenantExportErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/admin/data-exports',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Cancel Admin Export
+ */
+export const adminDataPrivacyCancelExport = <ThrowOnError extends boolean = false>(options: Options<AdminDataPrivacyCancelExportData, ThrowOnError>) => (options.client ?? client).delete<AdminDataPrivacyCancelExportResponses, AdminDataPrivacyCancelExportErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/admin/data-exports/{export_id}',
+    ...options
+});
+
+/**
+ * Download Admin Export
+ */
+export const adminDataPrivacyDownloadExport = <ThrowOnError extends boolean = false>(options: Options<AdminDataPrivacyDownloadExportData, ThrowOnError>) => (options.client ?? client).get<AdminDataPrivacyDownloadExportResponses, AdminDataPrivacyDownloadExportErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/admin/data-exports/{export_id}/download',
+    ...options
+});
+
+/**
+ * Regenerate Admin Export
+ */
+export const adminDataPrivacyRegenerateExport = <ThrowOnError extends boolean = false>(options: Options<AdminDataPrivacyRegenerateExportData, ThrowOnError>) => (options.client ?? client).post<AdminDataPrivacyRegenerateExportResponses, AdminDataPrivacyRegenerateExportErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/admin/data-exports/{export_id}/regenerate',
+    ...options
+});
+
+/**
+ * Read Admin Privacy Overview
+ */
+export const adminDataPrivacyReadOverview = <ThrowOnError extends boolean = false>(options?: Options<AdminDataPrivacyReadOverviewData, ThrowOnError>) => (options?.client ?? client).get<AdminDataPrivacyReadOverviewResponses, AdminDataPrivacyReadOverviewErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/admin/data-privacy',
+    ...options
 });
 
 /**
@@ -847,6 +914,115 @@ export const checkoutCancelOrder = <ThrowOnError extends boolean = false>(option
 export const checkoutDownloadOrderReceiptPdf = <ThrowOnError extends boolean = false>(options: Options<CheckoutDownloadOrderReceiptPdfData, ThrowOnError>) => (options.client ?? client).get<CheckoutDownloadOrderReceiptPdfResponses, CheckoutDownloadOrderReceiptPdfErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }, { name: 'X-Order-Token', type: 'apiKey' }],
     url: '/checkout/orders/{order_id}/receipt.pdf',
+    ...options
+});
+
+/**
+ * Request Login Code
+ */
+export const dataAccessRequestLoginCode = <ThrowOnError extends boolean = false>(options: Options<DataAccessRequestLoginCodeData, ThrowOnError>) => (options.client ?? client).post<DataAccessRequestLoginCodeResponses, DataAccessRequestLoginCodeErrors, ThrowOnError>({
+    url: '/data-access/auth/request-code',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Verify Login Code
+ */
+export const dataAccessVerifyLoginCode = <ThrowOnError extends boolean = false>(options: Options<DataAccessVerifyLoginCodeData, ThrowOnError>) => (options.client ?? client).post<DataAccessVerifyLoginCodeResponses, DataAccessVerifyLoginCodeErrors, ThrowOnError>({
+    url: '/data-access/auth/verify-code',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * List Data Access Customers
+ */
+export const dataAccessListCustomers = <ThrowOnError extends boolean = false>(options?: Options<DataAccessListCustomersData, ThrowOnError>) => (options?.client ?? client).get<DataAccessListCustomersResponses, DataAccessListCustomersErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/data-access/customers',
+    ...options
+});
+
+/**
+ * Create Data Access Customer Export
+ */
+export const dataAccessCreateCustomerExport = <ThrowOnError extends boolean = false>(options: Options<DataAccessCreateCustomerExportData, ThrowOnError>) => (options.client ?? client).post<DataAccessCreateCustomerExportResponses, DataAccessCreateCustomerExportErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/data-access/customers/{customer_id}/data-export',
+    ...options
+});
+
+/**
+ * List Data Access Exports
+ */
+export const dataAccessListExports = <ThrowOnError extends boolean = false>(options?: Options<DataAccessListExportsData, ThrowOnError>) => (options?.client ?? client).get<DataAccessListExportsResponses, DataAccessListExportsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/data-access/data-exports',
+    ...options
+});
+
+/**
+ * Create Data Access Export
+ */
+export const dataAccessCreateTenantExport = <ThrowOnError extends boolean = false>(options: Options<DataAccessCreateTenantExportData, ThrowOnError>) => (options.client ?? client).post<DataAccessCreateTenantExportResponses, DataAccessCreateTenantExportErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/data-access/data-exports',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Cancel Data Access Export
+ */
+export const dataAccessCancelExport = <ThrowOnError extends boolean = false>(options: Options<DataAccessCancelExportData, ThrowOnError>) => (options.client ?? client).delete<DataAccessCancelExportResponses, DataAccessCancelExportErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/data-access/data-exports/{export_id}',
+    ...options
+});
+
+/**
+ * Download Data Access Export
+ */
+export const dataAccessDownloadExport = <ThrowOnError extends boolean = false>(options: Options<DataAccessDownloadExportData, ThrowOnError>) => (options.client ?? client).get<DataAccessDownloadExportResponses, DataAccessDownloadExportErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/data-access/data-exports/{export_id}/download',
+    ...options
+});
+
+/**
+ * Regenerate Data Access Export
+ */
+export const dataAccessRegenerateExport = <ThrowOnError extends boolean = false>(options: Options<DataAccessRegenerateExportData, ThrowOnError>) => (options.client ?? client).post<DataAccessRegenerateExportResponses, DataAccessRegenerateExportErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/data-access/data-exports/{export_id}/regenerate',
+    ...options
+});
+
+/**
+ * Read Data Access Privacy Overview
+ */
+export const dataAccessReadPrivacyOverview = <ThrowOnError extends boolean = false>(options?: Options<DataAccessReadPrivacyOverviewData, ThrowOnError>) => (options?.client ?? client).get<DataAccessReadPrivacyOverviewResponses, DataAccessReadPrivacyOverviewErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/data-access/data-privacy',
+    ...options
+});
+
+/**
+ * Read Data Access Session
+ */
+export const dataAccessReadSession = <ThrowOnError extends boolean = false>(options?: Options<DataAccessReadSessionData, ThrowOnError>) => (options?.client ?? client).get<DataAccessReadSessionResponses, DataAccessReadSessionErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/data-access/me',
     ...options
 });
 

@@ -4,7 +4,6 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import {
   BadgeCheck,
   CakeSlice,
-  Check,
   ChevronDown,
   ChevronLeft,
   CupSoda,
@@ -23,7 +22,6 @@ import {
   Sprout,
   ThumbsUp,
   TriangleAlert,
-  X,
 } from "lucide-react"
 
 import "./ProductDetail.css"
@@ -155,8 +153,6 @@ export const ProductDetail = () => {
   const [notFound, setNotFound] = useState(false)
   const [quantity, setQuantity] = useState(1)
   const [addingToCart, setAddingToCart] = useState(false)
-  const [toastMessage, setToastMessage] = useState<string | null>(null)
-  const [toastError, setToastError] = useState(false)
   const [activeImageIndex, setActiveImageIndex] = useState(0)
   const [reviewFilter, setReviewFilter] = useState<ReviewFilter>(() => {
     const value = searchParams.get("review_filter")
@@ -345,9 +341,7 @@ export const ProductDetail = () => {
   const handleAddToCart = async (goToCheckout = false) => {
     if (!product) return
     if (!product.available) {
-      setToastError(true)
-      setToastMessage(product.unavailableReason || t("productDetail.unavailableItem"))
-      setTimeout(() => setToastMessage(null), 3000)
+      toast.warning(product.unavailableReason || t("productDetail.unavailableItem"))
       return
     }
     setAddingToCart(true)
@@ -365,8 +359,7 @@ export const ProductDetail = () => {
         pricedCustomization,
       )
       window.dispatchEvent(new Event("cartUpdated"))
-      setToastError(false)
-      setToastMessage(goToCheckout ? t("productDetail.addedCheckout") : t("productDetail.added"))
+      toast.success(goToCheckout ? t("productDetail.addedCheckout") : t("productDetail.added"))
       if (goToCheckout) {
         navigate("/checkout")
       } else {
@@ -374,12 +367,10 @@ export const ProductDetail = () => {
         setCustomization(emptyCustomization())
       }
     } catch (err) {
-      setToastError(true)
-      setToastMessage(t("productDetail.addError"))
+      toast.error(t("productDetail.addError"))
       console.error(err)
     } finally {
       setAddingToCart(false)
-      setTimeout(() => setToastMessage(null), 3000)
     }
   }
 
@@ -434,35 +425,23 @@ export const ProductDetail = () => {
   const handleAddReviewClick = () => {
     setReviewError(null)
     if (!reviewEligibility) {
-      setToastError(true)
-      setToastMessage(t("productDetail.reviewsLoading"))
       toast.info(t("productDetail.reviewsLoading"))
-      setTimeout(() => setToastMessage(null), 3000)
       return
     }
 
     if (!reviewEligibility.authenticated) {
-      setToastError(true)
-      setToastMessage(t("productDetail.reviewLogin"))
       toast.warning(t("productDetail.reviewLogin"))
-      setTimeout(() => setToastMessage(null), 3000)
       return
     }
 
     if (reviewEligibility.existingReview) {
       handleEditReview(reviewEligibility.existingReview)
-      setToastError(false)
-      setToastMessage(t("productDetail.alreadyReviewed"))
       toast.info(t("productDetail.alreadyReviewed"))
-      setTimeout(() => setToastMessage(null), 3000)
       return
     }
 
     if (!canCreateReview) {
-      setToastError(true)
-      setToastMessage(reviewEligibility.message)
       toast.warning(reviewEligibility.message)
-      setTimeout(() => setToastMessage(null), 3000)
       return
     }
 
@@ -481,8 +460,6 @@ export const ProductDetail = () => {
           title: reviewTitle,
           comment: reviewComment,
         })
-        setToastError(false)
-        setToastMessage(t("productDetail.reviewUpdated"))
         toast.success(t("productDetail.reviewUpdatedSuccess"))
       } else {
         if (!selectedOrderItemId) throw new Error(t("productDetail.choosePurchased"))
@@ -492,8 +469,6 @@ export const ProductDetail = () => {
           title: reviewTitle,
           comment: reviewComment,
         })
-        setToastError(false)
-        setToastMessage(t("productDetail.reviewPublished"))
         toast.success(t("productDetail.reviewPublishedSuccess"))
       }
       resetReviewForm()
@@ -501,12 +476,9 @@ export const ProductDetail = () => {
     } catch (err) {
       const message = err instanceof Error ? err.message : t("productDetail.reviewSaveError")
       setReviewError(message)
-      setToastError(true)
-      setToastMessage(message)
       toast.error(message)
     } finally {
       setReviewSubmitting(false)
-      setTimeout(() => setToastMessage(null), 3000)
     }
   }
 
@@ -533,19 +505,14 @@ export const ProductDetail = () => {
       await productService.deleteReview(review.reviewId)
       if (editingReviewId === review.reviewId) resetReviewForm()
       await reloadReviews(product.id)
-      setToastError(false)
-      setToastMessage(t("productDetail.reviewDeleted"))
       setReviewToDelete(null)
       toast.success(t("productDetail.reviewDeletedSuccess"))
     } catch (err) {
       const message = err instanceof Error ? err.message : t("productDetail.reviewDeleteError")
       setReviewError(message)
-      setToastError(true)
-      setToastMessage(message)
       toast.error(message)
     } finally {
       setReviewSubmitting(false)
-      setTimeout(() => setToastMessage(null), 3000)
     }
   }
 
@@ -714,23 +681,6 @@ export const ProductDetail = () => {
         <span className="pd-food-float pd-food-float-drink-2"><CupSoda /></span>
         <span className="pd-food-float pd-food-float-cake-2"><CakeSlice /></span>
       </div>
-
-      {toastMessage && (
-        <div className={`bonefree-toast ${toastError ? "error" : ""}`} role={toastError ? "alert" : "status"}>
-          <span className="bonefree-toast-icon" aria-hidden="true">
-            {toastError ? "!" : <Check size={15} strokeWidth={2.7} />}
-          </span>
-          <span className="bonefree-toast-message">{toastMessage}</span>
-          <button
-            type="button"
-            onClick={() => setToastMessage(null)}
-            aria-label={t("productDetail.dismiss")}
-            className="toast-close"
-          >
-            <X size={15} strokeWidth={2.5} />
-          </button>
-        </div>
-      )}
 
       <ConfirmDialog
         open={Boolean(reviewToDelete)}

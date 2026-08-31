@@ -48,7 +48,60 @@ def send_password_reset_email(email: str, code: str, name: str | None = None) ->
     return _send_email(email, subject, text, html)
 
 
-def _send_email(to_email: str, subject: str, text_body: str, html_body: str, *, raise_errors: bool = False) -> bool:
+def send_data_access_otp_email(
+    email: str,
+    code: str,
+    organization_name: str,
+    expires_minutes: int,
+) -> bool:
+    subject = f"Código de acesso aos dados de {organization_name}"
+    text = (
+        f"O código para aceder aos dados de {organization_name} é {code}. "
+        f"Expira em {expires_minutes} minutos.\n\n"
+        "Nunca enviaremos exportações ou dados pessoais como anexo de email."
+    )
+    html = _layout(
+        title="Código de acesso aos dados",
+        body=(
+            f"Use este código para concluir o acesso aos dados de {organization_name}. "
+            f"Expira em {expires_minutes} minutos. Nunca enviamos exportações em anexo."
+        ),
+        accent=f"<span style='font-size:32px; letter-spacing:8px; font-weight:800;'>{escape(code)}</span>",
+        brand=organization_name,
+    )
+    return _send_email(email, subject, text, html, from_name=organization_name)
+
+
+def send_data_access_notice(
+    email: str,
+    organization_name: str,
+    *,
+    subject: str,
+    message: str,
+) -> bool:
+    text = (
+        f"{organization_name}\n\n{message}\n\n"
+        "As cópias estão disponíveis exclusivamente na área de administração autenticada; "
+        "este email não contém anexos."
+    )
+    html = _layout(
+        title=escape(subject),
+        body=message,
+        accent="Aceda à área de administração para consultar ou descarregar os dados.",
+        brand=organization_name,
+    )
+    return _send_email(email, subject, text, html, from_name=organization_name)
+
+
+def _send_email(
+    to_email: str,
+    subject: str,
+    text_body: str,
+    html_body: str,
+    *,
+    raise_errors: bool = False,
+    from_name: str | None = None,
+) -> bool:
     if not settings.auth_emails_enabled:
         logger.info("Auth email skipped because AUTH_EMAILS_ENABLED is disabled.")
         return False
@@ -59,7 +112,7 @@ def _send_email(to_email: str, subject: str, text_body: str, html_body: str, *, 
             subject=subject,
             html_body=html_body,
             plain_body=text_body,
-            from_name=settings.auth_email_from_name,
+            from_name=from_name or settings.auth_email_from_name,
         )
         if sent:
             logger.info("Auth email sent to %s.", to_email)
@@ -73,7 +126,7 @@ def _send_email(to_email: str, subject: str, text_body: str, html_body: str, *, 
         return False
 
 
-def _layout(title: str, body: str, accent: str) -> str:
+def _layout(title: str, body: str, accent: str, *, brand: str = "BONEFREE") -> str:
     return f"""
     <!doctype html>
     <html>
@@ -84,7 +137,7 @@ def _layout(title: str, body: str, accent: str) -> str:
               <table role="presentation" width="560" cellspacing="0" cellpadding="0" style="max-width:560px;width:100%;background:#ffffff;border:1px solid #e6e8ec;border-radius:16px;overflow:hidden;">
                 <tr>
                   <td style="padding:30px 34px;">
-                    <div style="font-weight:900;font-size:20px;letter-spacing:.04em;">BONEFREE</div>
+                    <div style="font-weight:900;font-size:20px;letter-spacing:.04em;">{escape(brand)}</div>
                     <h1 style="margin:26px 0 12px;font-size:28px;line-height:1.15;">{title}</h1>
                     <p style="margin:0 0 22px;color:#5f6673;font-size:15px;line-height:1.65;">{escape(body)}</p>
                     <div style="border:1px solid #e7eadf;border-radius:12px;background:#fafbf4;padding:18px;text-align:center;color:#1f3d28;">{accent}</div>

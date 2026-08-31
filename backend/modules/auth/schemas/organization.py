@@ -1,3 +1,6 @@
+from datetime import datetime
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from modules.auth.models import (
@@ -45,6 +48,8 @@ class PublicSocialLinks(StrictOrganizationConfiguration):
 class ResolvedOrganizationResponse(BaseModel):
     slug: str
     name: str
+    state: Literal["operational", "frozen"]
+    data_access_expires_at: datetime | None = None
 
 
 class PublicOrganizationIdentity(BaseModel):
@@ -57,6 +62,7 @@ class PublicOrganizationProfile(BaseModel):
     description: str | None = None
     about_text: str | None = None
     email: str | None = None
+    privacy_contact_email: str | None = None
     phone: str | None = None
     address_line_1: str | None = None
     address_line_2: str | None = None

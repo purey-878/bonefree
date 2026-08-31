@@ -208,6 +208,7 @@ class OrganizationProfileResponse(BaseModel):
     description: Optional[str] = None
     about_text: Optional[str] = None
     email: Optional[str] = None
+    privacy_contact_email: Optional[str] = None
     phone: Optional[str] = None
     address_line_1: Optional[str] = None
     address_line_2: Optional[str] = None
@@ -229,6 +230,7 @@ class OrganizationProfileUpdate(BaseModel):
     description: Optional[str] = Field(default=None, max_length=500)
     about_text: Optional[str] = None
     email: Optional[str] = Field(default=None, max_length=150)
+    privacy_contact_email: Optional[str] = Field(default=None, max_length=150)
     phone: Optional[str] = Field(default=None, max_length=30)
     address_line_1: Optional[str] = Field(default=None, max_length=255)
     address_line_2: Optional[str] = Field(default=None, max_length=255)
@@ -243,7 +245,7 @@ class OrganizationProfileUpdate(BaseModel):
 
     @field_validator(
         "display_name", "legal_name", "tax_id", "description", "about_text",
-        "email", "phone", "address_line_1", "address_line_2", "city",
+        "email", "privacy_contact_email", "phone", "address_line_1", "address_line_2", "city",
         "postal_code", "country", "logo_url", "vat_exemption_reason",
     )
     @classmethod

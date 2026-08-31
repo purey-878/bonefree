@@ -4,21 +4,12 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { ThemeProvider } from 'styled-components'
 import './index.css'
-import App from './App.tsx'
-import { AuthProvider } from './context/AuthContext.tsx'
-import { AdminSessionProvider } from './context/AdminSessionProvider.tsx'
 import { ToastProvider } from './components/ui/ToastProvider.tsx'
 import { GlobalStyles } from './styles/GlobalStyles'
 import { theme } from './styles/theme'
 import { setOrganizationSlug } from './api/clients.ts'
 import { OrganizationResolutionScreen } from './components/OrganizationResolutionScreen.tsx'
 import { organizationService } from './services/organizationService.ts'
-import currentManifest from './app/manifest/currentManifest.ts'
-import {
-  validateDeploymentTenant,
-  validateExperienceAgainstManifest,
-} from './app/manifest/defineApplicationManifest.ts'
-import { OrganizationProvider } from './organization/context/OrganizationContext.tsx'
 import type { OrganizationBootstrapError } from './components/OrganizationResolutionScreen.tsx'
 
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -44,6 +35,39 @@ async function bootstrap() {
     const organization = await organizationService.resolve(window.location.hostname)
     tenantResolved = true
     setOrganizationSlug(organization.slug)
+    if (organization.state === 'frozen') {
+      if (!organization.data_access_expires_at) throw new Error('data_access_deadline_missing')
+      if (!window.location.pathname.startsWith('/admin')) {
+        const { default: ClosedSite } = await import('./data-access/ClosedSite.tsx')
+        root.render(shell(<ClosedSite organizationName={organization.name} />))
+        return
+      }
+      const { default: FrozenApplication } = await import('./data-access/FrozenApplication.tsx')
+      root.render(shell(
+        <BrowserRouter>
+          <ToastProvider>
+            <FrozenApplication organization={{
+              name: organization.name,
+              dataAccessExpiresAt: organization.data_access_expires_at,
+            }} />
+          </ToastProvider>
+        </BrowserRouter>,
+      ))
+      return
+    }
+    const [
+      { default: App },
+      { AuthProvider },
+      { default: currentManifest },
+      { validateDeploymentTenant, validateExperienceAgainstManifest },
+      { OrganizationProvider },
+    ] = await Promise.all([
+      import('./App.tsx'),
+      import('./context/AuthContext.tsx'),
+      import('./app/manifest/currentManifest.ts'),
+      import('./app/manifest/defineApplicationManifest.ts'),
+      import('./organization/context/OrganizationContext.tsx'),
+    ])
     validateDeploymentTenant(currentManifest, organization.slug)
     const experience = await currentManifest.configuration_resolver.load({ organization })
     validateExperienceAgainstManifest(currentManifest, {
@@ -59,13 +83,11 @@ async function bootstrap() {
     root.render(shell(
       <BrowserRouter>
         <OrganizationProvider organization={organization} experience={experience}>
-          <AdminSessionProvider>
-            <AuthProvider>
-              <ToastProvider>
-                <App />
-              </ToastProvider>
-            </AuthProvider>
-          </AdminSessionProvider>
+          <AuthProvider>
+            <ToastProvider>
+              <App />
+            </ToastProvider>
+          </AuthProvider>
         </OrganizationProvider>
       </BrowserRouter>,
     ))

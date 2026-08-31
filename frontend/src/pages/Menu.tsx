@@ -5,6 +5,7 @@ import { useRef } from "react";
 
 import Navbar from "../components/Navbar";
 import { Pagination, ProductCard, ProductCardSkeleton } from "../components/ui";
+import { useToast } from "../components/ui/toastContext";
 
 import "./Menu.css";
 import "../theme.css";
@@ -169,8 +170,6 @@ function Menu() {
   const [sortBy, setSortBy] = useState<SortOption>(initialFilters.sortBy);
   const [specialFilter, setSpecialFilter] = useState<SpecialFilter>(initialFilters.specialFilter);
   const [addingToCart, setAddingToCart] = useState<number | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const [loyaltyCouponSettings, setLoyaltyCouponSettings] = useState(defaultLoyaltyCouponSettings);
   const [showLoyaltyBanner, setShowLoyaltyBanner] = useState(() => {
@@ -182,6 +181,7 @@ function Menu() {
   });
 
   const navigate = useNavigate();
+  const toast = useToast();
   const sortMenuRef = useRef<HTMLDivElement | null>(null);
   const requestIdRef = useRef(0);
   const initialFilterEffectRef = useRef(true);
@@ -339,23 +339,19 @@ function Menu() {
   const handleAddToCart = async (product: Product) => {
     try {
       setAddingToCart(product.id);
-      setErrorMessage(null);
-      setSuccessMessage(null);
 
       if (!product.available) {
-        setErrorMessage(product.unavailableReason || t("menu.unavailableNamed", { name: product.name }));
+        toast.warning(product.unavailableReason || t("menu.unavailableNamed", { name: product.name }));
         setAddingToCart(null);
         return;
       }
 
       await cartService.addItem(product.id, 1);
-      setSuccessMessage(t("menu.added"));
-
-      setTimeout(() => setSuccessMessage(null), 3000);
+      toast.success(t("menu.added"));
     } catch (err) {
       const errorMsg =
         err instanceof Error ? err.message : t("menu.addFailed");
-      setErrorMessage(errorMsg);
+      toast.error(errorMsg);
       console.error("Erro ao adicionar ao carrinho:", err);
     } finally {
       setAddingToCart(null);
@@ -401,38 +397,6 @@ function Menu() {
         <span className="menu-food-float menu-food-float-drink-2"><CupSoda /></span>
         <span className="menu-food-float menu-food-float-cake-2"><CakeSlice /></span>
       </div>
-
-      {successMessage && (
-        <div className="bonefree-toast" role="status">
-          <span className="bonefree-toast-icon" aria-hidden="true">
-            <Check size={15} strokeWidth={2.7} />
-          </span>
-          <span className="bonefree-toast-message">{successMessage}</span>
-          <button
-            type="button"
-            onClick={() => setSuccessMessage(null)}
-            aria-label={t("menu.close")}
-            className="toast-close"
-          >
-            <X size={15} strokeWidth={2.5} />
-          </button>
-        </div>
-      )}
-
-      {errorMessage && (
-        <div className="bonefree-toast error" role="alert">
-          <span className="bonefree-toast-icon" aria-hidden="true">!</span>
-          <span className="bonefree-toast-message">{errorMessage}</span>
-          <button
-            type="button"
-            onClick={() => setErrorMessage(null)}
-            aria-label={t("menu.close")}
-            className="toast-close"
-          >
-            <X size={15} strokeWidth={2.5} />
-          </button>
-        </div>
-      )}
 
       <header className="menu-page-hero">
         <div>

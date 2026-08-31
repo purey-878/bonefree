@@ -1,0 +1,14 @@
+.data-access-closed {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 28px;
+  background: radial-gradient(circle at 12% 18%, #e6eefc 0, transparent 38%), #f5f7fb;
+  color: #111827;
+}
+
+.data-access-closed section { width: min(650px, 100%); padding: clamp(30px, 6vw, 64px); border: 1px solid #d9e1ee; border-radius: 24px; background: rgba(255,255,255,.94); box-shadow: 0 28px 80px rgba(31,45,74,.12); text-align: center; }
+.data-access-closed svg { width: 52px; height: 52px; color: #3978d4; }
+.data-access-closed span { color: #55708f; font-size: .74rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.data-access-closed h1 { margin: 22px 0 12px; font-size: clamp(2rem, 6vw, 3.5rem); letter-spacing: -.05em; }
+.data-access-closed p { max-width: 520px; margin: 0 auto; color: #617086; line-height: 1.7; }

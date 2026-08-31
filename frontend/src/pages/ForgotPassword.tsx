@@ -7,6 +7,7 @@ import { validateEmail, validatePassword } from "../utils/validation"
 import "./Auth.css"
 import Navbar from "../components/Navbar"
 import Footer from "../components/Footer"
+import { useToast } from "../components/ui/toastContext"
 import { useTranslation } from "react-i18next"
 
 type ResetStep = "email" | "otp" | "password" | "done"
@@ -19,16 +20,15 @@ function ForgotPassword() {
   const [resetToken, setResetToken] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
-  const [message, setMessage] = useState("")
   const [error, setError] = useState("")
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; code?: string; password?: string; confirmPassword?: string }>({})
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const toast = useToast()
 
   const requestCode = async (event: FormEvent) => {
     event.preventDefault()
     setError("")
-    setMessage("")
     const emailError = validateEmail(email)
     setFieldErrors({ email: emailError || undefined })
     if (emailError) {
@@ -39,7 +39,7 @@ function ForgotPassword() {
 
     try {
       await authService.requestPasswordReset(email)
-      setMessage(t("reset.codeSent"))
+      toast.success(t("reset.codeSent"))
       setStep("otp")
     } catch (err) {
       setError(err instanceof Error ? err.message : t("reset.sendFailed"))
@@ -51,7 +51,6 @@ function ForgotPassword() {
   const verifyCode = async (event: FormEvent) => {
     event.preventDefault()
     setError("")
-    setMessage("")
     if (!/^\d{6}$/.test(code)) {
       setFieldErrors({ code: t("reset.codeLength") })
       setError(t("fixFields"))
@@ -62,7 +61,7 @@ function ForgotPassword() {
     try {
       const result = await authService.verifyPasswordOtp(email, code)
       setResetToken(result.resetToken)
-      setMessage(t("reset.codeVerified"))
+      toast.success(t("reset.codeVerified"))
       setStep("password")
     } catch (err) {
       setError(err instanceof Error ? err.message : t("reset.invalidCode"))
@@ -74,7 +73,6 @@ function ForgotPassword() {
   const resetPassword = async (event: FormEvent) => {
     event.preventDefault()
     setError("")
-    setMessage("")
 
     const passwordError = validatePassword(password)
     const confirmPasswordError = password === confirmPassword ? "" : t("passwordMismatch")
@@ -90,7 +88,7 @@ function ForgotPassword() {
     setLoading(true)
     try {
       await authService.resetPassword(email, resetToken, password)
-      setMessage(t("reset.passwordUpdated"))
+      toast.success(t("reset.passwordUpdated"))
       setStep("done")
     } catch (err) {
       setError(err instanceof Error ? err.message : t("reset.resetFailed"))
@@ -132,7 +130,6 @@ function ForgotPassword() {
         </p>
 
         {error && <div className="alert alert-danger">{error}</div>}
-        {message && <div className="auth-success">{message}</div>}
 
         {step === "email" && (
           <form onSubmit={requestCode} className="auth-form">

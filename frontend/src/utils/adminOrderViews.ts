@@ -1,10 +1,10 @@
 import type { AdminRole } from "../types/admin";
 
 export type AdminOrderView = "service" | "kitchen" | "management";
-export type AdminDashboardTab = "dashboard" | "products" | "ingredients" | "categories" | "orders" | "reviews" | "analytics" | "clientes" | "staff" | "settings";
+export type AdminDashboardTab = "dashboard" | "products" | "ingredients" | "categories" | "orders" | "reviews" | "analytics" | "clientes" | "staff" | "settings" | "privacy";
 
 const DASHBOARD_TABS_BY_ROLE: Record<AdminRole, readonly AdminDashboardTab[]> = {
-  owner: ["dashboard", "products", "ingredients", "categories", "orders", "reviews", "clientes", "staff", "settings", "analytics"],
+  owner: ["dashboard", "products", "ingredients", "categories", "orders", "reviews", "clientes", "staff", "settings", "privacy", "analytics"],
   manager: ["orders", "products", "ingredients", "categories"],
   waiter: ["orders", "products", "ingredients"],
   chef: ["orders", "products", "ingredients"],

@@ -332,7 +332,7 @@ export default function Privacy() {
   const { organization, experience } = useOrganization()
   const locale = normalizeLocale(i18n.resolvedLanguage ?? i18n.language) ?? "pt-PT"
   const organizationName = experience.profile.display_name || organization.name
-  const contact = [experience.profile.email, experience.profile.phone].filter(Boolean).join(" · ") || null
+  const contact = experience.profile.privacy_contact_email || experience.profile.email || null
   const page = useMemo(
     () => personalizePrivacy(content[locale], organizationName, contact),
     [contact, locale, organizationName],

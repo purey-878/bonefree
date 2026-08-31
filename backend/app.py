@@ -30,6 +30,9 @@ from modules.restaurant.routers.profile import router as profile_router
 from modules.restaurant.routers.reviews import router as reviews_router
 from modules.restaurant.routers.site_settings import owner_router as site_settings_owner_router
 from modules.restaurant.routers.site_settings import public_router as site_settings_public_router
+from modules.restaurant.routers.data_privacy import admin_router as data_privacy_admin_router
+from modules.restaurant.routers.data_privacy import data_access_router as data_privacy_data_access_router
+from modules.auth.routers.data_access import router as data_access_router
 from modules.auth.routers.organizations import experience_router as organization_experience_router
 from modules.auth.routers.organizations import router as organizations_router
 from modules.auth.dependencies import (
@@ -123,6 +126,10 @@ def create_app(
 
     resolved_assets = public_assets_dir or PUBLIC_ASSETS_DIR
     resolved_uploads = uploads_dir or UPLOADS_DIR
+    resolved_exports = settings.data_exports_dir.resolve()
+    for public_directory in (resolved_assets.resolve(), resolved_uploads.resolve()):
+        if resolved_exports == public_directory or resolved_exports.is_relative_to(public_directory):
+            raise RuntimeError("DATA_EXPORTS_DIR must not be inside a public static directory")
     resolved_assets.mkdir(parents=True, exist_ok=True)
     resolved_uploads.mkdir(parents=True, exist_ok=True)
     application.mount("/assets", StaticFiles(directory=resolved_assets), name="assets")
@@ -170,6 +177,8 @@ def create_app(
         Depends(require_organization_feature("reviews")),
     ]
     application.include_router(organizations_router)
+    application.include_router(data_access_router)
+    application.include_router(data_privacy_data_access_router)
     application.include_router(organization_experience_router)
     application.include_router(auth_router, dependencies=public_customer_account_dependencies)
     application.include_router(products_router, prefix="/products", tags=["Products"], dependencies=catalog_dependencies)
@@ -180,6 +189,7 @@ def create_app(
     application.include_router(staff_router)
     application.include_router(site_settings_public_router, dependencies=public_tenant_dependencies)
     application.include_router(site_settings_owner_router)
+    application.include_router(data_privacy_admin_router)
     return application
 
 

@@ -1106,6 +1106,187 @@ export type DashboardSalesGraphs = {
 };
 
 /**
+ * DataAccessOtpChallengeResponse
+ */
+export type DataAccessOtpChallengeResponse = {
+    /**
+     * Challenge Id
+     */
+    challenge_id: string;
+    /**
+     * Expires At
+     */
+    expires_at: string;
+};
+
+/**
+ * DataAccessOtpRequest
+ */
+export type DataAccessOtpRequest = {
+    /**
+     * Email
+     */
+    email: string;
+    /**
+     * Hostname
+     */
+    hostname: string;
+    /**
+     * Password
+     */
+    password: string;
+};
+
+/**
+ * DataAccessOtpVerifyRequest
+ */
+export type DataAccessOtpVerifyRequest = {
+    /**
+     * Challenge Id
+     */
+    challenge_id: string;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Hostname
+     */
+    hostname: string;
+};
+
+/**
+ * DataAccessOwnerIdentity
+ */
+export type DataAccessOwnerIdentity = {
+    /**
+     * Email
+     */
+    email: string;
+    /**
+     * Name
+     */
+    name?: string | null;
+    /**
+     * Owner Id
+     */
+    owner_id: number;
+};
+
+/**
+ * DataAccessSessionResponse
+ */
+export type DataAccessSessionResponse = {
+    /**
+     * Data Access Expires At
+     */
+    data_access_expires_at: string;
+    /**
+     * Organization Name
+     */
+    organization_name: string;
+    owner: DataAccessOwnerIdentity;
+};
+
+/**
+ * DataAccessTokenResponse
+ */
+export type DataAccessTokenResponse = {
+    /**
+     * Access Token
+     */
+    access_token: string;
+    /**
+     * Data Access Expires At
+     */
+    data_access_expires_at: string;
+    /**
+     * Organization Name
+     */
+    organization_name: string;
+    owner: DataAccessOwnerIdentity;
+    /**
+     * Token Type
+     */
+    token_type?: 'bearer';
+};
+
+/**
+ * DataExportCreate
+ */
+export type DataExportCreate = {
+    kind?: DataExportKind;
+};
+
+/**
+ * DataExportKind
+ */
+export type DataExportKind = 'tenant' | 'customer' | 'customers' | 'orders' | 'catalog' | 'media';
+
+/**
+ * DataExportListResponse
+ */
+export type DataExportListResponse = {
+    /**
+     * Items
+     */
+    items: Array<DataExportResponse>;
+};
+
+/**
+ * DataExportResponse
+ */
+export type DataExportResponse = {
+    /**
+     * Can Download
+     */
+    can_download: boolean;
+    /**
+     * Completed At
+     */
+    completed_at?: string | null;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Customer Id
+     */
+    customer_id?: number | null;
+    /**
+     * Downloaded At
+     */
+    downloaded_at?: string | null;
+    /**
+     * Error Message
+     */
+    error_message?: string | null;
+    /**
+     * Expires At
+     */
+    expires_at?: string | null;
+    /**
+     * Export Id
+     */
+    export_id: string;
+    /**
+     * File Name
+     */
+    file_name?: string | null;
+    kind: DataExportKind;
+    /**
+     * Sha256
+     */
+    sha256?: string | null;
+    status: DataExportStatus;
+};
+
+/**
+ * DataExportStatus
+ */
+export type DataExportStatus = 'pending' | 'processing' | 'ready' | 'cancelled' | 'failed' | 'expired';
+
+/**
  * EntityStatus
  */
 export type EntityStatus = 'active' | 'inactive';
@@ -1919,6 +2100,10 @@ export type OrganizationProfileResponse = {
      * Postal Code
      */
     postal_code?: string | null;
+    /**
+     * Privacy Contact Email
+     */
+    privacy_contact_email?: string | null;
     social_links?: SocialMediaSettings | null;
     /**
      * Tax Id
@@ -1991,6 +2176,10 @@ export type OrganizationProfileUpdate = {
      * Postal Code
      */
     postal_code?: string | null;
+    /**
+     * Privacy Contact Email
+     */
+    privacy_contact_email?: string | null;
     social_links?: SocialMediaSettings | null;
     /**
      * Tax Id
@@ -2076,6 +2265,24 @@ export type PopularProduct = {
      * Sold
      */
     sold: number;
+};
+
+/**
+ * PrivacyOverviewResponse
+ */
+export type PrivacyOverviewResponse = {
+    /**
+     * Data Access Expires At
+     */
+    data_access_expires_at?: string | null;
+    /**
+     * Operational Access Expires At
+     */
+    operational_access_expires_at?: string | null;
+    /**
+     * Privacy Contact Email
+     */
+    privacy_contact_email?: string | null;
 };
 
 /**
@@ -3187,6 +3394,10 @@ export type PublicOrganizationProfile = {
      * Postal Code
      */
     postal_code?: string | null;
+    /**
+     * Privacy Contact Email
+     */
+    privacy_contact_email?: string | null;
     social_links?: PublicSocialLinks;
 };
 
@@ -3264,6 +3475,10 @@ export type ResetPasswordRequest = {
  */
 export type ResolvedOrganizationResponse = {
     /**
+     * Data Access Expires At
+     */
+    data_access_expires_at?: string | null;
+    /**
      * Name
      */
     name: string;
@@ -3271,6 +3486,10 @@ export type ResolvedOrganizationResponse = {
      * Slug
      */
     slug: string;
+    /**
+     * State
+     */
+    state: 'operational' | 'frozen';
 };
 
 /**
@@ -4974,6 +5193,411 @@ export type AdminManagementUpdateCustomerResponses = {
 };
 
 export type AdminManagementUpdateCustomerResponse = AdminManagementUpdateCustomerResponses[keyof AdminManagementUpdateCustomerResponses];
+
+export type AdminDataPrivacyCreateCustomerExportData = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
+    path: {
+        /**
+         * Customer Id
+         */
+        customer_id: number;
+    };
+    query?: never;
+    url: '/admin/customers/{customer_id}/data-export';
+};
+
+export type AdminDataPrivacyCreateCustomerExportErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type AdminDataPrivacyCreateCustomerExportError = AdminDataPrivacyCreateCustomerExportErrors[keyof AdminDataPrivacyCreateCustomerExportErrors];
+
+export type AdminDataPrivacyCreateCustomerExportResponses = {
+    /**
+     * Successful Response
+     */
+    202: DataExportResponse;
+};
+
+export type AdminDataPrivacyCreateCustomerExportResponse = AdminDataPrivacyCreateCustomerExportResponses[keyof AdminDataPrivacyCreateCustomerExportResponses];
+
+export type AdminDataPrivacyListExportsData = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/admin/data-exports';
+};
+
+export type AdminDataPrivacyListExportsErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type AdminDataPrivacyListExportsError = AdminDataPrivacyListExportsErrors[keyof AdminDataPrivacyListExportsErrors];
+
+export type AdminDataPrivacyListExportsResponses = {
+    /**
+     * Successful Response
+     */
+    200: DataExportListResponse;
+};
+
+export type AdminDataPrivacyListExportsResponse = AdminDataPrivacyListExportsResponses[keyof AdminDataPrivacyListExportsResponses];
+
+export type AdminDataPrivacyCreateTenantExportData = {
+    body: DataExportCreate;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/admin/data-exports';
+};
+
+export type AdminDataPrivacyCreateTenantExportErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type AdminDataPrivacyCreateTenantExportError = AdminDataPrivacyCreateTenantExportErrors[keyof AdminDataPrivacyCreateTenantExportErrors];
+
+export type AdminDataPrivacyCreateTenantExportResponses = {
+    /**
+     * Successful Response
+     */
+    202: DataExportResponse;
+};
+
+export type AdminDataPrivacyCreateTenantExportResponse = AdminDataPrivacyCreateTenantExportResponses[keyof AdminDataPrivacyCreateTenantExportResponses];
+
+export type AdminDataPrivacyCancelExportData = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
+    path: {
+        /**
+         * Export Id
+         */
+        export_id: string;
+    };
+    query?: never;
+    url: '/admin/data-exports/{export_id}';
+};
+
+export type AdminDataPrivacyCancelExportErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type AdminDataPrivacyCancelExportError = AdminDataPrivacyCancelExportErrors[keyof AdminDataPrivacyCancelExportErrors];
+
+export type AdminDataPrivacyCancelExportResponses = {
+    /**
+     * Successful Response
+     */
+    200: DataExportResponse;
+};
+
+export type AdminDataPrivacyCancelExportResponse = AdminDataPrivacyCancelExportResponses[keyof AdminDataPrivacyCancelExportResponses];
+
+export type AdminDataPrivacyDownloadExportData = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
+    path: {
+        /**
+         * Export Id
+         */
+        export_id: string;
+    };
+    query?: never;
+    url: '/admin/data-exports/{export_id}/download';
+};
+
+export type AdminDataPrivacyDownloadExportErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type AdminDataPrivacyDownloadExportError = AdminDataPrivacyDownloadExportErrors[keyof AdminDataPrivacyDownloadExportErrors];
+
+export type AdminDataPrivacyDownloadExportResponses = {
+    /**
+     * Private ZIP export
+     */
+    200: Blob | File;
+};
+
+export type AdminDataPrivacyDownloadExportResponse = AdminDataPrivacyDownloadExportResponses[keyof AdminDataPrivacyDownloadExportResponses];
+
+export type AdminDataPrivacyRegenerateExportData = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
+    path: {
+        /**
+         * Export Id
+         */
+        export_id: string;
+    };
+    query?: never;
+    url: '/admin/data-exports/{export_id}/regenerate';
+};
+
+export type AdminDataPrivacyRegenerateExportErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type AdminDataPrivacyRegenerateExportError = AdminDataPrivacyRegenerateExportErrors[keyof AdminDataPrivacyRegenerateExportErrors];
+
+export type AdminDataPrivacyRegenerateExportResponses = {
+    /**
+     * Successful Response
+     */
+    202: DataExportResponse;
+};
+
+export type AdminDataPrivacyRegenerateExportResponse = AdminDataPrivacyRegenerateExportResponses[keyof AdminDataPrivacyRegenerateExportResponses];
+
+export type AdminDataPrivacyReadOverviewData = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/admin/data-privacy';
+};
+
+export type AdminDataPrivacyReadOverviewErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type AdminDataPrivacyReadOverviewError = AdminDataPrivacyReadOverviewErrors[keyof AdminDataPrivacyReadOverviewErrors];
+
+export type AdminDataPrivacyReadOverviewResponses = {
+    /**
+     * Successful Response
+     */
+    200: PrivacyOverviewResponse;
+};
+
+export type AdminDataPrivacyReadOverviewResponse = AdminDataPrivacyReadOverviewResponses[keyof AdminDataPrivacyReadOverviewResponses];
 
 export type AdminManagementListIngredientsData = {
     body?: never;
@@ -9096,6 +9720,636 @@ export type CheckoutDownloadOrderReceiptPdfResponses = {
 };
 
 export type CheckoutDownloadOrderReceiptPdfResponse = CheckoutDownloadOrderReceiptPdfResponses[keyof CheckoutDownloadOrderReceiptPdfResponses];
+
+export type DataAccessRequestLoginCodeData = {
+    body: DataAccessOtpRequest;
+    path?: never;
+    query?: never;
+    url: '/data-access/auth/request-code';
+};
+
+export type DataAccessRequestLoginCodeErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type DataAccessRequestLoginCodeError = DataAccessRequestLoginCodeErrors[keyof DataAccessRequestLoginCodeErrors];
+
+export type DataAccessRequestLoginCodeResponses = {
+    /**
+     * Successful Response
+     */
+    200: DataAccessOtpChallengeResponse;
+};
+
+export type DataAccessRequestLoginCodeResponse = DataAccessRequestLoginCodeResponses[keyof DataAccessRequestLoginCodeResponses];
+
+export type DataAccessVerifyLoginCodeData = {
+    body: DataAccessOtpVerifyRequest;
+    path?: never;
+    query?: never;
+    url: '/data-access/auth/verify-code';
+};
+
+export type DataAccessVerifyLoginCodeErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type DataAccessVerifyLoginCodeError = DataAccessVerifyLoginCodeErrors[keyof DataAccessVerifyLoginCodeErrors];
+
+export type DataAccessVerifyLoginCodeResponses = {
+    /**
+     * Successful Response
+     */
+    200: DataAccessTokenResponse;
+};
+
+export type DataAccessVerifyLoginCodeResponse = DataAccessVerifyLoginCodeResponses[keyof DataAccessVerifyLoginCodeResponses];
+
+export type DataAccessListCustomersData = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Organization-Hostname
+         */
+        'X-Organization-Hostname'?: string | null;
+    };
+    path?: never;
+    query?: {
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Per Page
+         */
+        per_page?: number;
+        /**
+         * Search
+         */
+        search?: string | null;
+    };
+    url: '/data-access/customers';
+};
+
+export type DataAccessListCustomersErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type DataAccessListCustomersError = DataAccessListCustomersErrors[keyof DataAccessListCustomersErrors];
+
+export type DataAccessListCustomersResponses = {
+    /**
+     * Successful Response
+     */
+    200: CustomerAdminPageResponse;
+};
+
+export type DataAccessListCustomersResponse = DataAccessListCustomersResponses[keyof DataAccessListCustomersResponses];
+
+export type DataAccessCreateCustomerExportData = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Organization-Hostname
+         */
+        'X-Organization-Hostname'?: string | null;
+    };
+    path: {
+        /**
+         * Customer Id
+         */
+        customer_id: number;
+    };
+    query?: never;
+    url: '/data-access/customers/{customer_id}/data-export';
+};
+
+export type DataAccessCreateCustomerExportErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type DataAccessCreateCustomerExportError = DataAccessCreateCustomerExportErrors[keyof DataAccessCreateCustomerExportErrors];
+
+export type DataAccessCreateCustomerExportResponses = {
+    /**
+     * Successful Response
+     */
+    202: DataExportResponse;
+};
+
+export type DataAccessCreateCustomerExportResponse = DataAccessCreateCustomerExportResponses[keyof DataAccessCreateCustomerExportResponses];
+
+export type DataAccessListExportsData = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Organization-Hostname
+         */
+        'X-Organization-Hostname'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/data-access/data-exports';
+};
+
+export type DataAccessListExportsErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type DataAccessListExportsError = DataAccessListExportsErrors[keyof DataAccessListExportsErrors];
+
+export type DataAccessListExportsResponses = {
+    /**
+     * Successful Response
+     */
+    200: DataExportListResponse;
+};
+
+export type DataAccessListExportsResponse = DataAccessListExportsResponses[keyof DataAccessListExportsResponses];
+
+export type DataAccessCreateTenantExportData = {
+    body: DataExportCreate;
+    headers?: {
+        /**
+         * X-Organization-Hostname
+         */
+        'X-Organization-Hostname'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/data-access/data-exports';
+};
+
+export type DataAccessCreateTenantExportErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type DataAccessCreateTenantExportError = DataAccessCreateTenantExportErrors[keyof DataAccessCreateTenantExportErrors];
+
+export type DataAccessCreateTenantExportResponses = {
+    /**
+     * Successful Response
+     */
+    202: DataExportResponse;
+};
+
+export type DataAccessCreateTenantExportResponse = DataAccessCreateTenantExportResponses[keyof DataAccessCreateTenantExportResponses];
+
+export type DataAccessCancelExportData = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Organization-Hostname
+         */
+        'X-Organization-Hostname'?: string | null;
+    };
+    path: {
+        /**
+         * Export Id
+         */
+        export_id: string;
+    };
+    query?: never;
+    url: '/data-access/data-exports/{export_id}';
+};
+
+export type DataAccessCancelExportErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type DataAccessCancelExportError = DataAccessCancelExportErrors[keyof DataAccessCancelExportErrors];
+
+export type DataAccessCancelExportResponses = {
+    /**
+     * Successful Response
+     */
+    200: DataExportResponse;
+};
+
+export type DataAccessCancelExportResponse = DataAccessCancelExportResponses[keyof DataAccessCancelExportResponses];
+
+export type DataAccessDownloadExportData = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Organization-Hostname
+         */
+        'X-Organization-Hostname'?: string | null;
+    };
+    path: {
+        /**
+         * Export Id
+         */
+        export_id: string;
+    };
+    query?: never;
+    url: '/data-access/data-exports/{export_id}/download';
+};
+
+export type DataAccessDownloadExportErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type DataAccessDownloadExportError = DataAccessDownloadExportErrors[keyof DataAccessDownloadExportErrors];
+
+export type DataAccessDownloadExportResponses = {
+    /**
+     * Private ZIP export
+     */
+    200: Blob | File;
+};
+
+export type DataAccessDownloadExportResponse = DataAccessDownloadExportResponses[keyof DataAccessDownloadExportResponses];
+
+export type DataAccessRegenerateExportData = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Organization-Hostname
+         */
+        'X-Organization-Hostname'?: string | null;
+    };
+    path: {
+        /**
+         * Export Id
+         */
+        export_id: string;
+    };
+    query?: never;
+    url: '/data-access/data-exports/{export_id}/regenerate';
+};
+
+export type DataAccessRegenerateExportErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type DataAccessRegenerateExportError = DataAccessRegenerateExportErrors[keyof DataAccessRegenerateExportErrors];
+
+export type DataAccessRegenerateExportResponses = {
+    /**
+     * Successful Response
+     */
+    202: DataExportResponse;
+};
+
+export type DataAccessRegenerateExportResponse = DataAccessRegenerateExportResponses[keyof DataAccessRegenerateExportResponses];
+
+export type DataAccessReadPrivacyOverviewData = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Organization-Hostname
+         */
+        'X-Organization-Hostname'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/data-access/data-privacy';
+};
+
+export type DataAccessReadPrivacyOverviewErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type DataAccessReadPrivacyOverviewError = DataAccessReadPrivacyOverviewErrors[keyof DataAccessReadPrivacyOverviewErrors];
+
+export type DataAccessReadPrivacyOverviewResponses = {
+    /**
+     * Successful Response
+     */
+    200: PrivacyOverviewResponse;
+};
+
+export type DataAccessReadPrivacyOverviewResponse = DataAccessReadPrivacyOverviewResponses[keyof DataAccessReadPrivacyOverviewResponses];
+
+export type DataAccessReadSessionData = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Organization-Hostname
+         */
+        'X-Organization-Hostname'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/data-access/me';
+};
+
+export type DataAccessReadSessionErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type DataAccessReadSessionError = DataAccessReadSessionErrors[keyof DataAccessReadSessionErrors];
+
+export type DataAccessReadSessionResponses = {
+    /**
+     * Successful Response
+     */
+    200: DataAccessSessionResponse;
+};
+
+export type DataAccessReadSessionResponse = DataAccessReadSessionResponses[keyof DataAccessReadSessionResponses];
 
 export type HealthHealthCheckData = {
     body?: never;

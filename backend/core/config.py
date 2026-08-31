@@ -67,6 +67,30 @@ class Settings(BaseSettings):
             "ADMIN_SESSION_INACTIVITY_EXPIRATION_MINUTES",
         ),
     )
+    cancellation_notice_days: int = Field(
+        default=30,
+        gt=0,
+        validation_alias="CANCELLATION_NOTICE_DAYS",
+    )
+    data_access_window_days: int = Field(
+        default=30,
+        gt=0,
+        validation_alias="DATA_ACCESS_WINDOW_DAYS",
+    )
+    data_access_session_expiration_minutes: int = Field(
+        default=60,
+        gt=0,
+        validation_alias="DATA_ACCESS_SESSION_EXPIRATION_MINUTES",
+    )
+    data_access_otp_expiration_minutes: int = Field(
+        default=10,
+        gt=0,
+        validation_alias="DATA_ACCESS_OTP_EXPIRATION_MINUTES",
+    )
+    data_exports_dir: Path = Field(
+        default=PROJECT_ROOT / "private_exports",
+        validation_alias="DATA_EXPORTS_DIR",
+    )
     redis_url_raw: str | None = Field(default=None, validation_alias="REDIS_URL")
     rate_limit_enabled: bool = Field(default=True, validation_alias="RATE_LIMIT_ENABLED")
     rate_limit_auth_ip_requests: int = Field(
@@ -219,7 +243,7 @@ class Settings(BaseSettings):
         return self.smtp_port == 465
 
     auth_email_from: str | None = Field(default=None, validation_alias="AUTH_EMAIL_FROM")
-    auth_email_from_name: str = Field(default="Bonefree", validation_alias="AUTH_EMAIL_FROM_NAME")
+    auth_email_from_name: str = Field(default="Core Platform", validation_alias="AUTH_EMAIL_FROM_NAME")
 
     model_config = SettingsConfigDict(
         env_file=(ENV_FILE, BACKEND_ENV_FILE),

@@ -448,6 +448,7 @@ def get_organization_profile(db: Session) -> OrganizationProfileResponse:
         description=profile.description,
         about_text=profile.about_text,
         email=profile.email,
+        privacy_contact_email=profile.privacy_contact_email,
         phone=profile.phone,
         address_line_1=profile.address_line_1,
         address_line_2=profile.address_line_2,

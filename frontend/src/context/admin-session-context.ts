@@ -5,6 +5,7 @@ import type { AdminRole } from '../types/admin'
 export interface AdminSessionIdentity {
   name: string
   role: AdminRole
+  mode: 'operational' | 'data_access'
 }
 
 export interface AdminSessionValue extends AdminSessionIdentity {

@@ -45,7 +45,6 @@ def add_organization_domain(
 ) -> OrganizationDomain:
     normalized_slug = normalize_organization_slug(organization_slug)
     normalized_domain = normalize_hostname(domain)
-
     try:
         organization = db.scalar(
             select(Organization)

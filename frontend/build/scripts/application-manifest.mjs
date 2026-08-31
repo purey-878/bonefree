@@ -115,6 +115,9 @@ export function buildMetadata(configuration, buildId) {
       : {}),
     features: configuration.features,
     themes: configuration.themes,
+    ...(configuration.capabilities
+      ? { capabilities: configuration.capabilities }
+      : {}),
     experience_schema_version: 1,
     build_id: buildId,
   }

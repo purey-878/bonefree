@@ -288,7 +288,15 @@ class OrganizationApiTests(unittest.TestCase):
             headers={"Origin": "http://bonefree.localhost:5173"},
         )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"slug": "first", "name": "First"})
+        self.assertEqual(
+            response.json(),
+            {
+                "slug": "first",
+                "name": "First",
+                "state": "operational",
+                "data_access_expires_at": None,
+            },
+        )
         self.assertEqual(
             response.headers.get("access-control-allow-origin"),
             "http://bonefree.localhost:5173",

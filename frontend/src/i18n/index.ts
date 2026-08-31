@@ -5,7 +5,6 @@ import { initReactI18next } from "react-i18next"
 import deDE from "./locales/de-DE"
 import enGB from "./locales/en-GB"
 import ptPT from "./locales/pt-PT"
-import { adminLegacyDynamicResources, adminPhraseResources } from "./adminPhrases"
 
 export const SUPPORTED_LOCALES = ["pt-PT", "en-GB", "de-DE"] as const
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number]
@@ -51,9 +50,9 @@ export function resolvedLocale(): SupportedLocale {
 }
 
 export const resources = {
-  "pt-PT": { ...ptPT, admin: { ...ptPT.admin, legacy: adminPhraseResources("pt-PT"), legacyDynamic: adminLegacyDynamicResources["pt-PT"] } },
-  "en-GB": { ...enGB, admin: { ...enGB.admin, legacy: adminPhraseResources("en-GB"), legacyDynamic: adminLegacyDynamicResources["en-GB"] } },
-  "de-DE": { ...deDE, admin: { ...deDE.admin, legacy: adminPhraseResources("de-DE"), legacyDynamic: adminLegacyDynamicResources["de-DE"] } },
+  "pt-PT": ptPT,
+  "en-GB": enGB,
+  "de-DE": deDE,
 }
 
 export const i18nReady = i18n
@@ -74,6 +73,23 @@ export const i18nReady = i18n
     interpolation: { escapeValue: false },
     returnNull: false,
   })
+
+let adminLegacyTranslationsPromise: Promise<void> | null = null
+
+export function loadAdminLegacyTranslations(): Promise<void> {
+  if (!adminLegacyTranslationsPromise) {
+    adminLegacyTranslationsPromise = i18nReady.then(async () => {
+      const { adminLegacyDynamicResources, adminPhraseResources } = await import("./adminPhrases")
+      for (const locale of SUPPORTED_LOCALES) {
+        i18n.addResourceBundle(locale, "admin", {
+          legacy: adminPhraseResources(locale),
+          legacyDynamic: adminLegacyDynamicResources[locale],
+        }, true, true)
+      }
+    })
+  }
+  return adminLegacyTranslationsPromise
+}
 
 function syncDocumentLanguage(language?: string) {
   if (typeof document !== "undefined") {
