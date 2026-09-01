@@ -35,26 +35,6 @@ async function bootstrap() {
     const organization = await organizationService.resolve(window.location.hostname)
     tenantResolved = true
     setOrganizationSlug(organization.slug)
-    if (organization.state === 'frozen') {
-      if (!organization.data_access_expires_at) throw new Error('data_access_deadline_missing')
-      if (!window.location.pathname.startsWith('/admin')) {
-        const { default: ClosedSite } = await import('./data-access/ClosedSite.tsx')
-        root.render(shell(<ClosedSite organizationName={organization.name} />))
-        return
-      }
-      const { default: FrozenApplication } = await import('./data-access/FrozenApplication.tsx')
-      root.render(shell(
-        <BrowserRouter>
-          <ToastProvider>
-            <FrozenApplication organization={{
-              name: organization.name,
-              dataAccessExpiresAt: organization.data_access_expires_at,
-            }} />
-          </ToastProvider>
-        </BrowserRouter>,
-      ))
-      return
-    }
     const [
       { default: App },
       { AuthProvider },

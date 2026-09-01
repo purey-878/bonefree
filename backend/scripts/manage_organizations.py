@@ -1,4 +1,4 @@
-"""Unified organization, domain, data-access, and hosting commands."""
+"""Unified organization, domain, access-expiry, and hosting commands."""
 from __future__ import annotations
 
 import argparse
@@ -24,12 +24,11 @@ from modules.auth.models import (
 from modules.auth.services.organization_lifecycle import (
     build_purge_plan,
     cancel_organization_access,
-    freeze_organization_now,
     get_organization,
     hosting_plan_rows,
     purge_organization,
     restore_organization_access,
-    send_due_data_access_notifications,
+    send_due_access_notifications,
 )
 from scripts.add_organization_domain import add_organization_domain
 from scripts.create_organization import create_organization, normalize_email
@@ -80,8 +79,11 @@ def _organization_parser(subparsers) -> None:
 
     restore = actions.add_parser(
         "restore-access",
-        help="Cancelar o encerramento e restaurar o acesso normal.",
-        description="Limpa access_expires_at. Não funciona depois de a organização ser eliminada.",
+        help="Cancelar o encerramento antes de o prazo terminar.",
+        description=(
+            "Limpa access_expires_at enquanto a organização ainda funciona normalmente. "
+            "Depois do vencimento, o encerramento é definitivo."
+        ),
     )
     restore.add_argument("--slug", required=True, help="Organização que voltará ao funcionamento normal.")
 
@@ -97,6 +99,7 @@ def _organization_parser(subparsers) -> None:
         help="Iniciar o encerramento com aviso prévio.",
         description=(
             "Define access_expires_at para a data atual mais CANCELLATION_NOTICE_DAYS. "
+            "Até essa data tudo funciona normalmente; depois, todo o acesso é bloqueado. "
             "É idempotente: repetir o comando não prolonga o prazo."
         ),
     )
@@ -111,27 +114,12 @@ def _organization_parser(subparsers) -> None:
         help="Com --replace, repetir exatamente o slug da organização.",
     )
 
-    freeze = actions.add_parser(
-        "freeze-now",
-        help="Bloquear imediatamente a operação e iniciar o acesso restrito.",
-        description=(
-            "Define access_expires_at para agora, revoga sessões operacionais e inicia "
-            "imediatamente a janela de acesso aos dados."
-        ),
-    )
-    freeze.add_argument("--slug", required=True, help="Organização a bloquear imediatamente.")
-    freeze.add_argument(
-        "--confirm",
-        required=True,
-        help="Repetir exatamente o slug para confirmar o bloqueio imediato.",
-    )
-
     purge = actions.add_parser(
         "purge",
         help="Eliminar ou anonimizar definitivamente os dados operacionais.",
         description=(
-            "Executa o plano de eliminação. Só funciona depois do prazo e quando não há "
-            "bloqueios. Após purged_at, a organização não pode ser restaurada."
+            "Executa o plano de eliminação depois do prazo. Não exige que o proprietário "
+            "tenha gerado ou baixado uma cópia. Após purged_at, não há restauração."
         ),
     )
     purge.add_argument("--slug", required=True, help="Organização a eliminar.")
@@ -144,7 +132,7 @@ def _organization_parser(subparsers) -> None:
     notifications = actions.add_parser(
         "send-notifications",
         help="Enviar avisos de encerramento que estejam pendentes.",
-        description="Processa os avisos iniciais, lembretes e confirmações de fim de acesso.",
+        description="Processa o aviso inicial, os lembretes e a confirmação de encerramento.",
     )
     notifications.add_argument(
         "--at",
@@ -215,7 +203,6 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "  python scripts/manage_organizations.py --help\n\n"
             "Exemplos:\n"
             "  python -m scripts.manage_organizations organization cancel-access --slug bonefree\n"
-            "  python -m scripts.manage_organizations organization freeze-now --slug bonefree --confirm bonefree\n"
             "  python -m scripts.manage_organizations domain create --organization-slug bonefree --domain bonefree.pt --verified --primary\n"
             "  python -m scripts.manage_organizations hosting-plan --format table\n\n"
             "Use '<comando> --help' para ver os detalhes de cada operação."
@@ -234,8 +221,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "hosting-plan",
         help="Listar o estado de hospedagem de todos os hostnames.",
         description=(
-            "Mostra quais domínios devem servir a loja, o acesso restrito ou ser removidos "
-            "manualmente do provedor de hospedagem."
+            "Mostra quais domínios devem servir a loja ou ser removidos manualmente "
+            "do provedor de hospedagem."
         ),
     )
     hosting.add_argument(
@@ -277,7 +264,7 @@ def _run_organization(args: argparse.Namespace) -> object:
                 currency_code=args.currency_code,
             )
         if args.action == "send-notifications":
-            return {"notifications_sent": send_due_data_access_notifications(db, now=_datetime(args.at))}
+            return {"notifications_sent": send_due_access_notifications(db, now=_datetime(args.at))}
 
         organization = get_organization(db, args.slug)
         if args.action == "update":
@@ -301,11 +288,6 @@ def _run_organization(args: argparse.Namespace) -> object:
                 organization,
                 replace=args.replace,
             )
-            return {"slug": organization.slug, "access_expires_at": expires_at.isoformat()}
-        if args.action == "freeze-now":
-            if args.confirm != organization.slug:
-                raise ValueError("Immediate freeze confirmation must exactly match the organization slug.")
-            expires_at = freeze_organization_now(db, organization)
             return {"slug": organization.slug, "access_expires_at": expires_at.isoformat()}
         if args.action == "restore-access":
             restore_organization_access(db, organization)

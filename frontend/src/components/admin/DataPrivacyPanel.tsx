@@ -79,6 +79,7 @@ export default function DataPrivacyPanel({ focusExportQueueRequest = 0 }: DataPr
       || (item.status === 'cancelled' && Boolean(item.expires_at) && new Date(item.expires_at as string).getTime() > Date.now())
     )
   ))
+  const visibleExports = exports.filter((item) => item.status !== 'cancelled')
   const isExportKindBlocked = (kind: OrganizationDataExportKind) => (
     kind === 'tenant'
       ? activeOrganizationExports.length > 0
@@ -193,8 +194,8 @@ export default function DataPrivacyPanel({ focusExportQueueRequest = 0 }: DataPr
           <p>{t('privacy.exports.queueDescription')}</p>
         </div>
         <div className="data-privacy-list">
-          {exports.length === 0 && <p>{t('privacy.exports.empty')}</p>}
-          {exports.map((item) => (
+          {visibleExports.length === 0 && <p>{t('privacy.exports.empty')}</p>}
+          {visibleExports.map((item) => (
             <article key={item.export_id}>
               <div>
                 <strong>{exportKindLabel(item)}</strong>
@@ -248,25 +249,18 @@ export default function DataPrivacyPanel({ focusExportQueueRequest = 0 }: DataPr
         </div>
       </section>
 
-      <section className="ad-card data-privacy-section data-privacy-instruction">
-        <h3>{t('privacy.deletion.title')}</h3>
-        <p>{t('privacy.deletion.downloadResponsibility')}</p>
-        <p>{t('privacy.deletion.afterDeadline')}</p>
-        {overview && (overview.operational_access_expires_at || overview.data_access_expires_at) && (
+      {overview?.access_expires_at && (
+        <section className="ad-card data-privacy-section data-privacy-instruction">
+          <h3>{t('privacy.deletion.title')}</h3>
           <div className="data-privacy-deadlines">
-            {overview.operational_access_expires_at && (
-              <strong>{t('privacy.deletion.normalAccessUntil', {
-                date: formatDate(overview.operational_access_expires_at, i18n.language),
-              })}</strong>
-            )}
-            {overview.data_access_expires_at && (
-              <strong>{t('privacy.deletion.ownerAccessUntil', {
-                date: formatDate(overview.data_access_expires_at, i18n.language),
-              })}</strong>
-            )}
+            <strong>{t('privacy.deletion.normalAccessUntil', {
+              date: formatDate(overview.access_expires_at, i18n.language),
+            })}</strong>
           </div>
-        )}
-      </section>
+          <p>{t('privacy.deletion.downloadResponsibility')}</p>
+          <p>{t('privacy.deletion.afterDeadline')}</p>
+        </section>
+      )}
 
       <ConfirmDialog
         open={confirmCompleteCopy}

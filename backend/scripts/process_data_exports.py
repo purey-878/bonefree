@@ -8,7 +8,7 @@ from modules.restaurant.services.data_exports import (
     cleanup_expired_data_exports,
     process_next_pending_export,
 )
-from modules.auth.services.organization_lifecycle import send_due_data_access_notifications
+from modules.auth.services.organization_lifecycle import send_due_access_notifications
 
 
 def main() -> None:
@@ -30,7 +30,7 @@ def main() -> None:
                 print(f"ready {export.public_id} {export.sha256}", flush=True)
                 if not args.all and not args.watch:
                     break
-            send_due_data_access_notifications(db)
+            send_due_access_notifications(db)
         if not args.watch:
             break
         time.sleep(max(1, args.poll_seconds))

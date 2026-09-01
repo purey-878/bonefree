@@ -1,4 +1,4 @@
-"""Add organization data access, privacy contacts, and durable export jobs.
+"""Add organization access expiry, privacy contacts, and durable export jobs.
 
 Revision ID: 20260831_0006
 Revises: 20260826_0005
@@ -58,10 +58,9 @@ def upgrade() -> None:
             "access_expires_at",
             "purged_at",
             "access_notice_notified_at",
-            "data_access_started_notified_at",
-            "data_access_reminder_7d_notified_at",
-            "data_access_reminder_1d_notified_at",
-            "data_access_closed_notified_at",
+            "access_reminder_7d_notified_at",
+            "access_reminder_1d_notified_at",
+            "access_closed_notified_at",
         ):
             batch_op.add_column(sa.Column(column_name, sa.DateTime(), nullable=True))
 
@@ -78,17 +77,6 @@ def upgrade() -> None:
             "WHERE organization.id = organization_profile.organization_id))"
         )
     )
-
-    with op.batch_alter_table("session") as batch_op:
-        batch_op.add_column(
-            sa.Column(
-                "mode",
-                sa.String(length=50),
-                server_default="operational",
-                nullable=False,
-            )
-        )
-        batch_op.create_index("ix_session_mode", ["mode"], unique=False)
 
     op.create_table(
         "data_export",
@@ -123,64 +111,18 @@ def upgrade() -> None:
     op.create_index("ix_data_export_customer_id", "data_export", ["customer_id"], unique=False)
     op.create_index("ix_data_export_expires_at", "data_export", ["expires_at"], unique=False)
 
-    op.create_table(
-        "data_access_login_challenge",
-        sa.Column("public_id", sa.String(length=36), nullable=False),
-        sa.Column("user_id", sa.Integer(), nullable=False),
-        sa.Column("code_hash", sa.String(length=64), nullable=False),
-        sa.Column("expires_at", sa.DateTime(), nullable=False),
-        sa.Column("attempts", sa.Integer(), server_default="0", nullable=False),
-        sa.Column("consumed_at", sa.DateTime(), nullable=True),
-        *_tenant_columns(),
-        sa.ForeignKeyConstraint(
-            ["user_id"],
-            ["user.id"],
-            name="fk_data_access_login_challenge_user_id_user",
-            ondelete="CASCADE",
-        ),
-        *_tenant_constraints("data_access_login_challenge"),
-    )
-    _create_common_indexes("data_access_login_challenge")
-    op.create_index(
-        "ix_data_access_login_challenge_public_id",
-        "data_access_login_challenge",
-        ["public_id"],
-        unique=True,
-    )
-    op.create_index(
-        "ix_data_access_login_challenge_user_id",
-        "data_access_login_challenge",
-        ["user_id"],
-        unique=False,
-    )
-    op.create_index(
-        "ix_data_access_login_challenge_expires_at",
-        "data_access_login_challenge",
-        ["expires_at"],
-        unique=False,
-    )
-
 
 def downgrade() -> None:
-    for table_name in (
-        "data_access_login_challenge",
-        "data_export",
-    ):
-        op.drop_table(table_name)
-
-    with op.batch_alter_table("session") as batch_op:
-        batch_op.drop_index("ix_session_mode")
-        batch_op.drop_column("mode")
+    op.drop_table("data_export")
     with op.batch_alter_table("organization_profile") as batch_op:
         batch_op.drop_column("privacy_contact_email")
     with op.batch_alter_table("organization_domain") as batch_op:
         batch_op.drop_column("deactivated_at")
     with op.batch_alter_table("organization") as batch_op:
         for column_name in (
-            "data_access_closed_notified_at",
-            "data_access_reminder_1d_notified_at",
-            "data_access_reminder_7d_notified_at",
-            "data_access_started_notified_at",
+            "access_closed_notified_at",
+            "access_reminder_1d_notified_at",
+            "access_reminder_7d_notified_at",
             "access_notice_notified_at",
             "purged_at",
             "access_expires_at",

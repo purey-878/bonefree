@@ -2155,7 +2155,7 @@ export default function AdminDashboard() {
     void getCurrentAdmin()
       .then((admin) => {
         setCurrentAdmin(admin)
-        updateAdminSessionIdentity({ role: admin.role, name: admin.name, mode: 'operational' })
+        updateAdminSessionIdentity({ role: admin.role, name: admin.name })
 
         if (admin.role === "owner") {
           void loadDashboard()

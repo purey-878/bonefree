@@ -30,5 +30,4 @@ class DataExportListResponse(BaseModel):
 
 class PrivacyOverviewResponse(BaseModel):
     privacy_contact_email: str | None = None
-    operational_access_expires_at: datetime | None = None
-    data_access_expires_at: datetime | None = None
+    access_expires_at: datetime | None = None

@@ -48,31 +48,7 @@ def send_password_reset_email(email: str, code: str, name: str | None = None) ->
     return _send_email(email, subject, text, html)
 
 
-def send_data_access_otp_email(
-    email: str,
-    code: str,
-    organization_name: str,
-    expires_minutes: int,
-) -> bool:
-    subject = f"Código de acesso aos dados de {organization_name}"
-    text = (
-        f"O código para aceder aos dados de {organization_name} é {code}. "
-        f"Expira em {expires_minutes} minutos.\n\n"
-        "Nunca enviaremos exportações ou dados pessoais como anexo de email."
-    )
-    html = _layout(
-        title="Código de acesso aos dados",
-        body=(
-            f"Use este código para concluir o acesso aos dados de {organization_name}. "
-            f"Expira em {expires_minutes} minutos. Nunca enviamos exportações em anexo."
-        ),
-        accent=f"<span style='font-size:32px; letter-spacing:8px; font-weight:800;'>{escape(code)}</span>",
-        brand=organization_name,
-    )
-    return _send_email(email, subject, text, html, from_name=organization_name)
-
-
-def send_data_access_notice(
+def send_organization_access_notice(
     email: str,
     organization_name: str,
     *,
@@ -81,13 +57,12 @@ def send_data_access_notice(
 ) -> bool:
     text = (
         f"{organization_name}\n\n{message}\n\n"
-        "As cópias estão disponíveis exclusivamente na área de administração autenticada; "
-        "este email não contém anexos."
+        "Este email não contém anexos."
     )
     html = _layout(
         title=escape(subject),
         body=message,
-        accent="Aceda à área de administração para consultar ou descarregar os dados.",
+        accent="Os ficheiros nunca são enviados por email.",
         brand=organization_name,
     )
     return _send_email(email, subject, text, html, from_name=organization_name)

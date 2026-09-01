@@ -293,8 +293,6 @@ class OrganizationApiTests(unittest.TestCase):
             {
                 "slug": "first",
                 "name": "First",
-                "state": "operational",
-                "data_access_expires_at": None,
             },
         )
         self.assertEqual(

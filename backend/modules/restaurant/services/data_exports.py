@@ -29,7 +29,6 @@ EXCLUDED_TABLES = {
     "admin",
     "admin_session",
     "session",
-    "data_access_login_challenge",
     "data_export",
 }
 SENSITIVE_COLUMN_FRAGMENTS = (
@@ -475,18 +474,3 @@ def export_download_path(export: DataExport) -> Path | None:
     except ValueError:
         return None
     return candidate if candidate.is_file() else None
-
-
-def completed_tenant_export_exists(db: Session, organization_id: int) -> bool:
-    return db.scalar(
-        select(DataExport.id)
-        .where(
-            DataExport.organization_id == organization_id,
-            DataExport.kind == DataExportKind.TENANT,
-            DataExport.status.in_(
-                (DataExportStatus.READY, DataExportStatus.EXPIRED, DataExportStatus.CANCELLED)
-            ),
-            DataExport.completed_at.is_not(None),
-        )
-        .execution_options(skip_organization_scope=True)
-    ) is not None

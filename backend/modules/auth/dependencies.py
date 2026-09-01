@@ -20,7 +20,6 @@ from modules.auth.models import (
     Organization,
     OrganizationFeatureEntitlement,
     Session,
-    SessionMode,
     User,
     UserRole,
     UserStatus,
@@ -114,10 +113,7 @@ def require_organization_context(
     if token is not None:
         token_organization_id = db.scalar(
             select(Session.organization_id)
-            .where(
-                Session.token_hash == hash_session_token(token),
-                Session.mode == SessionMode.OPERATIONAL,
-            )
+            .where(Session.token_hash == hash_session_token(token))
             .execution_options(skip_organization_scope=True)
         )
 
@@ -248,7 +244,6 @@ def get_current_user(
         session is None
         or session.user is None
         or session.revoked is True
-        or session.mode != SessionMode.OPERATIONAL
         or session.expires_at <= now
         or normalize_user_role(session.user.role) != UserRole.CLIENT
     ):
@@ -276,7 +271,6 @@ def get_current_user_optional(
         session is None
         or session.user is None
         or session.revoked is True
-        or session.mode != SessionMode.OPERATIONAL
         or session.expires_at <= now
         or session.user.status != UserStatus.ACTIVE
         or normalize_user_role(session.user.role) != UserRole.CLIENT
@@ -301,7 +295,6 @@ def get_current_staff_user(
         session is None
         or session.user is None
         or session.revoked is True
-        or session.mode != SessionMode.OPERATIONAL
         or session.expires_at <= now
         or (
             session.last_seen_at is not None

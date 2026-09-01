@@ -405,11 +405,10 @@ const ptPT = {
         },
       },
       deletion: {
-        title: "O que acontece quando a organização é encerrada?",
-        downloadResponsibility: "O proprietário pode guardar no próprio computador as cópias disponibilizadas nesta página. Não é necessário pedir uma proteção contra apagamento para fazer o download.",
-        afterDeadline: "Depois da data final de acesso aos dados, a plataforma elimina os dados usados no funcionamento normal do serviço, mesmo que o ficheiro não tenha sido baixado.",
+        title: "Encerramento agendado",
+        downloadResponsibility: "O proprietário tem até essa data para guardar no próprio computador as cópias de que necessitar.",
+        afterDeadline: "Depois dessa data, a loja, o painel, os downloads e todas as operações serão bloqueados. Os dados serão eliminados de acordo com as regras de conservação aplicáveis, independentemente de ter sido feito algum download.",
         normalAccessUntil: "A plataforma ficará disponível para uso normal até {{date}}.",
-        ownerAccessUntil: "Depois disso, o proprietário poderá aceder aos dados até {{date}}.",
       },
       errors: {
         load: "Não foi possível carregar esta área. Tente novamente.",

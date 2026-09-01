@@ -15,7 +15,6 @@ from modules.auth.models import (
 )
 from modules.auth.services.organization_lifecycle import (
     OrganizationAccessState,
-    data_access_expires_at,
     organization_access_state,
 )
 from modules.auth.schemas.organization import (
@@ -63,10 +62,10 @@ def resolve_organization(
         )
         .execution_options(skip_organization_scope=True)
     )
-    if organization is None or organization_access_state(organization) not in {
-        OrganizationAccessState.OPERATIONAL,
-        OrganizationAccessState.FROZEN,
-    }:
+    if (
+        organization is None
+        or organization_access_state(organization) != OrganizationAccessState.OPERATIONAL
+    ):
         raise AppHTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             error="organization_not_found",
@@ -74,16 +73,9 @@ def resolve_organization(
             details={"hostname": normalized_hostname},
         )
 
-    access_state = organization_access_state(organization)
     return ResolvedOrganizationResponse(
         slug=organization.slug,
         name=organization.name,
-        state=access_state.value,
-        data_access_expires_at=(
-            data_access_expires_at(organization)
-            if access_state == OrganizationAccessState.FROZEN
-            else None
-        ),
     )
 
 

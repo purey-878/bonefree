@@ -13,21 +13,15 @@ from core.base import Base
 from core.config import settings
 from modules.auth.models import (
     DataExport,
-    DataExportKind,
     DataExportStatus,
     Organization,
     OrganizationDomain,
     OrganizationProfile,
     Session,
-    SessionMode,
     User,
     UserRole,
 )
-from modules.auth.services.email import send_data_access_notice
-from modules.restaurant.services.data_exports import (
-    completed_tenant_export_exists,
-    enqueue_data_export,
-)
+from modules.auth.services.email import send_organization_access_notice
 from utils.datetime_utils import to_naive_utc
 
 
@@ -36,19 +30,12 @@ PURGE_PRESERVED_TABLES = {"organization_domain", "data_export"}
 
 class OrganizationAccessState(StrEnum):
     OPERATIONAL = "operational"
-    FROZEN = "frozen"
-    UNSUPPORTED = "unsupported"
+    EXPIRED = "expired"
     PURGED = "purged"
 
 
 def utc_now() -> datetime:
     return to_naive_utc(datetime.now(UTC)) or datetime.utcnow()
-
-
-def data_access_expires_at(organization: Organization) -> datetime | None:
-    if organization.access_expires_at is None:
-        return None
-    return organization.access_expires_at + timedelta(days=settings.data_access_window_days)
 
 
 def organization_access_state(
@@ -60,13 +47,9 @@ def organization_access_state(
         return OrganizationAccessState.PURGED
     if organization.access_expires_at is None:
         return OrganizationAccessState.OPERATIONAL
-    moment = now or utc_now()
-    if moment < organization.access_expires_at:
+    if (now or utc_now()) < organization.access_expires_at:
         return OrganizationAccessState.OPERATIONAL
-    expires_at = data_access_expires_at(organization)
-    if expires_at is not None and moment < expires_at:
-        return OrganizationAccessState.FROZEN
-    return OrganizationAccessState.UNSUPPORTED
+    return OrganizationAccessState.EXPIRED
 
 
 def get_organization(db: DBSession, slug: str) -> Organization:
@@ -99,7 +82,7 @@ def _send_notice_to_owners(
 ) -> bool:
     recipients = _notification_recipients(db, organization)
     delivery_results = [
-        send_data_access_notice(
+        send_organization_access_notice(
             email,
             organization.name,
             subject=subject,
@@ -116,19 +99,18 @@ def _send_initial_notice(
     *,
     moment: datetime,
 ) -> None:
-    access_expires_at = organization.access_expires_at
-    final_expires_at = data_access_expires_at(organization)
-    if access_expires_at is None or final_expires_at is None:
+    expires_at = organization.access_expires_at
+    if expires_at is None:
         return
     if organization.access_notice_notified_at is None and _send_notice_to_owners(
         db,
         organization,
         subject="Confirmação do encerramento do serviço",
         message=(
-            f"O funcionamento normal termina em {access_expires_at:%d/%m/%Y %H:%M} UTC. "
-            f"Depois dessa data, apenas o proprietário poderá aceder às cópias dos dados até "
-            f"{final_expires_at:%d/%m/%Y %H:%M} UTC. Mantenha o DNS do domínio apontado para "
-            "a plataforma até concluir os downloads. Não enviamos ficheiros por email."
+            f"A plataforma continuará disponível para uso normal até "
+            f"{expires_at:%d/%m/%Y %H:%M} UTC. Guarde antes dessa data as cópias de que "
+            "necessita na área Dados e privacidade. Depois do prazo, a loja, o painel, "
+            "os downloads e todas as operações serão bloqueados. Não enviamos ficheiros por email."
         ),
     ):
         organization.access_notice_notified_at = moment
@@ -136,10 +118,9 @@ def _send_initial_notice(
 
 def _reset_notification_state(organization: Organization) -> None:
     organization.access_notice_notified_at = None
-    organization.data_access_started_notified_at = None
-    organization.data_access_reminder_7d_notified_at = None
-    organization.data_access_reminder_1d_notified_at = None
-    organization.data_access_closed_notified_at = None
+    organization.access_reminder_7d_notified_at = None
+    organization.access_reminder_1d_notified_at = None
+    organization.access_closed_notified_at = None
 
 
 def cancel_organization_access(
@@ -154,6 +135,11 @@ def cancel_organization_access(
     moment = now or utc_now()
     if organization.access_expires_at is not None and not replace:
         return organization.access_expires_at
+    if (
+        organization.access_expires_at is not None
+        and moment >= organization.access_expires_at
+    ):
+        raise ValueError("An expired organization cannot have its deadline replaced.")
     organization.access_expires_at = moment + timedelta(days=settings.cancellation_notice_days)
     _reset_notification_state(organization)
     db.info["organization_id"] = organization.id
@@ -162,64 +148,24 @@ def cancel_organization_access(
     return organization.access_expires_at
 
 
-def freeze_organization_now(
+def restore_organization_access(
     db: DBSession,
     organization: Organization,
     *,
     now: datetime | None = None,
-) -> datetime:
-    if organization.purged_at is not None:
-        raise ValueError("A purged organization cannot have its access changed.")
-    moment = now or utc_now()
-    organization.access_expires_at = moment
-    _reset_notification_state(organization)
-    db.info["organization_id"] = organization.id
-    db.execute(
-        update(Session)
-        .where(
-            Session.organization_id == organization.id,
-            Session.mode == SessionMode.OPERATIONAL,
-        )
-        .values(revoked=True)
-    )
-    _send_initial_notice(db, organization, moment=moment)
-    db.commit()
-    return organization.access_expires_at
-
-
-def restore_organization_access(db: DBSession, organization: Organization) -> None:
+) -> None:
     if organization.purged_at is not None:
         raise ValueError("A purged organization cannot be restored.")
+    moment = now or utc_now()
+    if (
+        organization.access_expires_at is not None
+        and moment >= organization.access_expires_at
+    ):
+        raise ValueError("An expired organization cannot be restored.")
     db.info["organization_id"] = organization.id
     organization.access_expires_at = None
     _reset_notification_state(organization)
-    db.execute(
-        update(Session)
-        .where(
-            Session.organization_id == organization.id,
-            Session.mode == SessionMode.DATA_ACCESS,
-        )
-        .values(revoked=True)
-    )
     db.commit()
-
-
-def _ensure_frozen_export(db: DBSession, organization: Organization) -> None:
-    existing = db.scalar(
-        select(DataExport.id).where(
-            DataExport.organization_id == organization.id,
-            DataExport.kind == DataExportKind.TENANT,
-            DataExport.status.in_(
-                (DataExportStatus.PENDING, DataExportStatus.PROCESSING, DataExportStatus.READY)
-            ),
-        )
-    )
-    if existing is None:
-        enqueue_data_export(
-            db,
-            organization_id=organization.id,
-            kind=DataExportKind.TENANT,
-        )
 
 
 @dataclass(frozen=True)
@@ -238,21 +184,15 @@ def build_purge_plan(db: DBSession, organization: Organization) -> PurgePlan:
     db.info["organization_id"] = organization.id
     blockers: list[str] = []
     state = organization_access_state(organization)
-    if state not in {OrganizationAccessState.UNSUPPORTED, OrganizationAccessState.PURGED}:
-        blockers.append("data_access_window_open")
+    if state not in {OrganizationAccessState.EXPIRED, OrganizationAccessState.PURGED}:
+        blockers.append("access_period_open")
     if organization.purged_at is not None:
         blockers.append("organization_already_purged")
-    if not completed_tenant_export_exists(db, organization.id):
-        blockers.append("completed_tenant_export_required")
-    notification_fields = (
-        organization.access_notice_notified_at,
-        organization.data_access_started_notified_at,
-        organization.data_access_reminder_7d_notified_at,
-        organization.data_access_reminder_1d_notified_at,
-        organization.data_access_closed_notified_at,
-    )
-    if any(value is None for value in notification_fields):
-        blockers.append("data_access_notifications_incomplete")
+    if (
+        organization.access_notice_notified_at is None
+        or organization.access_closed_notified_at is None
+    ):
+        blockers.append("access_notifications_incomplete")
     counts: dict[str, int] = {}
     for table in Base.metadata.sorted_tables:
         if "organization_id" not in table.c or table.name in PURGE_PRESERVED_TABLES:
@@ -312,7 +252,7 @@ def purge_organization(db: DBSession, organization: Organization) -> PurgePlan:
     return plan
 
 
-def send_due_data_access_notifications(
+def send_due_access_notifications(
     db: DBSession,
     *,
     now: datetime | None = None,
@@ -329,9 +269,8 @@ def send_due_data_access_notifications(
     sent = 0
     for organization in organizations:
         db.info["organization_id"] = organization.id
-        state = organization_access_state(organization, now=moment)
-        final_expires_at = data_access_expires_at(organization)
-        if final_expires_at is None:
+        expires_at = organization.access_expires_at
+        if expires_at is None:
             continue
 
         if organization.access_notice_notified_at is None:
@@ -341,31 +280,11 @@ def send_due_data_access_notifications(
                 sent += 1
             continue
 
-        if state == OrganizationAccessState.FROZEN:
-            db.execute(
-                update(Session)
-                .where(
-                    Session.organization_id == organization.id,
-                    Session.mode == SessionMode.OPERATIONAL,
-                    Session.revoked.is_(False),
-                )
-                .values(revoked=True)
-            )
-            _ensure_frozen_export(db, organization)
-
-        remaining = final_expires_at - moment
+        remaining = expires_at - moment
         subject: str | None = None
         message: str | None = None
-        timestamp_field: str | None = None
-        if state == OrganizationAccessState.FROZEN and organization.data_access_started_notified_at is None:
-            subject = "Acesso restrito aos dados iniciado"
-            message = (
-                "A loja e as operações normais foram encerradas. O proprietário pode entrar "
-                f"em /admin/login no domínio habitual e guardar as cópias até "
-                f"{final_expires_at:%d/%m/%Y %H:%M} UTC."
-            )
-            timestamp_field = "data_access_started_notified_at"
-        elif state == OrganizationAccessState.UNSUPPORTED and organization.data_access_closed_notified_at is None:
+        timestamp_fields: list[str] = []
+        if remaining <= timedelta(0) and organization.access_closed_notified_at is None:
             db.execute(
                 update(Session)
                 .where(
@@ -374,32 +293,34 @@ def send_due_data_access_notifications(
                 )
                 .values(revoked=True)
             )
-            latest = db.scalar(
-                select(DataExport)
-                .where(DataExport.kind == DataExportKind.TENANT)
-                .order_by(DataExport.created_at.desc())
-            )
-            identifier = latest.public_id if latest else "not-available"
-            digest = latest.sha256 if latest and latest.sha256 else "not-available"
-            subject = "Acesso aos dados encerrado"
+            subject = "Acesso à plataforma encerrado"
             message = (
-                "A janela contratual de devolução terminou. O domínio deve agora ser removido "
-                f"da hospedagem. Pacote disponibilizado: {identifier}; SHA-256: {digest}."
+                "O prazo terminou. A loja, o painel, os downloads e todas as operações estão "
+                "bloqueados. O hostname pode agora ser removido do provedor de hospedagem."
             )
-            timestamp_field = "data_access_closed_notified_at"
-        elif remaining <= timedelta(days=1) and organization.data_access_reminder_1d_notified_at is None:
-            subject = "Último dia para guardar os dados"
-            message = f"O acesso aos dados termina em {final_expires_at:%d/%m/%Y %H:%M} UTC."
-            timestamp_field = "data_access_reminder_1d_notified_at"
-        elif remaining <= timedelta(days=7) and organization.data_access_reminder_7d_notified_at is None:
-            subject = "Sete dias para guardar os dados"
-            message = f"O acesso aos dados termina em {final_expires_at:%d/%m/%Y %H:%M} UTC."
-            timestamp_field = "data_access_reminder_7d_notified_at"
+            timestamp_fields = ["access_closed_notified_at"]
+        elif remaining <= timedelta(days=1) and organization.access_reminder_1d_notified_at is None:
+            subject = "Último dia de acesso à plataforma"
+            message = (
+                f"O funcionamento e os downloads terminam em {expires_at:%d/%m/%Y %H:%M} UTC. "
+                "Guarde hoje as cópias de que necessita."
+            )
+            timestamp_fields = ["access_reminder_1d_notified_at"]
+            if organization.access_reminder_7d_notified_at is None:
+                timestamp_fields.append("access_reminder_7d_notified_at")
+        elif remaining <= timedelta(days=7) and organization.access_reminder_7d_notified_at is None:
+            subject = "Sete dias para o encerramento da plataforma"
+            message = (
+                f"O funcionamento e os downloads terminam em {expires_at:%d/%m/%Y %H:%M} UTC. "
+                "Use a área Dados e privacidade para guardar as cópias necessárias."
+            )
+            timestamp_fields = ["access_reminder_7d_notified_at"]
 
-        if subject and message and timestamp_field and _send_notice_to_owners(
+        if subject and message and timestamp_fields and _send_notice_to_owners(
             db, organization, subject=subject, message=message
         ):
-            setattr(organization, timestamp_field, moment)
+            for timestamp_field in timestamp_fields:
+                setattr(organization, timestamp_field, moment)
             sent += 1
         db.commit()
     return sent
@@ -415,21 +336,11 @@ def hosting_plan_rows(db: DBSession) -> list[dict[str, str | int | bool]]:
     ).all()
     report: list[dict[str, str | int | bool]] = []
     for organization, domain in rows:
-        organization_state = organization_access_state(organization, now=moment)
         detached = (
             not domain.is_verified
             or domain.deactivated_at is not None
-            or organization_state in {
-                OrganizationAccessState.UNSUPPORTED,
-                OrganizationAccessState.PURGED,
-            }
-        )
-        state = (
-            "detached"
-            if detached
-            else "frozen"
-            if organization_state == OrganizationAccessState.FROZEN
-            else "storefront"
+            or organization_access_state(organization, now=moment)
+            != OrganizationAccessState.OPERATIONAL
         )
         report.append(
             {
@@ -437,7 +348,7 @@ def hosting_plan_rows(db: DBSession) -> list[dict[str, str | int | bool]]:
                 "organization_slug": organization.slug,
                 "hostname": domain.domain,
                 "verified": domain.is_verified,
-                "hosting_state": state,
+                "hosting_state": "detached" if detached else "storefront",
             }
         )
     return report

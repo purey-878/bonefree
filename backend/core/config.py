@@ -72,21 +72,6 @@ class Settings(BaseSettings):
         gt=0,
         validation_alias="CANCELLATION_NOTICE_DAYS",
     )
-    data_access_window_days: int = Field(
-        default=30,
-        gt=0,
-        validation_alias="DATA_ACCESS_WINDOW_DAYS",
-    )
-    data_access_session_expiration_minutes: int = Field(
-        default=60,
-        gt=0,
-        validation_alias="DATA_ACCESS_SESSION_EXPIRATION_MINUTES",
-    )
-    data_access_otp_expiration_minutes: int = Field(
-        default=10,
-        gt=0,
-        validation_alias="DATA_ACCESS_OTP_EXPIRATION_MINUTES",
-    )
     data_exports_dir: Path = Field(
         default=PROJECT_ROOT / "private_exports",
         validation_alias="DATA_EXPORTS_DIR",

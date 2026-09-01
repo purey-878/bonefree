@@ -44,7 +44,7 @@ Only Caddy publishes ports on the VPS. PostgreSQL, Redis, and the application's 
 
 Deploy the artifact once. Do not create one frontend deployment per organization. The provider hostname allowlist is generated from `python -m scripts.manage_organizations hosting-plan --format json`; unknown and detached hostnames must not receive the frontend artifact.
 
-The complete lifecycle, data return, and purge runbook is in [Closure and data return](docs/DATA_ACCESS_AND_RETENTION.md).
+The complete lifecycle, data return, and purge runbook is in [Organisation closure and retention](docs/ORGANIZATION_CLOSURE_AND_RETENTION.md).
 
 These rules apply to the shared artifact:
 

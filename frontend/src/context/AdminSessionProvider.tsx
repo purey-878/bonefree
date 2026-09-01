@@ -12,14 +12,12 @@ export function AdminSessionProvider({ children }: { children: ReactNode }) {
   const [identity, setIdentity] = useState<AdminSessionIdentity>(() => ({
     name: organizationStorage.getItem('admin_name') ?? '',
     role: normalizeAdminRole(organizationStorage.getItem('admin_role')) ?? 'manager',
-    mode: organizationStorage.getItem('admin_session_mode') === 'data_access' ? 'data_access' : 'operational',
   }))
 
   const updateIdentity = useCallback((nextIdentity: AdminSessionIdentity) => {
     setIdentity(nextIdentity)
     organizationStorage.setItem('admin_name', nextIdentity.name)
     organizationStorage.setItem('admin_role', nextIdentity.role)
-    organizationStorage.setItem('admin_session_mode', nextIdentity.mode)
   }, [])
 
   const login = useCallback((session: AdminSessionIdentity & { token: string }) => {
@@ -32,9 +30,8 @@ export function AdminSessionProvider({ children }: { children: ReactNode }) {
     organizationStorage.removeItem('admin_token')
     organizationStorage.removeItem('admin_role')
     organizationStorage.removeItem('admin_name')
-    organizationStorage.removeItem('admin_session_mode')
     setToken(null)
-    setIdentity({ name: '', role: 'manager', mode: 'operational' })
+    setIdentity({ name: '', role: 'manager' })
   }, [])
 
   const value = useMemo(() => ({

@@ -16,11 +16,6 @@ class OrganizationType(StrEnum):
     RESTAURANT = "restaurant"
 
 
-class SessionMode(StrEnum):
-    OPERATIONAL = "operational"
-    DATA_ACCESS = "data_access"
-
-
 class DataExportKind(StrEnum):
     TENANT = "tenant"
     CUSTOMER = "customer"
@@ -223,10 +218,9 @@ class Organization(AppBaseModel):
     access_expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     purged_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     access_notice_notified_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
-    data_access_started_notified_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
-    data_access_reminder_7d_notified_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
-    data_access_reminder_1d_notified_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
-    data_access_closed_notified_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    access_reminder_7d_notified_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    access_reminder_1d_notified_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    access_closed_notified_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
 
     users: Mapped[list["User"]] = relationship("User", back_populates="organization")
     domains: Mapped[list["OrganizationDomain"]] = relationship(
@@ -367,13 +361,6 @@ class Session(OrganizationModel):
     ip_address: Mapped[str] = mapped_column(String(45), nullable=True)
     user_agent: Mapped[str] = mapped_column(String(500), nullable=True)
     revoked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="0")
-    mode: Mapped[SessionMode] = mapped_column(
-        StrEnumType(SessionMode, length=50),
-        default=SessionMode.OPERATIONAL,
-        server_default=SessionMode.OPERATIONAL.value,
-        nullable=False,
-        index=True,
-    )
     user: Mapped[User] = relationship("User", back_populates="sessions")
 
 
@@ -406,19 +393,6 @@ class DataExport(OrganizationModel):
     error_message: Mapped[str] = mapped_column(String(500), nullable=True)
 
 
-class DataAccessLoginChallenge(OrganizationModel):
-    __tablename__ = "data_access_login_challenge"
-
-    public_id: Mapped[str] = mapped_column(String(36), nullable=False, unique=True, index=True)
-    user_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False, index=True
-    )
-    code_hash: Mapped[str] = mapped_column(String(64), nullable=False)
-    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
-    attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
-    consumed_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
-
-
 __all__ = [
     "DataExport",
     "DataExportKind",
@@ -436,11 +410,9 @@ __all__ = [
     "OrganizationFeatureEntitlement",
     "OrganizationProfile",
     "OrganizationType",
-    "DataAccessLoginChallenge",
     "ORGANIZATION_STAFF_ROLES",
     "SectionType",
     "Session",
-    "SessionMode",
     "SocialLinksData",
     "SocialPlatformKey",
     "ThemeTokenOverridesData",

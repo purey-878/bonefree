@@ -13,9 +13,9 @@ const AdminDashboardPage = lazy(async () => {
 })
 
 function ProtectedAdminRoute({ children, roles }: { children: ReactNode; roles?: AdminRole[] }) {
-  const { isAuthenticated, role, mode } = useAdminSession()
+  const { isAuthenticated, role } = useAdminSession()
 
-  if (!isAuthenticated || mode !== 'operational') return <Navigate to="/admin/login" replace />
+  if (!isAuthenticated) return <Navigate to="/admin/login" replace />
   if (roles && !roles.includes(role)) return <Navigate to="/admin/dashboard" replace />
   return <>{children}</>
 }

@@ -4,10 +4,10 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, Depends, Response, status
 from fastapi.responses import FileResponse
-from sqlalchemy import func, or_, select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import or_, select
+from sqlalchemy.orm import Session
 
 from core.config import settings
 from core.errors import AppHTTPException
@@ -22,10 +22,6 @@ from modules.auth.models import (
     User,
     UserRole,
 )
-from modules.auth.routers.data_access import require_data_access_owner
-from modules.restaurant.routers.customers import _customer_owner_response
-from modules.restaurant.schemas.owner import CustomerAdminPageResponse
-from modules.restaurant.schemas.pagination import total_pages
 from modules.restaurant.schemas.privacy import (
     DataExportCreate,
     DataExportListResponse,
@@ -38,12 +34,10 @@ from modules.restaurant.services.data_exports import (
     export_download_path,
     process_data_export,
 )
-from modules.auth.services.organization_lifecycle import data_access_expires_at
 from utils.datetime_utils import to_naive_utc
 
 
 admin_router = APIRouter(prefix="/admin", tags=["Data and Privacy"])
-data_access_router = APIRouter(prefix="/data-access", tags=["Data Access"])
 BULK_EXPORT_KINDS = frozenset(
     {
         DataExportKind.TENANT,
@@ -310,8 +304,7 @@ def _privacy_overview(db: Session) -> PrivacyOverviewResponse:
     organization = db.scalar(select(Organization).where(Organization.id == organization_id))
     return PrivacyOverviewResponse(
         privacy_contact_email=profile.privacy_contact_email if profile else None,
-        operational_access_expires_at=organization.access_expires_at if organization else None,
-        data_access_expires_at=data_access_expires_at(organization) if organization else None,
+        access_expires_at=organization.access_expires_at if organization else None,
     )
 
 
@@ -420,151 +413,4 @@ def download_admin_export(
     return _download_export(db, export_id)
 
 
-@data_access_router.get(
-    "/customers",
-    response_model=CustomerAdminPageResponse,
-    operation_id="data_access_list_customers",
-)
-def list_data_access_customers(
-    page: int = Query(1, ge=1),
-    per_page: int = Query(20, ge=1, le=100),
-    search: str | None = Query(default=None),
-    _owner: User = Depends(require_data_access_owner),
-    db: Session = Depends(get_db),
-) -> CustomerAdminPageResponse:
-    filters = [User.role == UserRole.CLIENT]
-    if search and search.strip():
-        pattern = f"%{search.strip()}%"
-        filters.append(
-            or_(
-                User.name.ilike(pattern),
-                User.last_name.ilike(pattern),
-                User.email.ilike(pattern),
-                User.phone.ilike(pattern),
-                User.tax_id.ilike(pattern),
-            )
-        )
-    total = int(db.scalar(select(func.count(User.id)).where(*filters)) or 0)
-    customers = db.scalars(
-        select(User)
-        .options(joinedload(User.billing_address))
-        .where(*filters)
-        .order_by(User.id.desc())
-        .offset((page - 1) * per_page)
-        .limit(per_page)
-    ).unique().all()
-    return CustomerAdminPageResponse(
-        items=[_customer_owner_response(customer) for customer in customers],
-        page=page,
-        per_page=per_page,
-        total=total,
-        total_pages=total_pages(total, per_page),
-    )
-
-
-@data_access_router.get(
-    "/data-privacy",
-    response_model=PrivacyOverviewResponse,
-    operation_id="data_access_read_privacy_overview",
-)
-def read_data_access_privacy_overview(
-    _owner: User = Depends(require_data_access_owner),
-    db: Session = Depends(get_db),
-) -> PrivacyOverviewResponse:
-    return _privacy_overview(db)
-
-
-@data_access_router.get(
-    "/data-exports",
-    response_model=DataExportListResponse,
-    operation_id="data_access_list_exports",
-)
-def list_data_access_exports(
-    _owner: User = Depends(require_data_access_owner),
-    db: Session = Depends(get_db),
-) -> DataExportListResponse:
-    return _list_exports(db)
-
-
-@data_access_router.post(
-    "/data-exports",
-    response_model=DataExportResponse,
-    status_code=status.HTTP_202_ACCEPTED,
-    operation_id="data_access_create_tenant_export",
-)
-def create_data_access_export(
-    body: DataExportCreate,
-    owner: User = Depends(require_data_access_owner),
-    db: Session = Depends(get_db),
-) -> DataExportResponse:
-    if body.kind not in BULK_EXPORT_KINDS:
-        raise AppHTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            error="invalid_export_kind",
-            message="Use the customer export endpoint for an individual customer export.",
-        )
-    return _create_export(db, owner, body.kind)
-
-
-@data_access_router.post(
-    "/customers/{customer_id}/data-export",
-    response_model=DataExportResponse,
-    status_code=status.HTTP_202_ACCEPTED,
-    operation_id="data_access_create_customer_export",
-)
-def create_data_access_customer_export(
-    customer_id: int,
-    owner: User = Depends(require_data_access_owner),
-    db: Session = Depends(get_db),
-) -> DataExportResponse:
-    return _create_export(db, owner, DataExportKind.CUSTOMER, customer_id)
-
-
-@data_access_router.post(
-    "/data-exports/{export_id}/regenerate",
-    response_model=DataExportResponse,
-    status_code=status.HTTP_202_ACCEPTED,
-    operation_id="data_access_regenerate_export",
-)
-def regenerate_data_access_export(
-    export_id: str,
-    owner: User = Depends(require_data_access_owner),
-    db: Session = Depends(get_db),
-) -> DataExportResponse:
-    return _regenerate_export(db, owner, export_id)
-
-
-@data_access_router.delete(
-    "/data-exports/{export_id}",
-    response_model=DataExportResponse,
-    operation_id="data_access_cancel_export",
-)
-def cancel_data_access_export(
-    export_id: str,
-    owner: User = Depends(require_data_access_owner),
-    db: Session = Depends(get_db),
-) -> DataExportResponse:
-    return _cancel_export(db, owner, export_id)
-
-
-@data_access_router.get(
-    "/data-exports/{export_id}/download",
-    response_model=None,
-    response_class=FileResponse,
-    responses={
-        200: {
-            "content": {"application/zip": {"schema": {"type": "string", "format": "binary"}}},
-            "description": "Private ZIP export",
-        }
-    },
-    operation_id="data_access_download_export",
-)
-def download_data_access_export(
-    export_id: str,
-    _owner: User = Depends(require_data_access_owner),
-    db: Session = Depends(get_db),
-) -> Response:
-    return _download_export(db, export_id)
-
-
-__all__ = ["admin_router", "data_access_router"]
+__all__ = ["admin_router"]
