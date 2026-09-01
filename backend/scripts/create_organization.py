@@ -1,4 +1,6 @@
-"""Create an organization and its basic profile atomically.
+"""Compatibility command for creating an organization and its basic profile.
+
+Prefer ``python -m scripts.manage_organizations organization create`` for new use.
 
 Examples:
     python scripts/create_organization.py
@@ -12,128 +14,39 @@ import argparse
 import sys
 from pathlib import Path
 
-from email_validator import EmailNotValidError, validate_email
-from sqlalchemy import inspect, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session as DBSession
 
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-from core.organizations import normalize_organization_slug
 from database import SessionLocal
-from models import Organization, OrganizationExperience, OrganizationProfile
 from modules.auth.models import OrganizationType
+from modules.auth.services.organization_management import (
+    check_database_ready as check_management_database_ready,
+    create_organization,
+    normalize_email,
+    normalize_organization_type,
+)
 
 
-def check_database_ready(db: DBSession) -> None:
-    table_names = set(inspect(db.bind).get_table_names())
-    missing = {
+def check_database_ready(db) -> None:
+    check_management_database_ready(
+        db,
         "organization",
         "organization_profile",
         "organization_experience",
-    } - table_names
-    if missing:
-        raise RuntimeError(
-            f"Database is not ready. Missing table(s): {', '.join(sorted(missing))}. Run migrations first."
-        )
-
-
-def normalize_email(value: str) -> str:
-    try:
-        result = validate_email(value.strip(), check_deliverability=False)
-    except EmailNotValidError as exc:
-        raise ValueError(str(exc)) from exc
-    return result.normalized.lower()
-
-
-def normalize_organization_type(value: str) -> OrganizationType:
-    try:
-        return OrganizationType(value.strip().lower())
-    except ValueError as exc:
-        valid = ", ".join(item.value for item in OrganizationType)
-        raise ValueError(f"Invalid organization type. Expected one of: {valid}.") from exc
-
-
-def create_organization(
-    db: DBSession,
-    *,
-    name: str,
-    slug: str,
-    organization_type: OrganizationType,
-    email: str,
-    privacy_contact_email: str | None = None,
-    phone: str | None = None,
-    display_name: str | None = None,
-    legal_name: str | None = None,
-    tax_id: str | None = None,
-    country: str = "Portugal",
-    currency_code: str = "EUR",
-) -> Organization:
-    normalized_name = name.strip()
-    if not normalized_name:
-        raise ValueError("Organization name is required.")
-    normalized_slug = normalize_organization_slug(slug)
-    normalized_email = normalize_email(email)
-    normalized_privacy_email = normalize_email(privacy_contact_email or normalized_email)
-    normalized_currency = currency_code.strip().upper()
-    if len(normalized_currency) != 3 or not normalized_currency.isalpha():
-        raise ValueError("Currency code must be a three-letter ISO code.")
-
-    try:
-        existing = db.scalar(
-            select(Organization)
-            .where(Organization.slug == normalized_slug)
-            .execution_options(skip_organization_scope=True)
-        )
-        if existing is not None:
-            raise ValueError(f"Organization slug '{normalized_slug}' already exists.")
-
-        organization = Organization(
-            name=normalized_name,
-            slug=normalized_slug,
-            organization_type=organization_type,
-            email=normalized_email,
-            phone=(phone or "").strip() or None,
-        )
-        db.add(organization)
-        db.flush()
-        db.info["organization_id"] = organization.id
-        db.add(
-            OrganizationProfile(
-                display_name=(display_name or normalized_name).strip(),
-                legal_name=(legal_name or "").strip() or None,
-                tax_id=(tax_id or "").strip() or None,
-                email=normalized_email,
-                privacy_contact_email=normalized_privacy_email,
-                phone=(phone or "").strip() or None,
-                country=country.strip() or "Portugal",
-                currency_code=normalized_currency,
-            )
-        )
-        db.add(
-            OrganizationExperience(
-                schema_version=1,
-                theme_key="base",
-                token_overrides={},
-                assets={},
-                navigation=[],
-                pages={},
-                variant_overrides={},
-            )
-        )
-        db.commit()
-        db.refresh(organization)
-        return organization
-    except Exception:
-        db.rollback()
-        raise
+    )
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Create an organization and basic profile.")
+    parser = argparse.ArgumentParser(
+        description=(
+            "Create an organization and basic profile. For new use, prefer "
+            "'python -m scripts.manage_organizations organization create'."
+        )
+    )
     parser.add_argument("--name")
     parser.add_argument("--slug")
     parser.add_argument("--organization-type", default=OrganizationType.RESTAURANT.value)

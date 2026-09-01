@@ -36,13 +36,19 @@ from modules.restaurant.models import (
     PaymentMethod,
     PaymentStatus,
 )
-from scripts.add_organization_domain import add_organization_domain
+from scripts.add_organization_domain import (
+    add_organization_domain as legacy_add_organization_domain,
+)
 from scripts.configure_organization_experience import (
     OrganizationExperienceDocument,
     upsert_organization_experience,
 )
-from scripts.create_organization import create_organization
+from scripts.create_organization import create_organization as legacy_create_organization
 from scripts.set_feature_entitlement import set_feature_entitlement
+from modules.auth.services.organization_management import (
+    add_organization_domain,
+    create_organization,
+)
 from modules.auth.services.authentication import hash_session_token
 from modules.restaurant.services.invoices import ensure_invoice_for_order
 from modules.restaurant.services.receipt_email import build_saved_order_receipt_payload, render_receipt_email
@@ -421,6 +427,8 @@ class OrganizationScriptsAndInvoiceTests(unittest.TestCase):
         self.engine.dispose()
 
     def test_scripts_create_profile_and_switch_primary_domain_atomically(self):
+        self.assertIs(legacy_create_organization, create_organization)
+        self.assertIs(legacy_add_organization_domain, add_organization_domain)
         with DBSession(self.engine) as db:
             organization = create_organization(
                 db,

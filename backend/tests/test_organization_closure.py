@@ -310,6 +310,7 @@ class OrganizationClosureTests(unittest.TestCase):
             self.assertEqual(
                 organization_access_state(active, now=moment), OrganizationAccessState.OPERATIONAL
             )
+            expired.access_expires_at = moment - timedelta(seconds=1)
             with self.assertRaisesRegex(ValueError, "expired organization"):
                 restore_organization_access(db, expired, now=moment)
 

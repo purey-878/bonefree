@@ -337,11 +337,16 @@ After the import, open the frontend and confirm that categories, products, and p
 The migrations create the `bonefree` organization, its current experience and entitlements, and its known domains. For every additional tenant, create the organization and profile first:
 
 ```bash
-docker compose exec api python -m scripts.create_organization \
+docker compose exec api python -m scripts.manage_organizations organization create \
   --name "Example Restaurant" \
   --slug example-restaurant \
   --email hello@example.com
 ```
+
+When the command is run in an interactive terminal, the options may be omitted and
+the command will ask for the required and optional organization details. The older
+`scripts.create_organization` command remains available as a compatibility wrapper,
+but new operational documentation and automation should use `manage_organizations`.
 
 If the tenant needs its own management account, create its first organization owner interactively. You can then load that tenant's catalog with the section 7 commands and the same `--organization-slug` value:
 
@@ -353,12 +358,22 @@ docker compose exec api python -m scripts.create_first_owner \
 Point the tenant's frontend DNS record to the static frontend host. After you have confirmed control of the domain and configured HTTPS there, register the hostname with the backend:
 
 ```bash
-docker compose exec api python -m scripts.add_organization_domain \
+docker compose exec api python -m scripts.manage_organizations domain create \
   --organization-slug example-restaurant \
   --domain shop.example.com \
   --primary \
   --verified
 ```
+
+Review all registered hostnames with the centralized command:
+
+```bash
+python -m scripts.manage_organizations domain list \
+  --organization-slug example-restaurant
+```
+
+The older `scripts.add_organization_domain` command remains available for
+compatibility.
 
 Register each hostname that can appear in the browser address bar, such as both the apex and `www`, and add each corresponding origin to `CORS_ORIGINS`. Recreate the API container after changing `.env` with `docker compose up -d --force-recreate api`. Do not mark a domain as verified before domain control has actually been checked. The public resolver ignores unverified domains.
 
@@ -681,7 +696,7 @@ Do not delete the PostgreSQL volume and do not manually mark an Alembic migratio
 
 ### The frontend reports an organization or build error
 
-- `domain_not_configured`: register the exact browser hostname with `add_organization_domain`, verify it, and test the public resolver. DNS alone does not register a tenant in the application.
+- `domain_not_configured`: register the exact browser hostname with `python -m scripts.manage_organizations domain create`, verify it, and test the public resolver. DNS alone does not register a tenant in the application.
 - `deployment_tenant_mismatch`: compare the artifact's `build-manifest.json` with the slug returned by the public resolver. Publish the correct tenant artifact or the shared artifact; do not rename a tenant in the database to fit a mistaken deployment.
 - `theme_not_in_build`: add the experience's theme to the tenant build target and rebuild, use the shared artifact, or intentionally change the remote experience to a theme present in the artifact.
 - `experience_schema_incompatible`: deploy frontend and backend versions that support the same `experience_schema_version` before changing stored experience data.
