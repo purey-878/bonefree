@@ -215,8 +215,23 @@ const enGB = {
     roles: { all: "All roles", owner: "Owner", manager: "Manager", waiter: "Waiter", chef: "Chef" },
     privacy: {
       title: "Data and privacy",
-      intro: "Save a copy of the organisation's data to your computer.",
+      intro: "Manage the organisation's data copies and privacy documents.",
       refresh: "Refresh",
+      sections: {
+        navigationLabel: "Data and privacy sections",
+        goTo: "Go to {{section}}",
+        copies: "Data copies",
+        policy: "Privacy policy",
+        terms: "Terms and conditions",
+      },
+      policy: {
+        title: "Privacy policy content",
+        comingSoon: "Privacy policy editing will be added here soon.",
+      },
+      terms: {
+        title: "Terms and conditions content",
+        comingSoon: "Terms and conditions editing will be added here soon.",
+      },
       contact: {
         title: "Privacy contact",
         description: "This email appears in the privacy policy and is used when someone asks about their data. It can be different from the commercial contact.",
@@ -245,6 +260,10 @@ const enGB = {
         empty: "No copy has been prepared yet.",
         completeCopy: "All organisation data",
         customerCopy: "Data for customer {{id}}",
+        customerAction: "Export data",
+        customerPreparing: "Preparing…",
+        customerQueued: "The customer's data was added to the queue. Download the file when it is ready.",
+        customerFailed: "We couldn't create the customer data export.",
         kind: { tenant: "All organisation data", customers: "Customer data", orders: "Order data", catalog: "Catalogue data", media: "Images and other files" },
         requestedAt: "Requested on {{date}}",
         availableUntil: "Available to download until {{date}}",

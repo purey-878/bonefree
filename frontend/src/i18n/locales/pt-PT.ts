@@ -341,8 +341,23 @@ const ptPT = {
     roles: { all: "Todos os cargos", owner: "Proprietário", manager: "Gerente", waiter: "Empregado de mesa", chef: "Cozinheiro" },
     privacy: {
       title: "Dados e privacidade",
-      intro: "Guarde no seu computador uma cópia dos dados da organização.",
+      intro: "Gira as cópias de dados e os documentos de privacidade da organização.",
       refresh: "Atualizar",
+      sections: {
+        navigationLabel: "Secções de dados e privacidade",
+        goTo: "Ir para {{section}}",
+        copies: "Cópia de dados",
+        policy: "Política de privacidade",
+        terms: "Termos e condições",
+      },
+      policy: {
+        title: "Conteúdo da política de privacidade",
+        comingSoon: "A edição da política de privacidade será adicionada aqui em breve.",
+      },
+      terms: {
+        title: "Conteúdo dos termos e condições",
+        comingSoon: "A edição dos termos e condições será adicionada aqui em breve.",
+      },
       contact: {
         title: "Contacto para assuntos de privacidade",
         description: "Este e-mail aparece na política de privacidade e é usado quando alguém pergunta pelos seus dados. Pode ser diferente do contacto comercial.",
@@ -371,6 +386,10 @@ const ptPT = {
         empty: "Ainda não foi preparada nenhuma cópia.",
         completeCopy: "Todos os dados da organização",
         customerCopy: "Dados do cliente {{id}}",
+        customerAction: "Exportar dados",
+        customerPreparing: "A preparar…",
+        customerQueued: "Os dados do cliente foram enviados para a fila. Baixe o ficheiro quando estiver pronto.",
+        customerFailed: "Não foi possível criar a exportação do cliente.",
         kind: {
           tenant: "Todos os dados da organização",
           customers: "Dados dos clientes",

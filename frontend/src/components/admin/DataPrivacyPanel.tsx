@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Download, RefreshCw, Trash2, XCircle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -32,6 +32,8 @@ type DataPrivacyPanelProps = {
   focusExportQueueRequest?: number
 }
 
+type DataPrivacySection = 'copies' | 'policy' | 'terms'
+
 
 export default function DataPrivacyPanel({ focusExportQueueRequest = 0 }: DataPrivacyPanelProps) {
   const { t, i18n } = useTranslation('admin')
@@ -43,7 +45,32 @@ export default function DataPrivacyPanel({ focusExportQueueRequest = 0 }: DataPr
   const [confirmCompleteCopy, setConfirmCompleteCopy] = useState(false)
   const [exportToRemove, setExportToRemove] = useState<DataExportResponse | null>(null)
   const [selectedExportKind, setSelectedExportKind] = useState<OrganizationDataExportKind>('tenant')
+  const [activeSection, setActiveSection] = useState<DataPrivacySection>('copies')
+  const stickyHeaderRef = useRef<HTMLDivElement>(null)
+  const sectionNavigationRef = useRef<HTMLElement>(null)
+  const sectionsRef = useRef<HTMLDivElement>(null)
   const toast = useToast()
+
+  const sections: { id: DataPrivacySection; label: string }[] = [
+    { id: 'copies', label: t('privacy.sections.copies') },
+    { id: 'policy', label: t('privacy.sections.policy') },
+    { id: 'terms', label: t('privacy.sections.terms') },
+  ]
+
+  const scrollBelowStickyHeader = useCallback((target: HTMLElement) => {
+    const scrollContainer = target.closest<HTMLElement>('.ad-main')
+    if (!scrollContainer) return
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const targetTop = scrollContainer.scrollTop
+      + target.getBoundingClientRect().top
+      - scrollContainer.getBoundingClientRect().top
+      - (stickyHeaderRef.current?.getBoundingClientRect().height ?? 0)
+      - 12
+    scrollContainer.scrollTo({
+      top: Math.max(0, targetTop),
+      behavior: prefersReducedMotion ? 'auto' : 'smooth',
+    })
+  }, [])
 
   const refresh = useCallback(async () => {
     try {
@@ -65,8 +92,83 @@ export default function DataPrivacyPanel({ focusExportQueueRequest = 0 }: DataPr
 
   useEffect(() => {
     if (focusExportQueueRequest <= 0) return
-    document.getElementById('data-export-queue')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }, [focusExportQueueRequest])
+    setActiveSection('copies')
+    let nestedFrame = 0
+    const frame = window.requestAnimationFrame(() => {
+      nestedFrame = window.requestAnimationFrame(() => {
+        const queue = document.getElementById('data-export-queue')
+        if (queue) scrollBelowStickyHeader(queue)
+      })
+    })
+    return () => {
+      window.cancelAnimationFrame(frame)
+      window.cancelAnimationFrame(nestedFrame)
+    }
+  }, [focusExportQueueRequest, scrollBelowStickyHeader])
+
+  useEffect(() => {
+    const sectionElements = Array.from(
+      sectionsRef.current?.querySelectorAll<HTMLElement>('[data-privacy-section]') ?? [],
+    )
+    const scrollContainer = sectionsRef.current?.closest<HTMLElement>('.ad-main')
+    if (sectionElements.length === 0 || !scrollContainer) return
+
+    let animationFrame = 0
+    const updateActiveSection = () => {
+      window.cancelAnimationFrame(animationFrame)
+      animationFrame = window.requestAnimationFrame(() => {
+        if (!window.matchMedia('(max-width: 760px)').matches) return
+        const marker = scrollContainer.getBoundingClientRect().top
+          + (stickyHeaderRef.current?.getBoundingClientRect().height ?? 0)
+          + 24
+        const reachedPageEnd = scrollContainer.scrollTop + scrollContainer.clientHeight >= scrollContainer.scrollHeight - 2
+        let visibleSection = sectionElements[0]
+
+        if (reachedPageEnd) {
+          visibleSection = sectionElements[sectionElements.length - 1]
+        } else {
+          sectionElements.forEach((section) => {
+            if (section.getBoundingClientRect().top <= marker) visibleSection = section
+          })
+        }
+
+        const nextSection = visibleSection.dataset.privacySection as DataPrivacySection | undefined
+        if (nextSection) {
+          setActiveSection((currentSection) => currentSection === nextSection ? currentSection : nextSection)
+        }
+      })
+    }
+
+    updateActiveSection()
+    scrollContainer.addEventListener('scroll', updateActiveSection, { passive: true })
+    window.addEventListener('resize', updateActiveSection)
+    return () => {
+      window.cancelAnimationFrame(animationFrame)
+      scrollContainer.removeEventListener('scroll', updateActiveSection)
+      window.removeEventListener('resize', updateActiveSection)
+    }
+  }, [])
+
+  useEffect(() => {
+    const navigation = sectionNavigationRef.current
+    const activeButton = navigation?.querySelector<HTMLElement>(`[data-privacy-nav-section="${activeSection}"]`)
+    if (!navigation || !activeButton) return
+    const navigationRect = navigation.getBoundingClientRect()
+    const buttonRect = activeButton.getBoundingClientRect()
+    if (buttonRect.left < navigationRect.left || buttonRect.right > navigationRect.right) {
+      navigation.scrollBy({
+        left: buttonRect.left - navigationRect.left - (navigationRect.width - buttonRect.width) / 2,
+        behavior: 'smooth',
+      })
+    }
+  }, [activeSection])
+
+  const selectSection = (section: DataPrivacySection) => {
+    setActiveSection(section)
+    if (!window.matchMedia('(max-width: 760px)').matches) return
+    const target = document.getElementById(`data-privacy-${section}`)
+    if (target) scrollBelowStickyHeader(target)
+  }
 
   const hasExportBeingPrepared = exports.some((item) => item.status === 'pending' || item.status === 'processing')
   const organizationExportKinds: OrganizationDataExportKind[] = ['tenant', 'customers', 'orders', 'catalog', 'media']
@@ -128,37 +230,47 @@ export default function DataPrivacyPanel({ focusExportQueueRequest = 0 }: DataPr
 
   return (
     <div className="ad-content data-privacy-panel">
-      <div className="ad-section-bar">
-        <div>
-          <h2 className="ad-section-title">{t('privacy.title')}</h2>
-          <p className="ad-section-sub">{t('privacy.intro')}</p>
+      <div ref={stickyHeaderRef} className="ad-settings-sticky-header data-privacy-sticky-header">
+        <div className="ad-section-bar">
+          <div>
+            <h2 className="ad-section-title">{t('privacy.title')}</h2>
+            <p className="ad-section-sub">{t('privacy.intro')}</p>
+          </div>
+          <div className="ad-settings-actions">
+            <button className="ad-btn ad-btn-ghost data-privacy-refresh" disabled={busy} onClick={() => void refresh()}>
+              <RefreshCw size={16} aria-hidden="true" />
+              <span>{t('privacy.refresh')}</span>
+            </button>
+          </div>
         </div>
-        <button className="ad-btn ad-btn-ghost" disabled={busy} onClick={() => void refresh()}>
-          <RefreshCw size={16} /> {t('privacy.refresh')}
-        </button>
+
+        <nav ref={sectionNavigationRef} className="ad-settings-nav" aria-label={t('privacy.sections.navigationLabel')}>
+          {sections.map((section) => (
+            <button
+              key={section.id}
+              type="button"
+              className={activeSection === section.id ? 'active' : ''}
+              onClick={() => selectSection(section.id)}
+              aria-label={t('privacy.sections.goTo', { section: section.label })}
+              aria-current={activeSection === section.id ? 'location' : undefined}
+              data-privacy-nav-section={section.id}
+              title={section.label}
+            >
+              <span className="ad-settings-nav-copy"><strong>{section.label}</strong></span>
+            </button>
+          ))}
+        </nav>
       </div>
 
       {error && <div className="data-privacy-error" role="alert">{error}</div>}
 
-      <section className="ad-card data-privacy-section">
-        <h3>{t('privacy.contact.title')}</h3>
-        <p>{t('privacy.contact.description')}</p>
-        <form className="data-privacy-inline-form" onSubmit={(event) => {
-          event.preventDefault()
-          void run(() => updatePrivacyContact(privacyEmail), t('privacy.contact.saved'))
-        }}>
-          <input
-            aria-label={t('privacy.contact.fieldLabel')}
-            placeholder={t('privacy.contact.placeholder')}
-            type="email"
-            value={privacyEmail}
-            onChange={(event) => setPrivacyEmail(event.target.value)}
-            required
-          />
-          <button className="ad-btn ad-btn-primary" disabled={busy}>{t('privacy.contact.save')}</button>
-        </form>
-      </section>
-
+      <div ref={sectionsRef} className="ad-settings-sections data-privacy-sections">
+      <section
+        id="data-privacy-copies"
+        className={`ad-settings-section data-privacy-page-section ${activeSection === 'copies' ? 'active' : ''}`}
+        data-privacy-section="copies"
+        aria-label={t('privacy.sections.copies')}
+      >
       <section className="ad-card data-privacy-section">
         <div className="data-privacy-heading-row">
           <div>
@@ -261,6 +373,50 @@ export default function DataPrivacyPanel({ focusExportQueueRequest = 0 }: DataPr
           <p>{t('privacy.deletion.afterDeadline')}</p>
         </section>
       )}
+      </section>
+
+      <section
+        id="data-privacy-policy"
+        className={`ad-settings-section data-privacy-page-section ${activeSection === 'policy' ? 'active' : ''}`}
+        data-privacy-section="policy"
+        aria-label={t('privacy.sections.policy')}
+      >
+        <section className="ad-card data-privacy-section">
+          <h3>{t('privacy.contact.title')}</h3>
+          <p>{t('privacy.contact.description')}</p>
+          <form className="data-privacy-inline-form" onSubmit={(event) => {
+            event.preventDefault()
+            void run(() => updatePrivacyContact(privacyEmail), t('privacy.contact.saved'))
+          }}>
+            <input
+              aria-label={t('privacy.contact.fieldLabel')}
+              placeholder={t('privacy.contact.placeholder')}
+              type="email"
+              value={privacyEmail}
+              onChange={(event) => setPrivacyEmail(event.target.value)}
+              required
+            />
+            <button className="ad-btn ad-btn-primary" disabled={busy}>{t('privacy.contact.save')}</button>
+          </form>
+        </section>
+        <section className="ad-card data-privacy-section data-privacy-coming-soon">
+          <h3>{t('privacy.policy.title')}</h3>
+          <p>{t('privacy.policy.comingSoon')}</p>
+        </section>
+      </section>
+
+      <section
+        id="data-privacy-terms"
+        className={`ad-settings-section data-privacy-page-section ${activeSection === 'terms' ? 'active' : ''}`}
+        data-privacy-section="terms"
+        aria-label={t('privacy.sections.terms')}
+      >
+        <section className="ad-card data-privacy-section data-privacy-coming-soon">
+          <h3>{t('privacy.terms.title')}</h3>
+          <p>{t('privacy.terms.comingSoon')}</p>
+        </section>
+      </section>
+      </div>
 
       <ConfirmDialog
         open={confirmCompleteCopy}

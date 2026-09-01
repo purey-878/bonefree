@@ -3,6 +3,25 @@
   gap: 18px;
 }
 
+.data-privacy-page-section {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+  scroll-margin-top: 116px;
+}
+
+.data-privacy-coming-soon {
+  display: grid;
+  min-height: 170px;
+  place-content: center;
+  text-align: center;
+}
+
+.data-privacy-coming-soon p {
+  max-width: 620px;
+  margin: 0;
+}
+
 .data-privacy-heading-row small {
   color: var(--ad-muted);
   line-height: 1.45;
@@ -94,4 +113,20 @@
   .data-privacy-inline-form,
   .data-privacy-list article { align-items: stretch; flex-direction: column; }
   .data-privacy-export-controls { flex-basis: auto; width: 100%; }
+}
+
+@media (max-width: 760px) {
+  .data-privacy-page-section {
+    gap: 14px;
+    scroll-margin-top: 94px;
+  }
+
+  .data-privacy-sticky-header .data-privacy-refresh {
+    width: 36px;
+    padding: 0;
+  }
+
+  .data-privacy-refresh > span {
+    display: none;
+  }
 }

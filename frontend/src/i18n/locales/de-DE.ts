@@ -215,8 +215,23 @@ const deDE = {
     roles: { all: "Alle Rollen", owner: "Inhaber", manager: "Manager", waiter: "Servicekraft", chef: "Koch" },
     privacy: {
       title: "Daten und Datenschutz",
-      intro: "Speichern Sie eine Kopie der Organisationsdaten auf Ihrem Computer.",
+      intro: "Verwalten Sie Datenkopien und Datenschutzdokumente der Organisation.",
       refresh: "Aktualisieren",
+      sections: {
+        navigationLabel: "Bereiche für Daten und Datenschutz",
+        goTo: "Zu {{section}} wechseln",
+        copies: "Datenkopien",
+        policy: "Datenschutzerklärung",
+        terms: "Allgemeine Geschäftsbedingungen",
+      },
+      policy: {
+        title: "Inhalt der Datenschutzerklärung",
+        comingSoon: "Die Bearbeitung der Datenschutzerklärung wird hier in Kürze ergänzt.",
+      },
+      terms: {
+        title: "Inhalt der Allgemeinen Geschäftsbedingungen",
+        comingSoon: "Die Bearbeitung der Allgemeinen Geschäftsbedingungen wird hier in Kürze ergänzt.",
+      },
       contact: {
         title: "Datenschutzkontakt",
         description: "Diese E-Mail-Adresse erscheint in der Datenschutzerklärung und wird für Fragen zu persönlichen Daten verwendet. Sie kann vom Geschäftskontakt abweichen.",
@@ -245,6 +260,10 @@ const deDE = {
         empty: "Es wurde noch keine Kopie vorbereitet.",
         completeCopy: "Alle Daten der Organisation",
         customerCopy: "Daten von Kunde {{id}}",
+        customerAction: "Daten exportieren",
+        customerPreparing: "Wird vorbereitet…",
+        customerQueued: "Die Kundendaten wurden zur Warteschlange hinzugefügt. Laden Sie die Datei herunter, sobald sie bereit ist.",
+        customerFailed: "Der Export der Kundendaten konnte nicht erstellt werden.",
         kind: { tenant: "Alle Organisationsdaten", customers: "Kundendaten", orders: "Bestelldaten", catalog: "Katalogdaten", media: "Bilder und andere Dateien" },
         requestedAt: "Angefordert am {{date}}",
         availableUntil: "Herunterladbar bis {{date}}",

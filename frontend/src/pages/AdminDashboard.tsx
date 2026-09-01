@@ -244,13 +244,13 @@ const ADMIN_ROLE_ICONS = {
   chef: ChefHat,
 } satisfies Record<AdminRole, typeof Crown>
 
-const SETTINGS_TABS: { id: SiteSettingsTab; label: string; description: string }[] = [
-  { id: "promote", label: "Promover produtos", description: "Produto em destaque na página inicial" },
-  { id: "coupons", label: "Definições de cupões", description: "Regras de recompensas por sequência" },
-  { id: "theme", label: "Tema do site", description: "Aspeto sazonal do website" },
-  { id: "company", label: "Detalhes da empresa", description: "Marca e contacto no rodapé" },
-  { id: "social", label: "Redes sociais", description: "Links dos ícones do rodapé" },
-  { id: "events", label: "Gerir eventos", description: "Datas e horários futuros" },
+const SETTINGS_TABS: { id: SiteSettingsTab; label: string }[] = [
+  { id: "promote", label: "Promover produtos" },
+  { id: "coupons", label: "Definições de cupões" },
+  { id: "theme", label: "Tema do site" },
+  { id: "company", label: "Detalhes da empresa" },
+  { id: "social", label: "Redes sociais" },
+  { id: "events", label: "Gerir eventos" },
 ]
 
 const THEME_COLOR_FIELDS: { key: keyof ThemeColors; label: string; helper: string }[] = [
@@ -861,6 +861,87 @@ function SiteSettingsPanel({
   const socialLinks = defaultSocialMediaSettings.links.map((defaultLink) => (
     socialMedia.links.find((link) => link.platform === defaultLink.platform) ?? defaultLink
   ))
+  const settingsStickyHeaderRef = useRef<HTMLDivElement>(null)
+  const settingsNavRef = useRef<HTMLElement>(null)
+  const settingsSectionsRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const sections = Array.from(
+      settingsSectionsRef.current?.querySelectorAll<HTMLElement>("[data-settings-section]") ?? [],
+    )
+    const scrollContainer = settingsSectionsRef.current?.closest<HTMLElement>(".ad-main")
+    if (sections.length === 0 || !scrollContainer) return
+
+    let animationFrame = 0
+    const updateActiveSection = () => {
+      window.cancelAnimationFrame(animationFrame)
+      animationFrame = window.requestAnimationFrame(() => {
+        if (!window.matchMedia("(max-width: 760px)").matches) return
+
+        const stickyHeaderHeight = settingsStickyHeaderRef.current?.getBoundingClientRect().height ?? 0
+        const marker = scrollContainer.getBoundingClientRect().top + stickyHeaderHeight + 24
+        const reachedPageEnd = scrollContainer.scrollTop + scrollContainer.clientHeight >= scrollContainer.scrollHeight - 2
+        let visibleSection = sections[0]
+
+        if (reachedPageEnd) {
+          visibleSection = sections[sections.length - 1]
+        } else {
+          sections.forEach((section) => {
+            if (section.getBoundingClientRect().top <= marker) visibleSection = section
+          })
+        }
+
+        const nextSection = visibleSection.dataset.settingsSection as SiteSettingsTab | undefined
+        if (nextSection) {
+          setActiveSettingsTab((currentSection) => currentSection === nextSection ? currentSection : nextSection)
+        }
+      })
+    }
+
+    updateActiveSection()
+    scrollContainer.addEventListener("scroll", updateActiveSection, { passive: true })
+    window.addEventListener("resize", updateActiveSection)
+    return () => {
+      window.cancelAnimationFrame(animationFrame)
+      scrollContainer.removeEventListener("scroll", updateActiveSection)
+      window.removeEventListener("resize", updateActiveSection)
+    }
+  }, [])
+
+  useEffect(() => {
+    const navigation = settingsNavRef.current
+    const activeButton = navigation?.querySelector<HTMLElement>(`[data-settings-nav-section="${activeSettingsTab}"]`)
+    if (!navigation || !activeButton) return
+
+    const navigationRect = navigation.getBoundingClientRect()
+    const buttonRect = activeButton.getBoundingClientRect()
+    if (buttonRect.left < navigationRect.left || buttonRect.right > navigationRect.right) {
+      navigation.scrollBy({
+        left: buttonRect.left - navigationRect.left - (navigationRect.width - buttonRect.width) / 2,
+        behavior: "smooth",
+      })
+    }
+  }, [activeSettingsTab])
+
+  const scrollToSettingsSection = (section: SiteSettingsTab) => {
+    setActiveSettingsTab(section)
+    if (!window.matchMedia("(max-width: 760px)").matches) return
+
+    const target = document.getElementById(`site-settings-${section}`)
+    const scrollContainer = target?.closest<HTMLElement>(".ad-main")
+    if (!target || !scrollContainer) return
+
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    const targetTop = scrollContainer.scrollTop
+      + target.getBoundingClientRect().top
+      - scrollContainer.getBoundingClientRect().top
+      - (settingsStickyHeaderRef.current?.getBoundingClientRect().height ?? 0)
+      - 12
+    scrollContainer.scrollTo({
+      top: Math.max(0, targetTop),
+      behavior: prefersReducedMotion ? "auto" : "smooth",
+    })
+  }
 
   const updateLoyaltyCoupon = (changes: Partial<LoyaltyCouponSettings>) => {
     onLoyaltyCouponChange({ ...loyaltyCoupon, ...changes })
@@ -953,6 +1034,7 @@ function SiteSettingsPanel({
   return (
     <AdminI18nBoundary>
     <div className="ad-content">
+      <div ref={settingsStickyHeaderRef} className="ad-settings-sticky-header">
       <div className="ad-section-bar">
         <div>
           <h2 className="ad-section-title">Definições do website</h2>
@@ -960,32 +1042,59 @@ function SiteSettingsPanel({
         </div>
         <div className="ad-settings-actions">
           {activeSettingsTab === "theme" && (
-            <button className="ad-btn ad-btn-ghost" disabled={saving || loading} onClick={() => onChange(defaultSiteThemeResponse)}>Repor tema</button>
+            <button
+              className="ad-btn ad-btn-ghost ad-settings-reset-button"
+              disabled={saving || loading}
+              onClick={() => onChange(defaultSiteThemeResponse)}
+              title="Repor tema"
+              aria-label="Repor tema"
+            >
+              <RefreshCw size={16} aria-hidden="true" />
+              <span>Repor tema</span>
+            </button>
           )}
-          <button className="ad-btn ad-btn-primary" disabled={saving || loading} onClick={onSave}>
-            {saving ? "A guardar..." : "Publicar definições"}
+          <button className="ad-btn ad-btn-primary ad-settings-publish-button" disabled={saving || loading} onClick={onSave}>
+            <Send size={16} aria-hidden="true" />
+            {saving ? (
+              <span>A guardar...</span>
+            ) : (
+              <>
+                <span className="ad-settings-publish-label-desktop">Publicar definições</span>
+                <span className="ad-settings-publish-label-mobile">Publicar</span>
+              </>
+            )}
           </button>
         </div>
       </div>
 
-      <div className="ad-settings-tabs" role="tablist" aria-label="Secções das definições do website">
-        {SETTINGS_TABS.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            className={activeSettingsTab === tab.id ? "active" : ""}
-            onClick={() => setActiveSettingsTab(tab.id)}
-            role="tab"
-            aria-selected={activeSettingsTab === tab.id}
-          >
-            <strong>{tab.label}</strong>
-            <span>{tab.description}</span>
-          </button>
-        ))}
+        <nav ref={settingsNavRef} className="ad-settings-nav" aria-label="Secções das definições do website">
+          {SETTINGS_TABS.map((section) => (
+            <button
+              key={section.id}
+              type="button"
+              className={activeSettingsTab === section.id ? "active" : ""}
+              onClick={() => scrollToSettingsSection(section.id)}
+              aria-label={`Ir para ${section.label}`}
+              aria-current={activeSettingsTab === section.id ? "location" : undefined}
+              data-settings-nav-section={section.id}
+              title={section.label}
+            >
+              <span className="ad-settings-nav-copy">
+                <strong>{section.label}</strong>
+              </span>
+            </button>
+          ))}
+        </nav>
       </div>
 
-      {activeSettingsTab === "promote" && (
-        <section className="ad-card ad-chef-special-settings">
+      <div className="ad-settings-layout">
+        <div className="ad-settings-sections" ref={settingsSectionsRef}>
+        <section
+          id="site-settings-promote"
+          className={`ad-card ad-chef-special-settings ad-settings-section ${activeSettingsTab === "promote" ? "active" : ""}`}
+          data-settings-section="promote"
+          aria-label="Promover produtos"
+        >
           <h3 className="ad-card-title">Promover produtos</h3>
           <p className="ad-settings-note">Escolha o produto em destaque na área especial da página inicial do cliente.</p>
           <div className="ad-settings-main">
@@ -1026,10 +1135,13 @@ function SiteSettingsPanel({
             )}
           </div>
         </section>
-      )}
 
-      {activeSettingsTab === "coupons" && (
-        <section className="ad-card ad-loyalty-settings">
+        <section
+          id="site-settings-coupons"
+          className={`ad-card ad-loyalty-settings ad-settings-section ${activeSettingsTab === "coupons" ? "active" : ""}`}
+          data-settings-section="coupons"
+          aria-label="Definições de cupões"
+        >
           <h3 className="ad-card-title">Definições de cupões</h3>
           <button
             type="button"
@@ -1105,9 +1217,13 @@ function SiteSettingsPanel({
             </div>
           </div>
         </section>
-      )}
 
-      {activeSettingsTab === "theme" && (
+      <section
+        id="site-settings-theme"
+        className={`ad-settings-section ${activeSettingsTab === "theme" ? "active" : ""}`}
+        data-settings-section="theme"
+        aria-label="Tema do site"
+      >
         <div className="ad-settings-grid">
           <div className="ad-settings-main">
           <section className="ad-card ad-theme-presets-card">
@@ -1222,10 +1338,14 @@ function SiteSettingsPanel({
           )}
           </aside>
         </div>
-      )}
+      </section>
 
-      {activeSettingsTab === "company" && (
-        <section className="ad-card ad-company-settings">
+        <section
+          id="site-settings-company"
+          className={`ad-card ad-company-settings ad-settings-section ${activeSettingsTab === "company" ? "active" : ""}`}
+          data-settings-section="company"
+          aria-label="Detalhes da empresa"
+        >
           <h3 className="ad-card-title">Detalhes da empresa</h3>
           <p className="ad-settings-note">Estes valores aparecem na marca e nas colunas de contacto do rodapé público.</p>
           <div className="ad-config-grid">
@@ -1273,10 +1393,13 @@ function SiteSettingsPanel({
             </div>
           </div>
         </section>
-      )}
 
-      {activeSettingsTab === "social" && (
-        <section className="ad-card ad-social-settings">
+        <section
+          id="site-settings-social"
+          className={`ad-card ad-social-settings ad-settings-section ${activeSettingsTab === "social" ? "active" : ""}`}
+          data-settings-section="social"
+          aria-label="Redes sociais"
+        >
           <h3 className="ad-card-title">Gestão de redes sociais</h3>
           <p className="ad-settings-note">Controle os rótulos, visibilidade e links de destino dos ícones do rodapé.</p>
           <div className="ad-social-link-grid">
@@ -1312,10 +1435,13 @@ function SiteSettingsPanel({
             ))}
           </div>
         </section>
-      )}
 
-      {activeSettingsTab === "events" && (
-        <section className="ad-card ad-events-settings">
+        <section
+          id="site-settings-events"
+          className={`ad-card ad-events-settings ad-settings-section ${activeSettingsTab === "events" ? "active" : ""}`}
+          data-settings-section="events"
+          aria-label="Gerir eventos"
+        >
           <h3 className="ad-card-title">Gerir eventos</h3>
           <p className="ad-settings-note">Edite as datas e horários dos próximos eventos apresentados na página pública de Eventos.</p>
           <div className="ad-event-settings-grid">
@@ -1390,7 +1516,8 @@ function SiteSettingsPanel({
             ))}
           </div>
         </section>
-      )}
+        </div>
+      </div>
 
     </div>
     </AdminI18nBoundary>
@@ -3499,11 +3626,11 @@ export default function AdminDashboard() {
       await createCustomerDataExport(cliente.customerId)
       setPrivacyQueueFocusRequest((current) => current + 1)
       handleTabChange("privacy")
-      toast.success("Os dados do cliente foram enviados para a fila. Baixe o ficheiro quando estiver pronto.")
+      toast.success(t("privacy.exports.customerQueued"))
     } catch (err) {
-      const message = getErrorMessage(err, "Não foi possível criar a exportação do cliente.")
+      const message = getErrorMessage(err, t("privacy.exports.customerFailed"))
       setError(message)
-      toast.error("Não foi possível criar a exportação do cliente.")
+      toast.error(t("privacy.exports.customerFailed"))
     } finally {
       customerExportingIdsRef.current.delete(cliente.customerId)
       setCustomerExportingIds(new Set(customerExportingIdsRef.current))
@@ -6229,7 +6356,9 @@ export default function AdminDashboard() {
                             disabled={customerExportingIds.has(cliente.customerId)}
                             onClick={() => void handleExportCliente(cliente)}
                           >
-                            {customerExportingIds.has(cliente.customerId) ? "A preparar…" : "Exportar dados"}
+                            {customerExportingIds.has(cliente.customerId)
+                              ? t("privacy.exports.customerPreparing")
+                              : t("privacy.exports.customerAction")}
                           </button>
                         </div>
                       </article>
