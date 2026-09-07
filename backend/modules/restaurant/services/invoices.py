@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
@@ -12,6 +11,7 @@ from sqlalchemy.orm import Session
 from modules.restaurant.models import PaymentStatus, normalize_enum
 from modules.auth.models import Organization, OrganizationDomain, OrganizationProfile
 from modules.restaurant.models import Invoice, Order
+from utils.datetime_utils import naive_utc_now
 
 
 def ensure_invoice_for_order(db: Session, order: Order) -> Invoice | None:
@@ -71,7 +71,7 @@ def ensure_invoice_for_order(db: Session, order: Order) -> Invoice | None:
             if Decimal(str(getattr(order, "vat_percentage", 13))) == 0
             else None
         ),
-        issued_at=datetime.utcnow(),
+        issued_at=naive_utc_now(),
     )
     db.add(invoice)
     db.flush()
@@ -79,7 +79,7 @@ def ensure_invoice_for_order(db: Session, order: Order) -> Invoice | None:
 
 
 def _invoice_number(order: Order) -> str:
-    year = order.ordered_at.year if order.ordered_at else datetime.utcnow().year
+    year = order.ordered_at.year if order.ordered_at else naive_utc_now().year
     return f"FR {year}/{order.order_id:06d}"
 
 

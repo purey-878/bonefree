@@ -1,4 +1,5 @@
 from ._shared import *  # noqa: F403 - shared router namespace
+from utils.datetime_utils import naive_utc_now
 
 # STAFF ADMINS
 
@@ -70,7 +71,7 @@ def create_staff_user(
         name=body.name,
         email=email,
         password=hash_password(body.password),
-        created_at=datetime.utcnow().date(),
+        created_at=naive_utc_now().date(),
         status=body.status,
         role=body.role,
     )

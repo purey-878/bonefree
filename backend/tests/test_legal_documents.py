@@ -26,6 +26,7 @@ from modules.auth.services.organization_management import create_organization
 from modules.auth.services.organization_lifecycle import build_purge_plan
 from modules.restaurant.services.data_exports import _tenant_payloads
 from scripts.seed_production_organization import apply_production_organization, check_production_organization, load_bonefree_fixture
+from utils.datetime_utils import naive_utc_now
 
 
 class LegalDocumentTests(unittest.TestCase):
@@ -52,7 +53,7 @@ class LegalDocumentTests(unittest.TestCase):
                     user = User(name=role.value, email=f"{role.value}@example.com", password="unused", role=role)
                     db.add(user)
                     db.flush()
-                    db.add(Session(user_id=user.id, token_hash=hash_session_token(f"{slug}-{role.value}"), expires_at=datetime.utcnow() + timedelta(hours=2)))
+                    db.add(Session(user_id=user.id, token_hash=hash_session_token(f"{slug}-{role.value}"), expires_at=naive_utc_now() + timedelta(hours=2)))
                     db.commit()
         self.body = {key: value for key, value in load_legal_defaults()[0].items() if key not in {"document_type", "locale"}}
 
@@ -156,7 +157,7 @@ class LegalDocumentTests(unittest.TestCase):
             self.assertEqual(profile.privacy_contact_email, "changed@example.com")
             self.assertEqual(db.scalar(select(func.count()).select_from(OrganizationLegalDocument)), 6)
             organization = db.scalar(select(Organization).where(Organization.slug == "bonefree"))
-            organization.purged_at = datetime.utcnow()
+            organization.purged_at = naive_utc_now()
             db.commit()
             with self.assertRaisesRegex(ValueError, "purged"):
                 apply_production_organization(db)
@@ -168,7 +169,7 @@ class LegalDocumentTests(unittest.TestCase):
             documents[0].title = "Preserved custom policy"
             db.delete(documents[1])
             db.add(Organization(name="Bonefree", slug="bonefree", email="bonefree@example.com"))
-            db.add(Organization(name="Purged", slug="purged", email="purged@example.com", purged_at=datetime.utcnow()))
+            db.add(Organization(name="Purged", slug="purged", email="purged@example.com", purged_at=naive_utc_now()))
             db.commit()
         path = Path(__file__).resolve().parents[1] / "alembic" / "versions" / "20260907_0007_organization_legal_documents.py"
         spec = importlib.util.spec_from_file_location("legal_migration", path)

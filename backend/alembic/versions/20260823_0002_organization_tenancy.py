@@ -7,7 +7,7 @@ Create Date: 2026-08-23
 from __future__ import annotations
 
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import UTC, datetime
 import json
 
 from alembic import op
@@ -158,7 +158,7 @@ def upgrade() -> None:
     organization_name = "Bonefree" if brand_name.casefold() == "bonefree" else brand_name
     organization_email = str(company_details.get("email") or "carambolarubra@gmail.com").strip()
     organization_phone = str(company_details.get("phone") or "+351 968 107 703").strip()
-    now = datetime.utcnow()
+    now = datetime.now(UTC).replace(tzinfo=None)
 
     _create_organization_type()
     op.create_table(

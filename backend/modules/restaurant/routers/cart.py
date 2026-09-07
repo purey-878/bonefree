@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import and_, delete, or_, select
-from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional, TypedDict
 
@@ -40,6 +39,7 @@ from modules.restaurant.services.product_pricing import discounted_product_price
 from modules.restaurant.services.product_media import primary_product_media_response
 from utils.id_format import format_product_id, parse_product_id
 from core.errors import AppHTTPException
+from utils.datetime_utils import naive_utc_now
 
 router = APIRouter(prefix="/cart", tags=["Cart"])
 CUSTOMIZATION_ADD_SURCHARGE = Decimal("1.00")
@@ -61,7 +61,7 @@ def _get_or_create_cart(db: Session, customer_id: int) -> Cart:
     """Return the customer's cart, creating one if it doesn't exist yet."""
     cart = db.scalar(select(Cart).where(Cart.customer_id == customer_id))
     if not cart:
-        cart = Cart(customer_id=customer_id, created_at=datetime.utcnow().date())
+        cart = Cart(customer_id=customer_id, created_at=naive_utc_now().date())
         db.add(cart)
         db.commit()
         db.refresh(cart)

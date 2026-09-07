@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from decimal import Decimal
 import hashlib
 from pathlib import Path
@@ -52,6 +52,7 @@ from modules.auth.services.organization_management import (
 from modules.auth.services.authentication import hash_session_token
 from modules.restaurant.services.invoices import ensure_invoice_for_order
 from modules.restaurant.services.receipt_email import build_saved_order_receipt_payload, render_receipt_email
+from utils.datetime_utils import naive_utc_now
 
 
 class OrganizationScopeTests(unittest.TestCase):
@@ -194,8 +195,8 @@ class OrganizationApiTests(unittest.TestCase):
                 Session(
                     user_id=user.id,
                     token_hash=hash_session_token(cls.session_token),
-                    expires_at=datetime.utcnow() + timedelta(hours=1),
-                    last_seen_at=datetime.utcnow(),
+                    expires_at=naive_utc_now() + timedelta(hours=1),
+                    last_seen_at=naive_utc_now(),
                     revoked=False,
                 )
             )
@@ -205,7 +206,7 @@ class OrganizationApiTests(unittest.TestCase):
                 customer_last_name="One",
                 customer_email="guest@example.com",
                 order_access_token_hash=hashlib.sha256(guest_token.encode()).hexdigest(),
-                order_access_expires_at=datetime.utcnow() + timedelta(hours=1),
+                order_access_expires_at=naive_utc_now() + timedelta(hours=1),
                 state=OrderState.PENDING,
                 payment_method=PaymentMethod.COUNTER,
                 payment_status=PaymentStatus.UNPAID,
@@ -255,7 +256,7 @@ class OrganizationApiTests(unittest.TestCase):
                 customer_last_name="Two",
                 customer_email="guest-two@example.com",
                 order_access_token_hash=hashlib.sha256(second_guest_token.encode()).hexdigest(),
-                order_access_expires_at=datetime.utcnow() + timedelta(hours=1),
+                order_access_expires_at=naive_utc_now() + timedelta(hours=1),
                 state=OrderState.PENDING,
                 payment_method=PaymentMethod.COUNTER,
                 payment_status=PaymentStatus.UNPAID,

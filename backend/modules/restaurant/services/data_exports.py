@@ -6,7 +6,7 @@ import os
 import tempfile
 import uuid
 import zipfile
-from datetime import UTC, date, datetime, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from enum import Enum
 from pathlib import Path
@@ -20,7 +20,7 @@ from core.base import Base
 from core.config import settings
 from modules.auth.models import DataExport, DataExportKind, DataExportStatus, Organization, UserRole
 from modules.restaurant.services.media_storage import UPLOADS_ROOT
-from utils.datetime_utils import to_naive_utc
+from utils.datetime_utils import naive_utc_now
 
 
 EXPORT_SCHEMA_VERSION = 1
@@ -71,10 +71,6 @@ PARTIAL_EXPORT_TABLES: dict[DataExportKind, tuple[str, ...]] = {
         "product_media",
     ),
 }
-
-
-def _now() -> datetime:
-    return to_naive_utc(datetime.now(UTC)) or datetime.utcnow()
 
 
 def _serialize(value: Any) -> Any:
@@ -278,7 +274,7 @@ def _write_export_zip(
             "kind": export.kind.value,
             "organization_id": export.organization_id,
             "customer_id": export.customer_id,
-            "generated_at": _now().isoformat(timespec="seconds") + "Z",
+            "generated_at": naive_utc_now().isoformat(timespec="seconds") + "Z",
             "files": file_hashes,
             "security": {
                 "credentials_excluded": True,
@@ -350,7 +346,7 @@ def process_data_export(db: Session, export: DataExport) -> DataExport:
             temporary_path.unlink(missing_ok=True)
 
         digest = hashlib.sha256(final_path.read_bytes()).hexdigest()
-        completed_at = _now()
+        completed_at = naive_utc_now()
         completed = db.execute(
             update(DataExport)
             .where(
@@ -405,7 +401,7 @@ def delete_data_export_file(export: DataExport) -> None:
 
 
 def process_next_pending_export(db: Session) -> DataExport | None:
-    stale_processing_before = _now() - EXPORT_PROCESSING_TIMEOUT
+    stale_processing_before = naive_utc_now() - EXPORT_PROCESSING_TIMEOUT
     export = db.scalar(
         select(DataExport)
         .where(
@@ -428,7 +424,7 @@ def process_next_pending_export(db: Session) -> DataExport | None:
 
 
 def cleanup_expired_data_exports(db: Session, *, now: datetime | None = None) -> int:
-    moment = now or _now()
+    moment = now or naive_utc_now()
     exports = db.scalars(
         select(DataExport)
         .where(
@@ -459,7 +455,7 @@ def cleanup_expired_data_exports(db: Session, *, now: datetime | None = None) ->
 
 
 def export_download_path(export: DataExport) -> Path | None:
-    now = _now()
+    now = naive_utc_now()
     if export.status != DataExportStatus.READY or export.expires_at is None:
         return None
     if export.expires_at <= now:

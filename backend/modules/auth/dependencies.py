@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 import re
 
 from fastapi import Depends, Header, Request, Security, status
@@ -32,7 +32,7 @@ from modules.auth.services.organization_lifecycle import (
     OrganizationAccessState,
     organization_access_state,
 )
-from utils.datetime_utils import to_naive_utc
+from utils.datetime_utils import naive_utc_now
 
 
 bearer_security = HTTPBearer(
@@ -60,10 +60,6 @@ def get_order_access_token_optional(
     token: str | None = Security(order_access_security),
 ) -> str | None:
     return token.strip() if token and token.strip() else None
-
-
-def _current_naive_utc() -> datetime:
-    return to_naive_utc(datetime.now(UTC)) or datetime.utcnow()
 
 
 def _require_operational_organization(organization: Organization | None) -> Organization:
@@ -238,7 +234,7 @@ def get_current_user(
         raise AppHTTPException(status_code=status.HTTP_401_UNAUTHORIZED, error="authentication_required", message="Authentication required.", details={"reason": "request_failed"})
 
     session = db.scalars(select(Session).where(Session.token_hash == hash_session_token(token))).first()
-    now = _current_naive_utc()
+    now = naive_utc_now()
 
     if (
         session is None
@@ -265,7 +261,7 @@ def get_current_user_optional(
         return None
 
     session = db.scalars(select(Session).where(Session.token_hash == hash_session_token(token))).first()
-    now = _current_naive_utc()
+    now = naive_utc_now()
 
     if (
         session is None
@@ -289,7 +285,7 @@ def get_current_staff_user(
         raise AppHTTPException(status_code=status.HTTP_401_UNAUTHORIZED, error="authentication_required", message="Authentication required.", details={"reason": "request_failed"})
 
     session = db.scalars(select(Session).where(Session.token_hash == hash_session_token(token))).first()
-    now = _current_naive_utc()
+    now = naive_utc_now()
 
     if (
         session is None

@@ -8,6 +8,8 @@ import secrets
 from datetime import datetime, timedelta
 from typing import Any
 
+from utils.datetime_utils import naive_utc_now
+
 
 OTP_TTL_MINUTES = 10
 RESET_TOKEN_TTL_MINUTES = 15
@@ -35,7 +37,7 @@ def verify_secret(secret: str, secret_hash: str | None) -> bool:
 
 def start_password_reset(user: Any, now: datetime | None = None) -> str:
     """Create and store a fresh OTP challenge on a user object."""
-    current_time = now or datetime.utcnow()
+    current_time = now or naive_utc_now()
     code = generate_otp()
     user.password_reset_code_hash = hash_secret(code)
     user.password_reset_expires_at = current_time + timedelta(minutes=OTP_TTL_MINUTES)
@@ -47,7 +49,7 @@ def start_password_reset(user: Any, now: datetime | None = None) -> str:
 
 def verify_password_reset_code(user: Any, code: str, now: datetime | None = None) -> tuple[bool, str, str | None]:
     """Validate an OTP and return a reset token if successful."""
-    current_time = now or datetime.utcnow()
+    current_time = now or naive_utc_now()
 
     if not user.password_reset_code_hash or not user.password_reset_expires_at:
         return False, "No password reset code has been requested.", None
@@ -72,7 +74,7 @@ def verify_password_reset_code(user: Any, code: str, now: datetime | None = None
 
 
 def can_reset_password(user: Any, token: str, now: datetime | None = None) -> tuple[bool, str]:
-    current_time = now or datetime.utcnow()
+    current_time = now or naive_utc_now()
 
     if not user.password_reset_token_hash or not user.password_reset_verified_until:
         return False, "The password reset code has not been verified yet."

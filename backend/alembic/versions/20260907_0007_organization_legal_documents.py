@@ -4,7 +4,7 @@ Revision ID: 20260907_0007
 Revises: 20260831_0006
 """
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 from alembic import op
@@ -46,7 +46,7 @@ def upgrade() -> None:
     bonefree = json.loads((root / "bonefree_v1.json").read_text(encoding="utf-8"))["documents"]
     existing = set(bind.execute(sa.select(documents.c.organization_id, documents.c.document_type, documents.c.locale)).all())
     rows = []
-    now = datetime.utcnow()
+    now = datetime.now(UTC).replace(tzinfo=None)
     for organization in bind.execute(sa.select(organizations.c.id, organizations.c.slug, organizations.c.purged_at)).mappings():
         if organization["purged_at"] is not None:
             continue

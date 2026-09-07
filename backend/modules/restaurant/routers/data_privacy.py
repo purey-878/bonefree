@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Response, status
@@ -34,7 +34,7 @@ from modules.restaurant.services.data_exports import (
     export_download_path,
     process_data_export,
 )
-from utils.datetime_utils import to_naive_utc
+from utils.datetime_utils import naive_utc_now
 
 
 admin_router = APIRouter(prefix="/admin", tags=["Data and Privacy"])
@@ -49,16 +49,12 @@ BULK_EXPORT_KINDS = frozenset(
 )
 
 
-def _now() -> datetime:
-    return to_naive_utc(datetime.now(UTC)) or datetime.utcnow()
-
-
 def _export_response(export: DataExport) -> DataExportResponse:
     path_exists = bool(export.storage_path and Path(export.storage_path).is_file())
     can_download = bool(
         export.status == DataExportStatus.READY
         and export.expires_at is not None
-        and export.expires_at > _now()
+        and export.expires_at > naive_utc_now()
         and path_exists
     )
     return DataExportResponse(
@@ -161,7 +157,7 @@ def _create_export(
         customer_filter,
         DataExport.status == DataExportStatus.READY,
         DataExport.expires_at.is_not(None),
-        DataExport.expires_at > _now(),
+        DataExport.expires_at > naive_utc_now(),
     ]
     if kind == DataExportKind.CUSTOMER:
         ready_filters.append(DataExport.downloaded_at.is_(None))
@@ -192,12 +188,12 @@ def _create_export(
                     (
                         (DataExport.status == DataExportStatus.READY)
                         & (DataExport.expires_at.is_not(None))
-                        & (DataExport.expires_at > _now())
+                        & (DataExport.expires_at > naive_utc_now())
                     ),
                     (
                         (DataExport.status == DataExportStatus.CANCELLED)
                         & (DataExport.expires_at.is_not(None))
-                        & (DataExport.expires_at > _now())
+                        & (DataExport.expires_at > naive_utc_now())
                     ),
                 ),
             )
@@ -288,7 +284,7 @@ def _download_export(db: Session, export_id: str) -> FileResponse:
             error="data_export_unavailable",
             message="The data export is not ready or has expired.",
         )
-    export.downloaded_at = _now()
+    export.downloaded_at = naive_utc_now()
     db.commit()
     return FileResponse(
         path,

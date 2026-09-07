@@ -16,6 +16,7 @@ from modules.auth.services.password_reset import (  # noqa: E402
     start_password_reset,
     verify_password_reset_code,
 )
+from utils.datetime_utils import naive_utc_now
 
 
 @dataclass
@@ -87,7 +88,7 @@ class PasswordResetTests(unittest.TestCase):
     def test_too_many_attempts_clears_challenge(self):
         user = FakeUser(
             password_reset_code_hash=hash_secret("123456"),
-            password_reset_expires_at=datetime.utcnow() + timedelta(minutes=5),
+            password_reset_expires_at=naive_utc_now() + timedelta(minutes=5),
             password_reset_attempts=MAX_OTP_ATTEMPTS,
         )
 
@@ -111,9 +112,9 @@ class PasswordResetTests(unittest.TestCase):
     def test_clear_password_reset_removes_state(self):
         user = FakeUser(
             password_reset_code_hash="hash",
-            password_reset_expires_at=datetime.utcnow(),
+            password_reset_expires_at=naive_utc_now(),
             password_reset_attempts=2,
-            password_reset_verified_until=datetime.utcnow(),
+            password_reset_verified_until=naive_utc_now(),
             password_reset_token_hash="token",
         )
 

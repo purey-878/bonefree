@@ -64,6 +64,7 @@ from modules.restaurant.services.product_media import primary_product_media_resp
 from modules.restaurant.services.site_settings import get_loyalty_coupon_settings
 from utils.id_format import format_product_id
 from core.errors import AppHTTPException
+from utils.datetime_utils import naive_utc_now
 
 try:
     from modules.restaurant.services.receipt_pdf import receipt_pdf_filename, render_receipt_pdf
@@ -182,7 +183,7 @@ def _hash_order_access_token(token: str) -> str:
 
 def _new_guest_order_access() -> tuple[str, str, datetime]:
     token = secrets.token_urlsafe(32)
-    expires_at = datetime.utcnow() + timedelta(
+    expires_at = naive_utc_now() + timedelta(
         hours=settings.order_access_token_expiration_hours
     )
     return token, _hash_order_access_token(token), expires_at
@@ -204,7 +205,7 @@ def _authorize_order_access(
         if token_matches:
             if (
                 order.order_access_expires_at is None
-                or order.order_access_expires_at <= datetime.utcnow()
+                or order.order_access_expires_at <= naive_utc_now()
             ):
                 raise AppHTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
@@ -325,7 +326,7 @@ def _normalize_coupon_code(value: str | None) -> str | None:
 
 
 def _available_coupon_statement(current_user: User):
-    now = datetime.utcnow()
+    now = naive_utc_now()
     return select(Coupon).where(
         Coupon.customer_id == current_user.id,
         Coupon.used.is_(False),
@@ -408,7 +409,7 @@ def _award_loyalty_coupon_if_eligible(db: Session, current_user: User, qualifyin
         loyalty = _get_or_create_loyalty(db, current_user)
 
     loyalty.orders_above_50 += 1
-    loyalty.updated_at = datetime.utcnow()
+    loyalty.updated_at = naive_utc_now()
 
     if loyalty.orders_above_50 < qualifying_count:
         return None
@@ -658,7 +659,7 @@ def create_order(
     if coupon:
         note_parts.extend([f"coupon={coupon.code}", f"coupon_discount={coupon_discount:.2f}"])
         coupon.used = True
-        coupon.used_at = datetime.utcnow()
+        coupon.used_at = naive_utc_now()
     if generated_coupon_code:
         note_parts.append(f"coupon_generated={generated_coupon_code}")
     order_notes = _checkout_notes(body, note_parts)
@@ -704,7 +705,7 @@ def create_order(
         method=db_method,
         state=PaymentState.PENDING,
         value=total,
-        transaction_reference=f"COUNTER-{datetime.utcnow().strftime('%Y%m%d')}-{order.order_id:03d}",
+        transaction_reference=f"COUNTER-{naive_utc_now().strftime('%Y%m%d')}-{order.order_id:03d}",
         paid_at=None,
     ))
 
@@ -751,7 +752,7 @@ def claim_guest_orders(
         )
     ).all()
     orders_by_id = {order.order_id: order for order in orders}
-    now = datetime.utcnow()
+    now = naive_utc_now()
     claimed_order_ids: list[int] = []
     rejected_order_ids: list[int] = []
 
@@ -812,9 +813,9 @@ def cancel_order(
         raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="order_cannot_be_cancelled", message="Order cannot be cancelled.", details={"order_id": order.order_id, "state": str(order.state), "payment_status": str(order.payment_status)})
 
     order.state = OrderState.CANCELLED
-    order.canceled_at = datetime.utcnow()
+    order.canceled_at = naive_utc_now()
     order.cancellation_origin = CancellationOrigin.CLIENT
-    order.updated_at = datetime.utcnow()
+    order.updated_at = naive_utc_now()
     if order.payment:
         order.payment.state = PaymentState.REJECTED
     db.commit()

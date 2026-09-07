@@ -1,7 +1,5 @@
 """Product review endpoints."""
 
-from datetime import datetime
-
 from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy import and_, case, func, or_, select
 from sqlalchemy.exc import IntegrityError
@@ -32,6 +30,7 @@ from modules.restaurant.schemas.pagination import total_pages
 from utils.id_format import format_product_id, parse_product_id
 from core.errors import AppHTTPException
 from core.rate_limit import RATE_LIMIT_OPENAPI_RESPONSES
+from utils.datetime_utils import naive_utc_now
 
 router = APIRouter(tags=["Reviews"])
 
@@ -519,7 +518,7 @@ def update_product_review(
         review.title = body.title
     if "comment" in body.model_fields_set:
         review.comment = body.comment
-    review.updated_at = datetime.utcnow()
+    review.updated_at = naive_utc_now()
 
     db.commit()
     db.refresh(review)
@@ -579,7 +578,7 @@ def update_review_reply(
     reply = _get_reply_or_404(db, review_id, reply_id)
     reply.text = body.text.strip()
     reply.author_user_id = current_owner.id
-    reply.updated_at = datetime.utcnow()
+    reply.updated_at = naive_utc_now()
     db.commit()
     db.refresh(reply)
     return reply

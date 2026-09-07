@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from decimal import Decimal
 import hashlib
 from io import BytesIO
@@ -25,6 +25,7 @@ from models import Category, Coupon, CustomerLoyalty, Ingredient, Invoice, Media
 from modules.auth.models import UserRole, UserStatus
 from modules.restaurant.models import EntityStatus, IngredientType, PaymentState, ProductCustomizationOptionType
 from modules.auth.services.authentication import hash_password, hash_session_token
+from utils.datetime_utils import naive_utc_now
 
 
 class EndpointSmokeTests(unittest.TestCase):
@@ -125,25 +126,25 @@ class EndpointSmokeTests(unittest.TestCase):
             cls.admin_id = admin.id
             cls.customer_id = customer.id
 
-            expires_at = datetime.utcnow() + timedelta(hours=2)
+            expires_at = naive_utc_now() + timedelta(hours=2)
             db.add_all([
                 Session(
                     user_id=customer.id,
                     token_hash=hash_session_token(cls.customer_token),
                     expires_at=expires_at,
-                    last_seen_at=datetime.utcnow(),
+                    last_seen_at=naive_utc_now(),
                     revoked=False,
                 ),
                 Session(
                     user_id=admin.id,
                     token_hash=hash_session_token(cls.admin_token),
                     expires_at=expires_at,
-                    last_seen_at=datetime.utcnow(),
+                    last_seen_at=naive_utc_now(),
                     revoked=False,
                 ),
-                Session(user_id=manager.id, token_hash=hash_session_token(cls.manager_token), expires_at=expires_at, last_seen_at=datetime.utcnow(), revoked=False),
-                Session(user_id=chef.id, token_hash=hash_session_token(cls.chef_token), expires_at=expires_at, last_seen_at=datetime.utcnow(), revoked=False),
-                Session(user_id=waiter.id, token_hash=hash_session_token(cls.waiter_token), expires_at=expires_at, last_seen_at=datetime.utcnow(), revoked=False),
+                Session(user_id=manager.id, token_hash=hash_session_token(cls.manager_token), expires_at=expires_at, last_seen_at=naive_utc_now(), revoked=False),
+                Session(user_id=chef.id, token_hash=hash_session_token(cls.chef_token), expires_at=expires_at, last_seen_at=naive_utc_now(), revoked=False),
+                Session(user_id=waiter.id, token_hash=hash_session_token(cls.waiter_token), expires_at=expires_at, last_seen_at=naive_utc_now(), revoked=False),
             ])
             category = Category(
                 category_name="Smoke category",
@@ -933,7 +934,7 @@ class EndpointSmokeTests(unittest.TestCase):
 
         with self.Session() as db:
             order = db.get(Order, first["order_id"])
-            order.order_access_expires_at = datetime.utcnow() - timedelta(seconds=1)
+            order.order_access_expires_at = naive_utc_now() - timedelta(seconds=1)
             db.commit()
 
         expired = self.client.get(
@@ -952,7 +953,7 @@ class EndpointSmokeTests(unittest.TestCase):
         with self.Session() as db:
             loyalty_before = db.scalar(select(func.count()).select_from(CustomerLoyalty))
             expired_order = db.get(Order, expired["order_id"])
-            expired_order.order_access_expires_at = datetime.utcnow() - timedelta(seconds=1)
+            expired_order.order_access_expires_at = naive_utc_now() - timedelta(seconds=1)
             other_order = db.get(Order, owned_elsewhere["order_id"])
             other_order.customer_id = self.admin_id
             db.commit()

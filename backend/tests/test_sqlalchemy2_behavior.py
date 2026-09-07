@@ -1,5 +1,5 @@
 from decimal import Decimal
-from datetime import datetime, timedelta
+from datetime import timedelta
 import unittest
 
 from sqlalchemy import create_engine, event, func, select
@@ -49,6 +49,7 @@ from modules.restaurant.models import (
 from modules.restaurant.services.product_availability import unavailable_base_product_ids
 from modules.restaurant.services.site_settings import get_site_theme_settings, save_site_theme
 from modules.restaurant.schemas.site_settings import SiteThemeSettings
+from utils.datetime_utils import naive_utc_now
 
 
 class SqlAlchemy2BehaviorTests(unittest.TestCase):
@@ -295,7 +296,7 @@ class SqlAlchemy2BehaviorTests(unittest.TestCase):
         self.assertEqual(len(_popular_product_rows(self.db, 2)), 2)
 
     def test_sales_aggregates_preserve_totals_without_loading_orm_graphs(self):
-        ordered_at = datetime.utcnow().replace(microsecond=0)
+        ordered_at = naive_utc_now().replace(microsecond=0)
         order = Order(
             customer_id=self.customer.id,
             ordered_at=ordered_at,

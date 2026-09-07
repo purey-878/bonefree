@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response, status
 from sqlalchemy import select
@@ -31,6 +30,7 @@ from modules.auth.services.authentication import authenticate_customer, create_c
 from modules.auth.services.password_reset import can_reset_password, clear_password_reset, start_password_reset, verify_password_reset_code
 from core.errors import AppHTTPException
 from core.rate_limit import RATE_LIMIT_OPENAPI_RESPONSES
+from utils.datetime_utils import naive_utc_now
 
 router = APIRouter(tags=["Auth"])
 logger = logging.getLogger(__name__)
@@ -92,7 +92,7 @@ def register(
         tax_id=user.tax_id,
         status=UserStatus.ACTIVE,
         role=UserRole.CLIENT,
-        created_at=datetime.utcnow(),
+        created_at=naive_utc_now(),
     )
 
     db.add(new_user)

@@ -1,5 +1,6 @@
 from ._shared import *  # noqa: F403 - shared router namespace
 from typing import TypedDict
+from utils.datetime_utils import naive_utc_now
 
 
 class CustomerAddressPayload(TypedDict):
@@ -133,7 +134,7 @@ def create_customer(
         tax_id=body.tax_id,
         status=body.status,
         role=UserRole.CLIENT,
-        created_at=datetime.utcnow(),
+        created_at=naive_utc_now(),
     )
     db.add(customer)
     db.flush()

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from enum import StrEnum
 from pathlib import Path
 
@@ -22,7 +22,7 @@ from modules.auth.models import (
     UserRole,
 )
 from modules.auth.services.email import send_organization_access_notice
-from utils.datetime_utils import to_naive_utc
+from utils.datetime_utils import naive_utc_now
 
 
 PURGE_PRESERVED_TABLES = {"organization_domain", "data_export"}
@@ -34,10 +34,6 @@ class OrganizationAccessState(StrEnum):
     PURGED = "purged"
 
 
-def utc_now() -> datetime:
-    return to_naive_utc(datetime.now(UTC)) or datetime.utcnow()
-
-
 def organization_access_state(
     organization: Organization,
     *,
@@ -47,7 +43,7 @@ def organization_access_state(
         return OrganizationAccessState.PURGED
     if organization.access_expires_at is None:
         return OrganizationAccessState.OPERATIONAL
-    if (now or utc_now()) < organization.access_expires_at:
+    if (now or naive_utc_now()) < organization.access_expires_at:
         return OrganizationAccessState.OPERATIONAL
     return OrganizationAccessState.EXPIRED
 
@@ -132,7 +128,7 @@ def cancel_organization_access(
 ) -> datetime:
     if organization.purged_at is not None:
         raise ValueError("A purged organization cannot have its access changed.")
-    moment = now or utc_now()
+    moment = now or naive_utc_now()
     if organization.access_expires_at is not None and not replace:
         return organization.access_expires_at
     if (
@@ -156,7 +152,7 @@ def restore_organization_access(
 ) -> None:
     if organization.purged_at is not None:
         raise ValueError("A purged organization cannot be restored.")
-    moment = now or utc_now()
+    moment = now or naive_utc_now()
     if (
         organization.access_expires_at is not None
         and moment >= organization.access_expires_at
@@ -219,7 +215,7 @@ def purge_organization(db: DBSession, organization: Organization) -> PurgePlan:
     plan = build_purge_plan(db, organization)
     if not plan.eligible:
         raise ValueError(f"Purge blocked: {', '.join(plan.blockers)}")
-    moment = utc_now()
+    moment = naive_utc_now()
     db.info["organization_id"] = organization.id
 
     exports = db.scalars(select(DataExport)).all()
@@ -257,7 +253,7 @@ def send_due_access_notifications(
     *,
     now: datetime | None = None,
 ) -> int:
-    moment = now or utc_now()
+    moment = now or naive_utc_now()
     organizations = db.scalars(
         select(Organization)
         .where(
@@ -327,7 +323,7 @@ def send_due_access_notifications(
 
 
 def hosting_plan_rows(db: DBSession) -> list[dict[str, str | int | bool]]:
-    moment = utc_now()
+    moment = naive_utc_now()
     rows = db.execute(
         select(Organization, OrganizationDomain)
         .join(OrganizationDomain, OrganizationDomain.organization_id == Organization.id)

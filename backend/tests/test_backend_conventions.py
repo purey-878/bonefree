@@ -89,6 +89,19 @@ def _dependency_names(node: ast.FunctionDef | ast.AsyncFunctionDef) -> set[str]:
 
 
 class BackendConventionTests(unittest.TestCase):
+    def test_backend_does_not_use_deprecated_datetime_methods(self):
+        violations = []
+        for path in BACKEND.rglob("*.py"):
+            tree = ast.parse(path.read_text(encoding="utf-8-sig"), filename=str(path))
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Attribute) and node.attr in {
+                    "utcnow",
+                    "utcfromtimestamp",
+                }:
+                    violations.append(f"{path.relative_to(ROOT)}:{node.lineno}")
+
+        self.assertEqual([], violations, "Use the shared UTC helpers or datetime.now(UTC).")
+
     def test_active_sources_do_not_restore_removed_refunds_or_legacy_branding(self):
         source_roots = [BACKEND, ROOT / "frontend" / "src"]
         extra_files = [ROOT / "frontend" / "openapi" / "openapi.json"]

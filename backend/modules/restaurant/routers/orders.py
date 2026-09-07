@@ -1,4 +1,5 @@
 from ._shared import *  # noqa: F403 - shared router namespace
+from utils.datetime_utils import naive_utc_now
 
 @router.get(
     "/orders",
@@ -222,7 +223,7 @@ def update_order_status(
         raise AppHTTPException(status_code=403, error="permission_denied", message="Permission denied.", details={"reason": "request_failed"})
     _ensure_order_status_allowed(current_staff, order, body.state)
     previous_state = order.state
-    now = datetime.utcnow()
+    now = naive_utc_now()
     order.state = body.state
     if body.state == OrderState.CANCELLED:
         order.canceled_at = order.canceled_at or now
@@ -261,7 +262,7 @@ def pay_counter_order(
     if order.state not in KITCHEN_VISIBLE_STATES and order.state not in {OrderState.DELIVERED, OrderState.CANCELLED}:
         order.state = OrderState.CONFIRMED
     order.handled_by_user_id = current_staff.id
-    order.updated_at = datetime.utcnow()
+    order.updated_at = naive_utc_now()
     db.commit()
     db.refresh(order)
     if not was_paid:

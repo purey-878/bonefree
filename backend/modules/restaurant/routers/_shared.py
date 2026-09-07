@@ -57,6 +57,7 @@ from utils.id_format import format_category_id, format_product_id, parse_categor
 from core.errors import AppHTTPException
 from core.rate_limit import RATE_LIMIT_OPENAPI_RESPONSES
 from modules.restaurant.schemas.pagination import total_pages
+from utils.datetime_utils import naive_utc_now
 
 router = APIRouter(
     prefix="/admin",
@@ -297,7 +298,7 @@ def _popular_product_rows(db: Session, limit: int) -> List[PopularProduct]:
 
 
 def _build_dashboard_sales_graphs(db: Session) -> DashboardSalesGraphs:
-    now = datetime.utcnow().replace(minute=0, second=0, microsecond=0)
+    now = naive_utc_now().replace(minute=0, second=0, microsecond=0)
     today = now.date()
 
     hourly_start = now - timedelta(hours=23)
@@ -384,7 +385,7 @@ def _parse_customer_created_at(value: Optional[object]) -> Optional[datetime]:
 
 
 def _analytics_window(range_key: str, start_date: Optional[str], end_date: Optional[str]) -> tuple[datetime, datetime, str]:
-    now = datetime.utcnow()
+    now = naive_utc_now()
     if range_key == "day":
         return now.replace(minute=0, second=0, microsecond=0) - timedelta(hours=23), now, "hour"
     if range_key == "month":
@@ -752,7 +753,7 @@ def _confirm_counter_payment(db: Session, order: Order, current_staff: User) -> 
         return True
     order.payment_status = PaymentStatus.PAID
 
-    now = datetime.utcnow()
+    now = naive_utc_now()
     if order.payment:
         order.payment.state = PaymentState.APPROVED
         order.payment.paid_at = now
@@ -773,7 +774,7 @@ def _confirm_counter_payment(db: Session, order: Order, current_staff: User) -> 
 
 
 def _staff_order_filter():
-    today = datetime.utcnow().date()
+    today = naive_utc_now().date()
     return or_(
         Order.state.in_((OrderState.PENDING, OrderState.CONFIRMED, OrderState.IN_PREPARATION, OrderState.READY)),
         (

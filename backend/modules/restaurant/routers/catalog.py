@@ -1,4 +1,5 @@
 from ._shared import *  # noqa: F403 - shared router namespace
+from utils.datetime_utils import naive_utc_now
 
 @router.get(
     "/categories",
@@ -566,7 +567,7 @@ def get_product_analytics(
     if not product:
         raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
 
-    end_date = datetime.utcnow().date()
+    end_date = naive_utc_now().date()
     start_date = end_date - timedelta(days=days - 1)
     daily_keys = [(start_date + timedelta(days=index)).strftime("%Y-%m-%d") for index in range(days)]
     daily_buckets = {key: _empty_sales_stats() for key in daily_keys}
@@ -755,7 +756,7 @@ def delete_product(
         raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
 
     product.status = EntityStatus.INACTIVE
-    product.deleted_at = datetime.utcnow()
+    product.deleted_at = naive_utc_now()
     db.commit()
     db.refresh(product)
     return _product_staff_response(db, product)

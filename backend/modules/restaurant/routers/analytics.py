@@ -1,4 +1,5 @@
 from ._shared import *  # noqa: F403 - shared router namespace
+from utils.datetime_utils import naive_utc_now
 
 @router.get(
     "/analytics/dashboard",
@@ -138,7 +139,7 @@ def get_sales_performance(
     db: Session = Depends(get_db)
 ):
     """Get sales performance over specified number of days."""
-    end_date = datetime.utcnow().date()
+    end_date = naive_utc_now().date()
     start_date = end_date - timedelta(days=days)
 
     total_sales = 0.0
