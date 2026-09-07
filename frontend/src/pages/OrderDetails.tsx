@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import {
   ArrowLeft,
-  Check,
   ChefHat,
   Clock,
   Download,
@@ -34,12 +33,12 @@ import { useTranslation } from "react-i18next"
 import i18n, { resolvedLocale } from "../i18n"
 
 const TERMINAL_STATUSES = new Set(["delivered", "cancelled"])
+const CUSTOMER_PROGRESS_STATUSES = ORDER_PROGRESS_STATUSES.filter((status) => status !== "delivered")
 const progressIcons = {
   pending: WalletCards,
   confirmed: ReceiptText,
   in_preparation: ChefHat,
   ready: PackageCheck,
-  delivered: Check,
 } as const
 
 function statusLabel(status: string) {
@@ -234,7 +233,7 @@ export default function OrderDetails() {
                   <strong>{statusLabel(order.status)}</strong>
                 </div>
                 <ol className="order-details-progress">
-                  {ORDER_PROGRESS_STATUSES.map((status) => {
+                  {CUSTOMER_PROGRESS_STATUSES.map((status) => {
                     const Icon = progressIcons[status]
                     const state = orderProgressStepState(order.status, status)
                     return (

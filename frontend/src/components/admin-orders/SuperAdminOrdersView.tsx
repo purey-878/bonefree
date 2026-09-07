@@ -168,12 +168,12 @@ export default function SuperAdminOrdersView({ orders, onRefresh, onUpdateStatus
         </div>
       </div>
 
-      <div className="ad-card order-admin-table-card">
+      <div className="order-admin-table-card">
         {ordersSectionCollapsed ? (
           <p className="ad-empty">{t("orders.super.collapsed")}</p>
         ) : (
         <>
-        <div className="order-admin-card-list row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-3">
+        <div className="order-admin-card-list">
           {filteredOrders.map((order) => {
             const payment = paymentParts(order);
 

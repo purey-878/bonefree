@@ -576,7 +576,7 @@ const HeroContent = styled.div`
 
   @media (max-width: 767px) {
     min-height: calc(92svh - 68px);
-    padding: 4rem 1rem 3rem;
+    padding: 5rem 1rem 3rem;
   }
 `;
 

@@ -129,6 +129,8 @@ import { formatCategoryId, formatProductId } from "../utils/ids"
 import { applyApiImageFallback, resolveProductImageUrl } from "../utils/imageFallback"
 import { formatEuro } from "../utils/money"
 import { ADMIN_ROLES, formatAdminRole } from "../utils/adminEnumLabels"
+import AdminPageContent from "../components/admin/AdminPageContent"
+import AdminStatusBadge from "../components/admin/AdminStatusBadge"
 import { translateUserMessage } from "../utils/messages"
 import { persistOptimisticUpdate } from "../utils/optimisticUpdate"
 import { primaryProductMediaUrl, productMediaUrl } from "../utils/productMedia"
@@ -1033,7 +1035,7 @@ function SiteSettingsPanel({
 
   return (
     <AdminI18nBoundary>
-    <div className="ad-content">
+    <AdminPageContent>
       <div ref={settingsStickyHeaderRef} className="ad-settings-sticky-header">
       <div className="ad-section-bar">
         <div>
@@ -1127,7 +1129,7 @@ function SiteSettingsPanel({
                 )}
                 <div>
                   <strong>{selectedChefSpecial.name}</strong>
-                  <small>{EURO_FORMATTER.format(selectedChefSpecial.price)} | {selectedChefSpecial.effectiveAvailable ? "disponível" : "indisponível"}</small>
+                  <small>{EURO_FORMATTER.format(selectedChefSpecial.price)} | {selectedChefSpecial.effectiveAvailable ? "Disponível" : "Indisponível"}</small>
                 </div>
               </div>
             ) : (
@@ -1519,7 +1521,7 @@ function SiteSettingsPanel({
         </div>
       </div>
 
-    </div>
+    </AdminPageContent>
     </AdminI18nBoundary>
   )
 }
@@ -1666,6 +1668,7 @@ export default function AdminDashboard() {
 
   // Form state
   const [showProductForm, setShowProductForm] = useState(false)
+  const [productFormClosing, setProductFormClosing] = useState(false)
   const [productFormStep, setProductFormStep] = useState(0)
   const [productFormMessage, setProductFormMessage] = useState("")
   const [editingProduct, setEditingProduct] = useState<AdminProduct | null>(null)
@@ -2583,6 +2586,7 @@ export default function AdminDashboard() {
   }, [calorieMode, formData, imagePreviews, productFormMessage])
 
   const openNewForm = async () => {
+    setProductFormClosing(false)
     setEditingProduct(null)
     const [nextCategories, nextIngredients] = await Promise.all([
       listAllCategories({ status: "active" }),
@@ -2622,7 +2626,12 @@ export default function AdminDashboard() {
   }
 
   const closeForm = () => {
+    setProductFormClosing(true)
+  }
+
+  const handleProductFormExited = () => {
     setShowProductForm(false)
+    setProductFormClosing(false)
     setEditingProduct(null)
     setNewProductIngredientName("")
     setNewProductIngredientType("normal")
@@ -2638,6 +2647,7 @@ export default function AdminDashboard() {
   }
 
   const handleEditProduct = async (product: AdminProduct, startStep = 0) => {
+    setProductFormClosing(false)
     setEditingProduct(product)
     const [nextCategories, nextIngredients] = await Promise.all([
       listAllCategories({ status: "active" }),
@@ -4126,7 +4136,7 @@ export default function AdminDashboard() {
 
         {/* ── DASHBOARD ── */}
         {activeTab === "dashboard" && !dashboardData && (
-          <div className="ad-content">
+          <AdminPageContent>
             <section className="ad-dashboard-loading" aria-live="polite" role="status">
               {dashboardLoading ? (
                 <>
@@ -4148,10 +4158,10 @@ export default function AdminDashboard() {
                 </>
               )}
             </section>
-          </div>
+          </AdminPageContent>
         )}
         {activeTab === "dashboard" && dashboardData && (
-          <div className="ad-content">
+          <AdminPageContent>
             <section className="ad-dashboard-overview">
               <div>
                 <p className="ad-dashboard-kicker">Consola de administração</p>
@@ -4260,12 +4270,12 @@ export default function AdminDashboard() {
                 ) : <p className="ad-empty">Ainda não há dados</p>}
               </div>
             </div>
-          </div>
+          </AdminPageContent>
         )}
 
         {/* ── PRODUCTS ── */}
         {activeTab === "categories" && (
-          <div className="ad-content">
+          <AdminPageContent>
             <div className="ad-section-bar">
               <div>
                 <h2 className="ad-section-title">Categories</h2>
@@ -4398,7 +4408,7 @@ export default function AdminDashboard() {
                         <span className="ad-category-code">{category.categoryDisplayId ?? formatCategoryId(category.categoryId)}</span>
                         <h3>{category.categoryName}</h3>
                       </div>
-                      <span className={`ad-pill ${isActive ? "ad-pill-green" : "ad-pill-gray"}`}>{isActive ? "active" : "inactive"}</span>
+                      <AdminStatusBadge active={isActive} />
                     </div>
                     <p>{category.categoryDescription || "Sem descrição definida."}</p>
                     <div className="ad-category-meta">
@@ -4420,11 +4430,11 @@ export default function AdminDashboard() {
               {categories.length > 0 && filteredCategories.length === 0 && <p className="ad-empty">No categories match these filters.</p>}
             </div>
             {renderAdminPagination("categories")}
-          </div>
+          </AdminPageContent>
         )}
 
         {activeTab === "ingredients" && (
-          <div className="ad-content">
+          <AdminPageContent>
             <div className="ad-section-bar">
               <div>
                 <p className="ad-section-kicker">
@@ -4581,8 +4591,8 @@ export default function AdminDashboard() {
                         <h3>{ingredient.name}</h3>
                       </div>
                       <div>
-                        <span className={`ad-pill ${isActive ? "ad-pill-green" : "ad-pill-gray"}`}>{isActive ? "ativo" : "inativo"}</span>
-                        <span className={`ad-pill ${ingredient.available ? "ad-pill-green" : "ad-pill-red"}`}>{ingredient.available ? "disponível" : "indisponível"}</span>
+                        <AdminStatusBadge active={isActive} />
+                        <span className={`ad-pill ${ingredient.available ? "ad-pill-green" : "ad-pill-red"}`}>{t(ingredient.available ? "legacy.available" : "legacy.unavailable")}</span>
                       </div>
                     </div>
                     <div className="ad-ingredient-meta">
@@ -4681,7 +4691,7 @@ export default function AdminDashboard() {
                             <span className="ad-related-product-meta">
                               <strong>{formatEuro(product.price)}</strong>
                               <span className={`ad-pill ${product.status === "inactive" ? "ad-pill-gray" : "ad-pill-green"}`}>
-                                {product.status === "inactive" ? "inativo" : product.effectiveAvailable ? "disponível" : "indisponível"}
+                                {t(product.status === "inactive" ? "legacy.inactive" : product.effectiveAvailable ? "legacy.available" : "legacy.unavailable")}
                               </span>
                             </span>
                           </button>
@@ -4712,11 +4722,11 @@ export default function AdminDashboard() {
               </>
             )}
             {renderAdminPagination("ingredients")}
-          </div>
+          </AdminPageContent>
         )}
 
         {activeTab === "products" && (
-          <div className="ad-content">
+          <AdminPageContent>
             <div className="ad-section-bar">
               <div>
                 <h2 className="ad-section-title">Todos os produtos</h2>
@@ -4856,20 +4866,25 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Product Form Modal */}
+            {/* Product editor */}
             {canEditAdminCatalog && showProductForm && (
-              <>
-                <div className="ad-modal-backdrop" />
-                <div className="ad-modal ad-product-modal">
+              <AdaptivePanel
+                ariaLabel={editingProduct ? "Editar produto" : "Criar produto"}
+                closeLabel="Fechar editor de produto"
+                closing={productFormClosing}
+                mode={adminEditorViewMode}
+                onExited={handleProductFormExited}
+                onModeChange={setAdminEditorViewMode}
+                onRequestClose={closeForm}
+                panelClassName="ad-product-editor-panel"
+              >
+                <div className="ad-product-modal ad-product-editor-content">
                   <div className="ad-product-modal-header">
                     <div>
                       <p className="ad-product-modal-kicker">Produto do menu</p>
                       <h3>{editingProduct ? "Editar produto" : "Criar produto"}</h3>
                       <span>Preencha os detalhes do produto, a personalização para clientes e as imagens num fluxo simples.</span>
                     </div>
-                    <button type="button" className="ad-modal-close ad-product-close" onClick={closeForm} aria-label="Fechar editor de produto">
-                      <X size={20} />
-                    </button>
                     <nav className="ad-product-stepper-progress" aria-label="Progresso do formulário do produto">
                       {PRODUCT_FORM_STEPS.map((step, index) => (
                         <button
@@ -5779,7 +5794,7 @@ export default function AdminDashboard() {
                     </form>
                   </div>
                 </div>
-              </>
+              </AdaptivePanel>
             )}
 
             <ProductAnalyticsPanel
@@ -6001,7 +6016,7 @@ export default function AdminDashboard() {
                 {showDeletedProducts && renderAdminPagination("products", archivedProductPage, true)}
               </div>
             )}
-          </div>
+          </AdminPageContent>
         )}
 
         {/* ── ORDERS ── */}
@@ -6027,7 +6042,7 @@ export default function AdminDashboard() {
         )}
 
         {activeTab === "orders" && (
-          <div className="ad-content">
+          <AdminPageContent>
             <OrderViewSwitcher
               availableViews={availableOrderViews}
               currentView={orderView}
@@ -6053,11 +6068,11 @@ export default function AdminDashboard() {
                 onPerPageChange={(perPage) => updatePageMeta("orders", { page: 1, perPage })}
               />
             )}
-          </div>
+          </AdminPageContent>
         )}
 
         {activeTab === "reviews" && (
-          <div className="ad-content">
+          <AdminPageContent>
             <div className="ad-section-bar">
               <div>
                 <h2 className="ad-section-title">Respostas e reações a avaliações</h2>
@@ -6205,12 +6220,12 @@ export default function AdminDashboard() {
               </div>
             )}
             {renderAdminPagination("reviews")}
-          </div>
+          </AdminPageContent>
         )}
 
         {/* ── CLIENTES ── */}
         {activeTab === "clientes" && (
-          <div className="ad-content">
+          <AdminPageContent>
             <div className="ad-section-bar">
               <h2 className="ad-section-title">Clientes</h2>
               <button className="ad-btn ad-btn-primary" onClick={openNewClienteForm}>+ Adicionar cliente</button>
@@ -6339,7 +6354,7 @@ export default function AdminDashboard() {
                         </div>
 
                         <div className="ad-client-card-status">
-                          <span className={`ad-pill ${cliente.status === "active" ? "ad-pill-green" : "ad-pill-gray"}`}>{cliente.status === "active" ? "ativo" : "inativo"}</span>
+                          <AdminStatusBadge active={!isInactive} />
                         </div>
 
                         <div className="ad-client-card-details">
@@ -6368,11 +6383,11 @@ export default function AdminDashboard() {
               )}
             </div>
             {renderAdminPagination("clientes")}
-          </div>
+          </AdminPageContent>
         )}
 
         {activeTab === "staff" && (
-          <div className="ad-content">
+          <AdminPageContent>
             <div className="ad-section-bar">
               <h2 className="ad-section-title">Utilizadores admin</h2>
               <button className="ad-btn ad-btn-primary" onClick={openNewStaffForm}>+ Adicionar admin</button>
@@ -6473,13 +6488,19 @@ export default function AdminDashboard() {
                   <tbody>
                     {filteredStaffAdmins.map(admin => {
                       const isInactive = admin.status !== "active"
+                      const StaffRoleIcon = ADMIN_ROLE_ICONS[admin.role]
                       return (
                         <tr key={admin.adminId}>
                           <td data-label="ID">{admin.adminId}</td>
                           <td data-label="Nome">{admin.name}</td>
                           <td data-label="Email">{admin.email}</td>
-                          <td data-label="Cargo"><span className="ad-pill ad-pill-blue">{formatAdminRole(admin.role)}</span></td>
-                          <td data-label="Estado"><span className={`ad-pill ${admin.status === "active" ? "ad-pill-green" : "ad-pill-gray"}`}>{admin.status === "active" ? "ativo" : "inativo"}</span></td>
+                          <td data-label="Cargo">
+                            <span className={`ad-pill ad-pill-blue ad-staff-role ad-staff-role-${admin.role}`}>
+                              <StaffRoleIcon className="ad-user-role-icon" size={14} strokeWidth={2.2} aria-hidden="true" />
+                              {formatAdminRole(admin.role)}
+                            </span>
+                          </td>
+                          <td data-label="Estado"><AdminStatusBadge active={!isInactive} /></td>
                           <td data-label="Ações">
                             <div className="ad-actions">
                               <button className="ad-btn ad-btn-sm ad-btn-ghost" onClick={() => openEditStaffForm(admin)}>Editar</button>
@@ -6498,7 +6519,7 @@ export default function AdminDashboard() {
               )}
             </div>
             {renderAdminPagination("staff")}
-          </div>
+          </AdminPageContent>
         )}
 
         {activeTab === "privacy" && isOwner && (
@@ -6506,7 +6527,7 @@ export default function AdminDashboard() {
         )}
 
         {activeTab === "analytics" && (
-          <div className="ad-content">
+          <AdminPageContent>
             <div className="ad-section-bar">
               <div>
                 <h2 className="ad-section-title">Análises</h2>
@@ -6544,7 +6565,7 @@ export default function AdminDashboard() {
               ))}
             </div>
 
-          </div>
+          </AdminPageContent>
         )}
         <footer className="ad-compact-footer">
           <span>BONEFREE Admin</span>

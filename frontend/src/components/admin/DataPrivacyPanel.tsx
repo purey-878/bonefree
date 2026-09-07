@@ -1,3 +1,4 @@
+import AdminPageContent from "./AdminPageContent"
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Download, RefreshCw, Trash2, XCircle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -229,7 +230,7 @@ export default function DataPrivacyPanel({ focusExportQueueRequest = 0 }: DataPr
   })
 
   return (
-    <div className="ad-content data-privacy-panel">
+    <AdminPageContent className="data-privacy-panel">
       <div ref={stickyHeaderRef} className="ad-settings-sticky-header data-privacy-sticky-header">
         <div className="ad-section-bar">
           <div>
@@ -456,6 +457,6 @@ export default function DataPrivacyPanel({ focusExportQueueRequest = 0 }: DataPr
           void run(() => cancelDataExport(selected.export_id), successMessage)
         }}
       />
-    </div>
+    </AdminPageContent>
   )
 }

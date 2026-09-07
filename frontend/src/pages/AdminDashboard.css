@@ -483,10 +483,20 @@
   flex: 0 0 auto;
 }
 
-.ad-user-pill-owner .ad-user-role-icon { color: #d97706; }
-.ad-user-pill-manager .ad-user-role-icon { color: #6366f1; }
-.ad-user-pill-waiter .ad-user-role-icon { color: #0284c7; }
-.ad-user-pill-chef .ad-user-role-icon { color: #e11d48; }
+.ad-user-pill-owner .ad-user-role-icon,
+.ad-staff-role-owner .ad-user-role-icon { color: #d97706; }
+.ad-user-pill-manager .ad-user-role-icon,
+.ad-staff-role-manager .ad-user-role-icon { color: #6366f1; }
+.ad-user-pill-waiter .ad-user-role-icon,
+.ad-staff-role-waiter .ad-user-role-icon { color: #0284c7; }
+.ad-user-pill-chef .ad-user-role-icon,
+.ad-staff-role-chef .ad-user-role-icon { color: #e11d48; }
+
+.ad-pill.ad-staff-role {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
 
 .ad-theme-switch {
   border: none;
@@ -1027,14 +1037,6 @@
 }
 
 /* Content area */
-.ad-content {
-  width: 100%;
-  min-width: 0;
-  padding: 14px 32px 48px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
 
 .ad-compact-footer {
   width: calc(100% - 64px);
@@ -1045,7 +1047,6 @@
   gap: 10px;
   margin: auto auto 18px;
   padding: 12px 16px 0;
-  border-top: 1px solid var(--ad-border);
   color: var(--ad-muted);
   font-size: 0.78rem;
   font-weight: 700;
@@ -5066,15 +5067,27 @@
 }
 
 .order-admin-card-list {
-  margin-right: 0;
-  margin-left: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
   align-items: stretch;
 }
 
-@media (min-width: 992px) and (max-width: 1669.98px) {
-  .order-admin-card-list.row-cols-lg-4 > * {
-    flex: 0 0 auto;
-    width: 33.333333%;
+@media (max-width: 1669.98px) {
+  .order-admin-card-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767px) {
+  .order-admin-card-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 575px) {
+  .order-admin-card-list {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -5351,28 +5364,6 @@
   color: var(--order-card-heading);
 }
 
-.order-drawer-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.22);
-  z-index: 950;
-}
-
-.order-drawer {
-  position: fixed;
-  top: 72px;
-  right: 0;
-  width: min(440px, 100%);
-  height: calc(100vh - 72px);
-  overflow-y: auto;
-  background: #f8fafc;
-  z-index: 960;
-  border-left: 1px solid #cbd5e1;
-  box-shadow: -20px 0 44px rgba(15, 23, 42, 0.22);
-  padding: 22px;
-  color: #111827;
-}
-
 .order-drawer-header,
 .order-drawer-item-title,
 .order-drawer-total {
@@ -5390,7 +5381,7 @@
   text-transform: uppercase;
 }
 
-.order-drawer h3 {
+.order-drawer-header h3 {
   margin: 0;
   font-size: 20px;
   color: #020617;
@@ -5424,6 +5415,7 @@
   color: #1f2937;
   font-size: 14px;
   font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 .order-drawer-items {
@@ -5441,11 +5433,15 @@
 
 .order-drawer-item-title strong {
   color: #020617;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .order-drawer-item-title span {
   color: #111827;
   font-weight: 800;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .order-drawer-total {
@@ -5488,11 +5484,6 @@
     flex: 1 1 140px;
   }
 
-  .order-drawer {
-    top: 64px;
-    width: 100%;
-    height: calc(100vh - 64px);
-  }
 }
 
 /* Analytics */
@@ -5556,16 +5547,7 @@
   justify-content: flex-end;
 }
 
-.ad-product-modal {
-  display: flex;
-  flex-direction: column;
-  max-width: 1040px;
-  max-height: 90vh;
-  border: 1px solid rgba(203, 213, 225, 0.94);
-  border-radius: 18px;
-  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.22);
-  overflow: hidden;
-}
+
 
 .ad-product-legacy-form {
   display: none !important;
@@ -6519,7 +6501,6 @@
   .ad-ingredient-toolbar-meta {
     justify-content: space-between;
   }
-  .ad-content { padding: 16px; }
   .ad-topbar {
     gap: 12px;
     padding: 14px 16px;
@@ -6528,7 +6509,7 @@
     flex: 1 1 0;
   }
   .ad-modal { width: 95%; max-width: 500px; }
-  .ad-product-modal { max-width: calc(100vw - 28px); }
+
   .ad-product-form-grid,
   .ad-product-form-grid-3,
   .ad-config-grid,
@@ -6652,10 +6633,7 @@
   .ad-modal { width: 100%; max-width: none; margin: 0 8px; }
   .ad-modal-header { padding: 16px; }
   .ad-modal-body { padding: 16px; }
-  .ad-product-modal {
-    width: calc(100% - 16px);
-    max-height: 92vh;
-  }
+
   .ad-product-modal .ad-modal-body {
     padding: 0;
   }
@@ -6696,10 +6674,6 @@
 }
 
 @media (max-width: 760px) {
-  .ad-content {
-    padding: 14px 12px 88px;
-    gap: 14px;
-  }
 
   .ad-card {
     padding: 16px;
@@ -6860,10 +6834,6 @@
 }
 
 @media (max-width: 420px) {
-  .ad-content {
-    padding-left: 10px;
-    padding-right: 10px;
-  }
 
   .ad-card {
     padding: 14px;
@@ -6892,8 +6862,6 @@
 .ad-theme-dark .kitchen-order-card,
 .ad-theme-dark .order-summary-card,
 .ad-theme-dark .order-admin-filters,
-.ad-theme-dark .order-admin-table-card,
-.ad-theme-dark .order-drawer,
 .ad-theme-dark .order-drawer-section,
 .ad-theme-dark .order-drawer-item {
   background: var(--ad-surface) !important;
@@ -6924,7 +6892,7 @@
 .ad-theme-dark .order-card-v2-price,
 .ad-theme-dark .order-summary-card strong,
 .ad-theme-dark .order-admin-table td strong,
-.ad-theme-dark .order-drawer h3,
+.ad-theme-dark .order-drawer-header h3,
 .ad-theme-dark .order-drawer-section h4,
 .ad-theme-dark .order-drawer-section p,
 .ad-theme-dark .order-drawer-item-title strong,
@@ -7235,6 +7203,36 @@
 }
 
 /* Product stepper modal */
+.ad-product-editor-panel {
+  --adaptive-panel-drawer-width: 720px;
+  --adaptive-panel-modal-width: 980px;
+}
+
+.ad-product-editor-panel-modal {
+  height: min(90dvh, 900px);
+}
+
+.ad-product-editor-panel .ad-product-editor-panel-scroll {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+.ad-product-editor-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--ad-surface);
+  color: var(--ad-text);
+}
+
+.ad-product-editor-panel .ad-product-editor-content .ad-modal-body {
+  max-height: none;
+}
+
 .ad-product-modal {
   --ad-product-radius: 10px;
   --ad-product-bg: var(--ad-surface);
@@ -7247,14 +7245,6 @@
   --ad-product-border: var(--ad-border);
   --ad-product-accent: var(--ad-primary, #111827);
   --ad-product-accent-text: var(--ad-bg);
-  width: min(980px, calc(100vw - 32px));
-  max-height: 92vh;
-  max-height: 92dvh;
-  border: 1px solid var(--ad-product-border);
-  border-radius: var(--ad-product-radius);
-  background: var(--ad-product-bg);
-  color: var(--ad-product-text);
-  box-shadow: var(--ad-shadow, 0 4px 16px rgba(15, 23, 42, 0.08));
 }
 
 .ad-product-modal-header {
@@ -8147,10 +8137,7 @@
 }
 
 @media (max-width: 760px) {
-  .ad-product-modal {
-    width: calc(100vw - 18px);
-    max-height: 94dvh;
-  }
+
 
   .ad-product-modal-header {
     padding: 16px;
@@ -8241,12 +8228,6 @@
   overflow-x: hidden;
 }
 
-.ad-content {
-  width: 100%;
-  max-width: 1480px;
-  margin: 0 auto;
-}
-
 .ad-dashboard-overview {
   display: flex;
   align-items: flex-end;
@@ -8301,7 +8282,6 @@
 .order-card-v2,
 .kitchen-order-card,
 .order-admin-filters,
-.order-admin-table-card,
 .ad-review-card,
 .ad-review-toolbar {
   border-color: var(--ad-border);
@@ -8883,8 +8863,7 @@
 .ad-theme-dark .orders-column,
 .ad-theme-dark .order-card-v2,
 .ad-theme-dark .kitchen-order-card,
-.ad-theme-dark .order-admin-filters,
-.ad-theme-dark .order-admin-table-card {
+.ad-theme-dark .order-admin-filters {
   background: #181a20 !important;
   border-color: #32343c !important;
   color: #f3f4f6 !important;
@@ -9038,8 +9017,7 @@
 
 .ad-theme-dark .kitchen-workspace .orders-toolbar,
 .ad-theme-dark .kitchen-workspace .order-quick-filters,
-.ad-theme-dark .kitchen-workspace .kitchen-order-card,
-.ad-theme-dark .order-drawer {
+.ad-theme-dark .kitchen-workspace .kitchen-order-card {
   background: #181a20 !important;
   border-color: #32343c !important;
   color: #f9fafb !important;
@@ -9060,7 +9038,7 @@
 .ad-theme-dark .kitchen-workspace .kitchen-item-main span,
 .ad-theme-dark .kitchen-workspace .kitchen-item-main strong,
 .ad-theme-dark .kitchen-workspace .order-note-box strong,
-.ad-theme-dark .order-drawer h3,
+.ad-theme-dark .order-drawer-header h3,
 .ad-theme-dark .order-drawer-section h4,
 .ad-theme-dark .order-drawer-item-title strong,
 .ad-theme-dark .order-drawer-total,
@@ -9079,7 +9057,7 @@
 }
 
 .ad-theme-dark .kitchen-workspace .order-table-chip.kitchen,
-.ad-theme-dark .order-drawer .order-meta-chip {
+.ad-theme-dark .order-drawer-meta .order-meta-chip {
   background: #22283a !important;
   border-color: #3b4561 !important;
   color: #dbeafe !important;
@@ -9133,9 +9111,6 @@
 }
 
 @media (max-width: 998px) {
-  .ad-content {
-    max-width: none;
-  }
 
   .ad-dashboard-overview {
     align-items: flex-start;
@@ -9236,10 +9211,6 @@
 }
 
 @media (max-width: 520px) {
-  .ad-content {
-    padding-left: 10px;
-    padding-right: 10px;
-  }
 
   .ad-dashboard-overview,
   .ad-card,
@@ -9311,19 +9282,11 @@
     width: 100%;
     max-width: 100%;
   }
-
-  .ad-content,
   .orders-workspace,
   .kitchen-workspace {
     width: 100%;
     max-width: 100%;
     min-width: 0;
-  }
-
-  .ad-content {
-    display: grid;
-    gap: 16px;
-    padding: 16px;
   }
 
   .ad-topbar,
@@ -9434,11 +9397,6 @@
 @media (max-width: 760px) {
   .ad-shell {
     --admin-topbar-height: 58px;
-  }
-
-  .ad-content {
-    padding: 12px 10px 84px;
-    gap: 12px;
   }
 
   .ad-topbar {
@@ -9624,10 +9582,6 @@
 }
 
 @media (max-width: 420px) {
-  .ad-content {
-    padding-left: 8px;
-    padding-right: 8px;
-  }
 
   .ad-card,
   .ad-sales-chart,
@@ -9644,8 +9598,7 @@
     grid-template-columns: 1fr;
   }
 
-  .ad-modal,
-  .ad-product-modal {
+  .ad-modal {
     width: calc(100vw - 16px);
     max-width: calc(100vw - 16px);
   }
@@ -9780,8 +9733,7 @@
 }
 
 /* Shared motion for administrative surfaces that mount conditionally. */
-.ad-drawer-backdrop,
-.order-drawer-backdrop {
+.ad-drawer-backdrop {
   animation: ad-surface-backdrop-in 180ms ease both;
 }
 
@@ -9789,8 +9741,7 @@
   animation: ad-modal-backdrop-in 220ms ease both;
 }
 
-.ad-product-drawer,
-.order-drawer {
+.ad-product-drawer {
   animation: ad-surface-drawer-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
@@ -10158,9 +10109,7 @@
 }
 
 @media (min-width: 999px) {
-  .ad-product-modal {
-    max-width: 1160px;
-  }
+
 }
 
 @media (max-width: 760px) {
