@@ -1,0 +1,2926 @@
+{
+  "format_version": 1,
+  "organization": {
+    "name": "Bonefree",
+    "slug": "bonefree",
+    "email": "carambolarubra@gmail.com",
+    "phone": "+351 968 107 702"
+  },
+  "profile": {
+    "display_name": "BONEFREE",
+    "description": "Bonefree is a vegan restaurant and bar in Costa da Caparica. We serve 100% plant-based dishes, artisanal cocktails, and provide a relaxed atmosphere.",
+    "email": "carambolarubra@gmail.com",
+    "privacy_contact_email": "carambolarubra@gmail.com",
+    "phone": "+351 968 107 702",
+    "address_line_1": "Bonefree, R. Eng. Henrique Mendia 28A, 2825-450 Costa da Caparica",
+    "country": "Portugal",
+    "currency_code": "EUR",
+    "social_links": {
+      "links": [
+        {
+          "platform": "facebook",
+          "label": "Facebook",
+          "href": "https://www.facebook.com/b0nefree/",
+          "enabled": true
+        },
+        {
+          "platform": "instagram",
+          "label": "Instagram",
+          "href": "https://www.instagram.com/b0nefree/?hl=en",
+          "enabled": true
+        },
+        {
+          "platform": "whatsapp",
+          "label": "WhatsApp",
+          "href": "#",
+          "enabled": false
+        },
+        {
+          "platform": "youtube",
+          "label": "YouTube",
+          "href": "#",
+          "enabled": false
+        }
+      ]
+    }
+  },
+  "documents": [
+    {
+      "document_type": "privacy_policy",
+      "locale": "pt-PT",
+      "title": "Política de Privacidade",
+      "eyebrow": "Protótipo {{organization_name}}",
+      "description": "Como os dados pessoais são recolhidos, usados e protegidos durante a utilização deste protótipo.",
+      "summary_title": "Contexto do protótipo",
+      "summary": "Os dados tratados neste website servem para testar e validar funcionalidades digitais. Este não é um canal oficial de pedidos ou atendimento do {{organization_name}}.",
+      "body": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "1. Quem é responsável pelo tratamento"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Esta Política de Privacidade descreve como os dados pessoais são tratados no contexto deste protótipo "
+              },
+              {
+                "type": "organizationVariable",
+                "attrs": {
+                  "name": "organization_name"
+                }
+              },
+              {
+                "type": "text",
+                "text": ". O tratamento é realizado pelos responsáveis pelo projeto de desenvolvimento do protótipo, em articulação com o "
+              },
+              {
+                "type": "organizationVariable",
+                "attrs": {
+                  "name": "organization_name"
+                }
+              },
+              {
+                "type": "text",
+                "text": " para fins de demonstração, teste e validação."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Este website não é o website oficial do "
+              },
+              {
+                "type": "organizationVariable",
+                "attrs": {
+                  "name": "organization_name"
+                }
+              },
+              {
+                "type": "text",
+                "text": " nem um canal oficial de atendimento, contratação, reserva ou compra."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "2. Contactos"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Para questões sobre privacidade, proteção de dados ou exercício de direitos, contacte os responsáveis pelo desenvolvimento através do email "
+              },
+              {
+                "type": "organizationVariable",
+                "attrs": {
+                  "name": "organization_contact"
+                }
+              },
+              {
+                "type": "text",
+                "text": "."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Não existe Encarregado de Proteção de Dados designado especificamente para este protótipo, salvo indicação posterior em contrário."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "3. Dados pessoais recolhidos"
+              }
+            ]
+          },
+          {
+            "type": "bulletList",
+            "content": [
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Dados de conta: nome, apelido, email, telefone opcional, palavra-passe cifrada e NIF opcional."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Dados de sessão e segurança: token de sessão, data de criação, expiração, último acesso, endereço IP e user-agent associados à sessão."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Dados de pedidos de teste: nome, contactos, itens escolhidos, personalizações, notas, método de entrega, mesa, valores, estados de pedido, cupões e recibos quando aplicável."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Dados de carrinho, preferências e consentimento de cookies guardados no navegador através de localStorage ou sessionStorage."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Dados de avaliações, recuperação de palavra-passe, interações administrativas e registos técnicos necessários à segurança e validação do protótipo."
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "4. Finalidades do tratamento"
+              }
+            ]
+          },
+          {
+            "type": "bulletList",
+            "content": [
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Criar e gerir contas de utilizador, autenticação e sessões."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Permitir a navegação, carrinho, simulação de pedidos, histórico, recibos, cupões e funcionalidades de fidelização em teste."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Garantir segurança, prevenção de abuso, limitação de pedidos, deteção de erros e proteção contra acessos indevidos."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Responder a pedidos de apoio, validar funcionalidades com o "
+                      },
+                      {
+                        "type": "organizationVariable",
+                        "attrs": {
+                          "name": "organization_name"
+                        }
+                      },
+                      {
+                        "type": "text",
+                        "text": " e melhorar a experiência do protótipo."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Cumprir obrigações legais ou fiscais quando sejam aplicáveis a dados de recibo ou faturação fornecidos pelo utilizador."
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "5. Base legal"
+              }
+            ]
+          },
+          {
+            "type": "bulletList",
+            "content": [
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Execução de contrato ou diligências pré-contratuais quando o utilizador cria conta, inicia sessão ou utiliza funcionalidades de pedido."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Interesse legítimo na segurança, prevenção de fraude, testes técnicos, melhoria da plataforma e validação do protótipo."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Consentimento para cookies ou preferências opcionais e para dados opcionais fornecidos voluntariamente pelo utilizador."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Obrigação legal quando seja necessário conservar informação fiscal, recibos ou dados exigidos por autoridade competente."
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "6. Prazo de conservação"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Os dados de conta são conservados enquanto a conta existir ou até pedido de eliminação aplicável. Dados de sessão são conservados até expiração, revogação ou limpeza técnica. Tokens de recuperação de palavra-passe expiram em curto prazo e são substituídos quando usados novamente."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Dados de pedidos, recibos, cupões e histórico são mantidos pelo período necessário para testes, suporte, validação técnica ou cumprimento de obrigações legais. Dados em localStorage ou sessionStorage permanecem no navegador até serem removidos pela aplicação, expirarem ou serem apagados pelo utilizador."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "7. Partilha de dados"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Os dados podem ser acedidos por responsáveis pelo projeto de desenvolvimento, representantes autorizados do "
+              },
+              {
+                "type": "organizationVariable",
+                "attrs": {
+                  "name": "organization_name"
+                }
+              },
+              {
+                "type": "text",
+                "text": " para validação do protótipo e fornecedores técnicos que prestem serviços de infraestrutura, alojamento, email, armazenamento, monitorização ou suporte."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Quando exigido por lei, os dados podem ser partilhados com autoridades públicas, entidades fiscais, tribunais ou consultores legais e contabilísticos."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "8. Transferências fora da União Europeia"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Alguns fornecedores técnicos podem tratar dados fora da União Europeia ou do Espaço Económico Europeu. Quando aplicável, devem ser utilizados mecanismos de proteção adequados, como cláusulas contratuais-tipo, decisões de adequação ou outras garantias previstas no RGPD."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "9. Direitos do utilizador"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Nos termos aplicáveis, o utilizador pode pedir acesso, retificação, apagamento, limitação do tratamento, oposição ao tratamento e portabilidade dos dados quando aplicável. Também pode retirar consentimentos dados anteriormente, sem afetar a licitude do tratamento feito antes da retirada."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Para exercer estes direitos, envie um pedido através dos contactos indicados nesta política, identificando a conta ou o contexto do pedido para que seja possível responder com segurança."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "10. Reclamação junto da autoridade de controlo"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "O utilizador tem o direito de apresentar reclamação junto da Comissão Nacional de Proteção de Dados (CNPD), autoridade de controlo portuguesa, sem prejuízo de contactar primeiro os responsáveis pelo projeto para tentativa de resolução direta."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "11. Decisões automatizadas e profiling"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "O protótipo não toma decisões automatizadas com efeitos legais ou significativamente relevantes sobre os utilizadores. Estados de pedido, cupões, fidelização, validações de formulário e controlos de segurança podem funcionar automaticamente, mas destinam-se apenas à operação e teste da plataforma."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "12. Alterações a esta política"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Esta política pode ser atualizada para refletir alterações técnicas, legais ou operacionais do protótipo. A versão publicada nesta página é a versão aplicável no momento da utilização."
+              }
+            ]
+          }
+        ]
+      },
+      "updated_at": "2026-08-29T00:00:00"
+    },
+    {
+      "document_type": "privacy_policy",
+      "locale": "en-GB",
+      "title": "Privacy Policy",
+      "eyebrow": "{{organization_name}} prototype",
+      "description": "How personal data is collected, used and protected while using this prototype.",
+      "summary_title": "Prototype context",
+      "summary": "The data processed on this website is used to test and validate digital features. This is not an official {{organization_name}} order or support channel.",
+      "body": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "1. Who is responsible for processing"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "This Privacy Policy explains how personal data is processed in the context of this "
+              },
+              {
+                "type": "organizationVariable",
+                "attrs": {
+                  "name": "organization_name"
+                }
+              },
+              {
+                "type": "text",
+                "text": " prototype. Processing is carried out by the people responsible for the prototype development project, in coordination with "
+              },
+              {
+                "type": "organizationVariable",
+                "attrs": {
+                  "name": "organization_name"
+                }
+              },
+              {
+                "type": "text",
+                "text": " for demonstration, testing and validation purposes."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "This website is not "
+              },
+              {
+                "type": "organizationVariable",
+                "attrs": {
+                  "name": "organization_name"
+                }
+              },
+              {
+                "type": "text",
+                "text": "'s official website and it is not an official channel for support, contracting, reservations or purchases."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "2. Contacts"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "For privacy, data protection or rights requests, contact the people responsible for development at "
+              },
+              {
+                "type": "organizationVariable",
+                "attrs": {
+                  "name": "organization_contact"
+                }
+              },
+              {
+                "type": "text",
+                "text": "."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "No Data Protection Officer has been specifically appointed for this prototype unless later stated otherwise."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "3. Personal data collected"
+              }
+            ]
+          },
+          {
+            "type": "bulletList",
+            "content": [
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Account data: first name, last name, email, optional phone number, encrypted password and optional tax number."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Session and security data: session token, creation date, expiry, last access, IP address and user-agent associated with the session."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Test order data: name, contact details, selected items, customisations, notes, fulfilment method, table, amounts, order statuses, vouchers and receipts where applicable."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Basket, preference and cookie consent data stored in the browser through localStorage or sessionStorage."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Review data, password reset data, administrative interactions and technical records needed for security and prototype validation."
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "4. Purposes of processing"
+              }
+            ]
+          },
+          {
+            "type": "bulletList",
+            "content": [
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Create and manage user accounts, authentication and sessions."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Enable browsing, basket, simulated orders, history, receipts, vouchers and loyalty features under test."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Ensure security, abuse prevention, rate limiting, error detection and protection against unauthorised access."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Respond to support requests, validate features with "
+                      },
+                      {
+                        "type": "organizationVariable",
+                        "attrs": {
+                          "name": "organization_name"
+                        }
+                      },
+                      {
+                        "type": "text",
+                        "text": " and improve the prototype experience."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Comply with legal or fiscal obligations where they apply to receipt or invoicing data provided by the user."
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "5. Legal basis"
+              }
+            ]
+          },
+          {
+            "type": "bulletList",
+            "content": [
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Performance of a contract or pre-contractual steps when the user creates an account, signs in or uses order features."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Legitimate interest in security, fraud prevention, technical testing, platform improvement and prototype validation."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Consent for optional cookies or preferences and optional data voluntarily provided by the user."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Legal obligation when fiscal information, receipts or data required by a competent authority must be retained."
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "6. Retention period"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Account data is kept while the account exists or until an applicable deletion request. Session data is kept until expiry, revocation or technical cleanup. Password reset tokens expire quickly and are replaced when used again."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Order, receipt, voucher and history data is kept for the period needed for testing, support, technical validation or legal obligations. Data in localStorage or sessionStorage remains in the browser until removed by the app, expired or deleted by the user."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "7. Data sharing"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Data may be accessed by the development project operators, authorised "
+              },
+              {
+                "type": "organizationVariable",
+                "attrs": {
+                  "name": "organization_name"
+                }
+              },
+              {
+                "type": "text",
+                "text": " representatives for prototype validation and technical providers for infrastructure, hosting, email, storage, monitoring or support."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "When required by law, data may be shared with public authorities, tax bodies, courts, legal advisers or accounting advisers."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "8. Transfers outside the European Union"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Some technical providers may process data outside the European Union or European Economic Area. Where applicable, appropriate safeguards should be used, such as standard contractual clauses, adequacy decisions or other GDPR safeguards."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "9. User rights"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Where applicable, users may request access, rectification, erasure, restriction of processing, objection to processing and data portability. Users may also withdraw previous consent without affecting the lawfulness of processing carried out before withdrawal."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "To exercise these rights, send a request through the contacts listed in this policy, identifying the account or request context so it can be answered securely."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "10. Complaint to the supervisory authority"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Users have the right to lodge a complaint with the Portuguese Data Protection Authority (CNPD), without prejudice to first contacting the project operators to seek a direct resolution."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "11. Automated decisions and profiling"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "The prototype does not make automated decisions with legal or similarly significant effects on users. Order statuses, vouchers, loyalty features, form validations and security controls may operate automatically, but they are only for platform operation and testing."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "12. Changes to this policy"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "This policy may be updated to reflect technical, legal or operational changes to the prototype. The version published on this page is the version that applies at the time of use."
+              }
+            ]
+          }
+        ]
+      },
+      "updated_at": "2026-08-29T00:00:00"
+    },
+    {
+      "document_type": "privacy_policy",
+      "locale": "de-DE",
+      "title": "Datenschutzerklärung",
+      "eyebrow": "{{organization_name}}-Prototyp",
+      "description": "Wie personenbezogene Daten bei der Nutzung dieses Prototyps erhoben, verwendet und geschützt werden.",
+      "summary_title": "Kontext des Prototyps",
+      "summary": "Die auf dieser Website verarbeiteten Daten dienen dem Testen und Validieren digitaler Funktionen. Dies ist kein offizieller Bestell- oder Supportkanal von {{organization_name}}.",
+      "body": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "1. Verantwortliche für die Verarbeitung"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Diese Datenschutzerklärung erläutert, wie personenbezogene Daten im Rahmen dieses "
+              },
+              {
+                "type": "organizationVariable",
+                "attrs": {
+                  "name": "organization_name"
+                }
+              },
+              {
+                "type": "text",
+                "text": "-Prototyps verarbeitet werden. Die Verarbeitung erfolgt durch die Verantwortlichen des Entwicklungsprojekts in Abstimmung mit "
+              },
+              {
+                "type": "organizationVariable",
+                "attrs": {
+                  "name": "organization_name"
+                }
+              },
+              {
+                "type": "text",
+                "text": " zu Demonstrations-, Test- und Validierungszwecken."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Diese Website ist nicht die offizielle Website von "
+              },
+              {
+                "type": "organizationVariable",
+                "attrs": {
+                  "name": "organization_name"
+                }
+              },
+              {
+                "type": "text",
+                "text": " und kein offizieller Kanal für Support, Verträge, Reservierungen oder Käufe."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "2. Kontakte"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Bei Fragen zu Datenschutz, Datenverarbeitung oder Betroffenenrechten kontaktieren Sie die Entwicklungsverantwortlichen unter "
+              },
+              {
+                "type": "organizationVariable",
+                "attrs": {
+                  "name": "organization_contact"
+                }
+              },
+              {
+                "type": "text",
+                "text": "."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Für diesen Prototyp wurde kein Datenschutzbeauftragter ausdrücklich benannt, sofern später nichts anderes mitgeteilt wird."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "3. Erhobene personenbezogene Daten"
+              }
+            ]
+          },
+          {
+            "type": "bulletList",
+            "content": [
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Kontodaten: Vorname, Nachname, E-Mail-Adresse, optionale Telefonnummer, verschlüsseltes Passwort und optionale Steuernummer."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Sitzungs- und Sicherheitsdaten: Sitzungstoken, Erstellungsdatum, Ablaufdatum, letzter Zugriff, IP-Adresse und mit der Sitzung verknüpfter User-Agent."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Testbestelldaten: Name, Kontaktdaten, ausgewählte Artikel, Anpassungen, Notizen, Übergabeart, Tisch, Beträge, Bestellstatus, Gutscheine und gegebenenfalls Belege."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Warenkorb-, Präferenz- und Cookie-Einwilligungsdaten, die im Browser über localStorage oder sessionStorage gespeichert werden."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Bewertungsdaten, Daten zur Passwortzurücksetzung, administrative Interaktionen und technische Aufzeichnungen, die für Sicherheit und Validierung des Prototyps erforderlich sind."
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "4. Zwecke der Verarbeitung"
+              }
+            ]
+          },
+          {
+            "type": "bulletList",
+            "content": [
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Erstellung und Verwaltung von Benutzerkonten, Authentifizierung und Sitzungen."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Ermöglichung von Navigation, Warenkorb, simulierten Bestellungen, Verlauf, Belegen, Gutscheinen und Treuefunktionen im Testbetrieb."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Gewährleistung von Sicherheit, Missbrauchsprävention, Ratenbegrenzung, Fehlererkennung und Schutz vor unbefugtem Zugriff."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Beantwortung von Supportanfragen, Validierung von Funktionen mit "
+                      },
+                      {
+                        "type": "organizationVariable",
+                        "attrs": {
+                          "name": "organization_name"
+                        }
+                      },
+                      {
+                        "type": "text",
+                        "text": " und Verbesserung der Prototyp-Erfahrung."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Erfüllung rechtlicher oder steuerlicher Pflichten, soweit sie für vom Nutzer bereitgestellte Beleg- oder Rechnungsdaten gelten."
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "5. Rechtsgrundlage"
+              }
+            ]
+          },
+          {
+            "type": "bulletList",
+            "content": [
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Vertragserfüllung oder vorvertragliche Maßnahmen, wenn Nutzer ein Konto erstellen, sich anmelden oder Bestellfunktionen nutzen."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Berechtigtes Interesse an Sicherheit, Betrugsprävention, technischen Tests, Verbesserung der Plattform und Validierung des Prototyps."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Einwilligung für optionale Cookies oder Präferenzen und freiwillig bereitgestellte optionale Daten."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Rechtliche Verpflichtung, wenn steuerliche Informationen, Belege oder von zuständigen Behörden verlangte Daten aufbewahrt werden müssen."
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "6. Aufbewahrungsdauer"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Kontodaten werden aufbewahrt, solange das Konto besteht oder bis ein anwendbarer Löschantrag gestellt wird. Sitzungsdaten werden bis zum Ablauf, Widerruf oder zur technischen Bereinigung gespeichert. Tokens zur Passwortzurücksetzung laufen kurzfristig ab und werden bei erneuter Nutzung ersetzt."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Bestell-, Beleg-, Gutschein- und Verlaufsdaten werden so lange gespeichert, wie es für Tests, Support, technische Validierung oder rechtliche Pflichten erforderlich ist. Daten in localStorage oder sessionStorage bleiben im Browser, bis sie von der Anwendung entfernt werden, ablaufen oder vom Nutzer gelöscht werden."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "7. Weitergabe von Daten"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Daten können von den Verantwortlichen des Entwicklungsprojekts, autorisierten Vertretern von "
+              },
+              {
+                "type": "organizationVariable",
+                "attrs": {
+                  "name": "organization_name"
+                }
+              },
+              {
+                "type": "text",
+                "text": " zur Validierung des Prototyps und technischen Dienstleistern für Infrastruktur, Hosting, E-Mail, Speicherung, Monitoring oder Support eingesehen werden."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Wenn gesetzlich erforderlich, können Daten an Behörden, Steuerstellen, Gerichte, Rechtsberater oder Buchhaltungsberater weitergegeben werden."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "8. Übermittlungen außerhalb der Europäischen Union"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Einige technische Dienstleister können Daten außerhalb der Europäischen Union oder des Europäischen Wirtschaftsraums verarbeiten. Soweit anwendbar, sollten geeignete Schutzmaßnahmen eingesetzt werden, etwa Standardvertragsklauseln, Angemessenheitsbeschlüsse oder andere Garantien nach der DSGVO."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "9. Rechte der Nutzer"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Soweit anwendbar, können Nutzer Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Widerspruch gegen die Verarbeitung und Datenübertragbarkeit verlangen. Nutzer können erteilte Einwilligungen auch widerrufen, ohne die Rechtmäßigkeit der vorherigen Verarbeitung zu berühren."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Zur Ausübung dieser Rechte senden Sie eine Anfrage über die in dieser Erklärung angegebenen Kontakte und nennen Sie das Konto oder den Anfragekontext, damit sicher geantwortet werden kann."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "10. Beschwerde bei der Aufsichtsbehörde"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Nutzer haben das Recht, Beschwerde bei der portugiesischen Datenschutzaufsicht CNPD einzulegen, unbeschadet der Möglichkeit, zuerst die Projektverantwortlichen für eine direkte Lösung zu kontaktieren."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "11. Automatisierte Entscheidungen und Profiling"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Der Prototyp trifft keine automatisierten Entscheidungen mit rechtlicher oder ähnlich erheblicher Wirkung für Nutzer. Bestellstatus, Gutscheine, Treuefunktionen, Formularvalidierungen und Sicherheitskontrollen können automatisch funktionieren, dienen jedoch nur dem Betrieb und Test der Plattform."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "12. Änderungen dieser Erklärung"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Diese Erklärung kann aktualisiert werden, um technische, rechtliche oder betriebliche Änderungen des Prototyps widerzuspiegeln. Maßgeblich ist die auf dieser Seite veröffentlichte Version zum Zeitpunkt der Nutzung."
+              }
+            ]
+          }
+        ]
+      },
+      "updated_at": "2026-08-29T00:00:00"
+    },
+    {
+      "document_type": "terms_conditions",
+      "locale": "pt-PT",
+      "title": "Termos e Condições",
+      "eyebrow": "Protótipo {{organization_name}}",
+      "description": "Regras simples para utilizar este protótipo de forma segura, transparente e responsável.",
+      "summary_title": "Resumo rápido",
+      "summary": "Este protótipo serve apenas para demonstração e teste. Pedidos, pagamentos e funcionalidades não representam um serviço oficial do {{organization_name}}.",
+      "body": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "1. Identificação e âmbito"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Este website é um protótipo desenvolvido para fins de demonstração, teste e validação. Não constitui o website oficial do "
+              },
+              {
+                "type": "organizationVariable",
+                "attrs": {
+                  "name": "organization_name"
+                }
+              },
+              {
+                "type": "text",
+                "text": " nem um canal oficial de atendimento, contratação, reserva ou compra."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "O protótipo foi desenvolvido com conhecimento e autorização do "
+              },
+              {
+                "type": "organizationVariable",
+                "attrs": {
+                  "name": "organization_name"
+                }
+              },
+              {
+                "type": "text",
+                "text": ", mas é operado pelos responsáveis pelo projeto de desenvolvimento. Funcionalidades, conteúdos e disponibilidade podem ser alterados ou removidos a qualquer momento durante a fase de testes."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "2. Descrição do serviço"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "A plataforma permite consultar informação demonstrativa sobre o restaurante, navegar pelo menu, criar uma conta, manter carrinho, simular pedidos, consultar histórico, cupões e funcionalidades de administração associadas ao protótipo."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Os conteúdos, preços, disponibilidade, imagens, estados de pedido e funcionalidades podem ser fictícios, incompletos ou alterados sem aviso durante a fase de testes."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "3. Regras de utilização"
+              }
+            ]
+          },
+          {
+            "type": "bulletList",
+            "content": [
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Utilizar a plataforma apenas de forma lícita, respeitosa e compatível com fins de teste e demonstração."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Não introduzir informação falsa, ofensiva, ilegal ou que pertença a terceiros sem autorização."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Não tentar aceder a áreas restritas, contornar mecanismos de segurança, explorar vulnerabilidades ou prejudicar a disponibilidade do serviço."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Comunicar erros relevantes aos responsáveis pelo projeto quando detetados durante a utilização."
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "4. Conta do utilizador"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Ao criar uma conta, o utilizador deve fornecer dados corretos e manter a confidencialidade das suas credenciais. Qualquer atividade realizada através da conta é da responsabilidade do respetivo utilizador, salvo uso indevido comprovado por terceiros."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Os responsáveis pelo protótipo podem suspender, bloquear ou remover contas quando exista uso indevido, risco de segurança, violação destes termos ou necessidade técnica durante os testes."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "5. Pedidos, pagamentos e ambiente de teste"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Este é um ambiente de teste. Pedidos enviados aqui não constituem pedidos oficiais ao "
+              },
+              {
+                "type": "organizationVariable",
+                "attrs": {
+                  "name": "organization_name"
+                }
+              },
+              {
+                "type": "text",
+                "text": ". Nenhum pedido será processado pelo "
+              },
+              {
+                "type": "organizationVariable",
+                "attrs": {
+                  "name": "organization_name"
+                }
+              },
+              {
+                "type": "text",
+                "text": " salvo indicação expressa em contrário."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Qualquer referência a pagamento, recibo, fatura, preparação, entrega, fidelização ou cupões serve para validar o funcionamento do protótipo e não representa uma obrigação comercial real, salvo comunicação expressa dos responsáveis autorizados."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "6. Cancelamento e cessação"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "O utilizador pode deixar de utilizar o protótipo a qualquer momento. Os responsáveis pelo projeto podem alterar, suspender ou cessar o acesso total ou parcial à plataforma durante a fase de testes, incluindo por motivos técnicos, de segurança ou de validação do produto."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "7. Propriedade intelectual"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Marcas, logótipos, imagens, textos, código, interfaces e restantes materiais apresentados na plataforma pertencem aos respetivos titulares, incluindo "
+              },
+              {
+                "type": "organizationVariable",
+                "attrs": {
+                  "name": "organization_name"
+                }
+              },
+              {
+                "type": "text",
+                "text": " e os responsáveis pelo desenvolvimento, quando aplicável."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "O utilizador recebe apenas uma autorização limitada para aceder e utilizar o protótipo. Não é permitido copiar, explorar comercialmente, distribuir ou modificar conteúdos da plataforma sem autorização prévia."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "8. Limitação de responsabilidade"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Por se tratar de um protótipo, a plataforma pode conter erros, interrupções, indisponibilidades, dados demonstrativos ou comportamentos incompletos. Na medida permitida por lei, os responsáveis pelo projeto não respondem por perdas resultantes da utilização experimental da plataforma, salvo em caso de dolo ou responsabilidade que não possa ser excluída legalmente."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "9. Alterações aos termos"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Estes termos podem ser atualizados para refletir alterações ao protótipo, requisitos legais ou decisões do projeto. A versão publicada nesta página é a versão aplicável no momento da utilização."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "10. Lei aplicável e resolução de conflitos"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Estes termos são interpretados de acordo com a lei portuguesa. Em caso de dúvida ou conflito, o utilizador deve contactar primeiro os responsáveis pelo projeto para tentativa de resolução amigável, sem prejuízo dos meios legais disponíveis."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "11. Contacto"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Para questões sobre estes Termos e Condições ou sobre o funcionamento do protótipo, contacte os responsáveis pelo desenvolvimento através do email "
+              },
+              {
+                "type": "organizationVariable",
+                "attrs": {
+                  "name": "organization_contact"
+                }
+              },
+              {
+                "type": "text",
+                "text": "."
+              }
+            ]
+          }
+        ]
+      },
+      "updated_at": "2026-08-29T00:00:00"
+    },
+    {
+      "document_type": "terms_conditions",
+      "locale": "en-GB",
+      "title": "Terms and Conditions",
+      "eyebrow": "{{organization_name}} prototype",
+      "description": "Simple rules for using this prototype safely, transparently and responsibly.",
+      "summary_title": "Quick summary",
+      "summary": "This prototype is for demonstration and testing only. Orders, payments and features do not represent an official {{organization_name}} service.",
+      "body": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "1. Identification and scope"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "This website is a prototype developed for demonstration, testing and validation purposes. It is not "
+              },
+              {
+                "type": "organizationVariable",
+                "attrs": {
+                  "name": "organization_name"
+                }
+              },
+              {
+                "type": "text",
+                "text": "'s official website and it is not an official channel for support, contracting, reservations or purchases."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "The prototype was developed with "
+              },
+              {
+                "type": "organizationVariable",
+                "attrs": {
+                  "name": "organization_name"
+                }
+              },
+              {
+                "type": "text",
+                "text": "'s knowledge and authorisation, but it is operated by the people responsible for the development project. Features, content and availability may be changed or removed at any time during the testing phase."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "2. Service description"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "The platform lets users view demonstrative restaurant information, browse the menu, create an account, keep a basket, simulate orders, view history, vouchers and prototype administration features."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Content, prices, availability, images, order statuses and features may be fictional, incomplete or changed without notice during testing."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "3. Rules of use"
+              }
+            ]
+          },
+          {
+            "type": "bulletList",
+            "content": [
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Use the platform only lawfully, respectfully and in a way compatible with testing and demonstration purposes."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Do not submit false, offensive or unlawful information, or information belonging to third parties without authorisation."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Do not try to access restricted areas, bypass security measures, exploit vulnerabilities or harm service availability."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Report relevant errors to the project operators when found during use."
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "4. User account"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "When creating an account, users must provide accurate data and keep their credentials confidential. Activity carried out through an account is the user's responsibility, except where misuse by a third party is proven."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "The prototype operators may suspend, block or remove accounts when there is misuse, a security risk, a breach of these terms or a technical need during testing."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "5. Orders, payments and test environment"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "This is a test environment. Orders submitted here are not official "
+              },
+              {
+                "type": "organizationVariable",
+                "attrs": {
+                  "name": "organization_name"
+                }
+              },
+              {
+                "type": "text",
+                "text": " orders. No order will be processed by "
+              },
+              {
+                "type": "organizationVariable",
+                "attrs": {
+                  "name": "organization_name"
+                }
+              },
+              {
+                "type": "text",
+                "text": " unless expressly stated otherwise."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Any reference to payment, receipt, invoice, preparation, delivery, loyalty or vouchers exists to validate the prototype and does not create a real commercial obligation unless expressly communicated by authorised operators."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "6. Cancellation and termination"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Users may stop using the prototype at any time. The project operators may change, suspend or terminate access to all or part of the platform during testing, including for technical, security or product validation reasons."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "7. Intellectual property"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Brands, logos, images, texts, code, interfaces and other materials shown on the platform belong to their respective owners, including "
+              },
+              {
+                "type": "organizationVariable",
+                "attrs": {
+                  "name": "organization_name"
+                }
+              },
+              {
+                "type": "text",
+                "text": " and the development operators where applicable."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Users receive only limited permission to access and use the prototype. Copying, commercial exploitation, distribution or modification of platform content is not permitted without prior authorisation."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "8. Limitation of liability"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Because this is a prototype, the platform may contain errors, interruptions, unavailable features, demonstrative data or incomplete behaviour. To the extent allowed by law, the project operators are not liable for losses resulting from experimental use of the platform, except in cases of intentional misconduct or liability that cannot legally be excluded."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "9. Changes to these terms"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "These terms may be updated to reflect changes to the prototype, legal requirements or project decisions. The version published on this page is the version that applies at the time of use."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "10. Applicable law and disputes"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "These terms are interpreted under Portuguese law. In case of doubt or dispute, users should first contact the project operators to seek an amicable resolution, without prejudice to available legal remedies."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "11. Contact"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "For questions about these Terms and Conditions or the prototype, contact the people responsible for development at "
+              },
+              {
+                "type": "organizationVariable",
+                "attrs": {
+                  "name": "organization_contact"
+                }
+              },
+              {
+                "type": "text",
+                "text": "."
+              }
+            ]
+          }
+        ]
+      },
+      "updated_at": "2026-08-29T00:00:00"
+    },
+    {
+      "document_type": "terms_conditions",
+      "locale": "de-DE",
+      "title": "Allgemeine Geschäftsbedingungen",
+      "eyebrow": "{{organization_name}}-Prototyp",
+      "description": "Einfache Regeln für die sichere, transparente und verantwortungsvolle Nutzung dieses Prototyps.",
+      "summary_title": "Kurzfassung",
+      "summary": "Dieser Prototyp dient nur der Demonstration und dem Test. Bestellungen, Zahlungen und Funktionen stellen keinen offiziellen Service von {{organization_name}} dar.",
+      "body": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "1. Identifikation und Geltungsbereich"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Diese Website ist ein Prototyp, der zu Demonstrations-, Test- und Validierungszwecken entwickelt wurde. Sie ist nicht die offizielle Website von "
+              },
+              {
+                "type": "organizationVariable",
+                "attrs": {
+                  "name": "organization_name"
+                }
+              },
+              {
+                "type": "text",
+                "text": " und kein offizieller Kanal für Support, Verträge, Reservierungen oder Käufe."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Der Prototyp wurde mit Wissen und Genehmigung von "
+              },
+              {
+                "type": "organizationVariable",
+                "attrs": {
+                  "name": "organization_name"
+                }
+              },
+              {
+                "type": "text",
+                "text": " entwickelt, wird jedoch von den Verantwortlichen des Entwicklungsprojekts betrieben. Funktionen, Inhalte und Verfügbarkeit können während der Testphase jederzeit geändert oder entfernt werden."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "2. Beschreibung des Dienstes"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Die Plattform ermöglicht das Anzeigen demonstrativer Restaurantinformationen, das Durchsuchen der Speisekarte, das Erstellen eines Kontos, das Speichern eines Warenkorbs, das Simulieren von Bestellungen sowie das Anzeigen von Verlauf, Gutscheinen und Verwaltungsfunktionen des Prototyps."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Inhalte, Preise, Verfügbarkeit, Bilder, Bestellstatus und Funktionen können fiktiv, unvollständig oder während der Tests ohne Vorankündigung geändert werden."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "3. Nutzungsregeln"
+              }
+            ]
+          },
+          {
+            "type": "bulletList",
+            "content": [
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Die Plattform darf nur rechtmäßig, respektvoll und im Einklang mit Test- und Demonstrationszwecken genutzt werden."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Es dürfen keine falschen, beleidigenden oder rechtswidrigen Informationen und keine Daten Dritter ohne Erlaubnis eingegeben werden."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Es ist nicht erlaubt, auf gesperrte Bereiche zuzugreifen, Sicherheitsmaßnahmen zu umgehen, Schwachstellen auszunutzen oder die Verfügbarkeit des Dienstes zu beeinträchtigen."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "listItem",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Relevante Fehler sollten den Projektverantwortlichen gemeldet werden, wenn sie während der Nutzung erkannt werden."
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "4. Benutzerkonto"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Bei der Kontoerstellung müssen Nutzer korrekte Daten angeben und ihre Zugangsdaten vertraulich behandeln. Aktivitäten über ein Konto liegen in der Verantwortung des jeweiligen Nutzers, außer wenn ein Missbrauch durch Dritte nachgewiesen wird."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Die Betreiber des Prototyps können Konten sperren, blockieren oder entfernen, wenn Missbrauch, ein Sicherheitsrisiko, ein Verstoß gegen diese Bedingungen oder ein technischer Bedarf während der Tests besteht."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "5. Bestellungen, Zahlungen und Testumgebung"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Dies ist eine Testumgebung. Hier gesendete Bestellungen sind keine offiziellen Bestellungen bei "
+              },
+              {
+                "type": "organizationVariable",
+                "attrs": {
+                  "name": "organization_name"
+                }
+              },
+              {
+                "type": "text",
+                "text": ". Keine Bestellung wird von "
+              },
+              {
+                "type": "organizationVariable",
+                "attrs": {
+                  "name": "organization_name"
+                }
+              },
+              {
+                "type": "text",
+                "text": " bearbeitet, sofern nicht ausdrücklich etwas anderes angegeben wird."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Jede Bezugnahme auf Zahlung, Beleg, Rechnung, Zubereitung, Lieferung, Treueprogramm oder Gutscheine dient der Validierung des Prototyps und begründet keine echte kommerzielle Verpflichtung, sofern dies nicht ausdrücklich von autorisierten Verantwortlichen mitgeteilt wird."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "6. Kündigung und Beendigung"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Nutzer können die Verwendung des Prototyps jederzeit beenden. Die Projektverantwortlichen können den Zugriff auf die Plattform während der Testphase ganz oder teilweise ändern, aussetzen oder beenden, einschließlich aus technischen, sicherheitsbezogenen oder produktbezogenen Gründen."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "7. Geistiges Eigentum"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Marken, Logos, Bilder, Texte, Code, Oberflächen und sonstige Materialien auf der Plattform gehören den jeweiligen Rechteinhabern, einschließlich "
+              },
+              {
+                "type": "organizationVariable",
+                "attrs": {
+                  "name": "organization_name"
+                }
+              },
+              {
+                "type": "text",
+                "text": " und gegebenenfalls den Entwicklungsverantwortlichen."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Nutzer erhalten nur eine begrenzte Erlaubnis zum Zugriff auf und zur Nutzung des Prototyps. Kopieren, kommerzielle Nutzung, Verbreitung oder Änderung von Plattforminhalten ist ohne vorherige Genehmigung nicht erlaubt."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "8. Haftungsbeschränkung"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Da es sich um einen Prototyp handelt, kann die Plattform Fehler, Unterbrechungen, Nichtverfügbarkeit, Demonstrationsdaten oder unvollständiges Verhalten enthalten. Soweit gesetzlich zulässig, haften die Projektverantwortlichen nicht für Verluste aus der experimentellen Nutzung der Plattform, außer bei Vorsatz oder gesetzlich nicht ausschließbarer Haftung."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "9. Änderungen dieser Bedingungen"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Diese Bedingungen können aktualisiert werden, um Änderungen am Prototyp, rechtliche Anforderungen oder Projektentscheidungen widerzuspiegeln. Maßgeblich ist die auf dieser Seite veröffentlichte Version zum Zeitpunkt der Nutzung."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "10. Anwendbares Recht und Streitbeilegung"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Diese Bedingungen werden nach portugiesischem Recht ausgelegt. Bei Fragen oder Streitigkeiten sollten Nutzer zuerst die Projektverantwortlichen kontaktieren, um eine einvernehmliche Lösung zu suchen, unbeschadet verfügbarer Rechtsmittel."
+              }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": {
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "11. Kontakt"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Bei Fragen zu diesen Allgemeinen Geschäftsbedingungen oder zum Prototyp kontaktieren Sie die Entwicklungsverantwortlichen unter "
+              },
+              {
+                "type": "organizationVariable",
+                "attrs": {
+                  "name": "organization_contact"
+                }
+              },
+              {
+                "type": "text",
+                "text": "."
+              }
+            ]
+          }
+        ]
+      },
+      "updated_at": "2026-08-29T00:00:00"
+    }
+  ]
+}

@@ -282,6 +282,22 @@ class OrganizationProfile(OrganizationModel):
     organization: Mapped[Organization] = relationship("Organization", back_populates="profile")
 
 
+class OrganizationLegalDocument(OrganizationModel):
+    __tablename__ = "organization_legal_document"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "document_type", "locale", name="uq_legal_document_organization_type_locale"),
+    )
+
+    document_type: Mapped[str] = mapped_column(String(30), nullable=False)
+    locale: Mapped[str] = mapped_column(String(5), nullable=False)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    eyebrow: Mapped[str] = mapped_column(String(200), nullable=False, default="")
+    description: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    summary_title: Mapped[str] = mapped_column(String(200), nullable=False, default="")
+    summary: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    body: Mapped[dict] = mapped_column(JSON, nullable=False)
+
+
 class OrganizationExperience(OrganizationModel):
     __tablename__ = "organization_experience"
     __table_args__ = (UniqueConstraint("organization_id", name="uq_organization_experience_organization_id"),)

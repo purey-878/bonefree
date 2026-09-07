@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import type { FormEvent, MouseEvent, ReactNode, SyntheticEvent } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
@@ -137,7 +137,6 @@ import { primaryProductMediaUrl, productMediaUrl } from "../utils/productMedia"
 import LanguageSwitcher from "../components/LanguageSwitcher"
 import AdminI18nBoundary from "../components/AdminI18nBoundary"
 import AdaptivePanel from "../components/admin/AdaptivePanel"
-import DataPrivacyPanel from "../components/admin/DataPrivacyPanel"
 import { createCustomerDataExport } from "../services/dataPrivacyService"
 import { resolvedLocale } from "../i18n"
 import { useAdminSession } from '../context/admin-session-context'
@@ -151,6 +150,8 @@ import type { ProductAnalyticsViewMode } from "../utils/productAnalyticsView"
 import { normalizeAdaptivePanelMode } from "../utils/adaptivePanelMode"
 import type { AdaptivePanelMode } from "../utils/adaptivePanelMode"
 import type { Page } from "../types/pagination"
+
+const DataPrivacyPanel = lazy(() => import('../components/admin/DataPrivacyPanel'))
 
 function getImageUrl(imagePath: string): string {
   return resolveProductImageUrl(imagePath)
@@ -1662,6 +1663,7 @@ export default function AdminDashboard() {
   const [customerExportingIds, setCustomerExportingIds] = useState<Set<number>>(() => new Set())
   const customerExportingIdsRef = useRef<Set<number>>(new Set())
   const [privacyQueueFocusRequest, setPrivacyQueueFocusRequest] = useState(0)
+  const [privacyDocumentsDirty, setPrivacyDocumentsDirty] = useState(false)
   const [staffAdmins, setStaffAdmins] = useState<CurrentAdmin[]>([])
   const [error, setError] = useState<string | null>(null)
   const [availabilityBusyKey, setAvailabilityBusyKey] = useState<string | null>(null)
@@ -3855,7 +3857,7 @@ export default function AdminDashboard() {
   const handleLogout = async () => {
     await runConfirmedAction({
       title: "Terminar sessão?",
-      description: "Vai sair da consola de administração e terá de iniciar sessão novamente para continuar.",
+      description: privacyDocumentsDirty ? t('legal:logoutDescription') : "Vai sair da consola de administração e terá de iniciar sessão novamente para continuar.",
       confirmText: "Terminar sessão",
       cancelText: "Cancelar",
       }, async () => {
@@ -6523,7 +6525,9 @@ export default function AdminDashboard() {
         )}
 
         {activeTab === "privacy" && isOwner && (
-          <DataPrivacyPanel focusExportQueueRequest={privacyQueueFocusRequest} />
+          <Suspense fallback={<p>{t('legal:loading')}</p>}>
+            <DataPrivacyPanel focusExportQueueRequest={privacyQueueFocusRequest} onDocumentsDirtyChange={setPrivacyDocumentsDirty} />
+          </Suspense>
         )}
 
         {activeTab === "analytics" && (

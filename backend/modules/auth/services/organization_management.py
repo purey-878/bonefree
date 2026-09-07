@@ -15,6 +15,7 @@ from modules.auth.models import (
     OrganizationType,
 )
 from utils.datetime_utils import naive_utc_now
+from modules.auth.services.legal_documents import add_missing_documents, load_legal_defaults
 
 
 def check_database_ready(db: DBSession, *table_names: str) -> None:
@@ -112,6 +113,7 @@ def create_organization(
                 variant_overrides={},
             )
         )
+        add_missing_documents(db, load_legal_defaults())
         db.commit()
         db.refresh(organization)
         return organization

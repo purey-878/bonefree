@@ -12,10 +12,15 @@
     "api:generate": "npm run api:export && openapi-ts",
     "api:check": "npm run api:generate && git diff --exit-code -- openapi/openapi.json src/api/generated",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:legal:e2e": "playwright test --config playwright.legal.config.ts"
   },
   "dependencies": {
     "@popperjs/core": "^2.11.8",
+    "@tiptap/core": "^3.31.3",
+    "@tiptap/pm": "^3.31.3",
+    "@tiptap/react": "^3.31.3",
+    "@tiptap/starter-kit": "^3.31.3",
     "bootstrap": "^5.3.8",
     "i18next": "^26.4.0",
     "i18next-browser-languagedetector": "^8.2.1",
@@ -31,6 +36,7 @@
     "@babel/core": "^7.29.0",
     "@eslint/js": "^9.39.4",
     "@hey-api/openapi-ts": "0.97.0",
+    "@playwright/test": "^1.63.0",
     "@types/babel__core": "^7.20.5",
     "@types/node": "^24.12.2",
     "@types/react": "^19.2.14",
@@ -40,6 +46,7 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
+    "jsdom": "^29.1.1",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.58.0",
     "vite": "^8.0.4",

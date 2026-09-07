@@ -5,6 +5,7 @@ import { initReactI18next } from "react-i18next"
 import deDE from "./locales/de-DE"
 import enGB from "./locales/en-GB"
 import ptPT from "./locales/pt-PT"
+import { legalDe, legalEn, legalPt } from './legal'
 
 export const SUPPORTED_LOCALES = ["pt-PT", "en-GB", "de-DE"] as const
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number]
@@ -50,9 +51,9 @@ export function resolvedLocale(): SupportedLocale {
 }
 
 export const resources = {
-  "pt-PT": ptPT,
-  "en-GB": enGB,
-  "de-DE": deDE,
+  "pt-PT": { ...ptPT, legal: legalPt },
+  "en-GB": { ...enGB, legal: legalEn },
+  "de-DE": { ...deDE, legal: legalDe },
 }
 
 export const i18nReady = i18n

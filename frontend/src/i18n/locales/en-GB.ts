@@ -234,7 +234,7 @@ const enGB = {
       },
       contact: {
         title: "Privacy contact",
-        description: "This email appears in the privacy policy and is used when someone asks about their data. It can be different from the commercial contact.",
+        description: "This email appears in both the Privacy Policy and Terms and Conditions. It can be different from the commercial contact.",
         fieldLabel: "Privacy contact email",
         placeholder: "privacy@example.com",
         save: "Save contact",

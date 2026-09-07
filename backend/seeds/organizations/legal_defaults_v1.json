@@ -1,0 +1,529 @@
+[
+  {
+    "document_type": "privacy_policy",
+    "locale": "en-GB",
+    "title": "Privacy Policy",
+    "eyebrow": "{{organization_name}}",
+    "description": "How {{organization_name}} handles personal data when you use this website.",
+    "summary_title": "Overview",
+    "summary": "How {{organization_name}} handles personal data when you use this website.",
+    "body": {
+      "type": "doc",
+      "content": [
+        {
+          "type": "heading",
+          "attrs": {
+            "level": 2
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "1. Who is responsible"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "organizationVariable",
+              "attrs": {
+                "name": "organization_name"
+              }
+            },
+            {
+              "type": "text",
+              "text": " is responsible for the personal data processed in connection with its services on this website. For questions about this policy or to exercise your data protection rights, email "
+            },
+            {
+              "type": "organizationVariable",
+              "attrs": {
+                "name": "organization_contact"
+              }
+            },
+            {
+              "type": "text",
+              "text": "."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "attrs": {
+            "level": 2
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "2. Information we process"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "We process the information you provide when creating and managing an account, including your name, email, optional telephone number and optional tax identification and billing details. Passwords are stored as hashes."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "We also process shopping cart contents, orders, fulfilment details, order notes, receipts, discounts and loyalty activity, and reviews you submit. Sessions and security records may include IP addresses, browser information and access timestamps."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "The browser stores session information, cart contents, language preferences and cookie preferences needed for the features you use. Avoid including sensitive personal information in optional free-text fields."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "attrs": {
+            "level": 2
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "3. Why we process information"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "We use account and order information to provide the services you request and perform our contract with you or take steps at your request before entering into a contract. Providing the information marked as required is necessary for the corresponding account or order feature."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "We process security and technical information in our legitimate interests in protecting the service, preventing abuse and diagnosing faults. Where processing is required by law, such as applicable accounting obligations, we rely on that legal obligation. If a feature asks for your consent, you may withdraw that consent without affecting processing that was lawful before withdrawal."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "attrs": {
+            "level": 2
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "4. Who receives information"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Authorised staff can access personal information as needed to manage the services. Hosting, email and other service providers may process information on our behalf for the relevant functions. Information may also be disclosed where required by law."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Contact "
+            },
+            {
+              "type": "organizationVariable",
+              "attrs": {
+                "name": "organization_contact"
+              }
+            },
+            {
+              "type": "text",
+              "text": " for information about the providers used by this organisation and any applicable transfers outside the European Economic Area, including the safeguards used."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "attrs": {
+            "level": 2
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "5. Retention"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "We keep personal information for as long as necessary for the purposes described here, taking account of account activity, order fulfilment, applicable record-keeping obligations, security needs and the establishment or defence of legal claims. Different records may therefore have different retention periods. Contact us for information about the retention applicable to your records."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "attrs": {
+            "level": 2
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "6. Your rights"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Subject to the conditions in applicable data protection law, you may request access to, correction or erasure of your personal data, restriction of processing, data portability, or object to processing based on legitimate interests. You can make a request by emailing "
+            },
+            {
+              "type": "organizationVariable",
+              "attrs": {
+                "name": "organization_contact"
+              }
+            },
+            {
+              "type": "text",
+              "text": ". We may need information to verify your identity."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "You may lodge a complaint with the data protection authority in the country of your habitual residence, place of work or the alleged infringement. In Portugal, the supervisory authority is the Comiss?o Nacional de Prote??o de Dados (CNPD)."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "attrs": {
+            "level": 2
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "7. Automated features and security"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "The website uses automated features for account validation, order workflows, discounts and security checks. These features support the service. Contact us if you need information about how a particular feature affects your data."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "We use access controls and technical measures to protect personal information. Keep your login details confidential and contact us if you suspect unauthorised access."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "attrs": {
+            "level": 2
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "8. Updates and contact"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "We may update this policy as the service or processing practices change. The date on this page identifies the current published version. For privacy matters, contact "
+            },
+            {
+              "type": "organizationVariable",
+              "attrs": {
+                "name": "organization_contact"
+              }
+            },
+            {
+              "type": "text",
+              "text": "."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "document_type": "terms_conditions",
+    "locale": "en-GB",
+    "title": "Terms and Conditions",
+    "eyebrow": "{{organization_name}}",
+    "description": "Terms for using the website and services of {{organization_name}}.",
+    "summary_title": "Overview",
+    "summary": "Terms for using the website and services of {{organization_name}}.",
+    "body": {
+      "type": "doc",
+      "content": [
+        {
+          "type": "heading",
+          "attrs": {
+            "level": 2
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "1. About these terms"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "These terms govern your use of this website and the services offered by "
+            },
+            {
+              "type": "organizationVariable",
+              "attrs": {
+                "name": "organization_name"
+              }
+            },
+            {
+              "type": "text",
+              "text": ". Please read them together with our Privacy Policy. Questions about these terms can be sent to "
+            },
+            {
+              "type": "organizationVariable",
+              "attrs": {
+                "name": "organization_contact"
+              }
+            },
+            {
+              "type": "text",
+              "text": "."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "attrs": {
+            "level": 2
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "2. Accounts and acceptable use"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Provide accurate information when registering or placing an order and keep your login details confidential. You are responsible for the activity you authorise through your account."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Do not use the website unlawfully, interfere with its operation, attempt to access other users? information, or submit abusive or misleading content. Access may be restricted where necessary to protect the service or address misuse."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "attrs": {
+            "level": 2
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "3. Products and orders"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Product information, prices, availability and applicable charges are displayed through the catalogue and ordering process. Review the items, customisations, fulfilment details and total before submitting an order."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Order availability, confirmation and fulfilment depend on the information and options shown by the organisation. If an item becomes unavailable or an order requires clarification, the organisation may contact you using the details provided."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Check the available ingredient information and contact the organisation before ordering if you have questions about allergens or dietary requirements."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "attrs": {
+            "level": 2
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "4. Payments, changes and cancellations"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Use the payment and fulfilment options offered for your order. Contact the organisation promptly if you need to change or cancel an order or report a problem. Availability of changes may depend on preparation and fulfilment status."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "These terms do not limit mandatory consumer rights, including any rights relating to non-conforming products or cancellation that apply to your circumstances."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "attrs": {
+            "level": 2
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "5. Reviews and website content"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Submit reviews based on your own experience and do not include unlawful content or another person?s private information. Reviews may be moderated to address misuse."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Website text, images, branding and other materials belong to their respective rights holders. Using the website does not transfer ownership of those materials."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "attrs": {
+            "level": 2
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "6. Availability and responsibility"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "We take reasonable steps to operate the website, but interruptions, maintenance and errors can occur. Contact the organisation if a technical issue affects your order. Nothing in these terms excludes liability that cannot lawfully be excluded."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "attrs": {
+            "level": 2
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "7. Privacy, changes and disputes"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Our Privacy Policy explains how personal information is handled. We may update these terms when the service changes; the publication date identifies the current version."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Contact "
+            },
+            {
+              "type": "organizationVariable",
+              "attrs": {
+                "name": "organization_contact"
+              }
+            },
+            {
+              "type": "text",
+              "text": " to raise a question or seek a resolution to a dispute. These terms do not prevent you from exercising rights or seeking remedies available under applicable law."
+            }
+          ]
+        }
+      ]
+    }
+  }
+]

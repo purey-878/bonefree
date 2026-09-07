@@ -21,6 +21,8 @@ import {
   regenerateDataExport,
   updatePrivacyContact,
 } from '../../services/dataPrivacyService'
+import LegalDocumentEditor from '../legal/LegalDocumentEditor'
+import { useLegalDocuments } from '../legal/useLegalDocuments'
 import './DataPrivacyPanel.css'
 
 
@@ -31,13 +33,19 @@ function formatDate(value: string | null | undefined, locale: string): string {
 
 type DataPrivacyPanelProps = {
   focusExportQueueRequest?: number
+  onDocumentsDirtyChange?: (dirty: boolean) => void
 }
 
 type DataPrivacySection = 'copies' | 'policy' | 'terms'
 
 
-export default function DataPrivacyPanel({ focusExportQueueRequest = 0 }: DataPrivacyPanelProps) {
+export default function DataPrivacyPanel({ focusExportQueueRequest = 0, onDocumentsDirtyChange }: DataPrivacyPanelProps) {
   const { t, i18n } = useTranslation('admin')
+  const { t: legalT } = useTranslation('legal')
+  const legalDocuments = useLegalDocuments()
+  const updateLegalContact = legalDocuments.updateContact
+  useEffect(() => { onDocumentsDirtyChange?.(legalDocuments.dirty) }, [legalDocuments.dirty, onDocumentsDirtyChange])
+  useEffect(() => () => onDocumentsDirtyChange?.(false), [onDocumentsDirtyChange])
   const [overview, setOverview] = useState<PrivacyOverviewResponse | null>(null)
   const [exports, setExports] = useState<DataExportResponse[]>([])
   const [privacyEmail, setPrivacyEmail] = useState('')
@@ -83,11 +91,12 @@ export default function DataPrivacyPanel({ focusExportQueueRequest = 0 }: DataPr
       setOverview(nextOverview)
       setExports(nextExports)
       setPrivacyEmail(profile.privacy_contact_email || '')
+      updateLegalContact(profile.privacy_contact_email || profile.email || '')
       setError(null)
     } catch {
       setError(t('privacy.errors.load'))
     }
-  }, [t])
+  }, [t, updateLegalContact])
 
   useEffect(() => { void refresh() }, [refresh])
 
@@ -400,10 +409,7 @@ export default function DataPrivacyPanel({ focusExportQueueRequest = 0 }: DataPr
             <button className="ad-btn ad-btn-primary" disabled={busy}>{t('privacy.contact.save')}</button>
           </form>
         </section>
-        <section className="ad-card data-privacy-section data-privacy-coming-soon">
-          <h3>{t('privacy.policy.title')}</h3>
-          <p>{t('privacy.policy.comingSoon')}</p>
-        </section>
+        <LegalDocumentEditor documentType="privacy_policy" state={legalDocuments} />
       </section>
 
       <section
@@ -412,13 +418,19 @@ export default function DataPrivacyPanel({ focusExportQueueRequest = 0 }: DataPr
         data-privacy-section="terms"
         aria-label={t('privacy.sections.terms')}
       >
-        <section className="ad-card data-privacy-section data-privacy-coming-soon">
-          <h3>{t('privacy.terms.title')}</h3>
-          <p>{t('privacy.terms.comingSoon')}</p>
-        </section>
+        <LegalDocumentEditor documentType="terms_conditions" state={legalDocuments} />
       </section>
       </div>
 
+      <ConfirmDialog
+        open={legalDocuments.blocker.state === 'blocked'}
+        title={legalT('leaveTitle')}
+        description={legalDocuments.leaveMessage}
+        confirmText={legalT('discard')}
+        cancelText={legalT('keepEditing')}
+        onConfirm={() => legalDocuments.blocker.proceed?.()}
+        onCancel={() => legalDocuments.blocker.reset?.()}
+      />
       <ConfirmDialog
         open={confirmCompleteCopy}
         title={t('privacy.exports.confirmTitle', { selection: t(`privacy.exports.kind.${selectedExportKind}`) })}

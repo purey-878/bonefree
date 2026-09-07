@@ -2847,6 +2847,450 @@
         "title": "KitchenOrderResponse",
         "type": "object"
       },
+      "LegalAttributes": {
+        "additionalProperties": false,
+        "properties": {
+          "class": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Class"
+          },
+          "href": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Href"
+          },
+          "level": {
+            "anyOf": [
+              {
+                "enum": [
+                  2,
+                  3
+                ],
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Level"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "enum": [
+                  "organization_name",
+                  "organization_contact"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "rel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rel"
+          },
+          "start": {
+            "anyOf": [
+              {
+                "maximum": 10000.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "enum": [
+                  "_blank",
+                  "_self"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "enum": [
+                  "1",
+                  "a",
+                  "A",
+                  "i",
+                  "I"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type"
+          }
+        },
+        "title": "LegalAttributes",
+        "type": "object"
+      },
+      "LegalDocumentListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/LegalDocumentResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "organization_contact": {
+            "title": "Organization Contact",
+            "type": "string"
+          },
+          "organization_name": {
+            "title": "Organization Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "items",
+          "organization_name",
+          "organization_contact"
+        ],
+        "title": "LegalDocumentListResponse",
+        "type": "object"
+      },
+      "LegalDocumentResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "$ref": "#/components/schemas/LegalNode-Output"
+          },
+          "description": {
+            "default": "",
+            "maxLength": 3000,
+            "title": "Description",
+            "type": "string"
+          },
+          "document_type": {
+            "enum": [
+              "privacy_policy",
+              "terms_conditions"
+            ],
+            "title": "Document Type",
+            "type": "string"
+          },
+          "eyebrow": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Eyebrow",
+            "type": "string"
+          },
+          "locale": {
+            "enum": [
+              "pt-PT",
+              "en-GB",
+              "de-DE"
+            ],
+            "title": "Locale",
+            "type": "string"
+          },
+          "summary": {
+            "default": "",
+            "maxLength": 5000,
+            "title": "Summary",
+            "type": "string"
+          },
+          "summary_title": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Summary Title",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "body",
+          "document_type",
+          "locale",
+          "updated_at"
+        ],
+        "title": "LegalDocumentResponse",
+        "type": "object"
+      },
+      "LegalDocumentWrite": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "$ref": "#/components/schemas/LegalNode-Input"
+          },
+          "description": {
+            "default": "",
+            "maxLength": 3000,
+            "title": "Description",
+            "type": "string"
+          },
+          "eyebrow": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Eyebrow",
+            "type": "string"
+          },
+          "summary": {
+            "default": "",
+            "maxLength": 5000,
+            "title": "Summary",
+            "type": "string"
+          },
+          "summary_title": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Summary Title",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "body"
+        ],
+        "title": "LegalDocumentWrite",
+        "type": "object"
+      },
+      "LegalMark": {
+        "additionalProperties": false,
+        "properties": {
+          "attrs": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LegalAttributes"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "type": {
+            "enum": [
+              "bold",
+              "italic",
+              "link"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "title": "LegalMark",
+        "type": "object"
+      },
+      "LegalNode-Input": {
+        "additionalProperties": false,
+        "properties": {
+          "attrs": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LegalAttributes"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "content": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/LegalNode-Input"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content"
+          },
+          "marks": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/LegalMark"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marks"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          },
+          "type": {
+            "enum": [
+              "doc",
+              "paragraph",
+              "heading",
+              "bulletList",
+              "orderedList",
+              "listItem",
+              "text",
+              "hardBreak",
+              "organizationVariable"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "title": "LegalNode",
+        "type": "object"
+      },
+      "LegalNode-Output": {
+        "additionalProperties": false,
+        "properties": {
+          "attrs": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LegalAttributes"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "content": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/LegalNode-Output"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content"
+          },
+          "marks": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/LegalMark"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marks"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          },
+          "type": {
+            "enum": [
+              "doc",
+              "paragraph",
+              "heading",
+              "bulletList",
+              "orderedList",
+              "listItem",
+              "text",
+              "hardBreak",
+              "organizationVariable"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "title": "LegalNode",
+        "type": "object"
+      },
       "LoyaltyCouponSettings-Input": {
         "properties": {
           "coupon_minimum_order": {
@@ -5873,6 +6317,43 @@
           "theme"
         ],
         "title": "PublicExperienceConfiguration",
+        "type": "object"
+      },
+      "PublicLegalDocumentResponse": {
+        "properties": {
+          "document": {
+            "$ref": "#/components/schemas/LegalDocumentResponse"
+          },
+          "is_fallback": {
+            "title": "Is Fallback",
+            "type": "boolean"
+          },
+          "organization_contact": {
+            "title": "Organization Contact",
+            "type": "string"
+          },
+          "organization_name": {
+            "title": "Organization Name",
+            "type": "string"
+          },
+          "requested_locale": {
+            "enum": [
+              "pt-PT",
+              "en-GB",
+              "de-DE"
+            ],
+            "title": "Requested Locale",
+            "type": "string"
+          }
+        },
+        "required": [
+          "document",
+          "requested_locale",
+          "is_fallback",
+          "organization_name",
+          "organization_contact"
+        ],
+        "title": "PublicLegalDocumentResponse",
         "type": "object"
       },
       "PublicOrganizationExperienceResponse": {
@@ -11940,6 +12421,271 @@
         "summary": "Get Kitchen Order",
         "tags": [
           "Admin Management"
+        ]
+      }
+    },
+    "/admin/legal-documents": {
+      "get": {
+        "operationId": "legal_documents_list_admin",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LegalDocumentListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "List Documents",
+        "tags": [
+          "Legal Documents"
+        ]
+      }
+    },
+    "/admin/legal-documents/{document_type}/{locale}": {
+      "put": {
+        "operationId": "legal_documents_publish",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_type",
+            "required": true,
+            "schema": {
+              "enum": [
+                "privacy_policy",
+                "terms_conditions"
+              ],
+              "title": "Document Type",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "locale",
+            "required": true,
+            "schema": {
+              "enum": [
+                "pt-PT",
+                "en-GB",
+                "de-DE"
+              ],
+              "title": "Locale",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LegalDocumentWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LegalDocumentResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Publish Document",
+        "tags": [
+          "Legal Documents"
         ]
       }
     },
@@ -22847,6 +23593,143 @@
         "summary": "Get Profile Overview",
         "tags": [
           "Profile"
+        ]
+      }
+    },
+    "/public/legal-documents/{document_type}": {
+      "get": {
+        "operationId": "legal_documents_read_public",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_type",
+            "required": true,
+            "schema": {
+              "enum": [
+                "privacy_policy",
+                "terms_conditions"
+              ],
+              "title": "Document Type",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "locale",
+            "required": false,
+            "schema": {
+              "default": "en-GB",
+              "enum": [
+                "pt-PT",
+                "en-GB",
+                "de-DE"
+              ],
+              "title": "Locale",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Organization-Slug",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicLegalDocumentResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "summary": "Read Document",
+        "tags": [
+          "Legal Documents"
         ]
       }
     },

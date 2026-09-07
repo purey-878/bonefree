@@ -31,6 +31,7 @@ from modules.restaurant.routers.reviews import router as reviews_router
 from modules.restaurant.routers.site_settings import owner_router as site_settings_owner_router
 from modules.restaurant.routers.site_settings import public_router as site_settings_public_router
 from modules.restaurant.routers.data_privacy import admin_router as data_privacy_admin_router
+from modules.auth.routers.legal_documents import admin_router as legal_admin_router, public_router as legal_public_router
 from modules.auth.routers.organizations import experience_router as organization_experience_router
 from modules.auth.routers.organizations import router as organizations_router
 from modules.auth.dependencies import (
@@ -186,6 +187,8 @@ def create_app(
     application.include_router(site_settings_public_router, dependencies=public_tenant_dependencies)
     application.include_router(site_settings_owner_router)
     application.include_router(data_privacy_admin_router)
+    application.include_router(legal_admin_router)
+    application.include_router(legal_public_router)
     return application
 
 

@@ -234,7 +234,7 @@ const deDE = {
       },
       contact: {
         title: "Datenschutzkontakt",
-        description: "Diese E-Mail-Adresse erscheint in der Datenschutzerklärung und wird für Fragen zu persönlichen Daten verwendet. Sie kann vom Geschäftskontakt abweichen.",
+        description: "Diese E-Mail-Adresse erscheint sowohl in der Datenschutzerklärung als auch in den Allgemeinen Geschäftsbedingungen. Sie kann vom geschäftlichen Kontakt abweichen.",
         fieldLabel: "E-Mail-Adresse des Datenschutzkontakts",
         placeholder: "datenschutz@beispiel.de",
         save: "Kontakt speichern",

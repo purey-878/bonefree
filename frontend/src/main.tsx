@@ -1,7 +1,7 @@
 import './i18n'
 import { StrictMode, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import { ThemeProvider } from 'styled-components'
 import './index.css'
 import { ToastProvider } from './components/ui/ToastProvider.tsx'
@@ -60,8 +60,7 @@ async function bootstrap() {
     if (unavailableCapabilities.length) {
       console.warn('feature_not_in_build', { features: unavailableCapabilities })
     }
-    root.render(shell(
-      <BrowserRouter>
+    const router = createBrowserRouter([{ path: "*", element: (
         <OrganizationProvider organization={organization} experience={experience}>
           <AuthProvider>
             <ToastProvider>
@@ -69,8 +68,8 @@ async function bootstrap() {
             </ToastProvider>
           </AuthProvider>
         </OrganizationProvider>
-      </BrowserRouter>,
-    ))
+    ) }])
+    root.render(shell(<RouterProvider router={router} />))
   } catch (error) {
     console.error('Unable to bootstrap the organization experience:', error)
     let errorCode: OrganizationBootstrapError = tenantResolved

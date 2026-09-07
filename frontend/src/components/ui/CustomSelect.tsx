@@ -22,6 +22,7 @@ type CustomSelectProps = {
   placeholder?: ReactNode
   "aria-label"?: string
   onChange: (value: CustomSelectValue) => void
+  onSelectionCommit?: () => void
 }
 
 function valuesEqual(a: CustomSelectValue, b: CustomSelectValue) {
@@ -39,6 +40,7 @@ export default function CustomSelect({
   placeholder = "Selecione uma opção",
   "aria-label": ariaLabel,
   onChange,
+  onSelectionCommit,
 }: CustomSelectProps) {
   const fallbackId = useId()
   const selectId = id ?? fallbackId
@@ -141,6 +143,7 @@ export default function CustomSelect({
     onChange(option.value)
     closeMenu()
     triggerRef.current?.focus()
+    onSelectionCommit?.()
   }
 
   const moveSelection = (direction: 1 | -1) => {

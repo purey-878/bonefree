@@ -26,7 +26,7 @@ TENANCY_REVISION = "20260823_0002"
 EXPERIENCE_REVISION = "20260825_0003"
 ADMIN_REVISION = "20260826_0004"
 STR_ENUM_REVISION = "20260826_0005"
-HEAD_REVISION = "20260831_0006"
+HEAD_REVISION = "20260907_0007"
 LEGACY_HEAD_REVISION = "b6d8f0a2c4e7"
 
 ENUM_COLUMN_VALUES = {
@@ -201,6 +201,7 @@ class SchemaBaselineTests(unittest.TestCase):
             [revision.revision for revision in revisions],
             [
                 HEAD_REVISION,
+                "20260831_0006",
                 STR_ENUM_REVISION,
                 ADMIN_REVISION,
                 EXPERIENCE_REVISION,
@@ -208,13 +209,14 @@ class SchemaBaselineTests(unittest.TestCase):
                 BASELINE_REVISION,
             ],
         )
-        self.assertEqual(revisions[0].down_revision, STR_ENUM_REVISION)
-        self.assertEqual(revisions[1].down_revision, ADMIN_REVISION)
-        self.assertEqual(revisions[2].down_revision, EXPERIENCE_REVISION)
-        self.assertEqual(revisions[3].down_revision, TENANCY_REVISION)
-        self.assertEqual(revisions[4].down_revision, BASELINE_REVISION)
-        self.assertIsNone(revisions[5].down_revision)
-        baseline_source = Path(revisions[5].path).read_text(encoding="utf-8")
+        self.assertEqual(revisions[0].down_revision, "20260831_0006")
+        self.assertEqual(revisions[1].down_revision, STR_ENUM_REVISION)
+        self.assertEqual(revisions[2].down_revision, ADMIN_REVISION)
+        self.assertEqual(revisions[3].down_revision, EXPERIENCE_REVISION)
+        self.assertEqual(revisions[4].down_revision, TENANCY_REVISION)
+        self.assertEqual(revisions[5].down_revision, BASELINE_REVISION)
+        self.assertIsNone(revisions[6].down_revision)
+        baseline_source = Path(revisions[6].path).read_text(encoding="utf-8")
         self.assertNotIn("Base.metadata", baseline_source)
         self.assertNotIn("product_image", baseline_source)
 

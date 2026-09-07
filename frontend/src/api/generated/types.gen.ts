@@ -1594,6 +1594,189 @@ export type KitchenOrderResponse = {
 };
 
 /**
+ * LegalAttributes
+ */
+export type LegalAttributes = {
+    /**
+     * Class
+     */
+    class?: string | null;
+    /**
+     * Href
+     */
+    href?: string | null;
+    /**
+     * Level
+     */
+    level?: 2 | 3 | null;
+    /**
+     * Name
+     */
+    name?: 'organization_name' | 'organization_contact' | null;
+    /**
+     * Rel
+     */
+    rel?: string | null;
+    /**
+     * Start
+     */
+    start?: number | null;
+    /**
+     * Target
+     */
+    target?: '_blank' | '_self' | null;
+    /**
+     * Title
+     */
+    title?: string | null;
+    /**
+     * Type
+     */
+    type?: '1' | 'a' | 'A' | 'i' | 'I' | null;
+};
+
+/**
+ * LegalDocumentListResponse
+ */
+export type LegalDocumentListResponse = {
+    /**
+     * Items
+     */
+    items: Array<LegalDocumentResponse>;
+    /**
+     * Organization Contact
+     */
+    organization_contact: string;
+    /**
+     * Organization Name
+     */
+    organization_name: string;
+};
+
+/**
+ * LegalDocumentResponse
+ */
+export type LegalDocumentResponse = {
+    body: LegalNodeOutput;
+    /**
+     * Description
+     */
+    description?: string;
+    /**
+     * Document Type
+     */
+    document_type: 'privacy_policy' | 'terms_conditions';
+    /**
+     * Eyebrow
+     */
+    eyebrow?: string;
+    /**
+     * Locale
+     */
+    locale: 'pt-PT' | 'en-GB' | 'de-DE';
+    /**
+     * Summary
+     */
+    summary?: string;
+    /**
+     * Summary Title
+     */
+    summary_title?: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
+ * LegalDocumentWrite
+ */
+export type LegalDocumentWrite = {
+    body: LegalNodeInput;
+    /**
+     * Description
+     */
+    description?: string;
+    /**
+     * Eyebrow
+     */
+    eyebrow?: string;
+    /**
+     * Summary
+     */
+    summary?: string;
+    /**
+     * Summary Title
+     */
+    summary_title?: string;
+    /**
+     * Title
+     */
+    title: string;
+};
+
+/**
+ * LegalMark
+ */
+export type LegalMark = {
+    attrs?: LegalAttributes | null;
+    /**
+     * Type
+     */
+    type: 'bold' | 'italic' | 'link';
+};
+
+/**
+ * LegalNode
+ */
+export type LegalNodeInput = {
+    attrs?: LegalAttributes | null;
+    /**
+     * Content
+     */
+    content?: Array<LegalNodeInput> | null;
+    /**
+     * Marks
+     */
+    marks?: Array<LegalMark> | null;
+    /**
+     * Text
+     */
+    text?: string | null;
+    /**
+     * Type
+     */
+    type: 'doc' | 'paragraph' | 'heading' | 'bulletList' | 'orderedList' | 'listItem' | 'text' | 'hardBreak' | 'organizationVariable';
+};
+
+/**
+ * LegalNode
+ */
+export type LegalNodeOutput = {
+    attrs?: LegalAttributes | null;
+    /**
+     * Content
+     */
+    content?: Array<LegalNodeOutput> | null;
+    /**
+     * Marks
+     */
+    marks?: Array<LegalMark> | null;
+    /**
+     * Text
+     */
+    text?: string | null;
+    /**
+     * Type
+     */
+    type: 'doc' | 'paragraph' | 'heading' | 'bulletList' | 'orderedList' | 'listItem' | 'text' | 'hardBreak' | 'organizationVariable';
+};
+
+/**
  * LoyaltyCouponSettings
  */
 export type LoyaltyCouponSettingsInput = {
@@ -3198,6 +3381,29 @@ export type PublicExperienceConfiguration = {
     pages?: ExperiencePages;
     theme: PublicThemeConfiguration;
     variant_overrides?: VariantOverrides;
+};
+
+/**
+ * PublicLegalDocumentResponse
+ */
+export type PublicLegalDocumentResponse = {
+    document: LegalDocumentResponse;
+    /**
+     * Is Fallback
+     */
+    is_fallback: boolean;
+    /**
+     * Organization Contact
+     */
+    organization_contact: string;
+    /**
+     * Organization Name
+     */
+    organization_name: string;
+    /**
+     * Requested Locale
+     */
+    requested_locale: 'pt-PT' | 'en-GB' | 'de-DE';
 };
 
 /**
@@ -6013,6 +6219,125 @@ export type AdminManagementGetKitchenOrderResponses = {
 };
 
 export type AdminManagementGetKitchenOrderResponse = AdminManagementGetKitchenOrderResponses[keyof AdminManagementGetKitchenOrderResponses];
+
+export type LegalDocumentsListAdminData = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/admin/legal-documents';
+};
+
+export type LegalDocumentsListAdminErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type LegalDocumentsListAdminError = LegalDocumentsListAdminErrors[keyof LegalDocumentsListAdminErrors];
+
+export type LegalDocumentsListAdminResponses = {
+    /**
+     * Successful Response
+     */
+    200: LegalDocumentListResponse;
+};
+
+export type LegalDocumentsListAdminResponse = LegalDocumentsListAdminResponses[keyof LegalDocumentsListAdminResponses];
+
+export type LegalDocumentsPublishData = {
+    body: LegalDocumentWrite;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
+    path: {
+        /**
+         * Document Type
+         */
+        document_type: 'privacy_policy' | 'terms_conditions';
+        /**
+         * Locale
+         */
+        locale: 'pt-PT' | 'en-GB' | 'de-DE';
+    };
+    query?: never;
+    url: '/admin/legal-documents/{document_type}/{locale}';
+};
+
+export type LegalDocumentsPublishErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type LegalDocumentsPublishError = LegalDocumentsPublishErrors[keyof LegalDocumentsPublishErrors];
+
+export type LegalDocumentsPublishResponses = {
+    /**
+     * Successful Response
+     */
+    200: LegalDocumentResponse;
+};
+
+export type LegalDocumentsPublishResponse = LegalDocumentsPublishResponses[keyof LegalDocumentsPublishResponses];
 
 export type AdminManagementAdminLoginData = {
     body: AdminLogin;
@@ -10832,6 +11157,71 @@ export type ProfileGetOverviewResponses = {
 };
 
 export type ProfileGetOverviewResponse = ProfileGetOverviewResponses[keyof ProfileGetOverviewResponses];
+
+export type LegalDocumentsReadPublicData = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Organization-Slug
+         */
+        'X-Organization-Slug'?: string | null;
+    };
+    path: {
+        /**
+         * Document Type
+         */
+        document_type: 'privacy_policy' | 'terms_conditions';
+    };
+    query?: {
+        /**
+         * Locale
+         */
+        locale?: 'pt-PT' | 'en-GB' | 'de-DE';
+    };
+    url: '/public/legal-documents/{document_type}';
+};
+
+export type LegalDocumentsReadPublicErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type LegalDocumentsReadPublicError = LegalDocumentsReadPublicErrors[keyof LegalDocumentsReadPublicErrors];
+
+export type LegalDocumentsReadPublicResponses = {
+    /**
+     * Successful Response
+     */
+    200: PublicLegalDocumentResponse;
+};
+
+export type LegalDocumentsReadPublicResponse = LegalDocumentsReadPublicResponses[keyof LegalDocumentsReadPublicResponses];
 
 export type OrganizationsGetPublicExperienceData = {
     body?: never;

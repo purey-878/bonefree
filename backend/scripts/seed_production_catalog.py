@@ -31,7 +31,6 @@ from scripts.seed_catalog import (
     INSERT_ORDER,
     TABLE_MODELS,
     insert_catalog_rows,
-    synchronize_catalog_organization_profile,
 )
 from seeds.catalog_seed import CatalogSeedError, build_file_manifest, validate_catalog_bundle
 
@@ -125,9 +124,14 @@ def check_production_catalog(
     uploads_root: Path = DEFAULT_UPLOADS_ROOT,
 ) -> dict[str, int]:
     bind_session_to_organization(db, organization_slug)
-    _, fixture_counts = validate_catalog_bundle(catalog_root.resolve())
+    fixture, fixture_counts = validate_catalog_bundle(catalog_root.resolve())
+    fixture_counts["site_setting"] = len(_production_settings(fixture))
     _assert_empty_target(db, uploads_root.resolve() / "products")
     return fixture_counts
+
+
+def _production_settings(fixture: dict[str, Any]) -> list[dict[str, Any]]:
+    return [row for row in fixture["tables"]["site_setting"] if row["key"] not in {"company_details", "social_media"}]
 
 
 def apply_production_catalog(
@@ -142,6 +146,8 @@ def apply_production_catalog(
     uploads_root = uploads_root.resolve()
     products_root = uploads_root / "products"
     fixture, fixture_counts = validate_catalog_bundle(catalog_root)
+    fixture["tables"]["site_setting"] = _production_settings(fixture)
+    fixture_counts["site_setting"] = len(fixture["tables"]["site_setting"])
     organization_id = bind_session_to_organization(db, organization_slug)
     _lock_production_catalog(db)
     owner = _get_owner(db, owner_email)
@@ -158,12 +164,6 @@ def apply_production_catalog(
             raise CatalogSeedError("Staged production uploads differ from the canonical catalog.")
 
         insert_catalog_rows(db, fixture, owner.id, organization_id)
-        synchronize_catalog_organization_profile(
-            db,
-            fixture,
-            organization_id,
-            preserve_existing=True,
-        )
         db.flush()
 
         if products_root.exists():

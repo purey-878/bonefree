@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from database import Base
 from models import Category, Media, Organization, OrganizationProfile, Product, User
 from modules.auth.models import UserRole, UserStatus
+from modules.restaurant.models import SiteSetting
 from scripts.create_first_owner import OwnerBootstrapError, create_first_owner
 from scripts import seed_production_catalog as production_seed
 from seeds.catalog_seed import CatalogSeedError
@@ -149,6 +150,7 @@ class ProductionBootstrapTests(unittest.TestCase):
 
     def test_catalog_apply_loads_rows_media_and_files_once(self):
         owner = self._owner()
+        original_profile_email = self.db.scalar(select(OrganizationProfile.email))
         counts = production_seed.apply_production_catalog(
             self.db,
             owner_email=owner.email,
@@ -164,6 +166,9 @@ class ProductionBootstrapTests(unittest.TestCase):
         self.assertIsNotNone(profile)
         self.assertEqual(profile.legal_name, "Preserved Bonefree, Lda.")
         self.assertEqual(profile.tax_id, "501964843")
+        self.assertEqual(profile.email, original_profile_email)
+        self.assertEqual(counts["site_setting"], 4)
+        self.assertFalse({"company_details", "social_media"}.intersection(self.db.scalars(select(SiteSetting.key)).all()))
         self.assertEqual(
             self.db.scalar(select(func.count()).select_from(Media)),
             counts["media"],

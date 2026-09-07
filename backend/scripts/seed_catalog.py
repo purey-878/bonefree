@@ -548,6 +548,7 @@ def _target_contains_only_development_users(database_path: Path) -> bool:
             "sqlite_sequence",
             "user",
             *tenancy_tables,
+            "organization_legal_document",
         }
         for table_name in tables - ignored_tables:
             if connection.execute(

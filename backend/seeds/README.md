@@ -7,6 +7,47 @@ Runtime databases and `uploads/` are deliberately not tracked by Git.
 
 ## Production PostgreSQL
 
+Run migrations first, then initialise the Bonefree organisation before creating
+the first owner and loading the catalogue:
+
+```bash
+python -m alembic upgrade head
+python scripts/seed_production_organization.py --check
+python scripts/seed_production_organization.py --apply
+# Create the owner using scripts/create_first_owner.py, then load the catalogue below.
+```
+
+The organisation seed creates Bonefree or fills missing profile fields and legal
+documents. It preserves existing contacts, owner edits and access state, refuses
+purged organisations, and never creates users or domains. `--check` is read-only.
+The catalogue loader does not apply Bonefree company details or social links;
+those belong to the organisation fixture. Both production commands require
+`ENVIRONMENT=production` and PostgreSQL.
+
+`organizations/bonefree_v1.json` preserves the original prototype documents in
+Portuguese, English and German, dated 29 August 2026. New organisations receive
+the English documents in `organizations/legal_defaults_v1.json`. These versioned
+files are migration inputs: preserve them and add a new version for future changes.
+The privacy model was prepared with reference to GDPR Articles 12–22:
+https://eur-lex.europa.eu/eli/reg/2016/679/oj?locale=EN
+
+Owners edit and immediately publish each language under Data and privacy.
+Untranslated public documents fall back to English. The organisation name and
+privacy contact remain dynamic, with the company email as the contact fallback.
+Organisation exports and purges include the legal document table.
+
+Browser verification on Windows, from `frontend`:
+
+```powershell
+npx.cmd playwright install chromium
+npm.cmd run test:legal:e2e
+```
+
+These tests start a disposable SQLite API and Vite on ports 8019 and 5179,
+exercise desktop and mobile layouts, and save screenshots under `test-results/`.
+They never use the configured application database. An existing Chromium can be
+selected with `PLAYWRIGHT_CHROMIUM_EXECUTABLE`.
+
 Production uses a separate, non-destructive loader. It reads the same validated
 catalog bundle but writes through SQLAlchemy to the configured PostgreSQL database,
 associates categories and products with an existing active owner, and installs the

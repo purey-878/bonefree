@@ -360,7 +360,7 @@ const ptPT = {
       },
       contact: {
         title: "Contacto para assuntos de privacidade",
-        description: "Este e-mail aparece na política de privacidade e é usado quando alguém pergunta pelos seus dados. Pode ser diferente do contacto comercial.",
+        description: "Este email aparece na Política de Privacidade e nos Termos e Condições. Pode ser diferente do contacto comercial.",
         fieldLabel: "E-mail do contacto de privacidade",
         placeholder: "privacidade@exemplo.pt",
         save: "Guardar contacto",
