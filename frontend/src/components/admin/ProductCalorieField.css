@@ -1,0 +1,106 @@
+.ad-calorie-field {
+  display: grid;
+  gap: 8px;
+  width: min(100%, 520px);
+}
+
+.ad-calorie-field-heading {
+  color: var(--ad-heading);
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.ad-calorie-toggle {
+  display: inline-flex;
+  justify-self: start;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ad-text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.ad-calorie-toggle:focus-visible {
+  outline: 2px solid var(--ad-primary);
+  outline-offset: 3px;
+}
+
+.ad-calorie-toggle-track {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  width: 34px;
+  height: 20px;
+  padding: 2px;
+  border: 1px solid color-mix(in srgb, var(--ad-muted) 40%, transparent);
+  border-radius: 999px;
+  background: var(--ad-muted);
+  transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.ad-calorie-toggle-track > span {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  border-radius: 50%;
+  background: var(--ad-bg);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transform: translateX(0);
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ad-calorie-toggle[aria-checked="true"] .ad-calorie-toggle-track {
+  background: var(--ad-primary);
+  border-color: var(--ad-primary);
+}
+
+.ad-calorie-toggle[aria-checked="true"] .ad-calorie-toggle-track > span {
+  transform: translateX(14px);
+}
+
+.ad-calorie-toggle:hover .ad-calorie-toggle-track {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ad-primary) 12%, transparent);
+}
+
+.ad-calorie-field-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ad-calorie-field-input input {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--ad-border);
+  border-radius: 8px;
+  background: var(--ad-surface);
+  color: var(--ad-text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.ad-calorie-field-input input:read-only {
+  background: var(--ad-surface-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ad-calorie-toggle-track,
+  .ad-calorie-toggle-track > span {
+    transition: none;
+  }
+}
+
+.ad-calorie-field > small,
+.ad-calorie-field-input > span {
+  color: var(--ad-muted);
+  font-size: 12px;
+}

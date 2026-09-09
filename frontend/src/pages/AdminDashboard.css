@@ -1818,10 +1818,15 @@
 }
 
 .ad-step4-new-ingredient-row {
-  grid-template-columns: minmax(0, 1fr) minmax(132px, 168px) 78px auto;
+  grid-template-columns: minmax(0, 1fr) 78px auto;
   margin-top: 8px;
   border-color: var(--ad-product-border);
   background: var(--ad-product-surface-soft);
+}
+
+.ad-step4-new-ingredient-row > input:first-child {
+  grid-column: 1 / -1;
+  min-width: 0;
 }
 
 .ad-step4-new-ingredient-row .ad-select,
@@ -7204,7 +7209,7 @@
 
 /* Product stepper modal */
 .ad-product-editor-panel {
-  --adaptive-panel-drawer-width: 720px;
+  --adaptive-panel-drawer-width: 900px;
   --adaptive-panel-modal-width: 980px;
 }
 
@@ -7308,7 +7313,7 @@
   background: var(--ad-product-border);
 }
 
-.ad-product-stepper-item.is-complete:not(:last-child)::after {
+.ad-product-stepper-item.is-connected:not(:last-child)::after {
   background: var(--ad-product-accent);
 }
 
@@ -7762,7 +7767,9 @@
   border-radius: var(--ad-step4-radius);
   background: var(--ad-product-soft);
   padding: 4px;
+  flex-wrap: wrap;
 }
+
 
 .ad-step4-mode-toggle button,
 .ad-step4-chip,
@@ -10181,6 +10188,10 @@
 }
 
 /* Shared adaptive editors for categories, ingredients and customers. */
+.ad-admin-editor-panel {
+  --adaptive-panel-drawer-width: 620px;
+}
+
 .ad-admin-editor-panel-drawer {
   width: min(620px, 100vw);
 }

@@ -131,6 +131,10 @@ import { formatEuro } from "../utils/money"
 import { ADMIN_ROLES, formatAdminRole } from "../utils/adminEnumLabels"
 import AdminPageContent from "../components/admin/AdminPageContent"
 import AdminStatusBadge from "../components/admin/AdminStatusBadge"
+import ProductIngredientRows from "../components/admin/ProductIngredientRows"
+import ProductCalorieField from "../components/admin/ProductCalorieField"
+import { calculateProductCalories, initialCalorieMode, parseQuantityToGrams, productNutritionPayload } from "../utils/productNutrition"
+import type { CalorieMode } from "../utils/productNutrition"
 import { translateUserMessage } from "../utils/messages"
 import { persistOptimisticUpdate } from "../utils/optimisticUpdate"
 import { primaryProductMediaUrl, productMediaUrl } from "../utils/productMedia"
@@ -292,7 +296,6 @@ const INGREDIENT_TYPE_LABELS: Record<IngredientType, string> = {
   base: "Base",
   side: "Acompanhamento",
 }
-type CalorieMode = "manual" | "auto"
 const PRODUCT_FORM_STEPS = ["Básico", "Preço", "Ingredientes", "Opções", "Multimédia"] as const
 const STEP4_INGREDIENT_TYPES: IngredientType[] = ["normal", "extra", "sauce", "base", "side"]
 const QUANTITY_PRESETS = ["1g", "5g", "10g", "25g", "50g", "75g", "100g", "150g", "200g", "300g", "400g"]
@@ -300,36 +303,6 @@ const isRemovableProductIngredientType = (type: IngredientType) => type === "nor
 const ingredientTypeLabel = (type: IngredientType | string) => (
   INGREDIENT_TYPE_LABELS[type as IngredientType] ?? type.replace("_", " ").toLowerCase()
 )
-
-function parseQuantityToGrams(quantity?: string | null): number | null {
-  const value = quantity?.trim().replace(",", ".")
-  if (!value) return null
-
-  const match = value.match(/^(\d+(?:\.\d+)?|\.\d+)\s*(g|gram|grams|kg|kilogram|kilograms)?$/i)
-  if (!match) return null
-
-  const amount = Number.parseFloat(match[1])
-  if (!Number.isFinite(amount) || amount < 0) return null
-
-  const unit = match[2]?.toLowerCase() ?? "g"
-  return unit.startsWith("kg") || unit.startsWith("kilogram") ? amount * 1000 : amount
-}
-
-function ingredientCaloriesPerGram(ingredient: AdminProductIngredient): number | null {
-  const calories = ingredient.caloriesPerGram
-  return typeof calories === "number" && Number.isFinite(calories) && calories >= 0 ? calories : null
-}
-
-function calculateIngredientCalories(ingredient: AdminProductIngredient): number {
-  const grams = parseQuantityToGrams(ingredient.quantity)
-  const caloriesPerGram = ingredientCaloriesPerGram(ingredient)
-  if (grams === null || caloriesPerGram === null) return 0
-  return grams * caloriesPerGram
-}
-
-function calculateProductCalories(ingredients: AdminProductIngredient[]): number {
-  return ingredients.reduce((total, ingredient) => total + calculateIngredientCalories(ingredient), 0)
-}
 
 function nullableNumberFromInput(value: string): number | null {
   if (value.trim() === "") return null
@@ -1694,6 +1667,7 @@ export default function AdminDashboard() {
   const [newProductIngredientType, setNewProductIngredientType] = useState<IngredientType>("normal")
   const [newProductIngredientCalories, setNewProductIngredientCalories] = useState("")
   const [creatingProductIngredient, setCreatingProductIngredient] = useState(false)
+  const [showNewProductIngredient, setShowNewProductIngredient] = useState(false)
   const [productIngredientSearch, setProductIngredientSearch] = useState("")
   const [selectedQuantity, setSelectedQuantity] = useState("")
   const [customQuantityChips, setCustomQuantityChips] = useState<string[]>([])
@@ -2577,6 +2551,7 @@ export default function AdminDashboard() {
   // ── Form helpers ───────────────────────────────────────────────────────────
 
   const resetQuantitySelector = () => {
+    setShowNewProductIngredient(false)
     setSelectedQuantity("")
     setCustomQuantityChips([])
     setIsCustomQuantityOpen(false)
@@ -2584,8 +2559,8 @@ export default function AdminDashboard() {
   }
 
   useEffect(() => {
-    if (productFormMessage) setProductFormMessage("")
-  }, [calorieMode, formData, imagePreviews, productFormMessage])
+    setProductFormMessage("")
+  }, [calorieMode, formData, imagePreviews])
 
   const openNewForm = async () => {
     setProductFormClosing(false)
@@ -2682,7 +2657,7 @@ export default function AdminDashboard() {
         ),
       })),
     })
-    setCalorieMode("manual")
+    setCalorieMode(initialCalorieMode(product.totalCalories))
     setNewProductIngredientName("")
     setNewProductIngredientType("normal")
     setNewProductIngredientCalories("")
@@ -2755,6 +2730,7 @@ export default function AdminDashboard() {
         if (missingIngredientQuantityCount > 0) {
           return `${missingIngredientQuantityCount} ${missingIngredientQuantityCount === 1 ? "ingrediente sem quantidade" : "ingredientes sem quantidade"}.`
         }
+        if (calculateProductCalories(formData.ingredients) === null) return t("legacy.incompleteIngredientNutrition")
       }
     }
 
@@ -2770,7 +2746,7 @@ export default function AdminDashboard() {
   }
 
   const goToProductStep = (targetStep: number) => {
-    if (targetStep <= productFormStep) {
+    if (editingProduct || targetStep <= productFormStep) {
       setProductFormMessage("")
       setProductFormStep(targetStep)
       return
@@ -2815,13 +2791,10 @@ export default function AdminDashboard() {
       setProductFormMessage("")
       const payload: AdminProductPayload = {
         ...formData,
-        ingredients: formData.ingredients.map((ingredient) => ({
+        ...productNutritionPayload(formData.ingredients.map((ingredient) => ({
           ...ingredient,
           removable: isRemovableProductIngredientType(ingredient.type) && ingredient.removable,
-        })),
-        totalCalories: calorieMode === "auto"
-          ? Number(calculateProductCalories(formData.ingredients).toFixed(2))
-          : formData.totalCalories ?? null,
+        })), calorieMode, formData.totalCalories),
       }
       let savedId: number
       if (editingProduct) {
@@ -2847,15 +2820,11 @@ export default function AdminDashboard() {
 
   const handleProductSubmit = async (e: FormEvent) => {
     e.preventDefault()
-    if (productFormStep < PRODUCT_FORM_STEPS.length - 1) {
+    if (!editingProduct && productFormStep < PRODUCT_FORM_STEPS.length - 1) {
       goToNextProductStep()
       return
     }
 
-    await saveProductForm()
-  }
-
-  const handleFinishProductEdit = async () => {
     await saveProductForm()
   }
 
@@ -3089,6 +3058,7 @@ export default function AdminDashboard() {
     setNewProductIngredientName("")
     setNewProductIngredientType("normal")
     setNewProductIngredientCalories("")
+    setShowNewProductIngredient(false)
   }
 
   const assignQuantityToPendingIngredients = (quantity: string) => {
@@ -3151,43 +3121,7 @@ export default function AdminDashboard() {
     setCustomQuantityValue("")
   }
 
-  const switchCalorieMode = async (nextMode: CalorieMode) => {
-    if (nextMode === calorieMode) return
-
-    if (nextMode === "manual") {
-      const hasAutomaticData = formData.ingredients.length > 0
-      if (hasAutomaticData) {
-        const confirmed = await runConfirmedAction({
-          title: "Mudar para calorias manuais?",
-          description: "As quantidades associadas aos ingredientes serão removidas.",
-          confirmText: "Mudar modo",
-          cancelText: "Cancelar",
-          danger: true,
-        }, async () => true)
-        if (!confirmed) return
-      }
-      if (hasAutomaticData) {
-        setFormData((current) => ({ ...current, ingredients: [] }))
-        setProductIngredientSearch("")
-      }
-    } else {
-      const hasManualData = formData.totalCalories !== null && formData.totalCalories !== undefined
-      if (hasManualData) {
-        const confirmed = await runConfirmedAction({
-          title: "Mudar para calorias automáticas?",
-          description: "O total de calorias manual será removido.",
-          confirmText: "Mudar modo",
-          cancelText: "Cancelar",
-          danger: true,
-        }, async () => true)
-        if (!confirmed) return
-      }
-      if (hasManualData) {
-        setFormData((current) => ({ ...current, totalCalories: null }))
-      }
-    }
-
-    resetQuantitySelector()
+  const switchCalorieMode = (nextMode: CalorieMode) => {
     setCalorieMode(nextMode)
   }
 
@@ -3917,9 +3851,6 @@ export default function AdminDashboard() {
       return { type, items }
     })
     .filter((group) => group.items.length > 0)
-  const assignedProductIngredientPairs = formData.ingredients
-    .map((ingredient, index) => ({ ingredient, index }))
-    .filter(({ ingredient }) => hasIngredientQuantity(ingredient))
   const missingIngredientQuantityCount = calorieMode === "auto"
     ? formData.ingredients.filter((ingredient) => !hasIngredientQuantity(ingredient)).length
     : 0
@@ -3945,14 +3876,15 @@ export default function AdminDashboard() {
     }
   })
   const hasProductMedia = productMediaPreviewItems.length > 0
-  const productStepContinueBlocked = productFormStep === 2 && missingIngredientQuantityCount > 0
-  const selectedIngredientCaloriesTotal = calorieMode === "auto"
-    ? assignedProductIngredientPairs.reduce((total, { ingredient }) => total + calculateIngredientCalories(ingredient), 0)
-    : 0
   const calculatedProductCalories = useMemo(
     () => calculateProductCalories(formData.ingredients),
     [formData.ingredients],
   )
+  const productStepContinueBlocked = productFormStep === 2 && calorieMode === "auto" && calculatedProductCalories === null
+  const displayedProductCalories = calorieMode === "auto" ? calculatedProductCalories : formData.totalCalories
+  const productCalorieSummary = displayedProductCalories == null
+    ? t("legacy.nutritionNotInformed")
+    : formatCalories(displayedProductCalories) + " kcal"
   const isSidebarCollapsed = sidebarCollapsed
   const renderAdminPagination = (tab: PaginatedAdminTab, meta = pageMeta[tab], archived = false) => (
     <Pagination
@@ -4885,7 +4817,7 @@ export default function AdminDashboard() {
                     <div>
                       <p className="ad-product-modal-kicker">Produto do menu</p>
                       <h3>{editingProduct ? "Editar produto" : "Criar produto"}</h3>
-                      <span>Preencha os detalhes do produto, a personalização para clientes e as imagens num fluxo simples.</span>
+                      <span>{editingProduct ? t("legacy.editProductSections") : "Preencha os detalhes do produto, a personalização para clientes e as imagens num fluxo simples."}</span>
                     </div>
                     <nav className="ad-product-stepper-progress" aria-label="Progresso do formulário do produto">
                       {PRODUCT_FORM_STEPS.map((step, index) => (
@@ -4894,7 +4826,7 @@ export default function AdminDashboard() {
                           type="button"
                           className={[
                             "ad-product-stepper-item",
-                            index < productFormStep ? "is-complete" : "",
+                            index < productFormStep ? "is-complete is-connected" : "",
                             index === productFormStep ? "is-current" : "",
                           ].filter(Boolean).join(" ")}
                           onClick={() => goToProductStep(index)}
@@ -4924,7 +4856,7 @@ export default function AdminDashboard() {
                         <a href="#product-media">05 Multimédia</a>
                         <div className="ad-product-progress-summary">
                           <span>{formData.ingredients.length} ingredientes</span>
-                          <span>{formatCalories(calorieMode === "auto" ? calculatedProductCalories : formData.totalCalories)} kcal</span>
+                          <span>{productCalorieSummary}</span>
                         </div>
                       </aside>
 
@@ -5111,53 +5043,21 @@ export default function AdminDashboard() {
                         <div className="ad-product-section-head">
                           <div>
                             <h4>Gestão de ingredientes</h4>
-                            <p>Selecione primeiro os ingredientes e depois atribua quantidades para calcular calorias automaticamente.</p>
+                            <p>{t("legacy.productCompositionHelp")}</p>
                           </div>
                           <div className="ad-product-section-badges">
                             <span className="ad-product-section-step">03</span>
                             <span className="ad-counter-pill">{formData.ingredients.length} selecionados</span>
-                            <span className="ad-counter-pill">
-                              {formatCalories(calorieMode === "auto" ? calculatedProductCalories : formData.totalCalories)} kcal
-                            </span>
                           </div>
                         </div>
 
-                        <div className="ad-step4-mode-toggle" aria-label="Modo de calorias">
-                          <button
-                            type="button"
-                            className={calorieMode === "auto" ? "active" : ""}
-                            onClick={() => void switchCalorieMode("auto")}
-                          >
-                            Automático
-                          </button>
-                          <button
-                            type="button"
-                            className={calorieMode === "manual" ? "active" : ""}
-                            onClick={() => void switchCalorieMode("manual")}
-                          >
-                            Manual
-                          </button>
-                        </div>
-
-                        {calorieMode === "manual" ? (
-                          <label className="ad-step4-manual-input">
-                            <span>Total de calorias</span>
-                            <div className="ad-step4-kcal-input">
-                              <input
-                                type="number"
-                                min="0"
-                                step="0.1"
-                                value={formData.totalCalories ?? ""}
-                                onChange={(event) => setFormData({
-                                  ...formData,
-                                  totalCalories: nullableNumberFromInput(event.target.value),
-                                })}
-                                placeholder="0"
-                              />
-                              <strong>kcal</strong>
-                            </div>
-                          </label>
-                        ) : (
+                        <ProductCalorieField
+                          automatic={calorieMode === "auto"}
+                          automaticTotal={calculatedProductCalories}
+                          manualTotal={formData.totalCalories}
+                          onAutomaticChange={(automatic) => switchCalorieMode(automatic ? "auto" : "manual")}
+                          onManualChange={(totalCalories) => setFormData((current) => ({ ...current, totalCalories }))}
+                        />
                           <div className="ad-step4-grid">
                             <section className="ad-step4-box ad-step4-picker-box" aria-label="Seletor de ingredientes">
                               <div className="ad-step4-box-head">
@@ -5171,7 +5071,10 @@ export default function AdminDashboard() {
                                 onChange={(event) => setProductIngredientSearch(event.target.value)}
                                 placeholder="Pesquisar ingredientes..."
                               />
-                              <div className="ad-new-ingredient-row ad-step4-new-ingredient-row">
+                              <button type="button" className="ad-btn ad-btn-ghost" aria-expanded={showNewProductIngredient} aria-controls="product-new-ingredient" onClick={() => setShowNewProductIngredient((open) => !open)}>
+                                {t(showNewProductIngredient ? "legacy.closeNewIngredient" : "legacy.newCompositionIngredient")}
+                              </button>
+                              {showNewProductIngredient && <div id="product-new-ingredient" className="ad-new-ingredient-row ad-step4-new-ingredient-row">
                                 <input
                                   type="text"
                                   value={newProductIngredientName}
@@ -5184,6 +5087,7 @@ export default function AdminDashboard() {
                                     }
                                   }}
                                   placeholder="Adicionar novo ingrediente..."
+                                  aria-label={t("legacy.newCompositionIngredient")}
                                 />
                                 <CustomSelect
                                   className="ad-select"
@@ -5210,8 +5114,8 @@ export default function AdminDashboard() {
                                       void addNewProductIngredient()
                                     }
                                   }}
-                                  aria-label="Calorias por grama"
                                   placeholder="kcal/g"
+                                  aria-label={t("legacy.caloriesPerGramPortuguese")}
                                 />
                                 <button
                                   type="button"
@@ -5221,7 +5125,7 @@ export default function AdminDashboard() {
                                 >
                                   {creatingProductIngredient ? "A guardar..." : "Adicionar"}
                                 </button>
-                              </div>
+                              </div>}
                               <div className="ad-step4-pill-groups">
                                 {productIngredientChipGroups.map((group) => (
                                   <div key={group.type} className="ad-step4-pill-group">
@@ -5230,7 +5134,7 @@ export default function AdminDashboard() {
                                       {group.items.map((ingredient) => {
                                         const selected = selectedIngredientIds.has(ingredient.ingredientId)
                                         const selectedIngredient = formData.ingredients.find((item) => item.ingredientId === ingredient.ingredientId)
-                                        const missingQuantity = !!selectedIngredient && !hasIngredientQuantity(selectedIngredient)
+                                        const missingQuantity = calorieMode === "auto" && !!selectedIngredient && !hasIngredientQuantity(selectedIngredient)
 
                                         return (
                                           <button
@@ -5260,7 +5164,7 @@ export default function AdminDashboard() {
 
                             <section className="ad-step4-box ad-step4-quantity-box" aria-label="Seletor de quantidade">
                               <div className="ad-step4-box-head">
-                                <strong>Seletor de quantidade</strong>
+                                <strong>{t("legacy.dishComposition")}</strong>
                                 <span>Aplica-se aos ingredientes selecionados sem quantidade</span>
                               </div>
                               <div className="ad-step4-quantity-row">
@@ -5311,66 +5215,15 @@ export default function AdminDashboard() {
                                   </div>
                                 )}
                               </div>
-                              <div className="ad-step4-assignment-zone">
-                                {formData.ingredients.map((ingredient, index) => {
-                                  const caloriesPerGram = ingredientCaloriesPerGram(ingredient)
-                                  const ingredientCalories = calculateIngredientCalories(ingredient)
-                                  const hasQuantity = hasIngredientQuantity(ingredient)
-
-                                  return (
-                                    <span
-                                      key={`${ingredient.ingredientId ?? ingredient.name}-${index}`}
-                                      className={`ad-step4-assigned-chip ${hasQuantity ? "" : "missing"}`}
-                                    >
-                                      {ingredient.name}
-                                      <strong>{hasQuantity ? ingredient.quantity : "Falta quantidade"}</strong>
-                                      {hasQuantity && caloriesPerGram !== null && <em>{formatCalories(ingredientCalories)} kcal</em>}
-                                      <button type="button" onClick={() => removeProductIngredient(index)} aria-label={`Remover ${ingredient.name}`}>
-                                        <X size={12} />
-                                      </button>
-                                    </span>
-                                  )
-                                })}
-                                {formData.ingredients.length === 0 && (
-                                  <p>Selecione primeiro os ingredientes e depois escolha uma quantidade.</p>
-                                )}
-                              </div>
+                              <ProductIngredientRows
+                                ingredients={formData.ingredients}
+                                automatic={calorieMode === "auto"}
+                                onQuantityChange={(index, quantity) => updateProductIngredient(index, { quantity })}
+                                onRemove={removeProductIngredient}
+                              />
                             </section>
 
-                            <section className="ad-step4-box ad-step4-breakdown-box" aria-label="Discriminação de calorias">
-                              <div className="ad-step4-box-head">
-                                <strong>Discriminação de calorias</strong>
-                                <span>Total atualizado dos ingredientes</span>
-                              </div>
-                              <div className="ad-step4-breakdown-list">
-                                {assignedProductIngredientPairs.map(({ ingredient, index }) => {
-                                  const grams = parseQuantityToGrams(ingredient.quantity)
-                                  const caloriesPerGram = ingredientCaloriesPerGram(ingredient)
-                                  const ingredientCalories = calculateIngredientCalories(ingredient)
-                                  const hasCalculation = grams !== null && caloriesPerGram !== null
-
-                                  return (
-                                    <div key={`${ingredient.ingredientId ?? ingredient.name}-${index}`} className="ad-step4-breakdown-row">
-                                      <strong>{ingredient.name}</strong>
-                                      <span>
-                                        {hasCalculation ? `${formatCalories(grams)}g x ${formatCalories(caloriesPerGram)} kcal/g` : "kcal/g não definido"}
-                                      </span>
-                                      <em>{hasCalculation ? `${formatCalories(ingredientCalories)} kcal` : "-"}</em>
-                                    </div>
-                                  )
-                                })}
-                                {assignedProductIngredientPairs.length === 0 && (
-                                  <p className="ad-empty ad-empty-compact">Ainda não há quantidades atribuídas aos ingredientes.</p>
-                                )}
-                                <div className="ad-step4-breakdown-row total">
-                                  <strong>Total</strong>
-                                  <span>Calorias automáticas guardadas do produto</span>
-                                  <em>{formatCalories(selectedIngredientCaloriesTotal)} kcal</em>
-                                </div>
-                              </div>
-                            </section>
                           </div>
-                        )}
                       </section>
 
                       <section className="ad-product-section" id="product-media">
@@ -5465,44 +5318,27 @@ export default function AdminDashboard() {
                       </section>
 
                       <div className="ad-product-modal-footer">
-                        <button
-                          type="button"
-                          className="ad-btn ad-btn-ghost"
-                          onClick={goToPreviousProductStep}
-                          disabled={productFormStep === 0}
-                        >
+                        <button type="button" className="ad-btn ad-btn-ghost" onClick={goToPreviousProductStep} disabled={productFormStep === 0}>
                           Back
                         </button>
                         <div className="ad-product-forward-actions">
                           {(productFormMessage || productStepContinueBlocked) && (
-                            <span className="ad-product-step-warning">
-                              {productFormMessage || `${missingIngredientQuantityCount} ${missingIngredientQuantityCount === 1 ? "ingrediente sem quantidade" : "ingredientes sem quantidade"}`}
+                            <span className="ad-product-step-warning" role="status">
+                              {productFormMessage || t("legacy.incompleteIngredientNutrition")}
                             </span>
                           )}
-                          {productFormStep < PRODUCT_FORM_STEPS.length - 1 ? (
-                            <div className="ad-product-action-buttons">
-                              {editingProduct && (
-                                <button
-                                  type="button"
-                                  className="ad-btn ad-btn-primary"
-                                  onClick={() => void handleFinishProductEdit()}
-                                >
-                                  Finish
-                                </button>
-                              )}
-                              <button
-                                type="button"
-                                className={`ad-btn ${editingProduct ? "ad-btn-ghost" : "ad-btn-primary"}`}
-                                onClick={goToNextProductStep}
-                              >
-                                Continue
+                          <div className="ad-product-action-buttons">
+                            {productFormStep < PRODUCT_FORM_STEPS.length - 1 && (
+                              <button type="button" className={editingProduct ? "ad-btn ad-btn-ghost" : "ad-btn ad-btn-primary"} onClick={() => editingProduct ? goToProductStep(productFormStep + 1) : goToNextProductStep()}>
+                                {editingProduct ? t("legacy.nextProductSection") : "Continue"}
                               </button>
-                            </div>
-                          ) : (
-                            <button type="submit" className="ad-btn ad-btn-primary">
-                              {editingProduct ? "Guardar alterações" : "Criar produto"}
-                            </button>
-                          )}
+                            )}
+                            {(editingProduct || productFormStep === PRODUCT_FORM_STEPS.length - 1) && (
+                              <button type="submit" className="ad-btn ad-btn-primary">
+                                {editingProduct ? t("legacy.saveChanges") : "Criar produto"}
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </form>

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react"
 import type { AnimationEvent, ReactNode } from "react"
 import { Maximize2, PanelRight, X } from "lucide-react"
+import { useTranslation } from "react-i18next"
+import useAdaptivePanelResize from "./useAdaptivePanelResize"
 import { resolveAdaptivePanelPresentation } from "../../utils/adaptivePanelMode"
 import type { AdaptivePanelMode } from "../../utils/adaptivePanelMode"
 import "./AdaptivePanel.css"
@@ -40,6 +42,9 @@ export default function AdaptivePanel({
     typeof window !== "undefined" ? window.matchMedia(MOBILE_QUERY).matches : false
   ))
   const presentation = resolveAdaptivePanelPresentation(mode, isMobile)
+  const { t } = useTranslation("admin")
+  const canResize = presentation === "drawer" && !closing
+  const { panelRef, width, resizing, handleProps } = useAdaptivePanelResize(canResize, panelClassName)
   const hasBackdrop = presentation === "modal"
   const locksBackgroundScroll = presentation !== "drawer"
   const variantClass = panelClassName ? `${panelClassName}-${presentation}` : ""
@@ -84,12 +89,25 @@ export default function AdaptivePanel({
         />
       )}
       <section
+        ref={panelRef}
+        style={{ width: presentation === "drawer" ? width : undefined }}
         aria-label={ariaLabel}
         aria-modal={hasBackdrop ? true : undefined}
-        className={`ad-adaptive-panel ad-adaptive-panel-${presentation} ${panelClassName ?? ""} ${variantClass} ${closing ? "is-closing" : ""}`}
+        className={`ad-adaptive-panel ad-adaptive-panel-${presentation} ${panelClassName ?? ""} ${variantClass} ${closing ? "is-closing" : ""} ${resizing ? "is-resizing" : ""}`}
         onAnimationEnd={handleAnimationEnd}
         role={hasBackdrop ? "dialog" : "complementary"}
       >
+        {canResize && (
+          <div
+            {...handleProps}
+            aria-label={t("legacy.resizePanel")}
+            aria-orientation="vertical"
+            className="ad-adaptive-panel-resize-handle"
+            role="separator"
+            tabIndex={0}
+            title={t("legacy.resizePanelHelp")}
+          />
+        )}
         <div className={`ad-adaptive-panel-toolbar ${panelClassName ? `${panelClassName}-toolbar` : ""}`}>
           {!isMobile && (
             <div

@@ -1,0 +1,74 @@
+.ad-ingredient-rows {
+  display: grid;
+  gap: 10px;
+}
+
+.ad-ingredient-edit-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 82px 76px 32px;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--ad-product-border);
+}
+
+.ad-ingredient-edit-row > strong {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.ad-ingredient-edit-row label {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  color: var(--ad-muted);
+  font-size: 11px;
+}
+
+.ad-ingredient-edit-row input {
+  width: 100%;
+  min-width: 0;
+  min-height: 38px;
+  padding: 6px;
+  border: 1px solid var(--ad-product-border);
+  border-radius: 8px;
+  background: var(--ad-surface);
+  color: var(--ad-text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.ad-ingredient-calorie-value {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.ad-ingredient-remove {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ad-muted);
+}
+
+.ad-ingredient-remove:hover {
+  color: var(--ad-accent);
+}
+
+.ad-ingredient-nutrition-help {
+  grid-column: 1 / -1;
+  color: var(--ad-muted);
+}
+
+@media (max-width: 420px) {
+  .ad-ingredient-edit-row {
+    grid-template-columns: minmax(0, 1fr) 76px 32px;
+  }
+
+  .ad-ingredient-edit-row > strong {
+    grid-column: 1 / -1;
+  }
+}

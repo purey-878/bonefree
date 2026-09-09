@@ -4,6 +4,21 @@ import type { SupportedLocale } from "."
 type Phrase = readonly [source: string, portuguese: string, english: string, german: string]
 
 const phrases = {
+  resizePanel: ["Ajustar largura do painel", "Ajustar largura do painel", "Resize panel width", "Panelbreite anpassen"],
+  resizePanelHelp: ["Arraste para ajustar a largura", "Arraste ou use as setas para ajustar. Duplo clique para repor a largura.", "Drag or use arrow keys to resize. Double-click to reset the width.", "Ziehen oder Pfeiltasten zum Anpassen verwenden. Doppelklick setzt die Breite zurück."],
+  calculateAutomatically: ["Calcular automaticamente", "Calcular automaticamente", "Calculate automatically", "Automatisch berechnen"],
+  productCompositionHelp: ["Composição do prato", "Escolha os ingredientes do prato. O total de calorias pode ser calculado pela composição ou introduzido manualmente.", "Choose the dish ingredients. Calculate calories from its composition or enter the total manually.", "Wähle die Zutaten des Gerichts. Berechne Kalorien aus der Zusammensetzung oder gib die Gesamtsumme manuell ein."],
+  nutritionNotInformed: ["Calorias não informadas", "Calorias não informadas", "Calories not provided", "Kalorien nicht angegeben"],
+  incompleteIngredientNutrition: ["Dados nutricionais incompletos", "Preencha as quantidades e as calorias em falta nos ingredientes, ou introduza o total do prato manualmente.", "Fill in missing ingredient quantities and calories, or enter the dish total manually.", "Ergänze fehlende Mengen und Kalorien der Zutaten oder gib die Gesamtsumme manuell ein."],
+  ingredientCaloriesMissing: ["Calorias do ingrediente em falta", "Calorias não informadas no cadastro deste ingrediente. Atualize-o em Ingredientes ou use um total manual.", "Calories are missing from this ingredient record. Update it in Ingredients or use a manual total.", "Im Datensatz dieser Zutat fehlen Kalorien. Ergänze sie unter Zutaten oder verwende eine manuelle Gesamtsumme."],
+  ingredientQuantityMissing: ["Quantidade do ingrediente em falta", "Indique a quantidade em gramas para calcular as calorias.", "Enter the quantity in grams to calculate calories.", "Gib die Menge in Gramm ein, um die Kalorien zu berechnen."],
+  quantityGrams: ["Quantidade (g)", "Quantidade (g)", "Quantity (g)", "Menge (g)"],
+  dishComposition: ["Ingredientes do prato", "Ingredientes do prato", "Dish ingredients", "Zutaten des Gerichts"],
+  noCompositionIngredients: ["Composição sem ingredientes", "Ainda não selecionou ingredientes para este prato.", "No ingredients selected for this dish yet.", "Für dieses Gericht wurden noch keine Zutaten ausgewählt."],
+  newCompositionIngredient: ["Novo ingrediente", "Novo ingrediente", "New ingredient", "Neue Zutat"],
+  closeNewIngredient: ["Fechar novo ingrediente", "Fechar novo ingrediente", "Close new ingredient", "Neue Zutat schließen"],
+  editProductSections: ["Editar secções do produto", "Abra qualquer secção para editar. Guarde todas as alterações quando terminar.", "Open any section to edit. Save all changes when finished.", "Öffne einen beliebigen Abschnitt zum Bearbeiten. Speichere anschließend alle Änderungen."],
+  nextProductSection: ["Próxima secção", "Próxima secção", "Next section", "Nächster Abschnitt"],
   navOverview: ["Visão geral", "Visão geral", "Overview", "Übersicht"],
   navProducts: ["Produtos", "Produtos", "Products", "Produkte"],
   navIngredients: ["Ingredientes", "Ingredientes", "Ingredients", "Zutaten"],
