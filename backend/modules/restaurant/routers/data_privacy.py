@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
+from core.path_ids import ResourcePathId
 from core.config import settings
 from core.errors import AppHTTPException
 from database import get_db
@@ -355,7 +356,7 @@ def create_admin_export(
     operation_id="admin_data_privacy_create_customer_export",
 )
 def create_admin_customer_export(
-    customer_id: int,
+    customer_id: ResourcePathId,
     owner: User = Depends(require_organization_role(UserRole.OWNER)),
     db: Session = Depends(get_db),
 ) -> DataExportResponse:

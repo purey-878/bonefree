@@ -275,6 +275,43 @@ class EndpointSmokeTests(unittest.TestCase):
         }
         self.assertEqual(covered_operation_ids, expected_operation_ids)
 
+    @patch.object(settings, "rate_limit_enabled", False)
+    def test_every_resource_id_path_rejects_invalid_values_with_404(self):
+        invalid_ids = ["text", "true", "NaN", "1.5", "-1", "0", "1e2", "text1", "9223372036854775808"]
+        checked = set()
+        for route in self.app.routes:
+            if not isinstance(route, APIRoute):
+                continue
+            id_names = re.findall(r"\{(\w+_id)\}", route.path)
+            for name in id_names:
+                for invalid_id in invalid_ids:
+                    path = route.path.replace("{" + name + "}", invalid_id)
+                    path = re.sub(r"\{[^}]+\}", "1", path)
+                    headers = self.admin_headers if path.startswith("/admin/") else self.customer_headers
+                    for method in sorted(route.methods - {"HEAD", "OPTIONS"}):
+                        with self.subTest(operation=route.operation_id, parameter=name, value=invalid_id):
+                            response = self.client.request(method, path, headers=headers, json={} if method in {"POST", "PUT", "PATCH"} else None)
+                            self.assertEqual(response.status_code, 404, response.text)
+                        checked.add((route.operation_id, name))
+        self.assertGreater(len(checked), 40)
+
+    def test_path_id_validation_preserves_valid_ids_and_other_validation_errors(self):
+        for product_id in [str(self.product_id), f"PRD-{self.product_id:03d}", f"prd{self.product_id:03d}", "0" * 5000 + str(self.product_id)]:
+            response = self.client.get(f"/products/{product_id}")
+            self.assertEqual(response.status_code, 200, response.text)
+        for product_id in ["2147483647", "PRD-2147483647"]:
+            response = self.client.get(f"/products/{product_id}")
+            self.assertEqual(response.status_code, 404, response.text)
+        for product_id in ["CAT-001", "PRD-0", "PRD--1", "1.0", "0x10", "9" * 5000]:
+            response = self.client.get(f"/products/{product_id}")
+            self.assertEqual(response.status_code, 404, response.text)
+        response = self.client.get("/products", params={"category_id": "text"})
+        self.assertEqual(response.status_code, 422, response.text)
+        response = self.client.put(f"/admin/products/{self.product_id}/availability", headers=self.admin_headers, json={"available": "invalid"})
+        self.assertEqual(response.status_code, 422, response.text)
+        response = self.client.get("/admin/products/text")
+        self.assertEqual(response.status_code, 401, response.text)
+
     def test_cors_preflight_is_safe_for_every_route_path(self):
         paths = {
             re.sub(r"\{[^}]+\}", "1", route.path)

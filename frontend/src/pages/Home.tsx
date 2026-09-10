@@ -5,7 +5,6 @@ import { useTranslation } from "react-i18next";
 import { ArrowRight, Clock, Sparkles, Star, UtensilsCrossed } from "lucide-react";
 import styled from "styled-components";
 
-import Navbar from "../components/Navbar";
 import { ProductCard, ProductCardSkeleton, Skeleton } from "../components/ui";
 import { ASSETS } from "../constants/assets";
 import { getPublicChefSpecial, getPublicLoyaltyCouponSettings, productService } from "../services";
@@ -255,7 +254,6 @@ const HomePage = () => {
           hero: (
       <HeroSection>
         <HeroOverlay />
-        <Navbar />
         <HeroContent>
 
           <HeroCopy>

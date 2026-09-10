@@ -3,7 +3,6 @@ import type { FormEvent } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { CakeSlice, CupSoda, Salad, Sandwich, Soup } from "lucide-react"
 import "./Auth.css"
-import Navbar from "../components/Navbar"
 import Footer from "../components/Footer"
 import { adminLogin } from "../services/adminService"
 import { useTranslation } from "react-i18next"
@@ -42,7 +41,6 @@ export default function AdminLogin() {
   return (
     <>
       <div className="auth-container auth-page admin-auth-page">
-        <Navbar />
         <div className="auth-floating-food-bg" aria-hidden="true">
           <span className="auth-food-float auth-food-float-salad"><Salad /></span>
           <span className="auth-food-float auth-food-float-soup"><Soup /></span>

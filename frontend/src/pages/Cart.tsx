@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import type { Location } from "react-router-dom"
-import Navbar from "../components/Navbar"
 import "../theme.css"
 import "./Cart.css"
 import { useCart } from "../hooks"
@@ -102,7 +101,6 @@ function Cart({ overlay = false }: CartProps) {
 
   return (
     <section className={`cart-page${overlay ? " cart-page-overlay" : " site-page"}`}>
-      {!overlay && <Navbar />}
       <button className="cart-drawer-backdrop" type="button" aria-label={t("cart.close")} onClick={closeCart} />
 
       <aside className="cart-drawer" role="dialog" aria-label={t("cart.dialogLabel")}>

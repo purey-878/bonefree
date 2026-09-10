@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { ArrowLeft, CakeSlice, CupSoda, Salad, Sandwich, Soup } from 'lucide-react'
-import Navbar from '../components/Navbar'
 import { useAuth } from '../hooks'
 import { validateEmail } from '../utils/validation'
 import './Auth.css'
@@ -48,7 +47,6 @@ function Login() {
 
     <>
       <div className="auth-container auth-page">
-        <Navbar />
         <div className="auth-floating-food-bg" aria-hidden="true">
           <span className="auth-food-float auth-food-float-salad"><Salad /></span>
           <span className="auth-food-float auth-food-float-soup"><Soup /></span>

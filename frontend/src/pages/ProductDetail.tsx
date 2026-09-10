@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import type { MouseEvent } from "react"
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
+import { parseResourcePathId } from "../utils/ids"
 import {
   BadgeCheck,
   CakeSlice,
@@ -27,7 +28,6 @@ import {
 import "./ProductDetail.css"
 import "../theme.css"
 import { isApiErrorWithStatus } from "../api/errors"
-import Navbar from "../components/Navbar"
 
 import ResourceNotFound from "../components/ResourceNotFound"
 import { AddToCartButton, AvailabilityBadge, Badge, Pagination, ProductCard, Skeleton, Textarea } from "../components/ui"
@@ -129,6 +129,7 @@ function readRecentlyViewed() {
 export const ProductDetail = () => {
   const { t } = useTranslation("storefront")
   const { id } = useParams<{ id: string }>()
+  const parsedProductId = parseResourcePathId(id, 'PRD')
   const [searchParams, setSearchParams] = useSearchParams()
   const [product, setProduct] = useState<Product | null>(null)
   const [productsById, setProductsById] = useState<Record<string, Product>>({})
@@ -180,7 +181,7 @@ export const ProductDetail = () => {
   }, [id])
 
   useEffect(() => {
-    if (!id) return
+    if (!id || parsedProductId === null) return
     const productId = id
 
     const fetchProduct = async () => {
@@ -275,10 +276,10 @@ export const ProductDetail = () => {
     }
 
     fetchProduct()
-  }, [id, token, t])
+  }, [id, parsedProductId, token, t])
 
   useEffect(() => {
-    if (!id) return
+    if (!id || parsedProductId === null) return
     let current = true
     void productService.getReviewsPage(id, {
       page: reviewPage,
@@ -297,7 +298,7 @@ export const ProductDetail = () => {
       if (current) console.error("Não foi possível carregar avaliações.", reviewLoadError)
     })
     return () => { current = false }
-  }, [id, reviewFilter, reviewPage, reviewPerPage, token])
+  }, [id, parsedProductId, reviewFilter, reviewPage, reviewPerPage, token])
 
   useEffect(() => {
     const currentSearch = searchParams.toString()
@@ -554,20 +555,18 @@ export const ProductDetail = () => {
       }))
   }, [product, t])
 
+  if (parsedProductId === null || notFound) return <ResourceNotFound kind="product" />
+
   if (loading) return (
     <div className="pd-page">
-      <Navbar />
       <div className="pd-loading">
         <Skeleton width="min(100%, 1180px)" height="620px" radius="var(--radius-md)" />
       </div>
     </div>
   )
 
-  if (notFound) return <ResourceNotFound kind="product" />
-
   if (error) return (
     <div className="pd-page">
-      <Navbar />
       <div className="pd-loading pd-state-card">
         <p className="pd-error">{error}</p>
         <button className="pd-back-btn" onClick={() => navigate("/menu")}>{t("productDetail.backMenu")}</button>
@@ -667,7 +666,6 @@ export const ProductDetail = () => {
 
   return (
     <div className="pd-page">
-      <Navbar />
 
       <div className="pd-floating-food-bg" aria-hidden="true">
         <span className="pd-food-float pd-food-float-salad"><Salad /></span>

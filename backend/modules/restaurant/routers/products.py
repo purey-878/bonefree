@@ -3,6 +3,7 @@ import re
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import and_, case, exists, func, or_, select
 from sqlalchemy.orm import Session, selectinload
+from core.path_ids import ProductPathId
 from database import get_db
 from modules.restaurant.models import EntityStatus, IngredientType, ProductCustomizationOptionType
 from modules.restaurant.models import Category, Ingredient, Media, Product, ProductIngredient, ProductCustomizationOption, ProductMedia
@@ -227,7 +228,7 @@ def list_products(
     operation_id="products_get_availability_suggestions",
 )
 def get_availability_suggestions(
-    product_id: str,
+    product_id: ProductPathId,
     limit: int = Query(5, ge=1, le=20),
     db: Session = Depends(get_db),
 ):
@@ -287,7 +288,7 @@ def get_availability_suggestions(
     operation_id="products_get_customization_options",
 )
 def get_customization_options(
-    product_id: str,
+    product_id: ProductPathId,
     db: Session = Depends(get_db),
 ):
     parsed_product_id = parse_product_id(product_id)
@@ -367,7 +368,7 @@ def get_customization_options(
     operation_id="products_get_product_customization",
 )
 def get_product_customization(
-    product_id: str,
+    product_id: ProductPathId,
     db: Session = Depends(get_db),
 ):
     parsed_product_id = parse_product_id(product_id)
@@ -452,7 +453,7 @@ def get_product_customization(
 
 
 @router.get('/{product_id}', response_model=ProductResponse, operation_id="products_get_product")
-def get_product(product_id: str, db: Session = Depends(get_db)):
+def get_product(product_id: ProductPathId, db: Session = Depends(get_db)):
     """Get a single active product by ID, including its media."""
     parsed_product_id = parse_product_id(product_id)
     product = db.scalar(

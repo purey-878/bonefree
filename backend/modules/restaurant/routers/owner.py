@@ -1,3 +1,4 @@
+from core.path_ids import ResourcePathId
 from ._shared import *  # noqa: F403 - shared router namespace
 from utils.datetime_utils import naive_utc_now
 
@@ -88,7 +89,7 @@ def create_staff_user(
     summary="Update Staff Admin",
 )
 def update_staff_user(
-    admin_id: int,
+    admin_id: ResourcePathId,
     body: StaffAdminUpdate,
     current_owner: User = Depends(require_organization_role(UserRole.OWNER)),
     db: Session = Depends(get_db),
@@ -124,7 +125,7 @@ def update_staff_user(
     summary="Delete Staff Admin",
 )
 def delete_staff_user(
-    admin_id: int,
+    admin_id: ResourcePathId,
     current_owner: User = Depends(require_organization_role(UserRole.OWNER)),
     db: Session = Depends(get_db),
 ):

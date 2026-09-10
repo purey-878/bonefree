@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import type { Location } from "react-router-dom";
 import {
   Home,
   LogIn,
@@ -818,13 +819,15 @@ const BottomLink = styled(Link)<{ $active: boolean }>`
   }
 `;
 
-const Navbar = () => {
+const Navbar = ({ location: visibleLocation }: { location?: Location }) => {
   const { t } = useTranslation("common");
   const { organization, experience, capabilities } = useOrganization()
-  const location = useLocation();
+  const routerLocation = useLocation();
+  const location = visibleLocation ?? routerLocation;
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuth();
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerLocationKey, setDrawerLocationKey] = useState<string | null>(null);
+  const drawerOpen = drawerLocationKey === routerLocation.key;
   const [accountOpenPath, setAccountOpenPath] = useState<string | null>(null);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
@@ -876,7 +879,7 @@ const Navbar = () => {
     return location.pathname.startsWith(path);
   };
 
-  const closeDrawer = () => setDrawerOpen(false);
+  const closeDrawer = () => setDrawerLocationKey(null);
   const closeAccountMenu = () => setAccountOpenPath(null);
 
   useEffect(() => {
@@ -987,7 +990,7 @@ const Navbar = () => {
           <MobileLeft>
             <IconAction
               aria-label={t("navigation.openMenu")}
-              onClick={() => setDrawerOpen(true)}
+              onClick={() => setDrawerLocationKey(routerLocation.key)}
               type="button"
             >
               <MenuIcon size={22} />

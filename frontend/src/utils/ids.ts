@@ -1,3 +1,12 @@
+export function parseResourcePathId(value: string | undefined, prefix?: 'PRD' | 'CAT'): number | null {
+  if (!value) return null
+  const pattern = prefix ? new RegExp(`^(?:${prefix}-?)?([0-9]+)$`, 'i') : /^([0-9]+)$/
+  const match = pattern.exec(value)
+  if (!match) return null
+  const id = Number(match[1])
+  return Number.isSafeInteger(id) && id > 0 ? id : null
+}
+
 export function formatProductId(id: number | string | null | undefined): string {
   return formatPrefixedId(id, "PRD")
 }

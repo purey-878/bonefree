@@ -1,3 +1,4 @@
+from core.path_ids import CategoryPathId, ProductPathId, ResourcePathId
 from ._shared import *  # noqa: F403 - shared router namespace
 from utils.datetime_utils import naive_utc_now
 
@@ -88,7 +89,7 @@ def create_category(
     dependencies=CATALOG_FEATURE_DEPENDENCIES,
 )
 def update_category(
-    category_id: str,
+    category_id: CategoryPathId,
     category_update: CategoryUpdate,
     current_staff: User = Depends(require_organization_role(UserRole.MANAGER, UserRole.OWNER)),
     db: Session = Depends(get_db)
@@ -117,7 +118,7 @@ def update_category(
     dependencies=CATALOG_FEATURE_DEPENDENCIES,
 )
 def delete_category(
-    category_id: str,
+    category_id: CategoryPathId,
     current_staff: User = Depends(require_organization_role(UserRole.MANAGER, UserRole.OWNER)),
     db: Session = Depends(get_db)
 ):
@@ -267,7 +268,7 @@ def create_ingredient(
     dependencies=CATALOG_FEATURE_DEPENDENCIES,
 )
 def update_ingredient(
-    ingredient_id: int,
+    ingredient_id: ResourcePathId,
     ingredient_update: IngredientUpdate,
     current_staff: User = Depends(require_organization_role(UserRole.MANAGER, UserRole.OWNER)),
     db: Session = Depends(get_db),
@@ -310,7 +311,7 @@ def update_ingredient(
     dependencies=CATALOG_FEATURE_DEPENDENCIES,
 )
 def set_ingredient_availability(
-    ingredient_id: int,
+    ingredient_id: ResourcePathId,
     availability: AvailabilityUpdate,
     current_staff: User = Depends(require_organization_role(*ORGANIZATION_STAFF_ROLES)),
     db: Session = Depends(get_db),
@@ -332,7 +333,7 @@ def set_ingredient_availability(
     dependencies=CATALOG_FEATURE_DEPENDENCIES,
 )
 def delete_ingredient(
-    ingredient_id: int,
+    ingredient_id: ResourcePathId,
     current_staff: User = Depends(require_organization_role(UserRole.MANAGER, UserRole.OWNER)),
     db: Session = Depends(get_db),
 ):
@@ -485,7 +486,7 @@ def list_products(
     dependencies=CATALOG_FEATURE_DEPENDENCIES,
 )
 def list_ingredient_products(
-    ingredient_id: int,
+    ingredient_id: ResourcePathId,
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     current_staff: User = Depends(require_organization_role(*ORGANIZATION_STAFF_ROLES)),
@@ -529,7 +530,7 @@ def list_ingredient_products(
     dependencies=CATALOG_FEATURE_DEPENDENCIES,
 )
 def get_product(
-    product_id: str,
+    product_id: ProductPathId,
     current_staff: User = Depends(require_organization_role(*ORGANIZATION_STAFF_ROLES)),
     db: Session = Depends(get_db)
 ):
@@ -557,7 +558,7 @@ def get_product(
     dependencies=ANALYTICS_FEATURE_DEPENDENCIES,
 )
 def get_product_analytics(
-    product_id: str,
+    product_id: ProductPathId,
     days: int = Query(30, ge=1, le=365),
     current_staff: User = Depends(require_organization_role(*ORGANIZATION_STAFF_ROLES)),
     db: Session = Depends(get_db)
@@ -626,7 +627,7 @@ def get_product_analytics(
     dependencies=CATALOG_FEATURE_DEPENDENCIES,
 )
 def update_product(
-    product_id: str,
+    product_id: ProductPathId,
     product_update: ProductUpdate,
     current_staff: User = Depends(require_organization_role(UserRole.MANAGER, UserRole.OWNER)),
     db: Session = Depends(get_db)
@@ -691,7 +692,7 @@ def update_product(
     dependencies=CATALOG_FEATURE_DEPENDENCIES,
 )
 def set_product_availability(
-    product_id: str,
+    product_id: ProductPathId,
     availability: AvailabilityUpdate,
     current_staff: User = Depends(require_organization_role(*ORGANIZATION_STAFF_ROLES)),
     db: Session = Depends(get_db),
@@ -714,7 +715,7 @@ def set_product_availability(
     dependencies=CATALOG_FEATURE_DEPENDENCIES,
 )
 def toggle_product_status(
-    product_id: str,
+    product_id: ProductPathId,
     current_staff: User = Depends(require_organization_role(UserRole.MANAGER, UserRole.OWNER)),
     db: Session = Depends(get_db)
 ):
@@ -744,7 +745,7 @@ def toggle_product_status(
     dependencies=CATALOG_FEATURE_DEPENDENCIES,
 )
 def delete_product(
-    product_id: str,
+    product_id: ProductPathId,
     current_staff: User = Depends(require_organization_role(UserRole.MANAGER, UserRole.OWNER)),
     db: Session = Depends(get_db)
 ):
@@ -769,7 +770,7 @@ def delete_product(
     dependencies=CATALOG_FEATURE_DEPENDENCIES,
 )
 def upload_product_media(
-    product_id: str,
+    product_id: ProductPathId,
     file: UploadFile = File(...),
     replace_existing: bool = Query(True),
     current_staff: User = Depends(require_organization_role(UserRole.MANAGER, UserRole.OWNER)),
@@ -881,8 +882,8 @@ def upload_product_media(
     dependencies=CATALOG_FEATURE_DEPENDENCIES,
 )
 def delete_product_media(
-    product_id: str,
-    media_id: int,
+    product_id: ProductPathId,
+    media_id: ResourcePathId,
     current_staff: User = Depends(require_organization_role(UserRole.MANAGER, UserRole.OWNER)),
     db: Session = Depends(get_db),
 ):

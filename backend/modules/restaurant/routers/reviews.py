@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 
 from modules.auth.dependencies import get_current_user, get_current_user_optional, require_organization_role
 from modules.auth.models import User, UserRole
+from core.path_ids import ProductPathId, ResourcePathId
 from database import get_db
 from modules.restaurant.models import EntityStatus, OrderState, ReviewStatus
 from modules.restaurant.models import Order, OrderProduct, Product, ProductReview, ReviewReaction, ReviewReply
@@ -195,7 +196,7 @@ def list_featured_product_reviews(
     operation_id="reviews_list_product_reviews",
 )
 def list_product_reviews(
-    product_id: str,
+    product_id: ProductPathId,
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     rating: int | None = Query(None, ge=1, le=5),
@@ -350,7 +351,7 @@ def list_admin_reviews(
     response_model=ProductReviewStatsResponse,
     operation_id="reviews_get_product_review_stats",
 )
-def get_product_review_stats(product_id: str, db: Session = Depends(get_db)):
+def get_product_review_stats(product_id: ProductPathId, db: Session = Depends(get_db)):
     parsed_product_id = parse_product_id(product_id)
     _get_active_product(db, parsed_product_id)
     average_rating, total_reviews = db.execute(
@@ -373,7 +374,7 @@ def get_product_review_stats(product_id: str, db: Session = Depends(get_db)):
     operation_id="reviews_get_product_review_eligibility",
 )
 def get_product_review_eligibility(
-    product_id: str,
+    product_id: ProductPathId,
     db: Session = Depends(get_db),
     current_user: User | None = Depends(get_current_user_optional),
 ):
@@ -438,7 +439,7 @@ def get_product_review_eligibility(
     operation_id="reviews_create_product_review",
 )
 def create_product_review(
-    product_id: str,
+    product_id: ProductPathId,
     body: ProductReviewCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -498,7 +499,7 @@ def create_product_review(
     operation_id="reviews_update_product_review",
 )
 def update_product_review(
-    review_id: int,
+    review_id: ResourcePathId,
     body: ProductReviewUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -531,7 +532,7 @@ def update_product_review(
     operation_id="reviews_delete_product_review",
 )
 def delete_product_review(
-    review_id: int,
+    review_id: ResourcePathId,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -549,7 +550,7 @@ def delete_product_review(
     operation_id="reviews_create_review_reply",
 )
 def create_review_reply(
-    review_id: int,
+    review_id: ResourcePathId,
     body: ReviewReplyCreate,
     db: Session = Depends(get_db),
     current_owner: User = Depends(require_organization_role(UserRole.OWNER)),
@@ -569,8 +570,8 @@ def create_review_reply(
     operation_id="reviews_update_review_reply",
 )
 def update_review_reply(
-    review_id: int,
-    reply_id: int,
+    review_id: ResourcePathId,
+    reply_id: ResourcePathId,
     body: ReviewReplyCreate,
     db: Session = Depends(get_db),
     current_owner: User = Depends(require_organization_role(UserRole.OWNER)),
@@ -591,8 +592,8 @@ def update_review_reply(
     operation_id="reviews_delete_review_reply",
 )
 def delete_review_reply(
-    review_id: int,
-    reply_id: int,
+    review_id: ResourcePathId,
+    reply_id: ResourcePathId,
     db: Session = Depends(get_db),
     current_owner: User = Depends(require_organization_role(UserRole.OWNER)),
 ):
@@ -610,7 +611,7 @@ def delete_review_reply(
     operation_id="reviews_upsert_review_reaction",
 )
 def upsert_review_reaction(
-    review_id: int,
+    review_id: ResourcePathId,
     body: ReviewReactionCreate,
     db: Session = Depends(get_db),
     current_owner: User = Depends(require_organization_role(UserRole.OWNER)),
@@ -639,7 +640,7 @@ def upsert_review_reaction(
     operation_id="reviews_delete_review_reaction",
 )
 def delete_review_reaction(
-    review_id: int,
+    review_id: ResourcePathId,
     db: Session = Depends(get_db),
     current_owner: User = Depends(require_organization_role(UserRole.OWNER)),
 ):

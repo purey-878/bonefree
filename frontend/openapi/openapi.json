@@ -9436,10 +9436,13 @@
         "operationId": "admin_management_delete_category",
         "parameters": [
           {
+            "description": "Numeric category ID or CAT display code. Invalid IDs return 404.",
             "in": "path",
             "name": "category_id",
             "required": true,
             "schema": {
+              "description": "Numeric category ID or CAT display code. Invalid IDs return 404.",
+              "pattern": "^(?:[Cc][Aa][Tt]-?)?[0-9]+$",
               "title": "Category Id",
               "type": "string"
             }
@@ -9576,10 +9579,13 @@
         "operationId": "admin_management_update_category",
         "parameters": [
           {
+            "description": "Numeric category ID or CAT display code. Invalid IDs return 404.",
             "in": "path",
             "name": "category_id",
             "required": true,
             "schema": {
+              "description": "Numeric category ID or CAT display code. Invalid IDs return 404.",
+              "pattern": "^(?:[Cc][Aa][Tt]-?)?[0-9]+$",
               "title": "Category Id",
               "type": "string"
             }
@@ -10050,10 +10056,14 @@
         "operationId": "admin_management_delete_customer",
         "parameters": [
           {
+            "description": "Positive integer resource ID. Invalid IDs return 404.",
             "in": "path",
             "name": "customer_id",
             "required": true,
             "schema": {
+              "description": "Positive integer resource ID. Invalid IDs return 404.",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
               "title": "Customer Id",
               "type": "integer"
             }
@@ -10190,10 +10200,14 @@
         "operationId": "admin_management_update_customer",
         "parameters": [
           {
+            "description": "Positive integer resource ID. Invalid IDs return 404.",
             "in": "path",
             "name": "customer_id",
             "required": true,
             "schema": {
+              "description": "Positive integer resource ID. Invalid IDs return 404.",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
               "title": "Customer Id",
               "type": "integer"
             }
@@ -10342,10 +10356,14 @@
         "operationId": "admin_data_privacy_create_customer_export",
         "parameters": [
           {
+            "description": "Positive integer resource ID. Invalid IDs return 404.",
             "in": "path",
             "name": "customer_id",
             "required": true,
             "schema": {
+              "description": "Positive integer resource ID. Invalid IDs return 404.",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
               "title": "Customer Id",
               "type": "integer"
             }
@@ -11541,10 +11559,14 @@
         "operationId": "admin_management_delete_ingredient",
         "parameters": [
           {
+            "description": "Positive integer resource ID. Invalid IDs return 404.",
             "in": "path",
             "name": "ingredient_id",
             "required": true,
             "schema": {
+              "description": "Positive integer resource ID. Invalid IDs return 404.",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
               "title": "Ingredient Id",
               "type": "integer"
             }
@@ -11681,10 +11703,14 @@
         "operationId": "admin_management_update_ingredient",
         "parameters": [
           {
+            "description": "Positive integer resource ID. Invalid IDs return 404.",
             "in": "path",
             "name": "ingredient_id",
             "required": true,
             "schema": {
+              "description": "Positive integer resource ID. Invalid IDs return 404.",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
               "title": "Ingredient Id",
               "type": "integer"
             }
@@ -11833,10 +11859,14 @@
         "operationId": "admin_management_set_ingredient_availability",
         "parameters": [
           {
+            "description": "Positive integer resource ID. Invalid IDs return 404.",
             "in": "path",
             "name": "ingredient_id",
             "required": true,
             "schema": {
+              "description": "Positive integer resource ID. Invalid IDs return 404.",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
               "title": "Ingredient Id",
               "type": "integer"
             }
@@ -11985,10 +12015,14 @@
         "operationId": "admin_management_list_ingredient_products",
         "parameters": [
           {
+            "description": "Positive integer resource ID. Invalid IDs return 404.",
             "in": "path",
             "name": "ingredient_id",
             "required": true,
             "schema": {
+              "description": "Positive integer resource ID. Invalid IDs return 404.",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
               "title": "Ingredient Id",
               "type": "integer"
             }
@@ -12287,10 +12321,14 @@
         "operationId": "admin_management_get_kitchen_order",
         "parameters": [
           {
+            "description": "Positive integer resource ID. Invalid IDs return 404.",
             "in": "path",
             "name": "order_id",
             "required": true,
             "schema": {
+              "description": "Positive integer resource ID. Invalid IDs return 404.",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
               "title": "Order Id",
               "type": "integer"
             }
@@ -13231,10 +13269,14 @@
         "operationId": "admin_management_delete_cancelled_order",
         "parameters": [
           {
+            "description": "Positive integer resource ID. Invalid IDs return 404.",
             "in": "path",
             "name": "order_id",
             "required": true,
             "schema": {
+              "description": "Positive integer resource ID. Invalid IDs return 404.",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
               "title": "Order Id",
               "type": "integer"
             }
@@ -13371,10 +13413,14 @@
         "operationId": "admin_management_get_order",
         "parameters": [
           {
+            "description": "Positive integer resource ID. Invalid IDs return 404.",
             "in": "path",
             "name": "order_id",
             "required": true,
             "schema": {
+              "description": "Positive integer resource ID. Invalid IDs return 404.",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
               "title": "Order Id",
               "type": "integer"
             }
@@ -13513,10 +13559,14 @@
         "operationId": "admin_management_pay_counter_order",
         "parameters": [
           {
+            "description": "Positive integer resource ID. Invalid IDs return 404.",
             "in": "path",
             "name": "order_id",
             "required": true,
             "schema": {
+              "description": "Positive integer resource ID. Invalid IDs return 404.",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
               "title": "Order Id",
               "type": "integer"
             }
@@ -13655,10 +13705,14 @@
         "operationId": "admin_management_update_order_status",
         "parameters": [
           {
+            "description": "Positive integer resource ID. Invalid IDs return 404.",
             "in": "path",
             "name": "order_id",
             "required": true,
             "schema": {
+              "description": "Positive integer resource ID. Invalid IDs return 404.",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
               "title": "Order Id",
               "type": "integer"
             }
@@ -14178,10 +14232,13 @@
         "operationId": "admin_management_delete_product",
         "parameters": [
           {
+            "description": "Numeric product ID or PRD display code. Invalid IDs return 404.",
             "in": "path",
             "name": "product_id",
             "required": true,
             "schema": {
+              "description": "Numeric product ID or PRD display code. Invalid IDs return 404.",
+              "pattern": "^(?:[Pp][Rr][Dd]-?)?[0-9]+$",
               "title": "Product Id",
               "type": "string"
             }
@@ -14318,10 +14375,13 @@
         "operationId": "admin_management_get_product",
         "parameters": [
           {
+            "description": "Numeric product ID or PRD display code. Invalid IDs return 404.",
             "in": "path",
             "name": "product_id",
             "required": true,
             "schema": {
+              "description": "Numeric product ID or PRD display code. Invalid IDs return 404.",
+              "pattern": "^(?:[Pp][Rr][Dd]-?)?[0-9]+$",
               "title": "Product Id",
               "type": "string"
             }
@@ -14458,10 +14518,13 @@
         "operationId": "admin_management_update_product",
         "parameters": [
           {
+            "description": "Numeric product ID or PRD display code. Invalid IDs return 404.",
             "in": "path",
             "name": "product_id",
             "required": true,
             "schema": {
+              "description": "Numeric product ID or PRD display code. Invalid IDs return 404.",
+              "pattern": "^(?:[Pp][Rr][Dd]-?)?[0-9]+$",
               "title": "Product Id",
               "type": "string"
             }
@@ -14610,10 +14673,13 @@
         "operationId": "admin_management_get_product_analytics",
         "parameters": [
           {
+            "description": "Numeric product ID or PRD display code. Invalid IDs return 404.",
             "in": "path",
             "name": "product_id",
             "required": true,
             "schema": {
+              "description": "Numeric product ID or PRD display code. Invalid IDs return 404.",
+              "pattern": "^(?:[Pp][Rr][Dd]-?)?[0-9]+$",
               "title": "Product Id",
               "type": "string"
             }
@@ -14764,10 +14830,13 @@
         "operationId": "admin_management_set_product_availability",
         "parameters": [
           {
+            "description": "Numeric product ID or PRD display code. Invalid IDs return 404.",
             "in": "path",
             "name": "product_id",
             "required": true,
             "schema": {
+              "description": "Numeric product ID or PRD display code. Invalid IDs return 404.",
+              "pattern": "^(?:[Pp][Rr][Dd]-?)?[0-9]+$",
               "title": "Product Id",
               "type": "string"
             }
@@ -14916,10 +14985,13 @@
         "operationId": "admin_management_upload_product_media",
         "parameters": [
           {
+            "description": "Numeric product ID or PRD display code. Invalid IDs return 404.",
             "in": "path",
             "name": "product_id",
             "required": true,
             "schema": {
+              "description": "Numeric product ID or PRD display code. Invalid IDs return 404.",
+              "pattern": "^(?:[Pp][Rr][Dd]-?)?[0-9]+$",
               "title": "Product Id",
               "type": "string"
             }
@@ -15078,19 +15150,26 @@
         "operationId": "admin_management_delete_product_media",
         "parameters": [
           {
+            "description": "Numeric product ID or PRD display code. Invalid IDs return 404.",
             "in": "path",
             "name": "product_id",
             "required": true,
             "schema": {
+              "description": "Numeric product ID or PRD display code. Invalid IDs return 404.",
+              "pattern": "^(?:[Pp][Rr][Dd]-?)?[0-9]+$",
               "title": "Product Id",
               "type": "string"
             }
           },
           {
+            "description": "Positive integer resource ID. Invalid IDs return 404.",
             "in": "path",
             "name": "media_id",
             "required": true,
             "schema": {
+              "description": "Positive integer resource ID. Invalid IDs return 404.",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
               "title": "Media Id",
               "type": "integer"
             }
@@ -15229,10 +15308,13 @@
         "operationId": "admin_management_toggle_product_status",
         "parameters": [
           {
+            "description": "Numeric product ID or PRD display code. Invalid IDs return 404.",
             "in": "path",
             "name": "product_id",
             "required": true,
             "schema": {
+              "description": "Numeric product ID or PRD display code. Invalid IDs return 404.",
+              "pattern": "^(?:[Pp][Rr][Dd]-?)?[0-9]+$",
               "title": "Product Id",
               "type": "string"
             }
@@ -15576,10 +15658,14 @@
         "operationId": "reviews_delete_review_reaction",
         "parameters": [
           {
+            "description": "Positive integer resource ID. Invalid IDs return 404.",
             "in": "path",
             "name": "review_id",
             "required": true,
             "schema": {
+              "description": "Positive integer resource ID. Invalid IDs return 404.",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
               "title": "Review Id",
               "type": "integer"
             }
@@ -15709,10 +15795,14 @@
         "operationId": "reviews_upsert_review_reaction",
         "parameters": [
           {
+            "description": "Positive integer resource ID. Invalid IDs return 404.",
             "in": "path",
             "name": "review_id",
             "required": true,
             "schema": {
+              "description": "Positive integer resource ID. Invalid IDs return 404.",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
               "title": "Review Id",
               "type": "integer"
             }
@@ -15861,10 +15951,14 @@
         "operationId": "reviews_create_review_reply",
         "parameters": [
           {
+            "description": "Positive integer resource ID. Invalid IDs return 404.",
             "in": "path",
             "name": "review_id",
             "required": true,
             "schema": {
+              "description": "Positive integer resource ID. Invalid IDs return 404.",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
               "title": "Review Id",
               "type": "integer"
             }
@@ -16013,19 +16107,27 @@
         "operationId": "reviews_delete_review_reply",
         "parameters": [
           {
+            "description": "Positive integer resource ID. Invalid IDs return 404.",
             "in": "path",
             "name": "review_id",
             "required": true,
             "schema": {
+              "description": "Positive integer resource ID. Invalid IDs return 404.",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
               "title": "Review Id",
               "type": "integer"
             }
           },
           {
+            "description": "Positive integer resource ID. Invalid IDs return 404.",
             "in": "path",
             "name": "reply_id",
             "required": true,
             "schema": {
+              "description": "Positive integer resource ID. Invalid IDs return 404.",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
               "title": "Reply Id",
               "type": "integer"
             }
@@ -16155,19 +16257,27 @@
         "operationId": "reviews_update_review_reply",
         "parameters": [
           {
+            "description": "Positive integer resource ID. Invalid IDs return 404.",
             "in": "path",
             "name": "review_id",
             "required": true,
             "schema": {
+              "description": "Positive integer resource ID. Invalid IDs return 404.",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
               "title": "Review Id",
               "type": "integer"
             }
           },
           {
+            "description": "Positive integer resource ID. Invalid IDs return 404.",
             "in": "path",
             "name": "reply_id",
             "required": true,
             "schema": {
+              "description": "Positive integer resource ID. Invalid IDs return 404.",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
               "title": "Reply Id",
               "type": "integer"
             }
@@ -18717,10 +18827,14 @@
         "operationId": "admin_management_delete_staff_admin",
         "parameters": [
           {
+            "description": "Positive integer resource ID. Invalid IDs return 404.",
             "in": "path",
             "name": "admin_id",
             "required": true,
             "schema": {
+              "description": "Positive integer resource ID. Invalid IDs return 404.",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
               "title": "Admin Id",
               "type": "integer"
             }
@@ -18857,10 +18971,14 @@
         "operationId": "admin_management_update_staff_admin",
         "parameters": [
           {
+            "description": "Positive integer resource ID. Invalid IDs return 404.",
             "in": "path",
             "name": "admin_id",
             "required": true,
             "schema": {
+              "description": "Positive integer resource ID. Invalid IDs return 404.",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
               "title": "Admin Id",
               "type": "integer"
             }
@@ -19610,10 +19728,13 @@
         "operationId": "cart_remove_item",
         "parameters": [
           {
+            "description": "Numeric product ID or PRD display code. Invalid IDs return 404.",
             "in": "path",
             "name": "product_id",
             "required": true,
             "schema": {
+              "description": "Numeric product ID or PRD display code. Invalid IDs return 404.",
+              "pattern": "^(?:[Pp][Rr][Dd]-?)?[0-9]+$",
               "title": "Product Id",
               "type": "string"
             }
@@ -20538,10 +20659,14 @@
         "operationId": "checkout_get_order",
         "parameters": [
           {
+            "description": "Positive integer resource ID. Invalid IDs return 404.",
             "in": "path",
             "name": "order_id",
             "required": true,
             "schema": {
+              "description": "Positive integer resource ID. Invalid IDs return 404.",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
               "title": "Order Id",
               "type": "integer"
             }
@@ -20664,10 +20789,14 @@
         "operationId": "checkout_cancel_order",
         "parameters": [
           {
+            "description": "Positive integer resource ID. Invalid IDs return 404.",
             "in": "path",
             "name": "order_id",
             "required": true,
             "schema": {
+              "description": "Positive integer resource ID. Invalid IDs return 404.",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
               "title": "Order Id",
               "type": "integer"
             }
@@ -20790,10 +20919,14 @@
         "operationId": "checkout_download_order_receipt_pdf",
         "parameters": [
           {
+            "description": "Positive integer resource ID. Invalid IDs return 404.",
             "in": "path",
             "name": "order_id",
             "required": true,
             "schema": {
+              "description": "Positive integer resource ID. Invalid IDs return 404.",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
               "title": "Order Id",
               "type": "integer"
             }
@@ -21973,10 +22106,13 @@
         "operationId": "products_get_product",
         "parameters": [
           {
+            "description": "Numeric product ID or PRD display code. Invalid IDs return 404.",
             "in": "path",
             "name": "product_id",
             "required": true,
             "schema": {
+              "description": "Numeric product ID or PRD display code. Invalid IDs return 404.",
+              "pattern": "^(?:[Pp][Rr][Dd]-?)?[0-9]+$",
               "title": "Product Id",
               "type": "string"
             }
@@ -22091,10 +22227,13 @@
         "operationId": "products_get_availability_suggestions",
         "parameters": [
           {
+            "description": "Numeric product ID or PRD display code. Invalid IDs return 404.",
             "in": "path",
             "name": "product_id",
             "required": true,
             "schema": {
+              "description": "Numeric product ID or PRD display code. Invalid IDs return 404.",
+              "pattern": "^(?:[Pp][Rr][Dd]-?)?[0-9]+$",
               "title": "Product Id",
               "type": "string"
             }
@@ -22221,10 +22360,13 @@
         "operationId": "products_get_product_customization",
         "parameters": [
           {
+            "description": "Numeric product ID or PRD display code. Invalid IDs return 404.",
             "in": "path",
             "name": "product_id",
             "required": true,
             "schema": {
+              "description": "Numeric product ID or PRD display code. Invalid IDs return 404.",
+              "pattern": "^(?:[Pp][Rr][Dd]-?)?[0-9]+$",
               "title": "Product Id",
               "type": "string"
             }
@@ -22339,10 +22481,13 @@
         "operationId": "products_get_customization_options",
         "parameters": [
           {
+            "description": "Numeric product ID or PRD display code. Invalid IDs return 404.",
             "in": "path",
             "name": "product_id",
             "required": true,
             "schema": {
+              "description": "Numeric product ID or PRD display code. Invalid IDs return 404.",
+              "pattern": "^(?:[Pp][Rr][Dd]-?)?[0-9]+$",
               "title": "Product Id",
               "type": "string"
             }
@@ -22457,10 +22602,13 @@
         "operationId": "reviews_list_product_reviews",
         "parameters": [
           {
+            "description": "Numeric product ID or PRD display code. Invalid IDs return 404.",
             "in": "path",
             "name": "product_id",
             "required": true,
             "schema": {
+              "description": "Numeric product ID or PRD display code. Invalid IDs return 404.",
+              "pattern": "^(?:[Pp][Rr][Dd]-?)?[0-9]+$",
               "title": "Product Id",
               "type": "string"
             }
@@ -22653,10 +22801,13 @@
         "operationId": "reviews_create_product_review",
         "parameters": [
           {
+            "description": "Numeric product ID or PRD display code. Invalid IDs return 404.",
             "in": "path",
             "name": "product_id",
             "required": true,
             "schema": {
+              "description": "Numeric product ID or PRD display code. Invalid IDs return 404.",
+              "pattern": "^(?:[Pp][Rr][Dd]-?)?[0-9]+$",
               "title": "Product Id",
               "type": "string"
             }
@@ -22786,10 +22937,13 @@
         "operationId": "reviews_get_product_review_eligibility",
         "parameters": [
           {
+            "description": "Numeric product ID or PRD display code. Invalid IDs return 404.",
             "in": "path",
             "name": "product_id",
             "required": true,
             "schema": {
+              "description": "Numeric product ID or PRD display code. Invalid IDs return 404.",
+              "pattern": "^(?:[Pp][Rr][Dd]-?)?[0-9]+$",
               "title": "Product Id",
               "type": "string"
             }
@@ -22909,10 +23063,13 @@
         "operationId": "reviews_get_product_review_stats",
         "parameters": [
           {
+            "description": "Numeric product ID or PRD display code. Invalid IDs return 404.",
             "in": "path",
             "name": "product_id",
             "required": true,
             "schema": {
+              "description": "Numeric product ID or PRD display code. Invalid IDs return 404.",
+              "pattern": "^(?:[Pp][Rr][Dd]-?)?[0-9]+$",
               "title": "Product Id",
               "type": "string"
             }
@@ -24218,10 +24375,14 @@
         "operationId": "reviews_delete_product_review",
         "parameters": [
           {
+            "description": "Positive integer resource ID. Invalid IDs return 404.",
             "in": "path",
             "name": "review_id",
             "required": true,
             "schema": {
+              "description": "Positive integer resource ID. Invalid IDs return 404.",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
               "title": "Review Id",
               "type": "integer"
             }
@@ -24332,10 +24493,14 @@
         "operationId": "reviews_update_product_review",
         "parameters": [
           {
+            "description": "Positive integer resource ID. Invalid IDs return 404.",
             "in": "path",
             "name": "review_id",
             "required": true,
             "schema": {
+              "description": "Positive integer resource ID. Invalid IDs return 404.",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
               "title": "Review Id",
               "type": "integer"
             }

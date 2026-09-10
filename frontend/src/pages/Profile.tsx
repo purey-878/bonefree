@@ -25,7 +25,6 @@ import {
 } from "lucide-react"
 
 import FloatingProfileIcons from "../components/FloatingProfileIcons"
-import Navbar from "../components/Navbar"
 import CustomSelect from "../components/ui/CustomSelect"
 import { Pagination } from "../components/ui"
 import { useToast } from "../components/ui/toastContext"
@@ -634,7 +633,6 @@ function Profile() {
     return (
       <section className="profile-page site-page">
         <FloatingProfileIcons />
-        <Navbar />
         <main className="profile-shell">
           <div className="profile-loading">{t("profile.loading")}</div>
         </main>
@@ -645,7 +643,6 @@ function Profile() {
   return (
     <section className="profile-page site-page">
       <FloatingProfileIcons />
-      <Navbar />
       <main className="profile-shell">
         <section className="profile-hero-panel">
           <div className="profile-identity">

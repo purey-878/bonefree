@@ -3,7 +3,6 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { CakeSlice, Check, ChevronDown, CupSoda, Flame, Salad, Sandwich, Search, SlidersHorizontal, Soup, X } from "lucide-react";
 import { useRef } from "react";
 
-import Navbar from "../components/Navbar";
 import { Pagination, ProductCard, ProductCardSkeleton } from "../components/ui";
 import { useToast } from "../components/ui/toastContext";
 
@@ -381,7 +380,6 @@ function Menu() {
 
   return (
     <>
-      <Navbar />
 
       <section className="menu-page mt-5 ">
 

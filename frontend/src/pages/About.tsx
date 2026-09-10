@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { Heart, Leaf, MapPin, Sparkles, Star, UtensilsCrossed, Users } from "lucide-react";
 import styled from "styled-components";
 import FloatingAboutIcons from "../components/FloatingAboutIcons";
-import Navbar from "../components/Navbar";
 import { useTranslation } from "react-i18next";
 
 const stats = [
@@ -33,7 +32,6 @@ const About: React.FC = () => {
     <AboutPage>
       <FloatingAboutIcons />
       <AboutHero>
-        <Navbar />
         <HeroInner>
           <HeroCopy>
             <HeroKicker>

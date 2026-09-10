@@ -1,3 +1,4 @@
+from core.path_ids import ResourcePathId
 from ._shared import *  # noqa: F403 - shared router namespace
 from typing import TypedDict
 from utils.datetime_utils import naive_utc_now
@@ -151,7 +152,7 @@ def create_customer(
     dependencies=CUSTOMER_ACCOUNT_FEATURE_DEPENDENCIES,
 )
 def update_customer(
-    customer_id: int,
+    customer_id: ResourcePathId,
     body: CustomerAdminUpdate,
     current_owner: User = Depends(require_organization_role(UserRole.OWNER)),
     db: Session = Depends(get_db),
@@ -195,7 +196,7 @@ def update_customer(
     dependencies=CUSTOMER_ACCOUNT_FEATURE_DEPENDENCIES,
 )
 def delete_customer(
-    customer_id: int,
+    customer_id: ResourcePathId,
     current_owner: User = Depends(require_organization_role(UserRole.OWNER)),
     db: Session = Depends(get_db),
 ):

@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import type { PublicLegalDocumentResponse } from '../services/legalDocumentService'
-import Navbar from '../components/Navbar'
 import LegalBody from '../components/legal/LegalBody'
 import { personalizeLegalText } from '../components/legal/legalContent'
 import { normalizeLocale } from '../i18n'
@@ -31,7 +30,6 @@ export default function LegalDocumentPage({ documentType }: { documentType: Docu
   const page = data?.document
   const privacy = documentType === 'privacy_policy'
   return <main className="legal-page site-page">
-    <Navbar />
     {!page || !data ? <section className="legal-hero" aria-live="polite">
       <h1>{t(documentType)}</h1>
       <p role={current?.error ? 'alert' : 'status'}>{t(current?.error ? 'loadError' : 'loading')}</p>

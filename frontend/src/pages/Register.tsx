@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { ArrowLeft, CakeSlice, CupSoda, Salad, Sandwich, Soup } from 'lucide-react'
-import Navbar from '../components/Navbar'
 import { useAuth } from '../hooks'
 import { guestCartService } from '../services/cartService'
 import {
@@ -102,7 +101,6 @@ function Register() {
     <>
 
       <div className="auth-container auth-page">
-        <Navbar />
 
         <div className="auth-floating-food-bg" aria-hidden="true">
           <span className="auth-food-float auth-food-float-salad"><Salad /></span>

@@ -12,9 +12,9 @@ import {
   X,
 } from "lucide-react"
 import { Link, useNavigate, useParams } from "react-router-dom"
+import { parseResourcePathId } from "../utils/ids"
 
 import { ApiError, isApiErrorWithStatus } from "../api/errors"
-import Navbar from "../components/Navbar"
 import ResourceNotFound from "../components/ResourceNotFound"
 import {
   GUEST_ORDERS_UPDATED_EVENT,
@@ -55,7 +55,7 @@ function statusLabel(status: string) {
 export default function OrderDetails() {
   const { t } = useTranslation("storefront")
   const { orderId: orderIdParam } = useParams()
-  const orderId = Number(orderIdParam)
+  const orderId = parseResourcePathId(orderIdParam) ?? -1
   const orderLookupKey = Number.isInteger(orderId) && orderId > 0 ? orderId : -1
   const navigate = useNavigate()
   const { isAuthenticated, loading: authLoading } = useAuth()
@@ -174,11 +174,10 @@ export default function OrderDetails() {
   const waitingForAccess = authLoading && !guestToken
   const backToOrdersHref = isAuthenticated ? "/profile?tab=orders" : "/orders"
 
-  if (notFoundOrderId === orderLookupKey) return <ResourceNotFound kind="order" />
+  if (orderId === -1 || notFoundOrderId === orderLookupKey) return <ResourceNotFound kind="order" />
 
   return (
     <section className="order-details-page site-page">
-      <Navbar />
       <main className="order-details-shell">
         <div className="order-details-topbar">
           <Link to={backToOrdersHref} className="order-details-back"><ArrowLeft size={17} /> {t("order.back")}</Link>

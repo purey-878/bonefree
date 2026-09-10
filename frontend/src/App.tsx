@@ -2,13 +2,15 @@ import './theme.css'
 import './siteThemes.css'
 import './App.css'
 
-import { lazy, Suspense, useEffect } from 'react'
+import { lazy, Suspense, useLayoutEffect } from 'react'
 import type { ReactNode } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import type { Location } from 'react-router-dom'
 
 import CookieBanner from './components/CookieBanner'
 import Footer from './components/Footer'
+import Navbar from './components/Navbar'
+import RouteLoading from './components/RouteLoading'
 import OrderStatusBar from './components/OrderStatusBar'
 import PrototypeNotice from './components/PrototypeNotice'
 import SiteThemeController from './components/SiteThemeController'
@@ -32,7 +34,7 @@ function ProtectedCustomerRoute({ children }: { children: ReactNode }) {
   const { isAuthenticated, loading } = useAuth()
   const location = useLocation()
 
-  if (loading) return null
+  if (loading) return <RouteLoading />
   if (!isAuthenticated) {
     return <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}` }} />
   }
@@ -41,10 +43,25 @@ function ProtectedCustomerRoute({ children }: { children: ReactNode }) {
 
 function FeatureRouteElement({ route }: { route: FeatureRoute }) {
   const Component = route.component
-  const element = <Suspense fallback={null}><Component /></Suspense>
+  const element = <Component />
   return route.customer_protected
     ? <ProtectedCustomerRoute>{element}</ProtectedCustomerRoute>
     : element
+}
+
+function RouteScroll({ location }: { location: Location }) {
+  useLayoutEffect(() => {
+    if (location.hash) {
+      const frame = window.requestAnimationFrame(() => {
+        document.getElementById(location.hash.slice(1))?.scrollIntoView({ block: 'start' })
+      })
+      return () => window.cancelAnimationFrame(frame)
+    }
+    // Reset before painting the new page; CSS smooth scrolling would expose the footer.
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+    // Search changes are in-place state (filters, tabs and pagination).
+  }, [location.hash, location.pathname])
+  return null
 }
 
 function App() {
@@ -63,40 +80,37 @@ function App() {
     '/admin/super', '/admin/staff', '/admin/kitchen', '/cart',
   ].includes(visibleLocation.pathname)
 
-  useEffect(() => {
-    if (visibleLocation.hash) {
-      window.requestAnimationFrame(() => {
-        document.getElementById(visibleLocation.hash.slice(1))?.scrollIntoView({ block: 'start' })
-      })
-      return
-    }
-    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
-    // Search changes are in-place state (filters, tabs and pagination).
-  }, [visibleLocation.hash, visibleLocation.pathname])
+  const showNavbar = !visibleLocation.pathname.startsWith('/admin/') || visibleLocation.pathname === '/admin/login'
 
   return (
     <>
       <SiteThemeController />
-      <div className="app-route-stage" key={visibleLocation.pathname}>
-        <Routes location={visibleLocation}>
-          {mainFeatureRoutes.map((route) => (
-            <Route key={route.id} path={route.path} element={<FeatureRouteElement route={route} />} />
-          ))}
-          <Route path="/admin/*" element={<Suspense fallback={null}><AdminApplication /></Suspense>} />
-          <Route path="/about" element={<Suspense fallback={null}><AboutPage /></Suspense>} />
-          <Route path="/contact" element={<Suspense fallback={null}><ContactPage /></Suspense>} />
-          <Route path="/terms" element={<Suspense fallback={null}><TermsPage /></Suspense>} />
-          <Route path="/privacy" element={<Suspense fallback={null}><PrivacyPage /></Suspense>} />
-          <Route path="*" element={<Suspense fallback={null}><NotFoundPage /></Suspense>} />
-        </Routes>
+      {showNavbar && <Navbar location={visibleLocation} />}
+      <div className="app-route-stage">
+        <Suspense fallback={<RouteLoading />}>
+          <Routes location={visibleLocation}>
+            {mainFeatureRoutes.map((route) => (
+              <Route key={route.id} path={route.path} element={<FeatureRouteElement key={visibleLocation.pathname} route={route} />} />
+            ))}
+            <Route path="/admin/*" element={<AdminApplication />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/contact" element={<ContactPage />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
+          <RouteScroll location={visibleLocation} />
+        </Suspense>
       </div>
 
       {backgroundLocation && (
-        <Routes>
-          {overlayFeatureRoutes.map((route) => (
-            <Route key={route.id} path={route.path} element={<FeatureRouteElement route={route} />} />
-          ))}
-        </Routes>
+        <Suspense fallback={null}>
+          <Routes>
+            {overlayFeatureRoutes.map((route) => (
+              <Route key={route.id} path={route.path} element={<FeatureRouteElement route={route} />} />
+            ))}
+          </Routes>
+        </Suspense>
       )}
 
       <PrototypeNotice />

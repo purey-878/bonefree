@@ -1,3 +1,4 @@
+from core.path_ids import ResourcePathId
 from ._shared import *  # noqa: F403 - shared router namespace
 from utils.datetime_utils import naive_utc_now
 
@@ -156,7 +157,7 @@ def list_kitchen_orders(
     dependencies=ORDERING_FEATURE_DEPENDENCIES,
 )
 def get_kitchen_order(
-    order_id: int,
+    order_id: ResourcePathId,
     current_staff: User = Depends(require_organization_role(*ORGANIZATION_STAFF_ROLES)),
     db: Session = Depends(get_db),
 ):
@@ -173,7 +174,7 @@ def get_kitchen_order(
     dependencies=ORDERING_FEATURE_DEPENDENCIES,
 )
 def get_order(
-    order_id: int,
+    order_id: ResourcePathId,
     current_staff: User = Depends(require_organization_role(UserRole.MANAGER, UserRole.OWNER)),
     db: Session = Depends(get_db),
 ):
@@ -187,7 +188,7 @@ def get_order(
     dependencies=ORDERING_FEATURE_DEPENDENCIES,
 )
 def delete_cancelled_order(
-    order_id: int,
+    order_id: ResourcePathId,
     current_staff: User = Depends(require_organization_role(UserRole.MANAGER, UserRole.OWNER)),
     db: Session = Depends(get_db),
 ):
@@ -212,7 +213,7 @@ def delete_cancelled_order(
     dependencies=ORDERING_FEATURE_DEPENDENCIES,
 )
 def update_order_status(
-    order_id: int,
+    order_id: ResourcePathId,
     body: OrderStatusUpdate,
     current_staff: User = Depends(require_organization_role(*ORGANIZATION_STAFF_ROLES)),
     db: Session = Depends(get_db),
@@ -245,7 +246,7 @@ def update_order_status(
     dependencies=ORDERING_FEATURE_DEPENDENCIES,
 )
 def pay_counter_order(
-    order_id: int,
+    order_id: ResourcePathId,
     background_tasks: BackgroundTasks,
     current_staff: User = Depends(require_organization_role(UserRole.WAITER, UserRole.MANAGER, UserRole.OWNER)),
     db: Session = Depends(get_db),

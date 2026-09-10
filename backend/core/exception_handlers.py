@@ -83,7 +83,18 @@ async def request_validation_exception_handler(
     request: Request,
     exc: RequestValidationError,
 ) -> JSONResponse:
-    fields = [map_pydantic_error(error) for error in exc.errors()]
+    errors = exc.errors()
+    if any(
+        len(error["loc"]) >= 2
+        and error["loc"][0] == "path"
+        and str(error["loc"][1]).endswith("_id")
+        for error in errors
+    ):
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=build_error_payload("not_found", "Resource not found."),
+        )
+    fields = [map_pydantic_error(error) for error in errors]
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content=build_error_payload(

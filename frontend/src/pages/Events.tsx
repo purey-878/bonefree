@@ -5,7 +5,6 @@ import { CalendarDays, Clock, MapPin, Music2 } from "lucide-react"
 import styled from "styled-components"
 
 import FloatingMusicIcons from "../components/FloatingMusicIcons"
-import Navbar from "../components/Navbar"
 import { getPublicEventsSettings } from "../services/siteSettingsService"
 import type { EventItemSettings } from "../types/siteSettings"
 import { defaultEventsSettings } from "../utils/eventSettings"
@@ -70,7 +69,6 @@ export default function Events() {
 
   return (
     <EventsPage>
-      <Navbar />
       <FloatingMusicIcons />
       <EventsShell>
         <EventsBento>

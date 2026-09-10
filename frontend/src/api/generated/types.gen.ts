@@ -4902,6 +4902,8 @@ export type AdminManagementDeleteCategoryData = {
     path: {
         /**
          * Category Id
+         *
+         * Numeric category ID or CAT display code. Invalid IDs return 404.
          */
         category_id: string;
     };
@@ -4966,6 +4968,8 @@ export type AdminManagementUpdateCategoryData = {
     path: {
         /**
          * Category Id
+         *
+         * Numeric category ID or CAT display code. Invalid IDs return 404.
          */
         category_id: string;
     };
@@ -5165,6 +5169,8 @@ export type AdminManagementDeleteCustomerData = {
     path: {
         /**
          * Customer Id
+         *
+         * Positive integer resource ID. Invalid IDs return 404.
          */
         customer_id: number;
     };
@@ -5229,6 +5235,8 @@ export type AdminManagementUpdateCustomerData = {
     path: {
         /**
          * Customer Id
+         *
+         * Positive integer resource ID. Invalid IDs return 404.
          */
         customer_id: number;
     };
@@ -5293,6 +5301,8 @@ export type AdminDataPrivacyCreateCustomerExportData = {
     path: {
         /**
          * Customer Id
+         *
+         * Positive integer resource ID. Invalid IDs return 404.
          */
         customer_id: number;
     };
@@ -5841,6 +5851,8 @@ export type AdminManagementDeleteIngredientData = {
     path: {
         /**
          * Ingredient Id
+         *
+         * Positive integer resource ID. Invalid IDs return 404.
          */
         ingredient_id: number;
     };
@@ -5905,6 +5917,8 @@ export type AdminManagementUpdateIngredientData = {
     path: {
         /**
          * Ingredient Id
+         *
+         * Positive integer resource ID. Invalid IDs return 404.
          */
         ingredient_id: number;
     };
@@ -5969,6 +5983,8 @@ export type AdminManagementSetIngredientAvailabilityData = {
     path: {
         /**
          * Ingredient Id
+         *
+         * Positive integer resource ID. Invalid IDs return 404.
          */
         ingredient_id: number;
     };
@@ -6033,6 +6049,8 @@ export type AdminManagementListIngredientProductsData = {
     path: {
         /**
          * Ingredient Id
+         *
+         * Positive integer resource ID. Invalid IDs return 404.
          */
         ingredient_id: number;
     };
@@ -6167,6 +6185,8 @@ export type AdminManagementGetKitchenOrderData = {
     path: {
         /**
          * Order Id
+         *
+         * Positive integer resource ID. Invalid IDs return 404.
          */
         order_id: number;
     };
@@ -6564,6 +6584,8 @@ export type AdminManagementDeleteCancelledOrderData = {
     path: {
         /**
          * Order Id
+         *
+         * Positive integer resource ID. Invalid IDs return 404.
          */
         order_id: number;
     };
@@ -6628,6 +6650,8 @@ export type AdminManagementGetOrderData = {
     path: {
         /**
          * Order Id
+         *
+         * Positive integer resource ID. Invalid IDs return 404.
          */
         order_id: number;
     };
@@ -6692,6 +6716,8 @@ export type AdminManagementPayCounterOrderData = {
     path: {
         /**
          * Order Id
+         *
+         * Positive integer resource ID. Invalid IDs return 404.
          */
         order_id: number;
     };
@@ -6756,6 +6782,8 @@ export type AdminManagementUpdateOrderStatusData = {
     path: {
         /**
          * Order Id
+         *
+         * Positive integer resource ID. Invalid IDs return 404.
          */
         order_id: number;
     };
@@ -6979,6 +7007,8 @@ export type AdminManagementDeleteProductData = {
     path: {
         /**
          * Product Id
+         *
+         * Numeric product ID or PRD display code. Invalid IDs return 404.
          */
         product_id: string;
     };
@@ -7043,6 +7073,8 @@ export type AdminManagementGetProductData = {
     path: {
         /**
          * Product Id
+         *
+         * Numeric product ID or PRD display code. Invalid IDs return 404.
          */
         product_id: string;
     };
@@ -7107,6 +7139,8 @@ export type AdminManagementUpdateProductData = {
     path: {
         /**
          * Product Id
+         *
+         * Numeric product ID or PRD display code. Invalid IDs return 404.
          */
         product_id: string;
     };
@@ -7171,6 +7205,8 @@ export type AdminManagementGetProductAnalyticsData = {
     path: {
         /**
          * Product Id
+         *
+         * Numeric product ID or PRD display code. Invalid IDs return 404.
          */
         product_id: string;
     };
@@ -7240,6 +7276,8 @@ export type AdminManagementSetProductAvailabilityData = {
     path: {
         /**
          * Product Id
+         *
+         * Numeric product ID or PRD display code. Invalid IDs return 404.
          */
         product_id: string;
     };
@@ -7304,6 +7342,8 @@ export type AdminManagementUploadProductMediaData = {
     path: {
         /**
          * Product Id
+         *
+         * Numeric product ID or PRD display code. Invalid IDs return 404.
          */
         product_id: string;
     };
@@ -7373,10 +7413,14 @@ export type AdminManagementDeleteProductMediaData = {
     path: {
         /**
          * Product Id
+         *
+         * Numeric product ID or PRD display code. Invalid IDs return 404.
          */
         product_id: string;
         /**
          * Media Id
+         *
+         * Positive integer resource ID. Invalid IDs return 404.
          */
         media_id: number;
     };
@@ -7441,6 +7485,8 @@ export type AdminManagementToggleProductStatusData = {
     path: {
         /**
          * Product Id
+         *
+         * Numeric product ID or PRD display code. Invalid IDs return 404.
          */
         product_id: string;
     };
@@ -7585,6 +7631,8 @@ export type ReviewsDeleteReviewReactionData = {
     path: {
         /**
          * Review Id
+         *
+         * Positive integer resource ID. Invalid IDs return 404.
          */
         review_id: number;
     };
@@ -7649,6 +7697,8 @@ export type ReviewsUpsertReviewReactionData = {
     path: {
         /**
          * Review Id
+         *
+         * Positive integer resource ID. Invalid IDs return 404.
          */
         review_id: number;
     };
@@ -7713,6 +7763,8 @@ export type ReviewsCreateReviewReplyData = {
     path: {
         /**
          * Review Id
+         *
+         * Positive integer resource ID. Invalid IDs return 404.
          */
         review_id: number;
     };
@@ -7777,10 +7829,14 @@ export type ReviewsDeleteReviewReplyData = {
     path: {
         /**
          * Review Id
+         *
+         * Positive integer resource ID. Invalid IDs return 404.
          */
         review_id: number;
         /**
          * Reply Id
+         *
+         * Positive integer resource ID. Invalid IDs return 404.
          */
         reply_id: number;
     };
@@ -7845,10 +7901,14 @@ export type ReviewsUpdateReviewReplyData = {
     path: {
         /**
          * Review Id
+         *
+         * Positive integer resource ID. Invalid IDs return 404.
          */
         review_id: number;
         /**
          * Reply Id
+         *
+         * Positive integer resource ID. Invalid IDs return 404.
          */
         reply_id: number;
     };
@@ -8939,6 +8999,8 @@ export type AdminManagementDeleteStaffAdminData = {
     path: {
         /**
          * Admin Id
+         *
+         * Positive integer resource ID. Invalid IDs return 404.
          */
         admin_id: number;
     };
@@ -9003,6 +9065,8 @@ export type AdminManagementUpdateStaffAdminData = {
     path: {
         /**
          * Admin Id
+         *
+         * Positive integer resource ID. Invalid IDs return 404.
          */
         admin_id: number;
     };
@@ -9342,6 +9406,8 @@ export type CartRemoveItemData = {
     path: {
         /**
          * Product Id
+         *
+         * Numeric product ID or PRD display code. Invalid IDs return 404.
          */
         product_id: string;
     };
@@ -9759,6 +9825,8 @@ export type CheckoutGetOrderData = {
     path: {
         /**
          * Order Id
+         *
+         * Positive integer resource ID. Invalid IDs return 404.
          */
         order_id: number;
     };
@@ -9819,6 +9887,8 @@ export type CheckoutCancelOrderData = {
     path: {
         /**
          * Order Id
+         *
+         * Positive integer resource ID. Invalid IDs return 404.
          */
         order_id: number;
     };
@@ -9879,6 +9949,8 @@ export type CheckoutDownloadOrderReceiptPdfData = {
     path: {
         /**
          * Order Id
+         *
+         * Positive integer resource ID. Invalid IDs return 404.
          */
         order_id: number;
     };
@@ -10414,6 +10486,8 @@ export type ProductsGetProductData = {
     path: {
         /**
          * Product Id
+         *
+         * Numeric product ID or PRD display code. Invalid IDs return 404.
          */
         product_id: string;
     };
@@ -10474,6 +10548,8 @@ export type ProductsGetAvailabilitySuggestionsData = {
     path: {
         /**
          * Product Id
+         *
+         * Numeric product ID or PRD display code. Invalid IDs return 404.
          */
         product_id: string;
     };
@@ -10539,6 +10615,8 @@ export type ProductsGetProductCustomizationData = {
     path: {
         /**
          * Product Id
+         *
+         * Numeric product ID or PRD display code. Invalid IDs return 404.
          */
         product_id: string;
     };
@@ -10599,6 +10677,8 @@ export type ProductsGetCustomizationOptionsData = {
     path: {
         /**
          * Product Id
+         *
+         * Numeric product ID or PRD display code. Invalid IDs return 404.
          */
         product_id: string;
     };
@@ -10659,6 +10739,8 @@ export type ReviewsListProductReviewsData = {
     path: {
         /**
          * Product Id
+         *
+         * Numeric product ID or PRD display code. Invalid IDs return 404.
          */
         product_id: string;
     };
@@ -10740,6 +10822,8 @@ export type ReviewsCreateProductReviewData = {
     path: {
         /**
          * Product Id
+         *
+         * Numeric product ID or PRD display code. Invalid IDs return 404.
          */
         product_id: string;
     };
@@ -10800,6 +10884,8 @@ export type ReviewsGetProductReviewEligibilityData = {
     path: {
         /**
          * Product Id
+         *
+         * Numeric product ID or PRD display code. Invalid IDs return 404.
          */
         product_id: string;
     };
@@ -10860,6 +10946,8 @@ export type ReviewsGetProductReviewStatsData = {
     path: {
         /**
          * Product Id
+         *
+         * Numeric product ID or PRD display code. Invalid IDs return 404.
          */
         product_id: string;
     };
@@ -11464,6 +11552,8 @@ export type ReviewsDeleteProductReviewData = {
     path: {
         /**
          * Review Id
+         *
+         * Positive integer resource ID. Invalid IDs return 404.
          */
         review_id: number;
     };
@@ -11524,6 +11614,8 @@ export type ReviewsUpdateProductReviewData = {
     path: {
         /**
          * Review Id
+         *
+         * Positive integer resource ID. Invalid IDs return 404.
          */
         review_id: number;
     };

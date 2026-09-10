@@ -18,7 +18,6 @@ import {
 } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import Navbar from "../components/Navbar"
 import { useToast } from "../components/ui/toastContext"
 
 import { useAuth, useCart } from "../hooks"
@@ -495,7 +494,6 @@ function Checkout() {
 
     return (
       <section className="checkout-page site-page">
-        <Navbar />
         {showStatusPopup && (
           <aside className="order-status-popup" role="status" aria-live="polite">
             <div className="order-status-popup-icon" aria-hidden="true">
@@ -790,7 +788,6 @@ function Checkout() {
 
   return (
     <section className="checkout-page site-page">
-      <Navbar />
 
       <main className="checkout-shell">
         <div className="checkout-header">

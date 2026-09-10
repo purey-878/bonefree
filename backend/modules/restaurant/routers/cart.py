@@ -4,6 +4,7 @@ from sqlalchemy import and_, delete, or_, select
 from decimal import Decimal
 from typing import List, Optional, TypedDict
 
+from core.path_ids import ProductPathId
 from database import get_db
 from modules.restaurant.models import CartCustomizationAction, EntityStatus, IngredientType, ProductCustomizationOptionType
 from modules.auth.models import User
@@ -630,7 +631,7 @@ def update_item(
 # DELETE /cart/remove/{product_id}  ── remove one item
 @router.delete("/remove/{product_id}", response_model=CartOut, operation_id="cart_remove_item")
 def remove_item(
-    product_id: str,
+    product_id: ProductPathId,
     cart_product_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional),

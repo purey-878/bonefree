@@ -18,6 +18,7 @@ from modules.auth.dependencies import (
     get_order_access_token_optional,
     rate_limit_order,
 )
+from core.path_ids import ResourcePathId
 from core.config import settings
 from core.rate_limit import RATE_LIMIT_OPENAPI_RESPONSES
 from database import get_db
@@ -798,7 +799,7 @@ def claim_guest_orders(
     operation_id="checkout_cancel_order",
 )
 def cancel_order(
-    order_id: int,
+    order_id: ResourcePathId,
     db: Session = Depends(get_db),
     current_user: User | None = Depends(get_current_user_optional),
     access_token: str | None = Depends(get_order_access_token_optional),
@@ -835,7 +836,7 @@ def cancel_order(
     },
 )
 def download_order_receipt_pdf(
-    order_id: int,
+    order_id: ResourcePathId,
     db: Session = Depends(get_db),
     current_user: User | None = Depends(get_current_user_optional),
     access_token: str | None = Depends(get_order_access_token_optional),
@@ -913,7 +914,7 @@ def list_order_history(
     operation_id="checkout_get_order",
 )
 def get_order(
-    order_id: int,
+    order_id: ResourcePathId,
     db: Session = Depends(get_db),
     current_user: User | None = Depends(get_current_user_optional),
     access_token: str | None = Depends(get_order_access_token_optional),

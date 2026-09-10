@@ -3,7 +3,6 @@ import { ArrowRight, Home, Leaf, UtensilsCrossed } from "lucide-react"
 import { Link } from "react-router-dom"
 import styled from "styled-components"
 
-import Navbar from "../components/Navbar"
 import { useTranslation } from "react-i18next"
 
 const NotFound = () => {
@@ -19,7 +18,6 @@ const NotFound = () => {
 
   return (
     <NotFoundPage className="not-found-page">
-      <Navbar />
 
       <NotFoundContent>
         <Copy>

@@ -5,7 +5,6 @@ import { ArrowLeft } from "lucide-react"
 import { authService } from "../services/authService"
 import { validateEmail, validatePassword } from "../utils/validation"
 import "./Auth.css"
-import Navbar from "../components/Navbar"
 import Footer from "../components/Footer"
 import { useToast } from "../components/ui/toastContext"
 import { useTranslation } from "react-i18next"
@@ -100,7 +99,6 @@ function ForgotPassword() {
   return (
     <>
     <div className="auth-container">
-      <Navbar />
 
       <div className="auth-card-stack">
         <button type="button" className="auth-back-button py-3 fw-semibold" onClick={() => navigate(-1)}>

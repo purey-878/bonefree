@@ -2,7 +2,6 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Clock, Mail, MapPin, Phone, Route, UtensilsCrossed } from "lucide-react";
 import styled from "styled-components";
-import Navbar from "../components/Navbar";
 import { useTranslation } from "react-i18next";
 
 const mapsUrl =
@@ -40,7 +39,6 @@ const Contact: React.FC = () => {
         <HeroGrid>
         
           <HeroCopy>
-              <Navbar />
             <h1>{t("contact.heroTitle")}</h1>
             <p>{t("contact.heroDescription")}</p>
             <HeroActions>
