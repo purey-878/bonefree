@@ -740,7 +740,7 @@ function Checkout() {
                     <ShoppingBag size={18} strokeWidth={2.4} aria-hidden="true" />
                     <span>
                       {t("checkout.confirmation.multipleOrders", { count: activeOrderCount })}{" "}
-                      <Link to={confirmationIsGuest ? "/orders" : "/profile?tab=orders"}>{t("checkout.confirmation.myOrders")}</Link>.
+                      <Link to="/orders">{t("checkout.confirmation.myOrders")}</Link>.
                     </span>
                   </div>
                 )}

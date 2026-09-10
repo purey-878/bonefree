@@ -23,6 +23,18 @@
   animation: order-status-bar-enter 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+.order-status-bar.is-hiding {
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .order-status-bar,
+  .order-status-row {
+    animation: none;
+  }
+}
+
 .order-status-bar-header {
   display: flex;
   align-items: center;
@@ -375,9 +387,9 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 767px) {
   .order-status-bar {
-    bottom: calc(64px + max(10px, env(safe-area-inset-bottom)));
+    bottom: calc(var(--mobile-nav-height, 64px) + var(--mobile-action-bar-height, 0px) + 10px);
     width: calc(100vw - 16px);
     border-radius: 16px;
     padding: 9px 10px 10px;
@@ -435,7 +447,7 @@
   }
 
   .order-status-mini {
-    bottom: calc(64px + max(10px, env(safe-area-inset-bottom)));
+    bottom: calc(var(--mobile-nav-height, 64px) + var(--mobile-action-bar-height, 0px) + 10px);
     max-width: calc(100vw - 16px);
   }
 }

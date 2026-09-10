@@ -2,7 +2,7 @@ import './theme.css'
 import './siteThemes.css'
 import './App.css'
 
-import { lazy, Suspense, useLayoutEffect } from 'react'
+import { lazy, Suspense, useLayoutEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import type { Location } from 'react-router-dom'
@@ -65,6 +65,7 @@ function RouteScroll({ location }: { location: Location }) {
 }
 
 function App() {
+  const [ongoingOrderCount, setOngoingOrderCount] = useState(0)
   const { capabilities } = useOrganization()
   const location = useLocation()
   const state = location.state as CartRouteState | null
@@ -85,7 +86,7 @@ function App() {
   return (
     <>
       <SiteThemeController />
-      {showNavbar && <Navbar location={visibleLocation} />}
+      {showNavbar && <Navbar location={visibleLocation} ongoingOrderCount={ongoingOrderCount} />}
       <div className="app-route-stage">
         <Suspense fallback={<RouteLoading />}>
           <Routes location={visibleLocation}>
@@ -114,7 +115,7 @@ function App() {
       )}
 
       <PrototypeNotice />
-      <OrderStatusBar />
+      <OrderStatusBar onCountChange={setOngoingOrderCount} />
       <CookieBanner />
       {!hideFooter && <Footer />}
     </>

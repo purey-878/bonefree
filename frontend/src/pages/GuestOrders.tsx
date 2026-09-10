@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Download, LoaderCircle, LogIn, PackageCheck, ReceiptText, UserPlus, X } from "lucide-react"
-import { Link, Navigate, useSearchParams } from "react-router-dom"
+import { Link, useSearchParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import RouteLoading from "../components/RouteLoading"
 
@@ -180,7 +180,6 @@ export default function GuestOrders() {
   }
 
   if (authLoading) return <RouteLoading />
-  if (isAuthenticated) return <Navigate to="/profile?tab=orders" replace />
 
   return (
     <section className="guest-orders-page site-page">
@@ -255,7 +254,7 @@ export default function GuestOrders() {
                   </div>
 
                   <footer>
-                    <Link to={`/orders/${order.orderId}`}><ReceiptText size={16} /> {t("guestOrders.details")}</Link>
+                    <Link to={`/orders/${order.orderId}`}><ReceiptText size={16} /> {t(order.status === "delivered" || order.status === "cancelled" ? "account:profile.orderCard.details" : "account:profile.orderCard.track")}</Link>
                     {order.paymentStatus === "paid" && (
                       <button
                         type="button"

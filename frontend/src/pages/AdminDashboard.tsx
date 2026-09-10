@@ -115,6 +115,7 @@ import type {
 } from "../types/siteSettings"
 import { defaultSiteThemeResponse, siteThemePresets, themePresetById } from "../siteThemes"
 import { defaultEventsSettings } from "../utils/eventSettings"
+import { defaultLoyaltyCouponSettings } from "../utils/loyaltyCoupon"
 import { defaultCompanyDetails, defaultSocialMediaSettings } from "../utils/footerSettings"
 import StaffOrdersBoard from "../components/admin-orders/StaffOrdersBoard"
 import KitchenOrdersBoard from "../components/admin-orders/KitchenOrdersBoard"
@@ -168,15 +169,6 @@ function handleAdminImageError(event: SyntheticEvent<HTMLImageElement>) {
 type TabType = AdminDashboardTab
 type AdminTheme = "light" | "dark"
 type SiteSettingsTab = "promote" | "coupons" | "theme" | "company" | "social" | "events"
-
-const defaultLoyaltyCouponSettings: LoyaltyCouponSettings = {
-  enabled: true,
-  qualifyingOrderCount: 3,
-  qualifyingOrderMinimum: "50.00",
-  discountType: "fixed_value",
-  discountValue: "20.00",
-  couponMinimumOrder: "0.00",
-}
 
 function normalizeLoyaltyCouponSettings(settings: LoyaltyCouponSettings): LoyaltyCouponSettings {
   const qualifyingOrderCount = Math.min(20, Math.max(1, Number(settings.qualifyingOrderCount) || 1))

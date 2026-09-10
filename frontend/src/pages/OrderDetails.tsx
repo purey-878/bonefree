@@ -168,11 +168,11 @@ export default function OrderDetails() {
   }
 
   const dismissOrder = () => {
-    navigate(isAuthenticated ? "/profile?tab=orders" : "/orders", { replace: true })
+    navigate("/orders", { replace: true })
   }
 
   const waitingForAccess = authLoading && !guestToken
-  const backToOrdersHref = isAuthenticated ? "/profile?tab=orders" : "/orders"
+  const backToOrdersHref = "/orders"
 
   if (orderId === -1 || notFoundOrderId === orderLookupKey) return <ResourceNotFound kind="order" />
 

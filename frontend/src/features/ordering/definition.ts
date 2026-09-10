@@ -5,7 +5,7 @@ import type { FeatureDefinition } from '../../app/manifest/types'
 const CartPage = lazy(() => import('../../pages/Cart'))
 const CartOverlayPage = lazy(() => import('./routes/CartOverlayPage'))
 const CheckoutPage = lazy(() => import('../../pages/Checkout'))
-const GuestOrdersPage = lazy(() => import('../../pages/GuestOrders'))
+const OrdersPage = lazy(() => import('../../pages/Orders'))
 const OrderDetailsPage = lazy(() => import('../../pages/OrderDetails'))
 
 export const orderingFeature: FeatureDefinition = {
@@ -14,7 +14,7 @@ export const orderingFeature: FeatureDefinition = {
     { id: 'cart', path: '/cart', component: CartPage },
     { id: 'cart_overlay', path: '/cart', component: CartOverlayPage, presentation: 'overlay' },
     { id: 'checkout', path: '/checkout', component: CheckoutPage },
-    { id: 'orders', path: '/orders', component: GuestOrdersPage },
+    { id: 'orders', path: '/orders', component: OrdersPage },
     { id: 'order_details', path: '/orders/:orderId', component: OrderDetailsPage },
   ],
   admin_route_ids: ['admin_orders', 'admin_kitchen'],

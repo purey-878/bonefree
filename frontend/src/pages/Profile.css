@@ -15,7 +15,7 @@
   position: relative;
   isolation: isolate;
   min-height: 100vh;
-  overflow: hidden;
+  overflow: clip;
   background:
     radial-gradient(circle at 12% 18%, color-mix(in srgb, var(--profile-highlight) 28%, transparent) 0 14rem, transparent 30rem),
     radial-gradient(circle at 86% 14%, color-mix(in srgb, var(--profile-accent) 24%, transparent) 0 16rem, transparent 34rem),
@@ -389,8 +389,7 @@
 }
 
 .profile-tabs {
-  position: sticky;
-  top: 76px;
+  position: relative;
   z-index: 15;
   gap: 6px;
   margin: 22px 0;
@@ -1410,10 +1409,6 @@
     width: 100%;
   }
 
-  .profile-tabs {
-    top: 64px;
-  }
-
   .profile-metric-grid,
   .profile-form-grid {
     grid-template-columns: 1fr;
@@ -1473,6 +1468,36 @@
 
   .profile-mobile-reorder button {
     width: 100%;
+  }
+}
+
+@media (max-width: 767px) {
+  .profile-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding-top: 76px;
+  }
+
+  .profile-tabs {
+    margin: 0;
+    flex-shrink: 0;
+  }
+
+  [data-profile-section] {
+    scroll-margin-top: 84px;
+  }
+
+  .profile-metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .profile-metric-card:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .profile-mobile-reorder {
+    position: static;
   }
 }
 

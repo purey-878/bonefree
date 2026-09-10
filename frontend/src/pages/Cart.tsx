@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { Trash2 } from "lucide-react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import type { Location } from "react-router-dom"
 import "../theme.css"
@@ -236,6 +237,8 @@ function Cart({ overlay = false }: CartProps) {
                         <button
                           type="button"
                           className="cart-remove"
+                          aria-label={t("cart.remove")}
+                          title={t("cart.remove")}
                           onClick={() => handleRemoveItem(
                             itemData.id,
                             lineKey,
@@ -244,7 +247,7 @@ function Cart({ overlay = false }: CartProps) {
                           )}
                           disabled={isUpdating}
                         >
-                          {t("cart.remove")}
+                          <Trash2 size={18} aria-hidden="true" />
                         </button>
                       </div>
                     </div>

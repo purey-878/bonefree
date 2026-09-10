@@ -1,0 +1,106 @@
+.customer-orders-page .profile-shell {
+  display: grid;
+  gap: 18px;
+}
+
+.customer-orders-page .profile-orders-heading h1 {
+  margin: 0;
+  color: var(--profile-ink);
+  font-size: clamp(1.6rem, 5vw, 2.2rem);
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.orders-date-range {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  flex: 1 1 280px;
+  gap: 8px;
+  min-width: 0;
+}
+
+.profile-filter-toolbar .orders-date-control {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  min-width: 0;
+  min-height: 48px;
+  gap: 0;
+  padding: 4px 8px;
+}
+
+.orders-date-control > span {
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.orders-date-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  height: 24px;
+}
+
+.profile-filter-toolbar .orders-date-input input {
+  position: relative;
+  height: 24px;
+  padding: 0 19px 0 0;
+  font-size: 0.78rem;
+  text-align: left;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.orders-date-input input::-webkit-date-and-time-value {
+  text-align: left;
+}
+
+.orders-date-input input::-webkit-calendar-picker-indicator {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.orders-date-input.is-empty input:not(:focus) {
+  color: transparent;
+}
+
+.orders-date-input.is-empty input:not(:focus)::-webkit-datetime-edit {
+  opacity: 0;
+}
+
+.orders-date-placeholder {
+  position: absolute;
+  left: 0;
+  font-size: 0.78rem;
+  pointer-events: none;
+}
+
+.orders-date-input input:focus + .orders-date-placeholder {
+  visibility: hidden;
+}
+
+.orders-date-input > svg {
+  position: absolute;
+  right: 0;
+  pointer-events: none;
+}
+
+.orders-date-control:focus-within {
+  outline: 2px solid var(--profile-accent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 767px) {
+  .orders-date-range {
+    flex-basis: 100%;
+    width: 100%;
+  }
+}

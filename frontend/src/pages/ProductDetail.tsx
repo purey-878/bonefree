@@ -47,7 +47,6 @@ import type { ItemCustomization, ProductCustomizationOptions } from "../types/ca
 import { applyApiImageFallback, productImageFallback, resolveProductImageUrl } from "../utils/imageFallback"
 import { formatEuro } from "../utils/money"
 import { productMediaUrl } from "../utils/productMedia"
-import { translateUserMessage } from "../utils/messages"
 import { useTranslation } from "react-i18next"
 import i18n, { resolvedLocale } from "../i18n"
 import { organizationStorage } from '../core/storage/organizationStorage'
@@ -169,7 +168,7 @@ export const ProductDetail = () => {
   const [reviewError, setReviewError] = useState<string | null>(null)
   const [reviewToDelete, setReviewToDelete] = useState<ProductReview | null>(null)
   const navigate = useNavigate()
-  const { token } = useAuth()
+  const { token, isAuthenticated, loading: authLoading } = useAuth()
   const toast = useToast()
   const imageFrameRef = useRef<HTMLDivElement | null>(null)
   const lastWrittenSearchRef = useRef(searchParams.toString())
@@ -425,26 +424,14 @@ export const ProductDetail = () => {
 
   const handleAddReviewClick = () => {
     setReviewError(null)
-    if (!reviewEligibility) {
-      toast.info(t("productDetail.reviewsLoading"))
-      return
-    }
-
-    if (!reviewEligibility.authenticated) {
-      toast.warning(t("productDetail.reviewLogin"))
-      return
-    }
+    if (!isAuthenticated || !reviewEligibility?.authenticated) return
 
     if (reviewEligibility.existingReview) {
       handleEditReview(reviewEligibility.existingReview)
-      toast.info(t("productDetail.alreadyReviewed"))
       return
     }
 
-    if (!canCreateReview) {
-      toast.warning(reviewEligibility.message)
-      return
-    }
+    if (!canCreateReview) return
 
     setEditingReviewId(null)
     setReviewFormOpen(true)
@@ -595,8 +582,9 @@ export const ProductDetail = () => {
   const totalReviews = reviewStats?.totalReviews ?? 0
   const existingProductReview = reviewEligibility?.existingReview ?? null
   const reviewableItems = existingProductReview ? [] : reviewEligibility?.items.filter(item => !item.existingReview) ?? []
-  const canCreateReview = Boolean(reviewEligibility?.authenticated && reviewableItems.length > 0)
-  const showReviewForm = (reviewFormOpen && canCreateReview) || editingReviewId !== null
+  const canCreateReview = Boolean(isAuthenticated && reviewEligibility?.authenticated && reviewEligibility.eligible && reviewableItems.length > 0)
+  const canEditReview = Boolean(isAuthenticated && reviewEligibility?.authenticated && existingProductReview)
+  const showReviewForm = (reviewFormOpen && canCreateReview) || (canEditReview && editingReviewId !== null)
   const activeImage = galleryImages[activeImageIndex] ?? galleryImages[0]
   const discountPercent = Number(product.discountPercent ?? 0)
   const showDiscount =
@@ -1024,9 +1012,9 @@ export const ProductDetail = () => {
               <p>{t("productDetail.customerReviews")}</p>
               <h2>{totalReviews > 0 ? t("productDetail.average", { rating: averageRating?.toFixed(1) }) : t("productDetail.firstReview")}</h2>
             </div>
-            <button type="button" className="pd-add-review-btn mb-4" onClick={handleAddReviewClick}>
+            {(canCreateReview || canEditReview) && <button type="button" className="pd-add-review-btn mb-4" onClick={handleAddReviewClick}>
               {existingProductReview ? t("productDetail.editReview") : t("productDetail.addReview")}
-            </button>
+            </button>}
           </div>
 
           <div className="pd-review-toolbar">
@@ -1090,11 +1078,13 @@ export const ProductDetail = () => {
             </div>
           )}
 
-          {!showReviewForm && reviewEligibility?.authenticated && <p className="pd-review-note">{translateUserMessage(reviewEligibility.message)}</p>}
-          {!showReviewForm && reviewEligibility && !reviewEligibility.authenticated && (
+          {!showReviewForm && isAuthenticated && reviewEligibility?.authenticated && (
+            <p className="pd-review-note">{t(canEditReview ? "productDetail.alreadyReviewed" : canCreateReview ? "productDetail.choosePurchased" : "productDetail.reviewPurchaseRequired")}</p>
+          )}
+          {!authLoading && !isAuthenticated && (
             <div className="pd-review-login">
-              <p>{translateUserMessage(reviewEligibility.message)}</p>
-              <Link to="/login">{t("productDetail.reviewSignIn")}</Link>
+              <p>{t("productDetail.reviewLoginDescription")}</p>
+              <Link to="/login" state={{ from: `/product/${id}#reviews` }}>{t("productDetail.reviewSignIn")}</Link>
             </div>
           )}
 

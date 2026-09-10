@@ -292,12 +292,16 @@
 }
 
 .cart-remove {
-  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  min-height: 44px;
   border: 1px solid rgba(255, 122, 122, 0.3);
   border-radius: var(--radius-sm);
   background: rgba(255, 122, 122, 0.1);
   color: #ffdada;
-  padding: 0 12px;
+  padding: 0;
   cursor: pointer;
   font-weight: 850;
 }

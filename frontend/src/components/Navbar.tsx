@@ -67,7 +67,13 @@ const drawerIn = keyframes`
 const NavigationGlobalStyles = createGlobalStyle`
   @media (max-width: 767px) {
     body {
-      padding-bottom: 64px;
+      --mobile-nav-height: calc(64px + env(safe-area-inset-bottom, 0px));
+      --mobile-action-bar-height: 0px;
+      padding-bottom: calc(var(--mobile-nav-height) + var(--mobile-action-bar-height));
+    }
+
+    body:has(.pd-mobile-bar) {
+      --mobile-action-bar-height: 56px;
     }
   }
 `;
@@ -781,7 +787,8 @@ const BottomNav = styled.nav`
   left: 0;
   z-index: 1090;
   display: none;
-  height: 64px;
+  height: var(--mobile-nav-height, 64px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   border-top: 1px solid var(--glass-border);
   background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 -12px 32px rgba(23, 33, 29, 0.08);
@@ -808,6 +815,11 @@ const BottomLink = styled(Link)<{ $active: boolean }>`
   line-height: 1;
   text-decoration: none;
 
+  .bottom-nav-icon {
+    position: relative;
+    display: inline-flex;
+  }
+
   svg {
     width: 21px;
     height: 21px;
@@ -819,7 +831,7 @@ const BottomLink = styled(Link)<{ $active: boolean }>`
   }
 `;
 
-const Navbar = ({ location: visibleLocation }: { location?: Location }) => {
+const Navbar = ({ location: visibleLocation, ongoingOrderCount }: { location?: Location; ongoingOrderCount: number }) => {
   const { t } = useTranslation("common");
   const { organization, experience, capabilities } = useOrganization()
   const routerLocation = useLocation();
@@ -857,6 +869,9 @@ const Navbar = ({ location: visibleLocation }: { location?: Location }) => {
       })),
     ...(hasCustomerAccounts
       ? [{ id: 'profile', route_id: 'profile', path: '/profile', label: t('navigation.profile'), icon: User }]
+      : []),
+    ...(hasOrdering
+      ? [{ id: 'orders', route_id: 'orders', path: '/orders', label: t('navigation.orders'), icon: ReceiptText }]
       : []),
   ]
 
@@ -978,7 +993,7 @@ const Navbar = ({ location: visibleLocation }: { location?: Location }) => {
   const fullName = [user?.name, user?.lastName].filter(Boolean).join(" ").trim();
   const displayName = fullName || user?.email || t("navigation.profile");
   const profileInitial = (fullName || user?.email || "P").trim().charAt(0).toUpperCase();
-  const ordersHref = isAuthenticated ? "/profile?tab=orders" : "/orders";
+  const ordersHref = "/orders";
   const glassDarkNav = location.pathname === "/" || location.pathname === "/contact" || location.pathname === "/about";
   const isAuthRoute = ["/login", "/register", "/forgot-password"].includes(location.pathname);
 
@@ -1012,9 +1027,9 @@ const Navbar = ({ location: visibleLocation }: { location?: Location }) => {
           <NavActions>
             <LanguageSwitcher />
             {hasOrdering && (isAuthenticated || guestOrderCount > 0) && (
-              <IconLink aria-label={t("navigation.orders")} to={ordersHref}>
+              <IconLink data-orders-destination="desktop" aria-label={t("navigation.orders")} aria-describedby={ongoingOrderCount > 0 ? "desktop-orders-count" : undefined} to={ordersHref}>
                 <ReceiptText size={21} />
-                {!isAuthenticated && guestOrderCount > 0 && <CartBadge key={guestOrderCount}>{guestOrderCount}</CartBadge>}
+                {ongoingOrderCount > 0 && <CartBadge id="desktop-orders-count" data-orders-count role="status" aria-label={t("storefront:order.tracker.ongoingCount", { count: ongoingOrderCount })}>{ongoingOrderCount}</CartBadge>}
               </IconLink>
             )}
             {hasOrdering && (
@@ -1045,7 +1060,7 @@ const Navbar = ({ location: visibleLocation }: { location?: Location }) => {
                       <User size={16} />
                       {t("navigation.profile")}
                     </AccountMenuLink>
-                    <AccountMenuLink onClick={closeAccountMenu} role="menuitem" to="/profile?tab=orders">
+                    <AccountMenuLink onClick={closeAccountMenu} role="menuitem" to="/orders">
                       <ReceiptText size={16} />
                       {t("navigation.orders")}
                     </AccountMenuLink>
@@ -1108,7 +1123,7 @@ const Navbar = ({ location: visibleLocation }: { location?: Location }) => {
                 ))}
                 {hasOrdering && (isAuthenticated || guestOrderCount > 0) && (
                   <DrawerLink
-                    $active={isAuthenticated ? location.pathname === "/profile" && location.search.includes("tab=orders") : isActive("/orders")}
+                    $active={isActive("/orders")}
                     onClick={closeDrawer}
                     to={ordersHref}
                   >
@@ -1160,18 +1175,20 @@ const Navbar = ({ location: visibleLocation }: { location?: Location }) => {
       />
 
       <BottomNav aria-label={t("navigation.mobileBottom")} >
-        {(isAuthenticated || guestOrderCount === 0 || !hasOrdering
-          ? bottomLinks
-          : bottomLinks.map((link) => link.path === "/profile"
-            ? { ...link, path: "/orders", label: t("navigation.orders"), icon: ReceiptText }
-            : link)
-        ).map(({ path, label, id, icon: Icon }) => (
+        {bottomLinks.map(({ path, label, id, icon: Icon }) => (
           <BottomLink
             $active={isActive(path)}
+            aria-current={isActive(path) ? "page" : undefined}
+            data-orders-destination={id === "orders" ? "mobile" : undefined}
+            aria-label={label}
+            aria-describedby={id === "orders" && ongoingOrderCount > 0 ? "mobile-orders-count" : undefined}
             key={id}
             to={path}
           >
-            <Icon aria-hidden="true" />
+            <span className="bottom-nav-icon">
+              <Icon aria-hidden="true" />
+              {id === "orders" && ongoingOrderCount > 0 && <CartBadge id="mobile-orders-count" data-orders-count role="status" aria-label={t("storefront:order.tracker.ongoingCount", { count: ongoingOrderCount })}>{ongoingOrderCount}</CartBadge>}
+            </span>
             <span>{label}</span>
           </BottomLink>
         ))}

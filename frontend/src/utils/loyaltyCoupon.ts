@@ -3,7 +3,7 @@ import { formatEuro, formatPercent } from "./money";
 import i18n from "../i18n";
 
 export const defaultLoyaltyCouponSettings: LoyaltyCouponSettings = {
-  enabled: true,
+  enabled: false,
   qualifyingOrderCount: 3,
   qualifyingOrderMinimum: "50.00",
   discountType: "fixed_value",

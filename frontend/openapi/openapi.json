@@ -3326,7 +3326,7 @@
             "title": "Discount Value"
           },
           "enabled": {
-            "default": true,
+            "default": false,
             "title": "Enabled",
             "type": "boolean"
           },
@@ -3374,7 +3374,7 @@
             "type": "string"
           },
           "enabled": {
-            "default": true,
+            "default": false,
             "title": "Enabled",
             "type": "boolean"
           },

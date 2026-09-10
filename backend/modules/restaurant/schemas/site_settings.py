@@ -153,7 +153,7 @@ class ChefSpecialSettings(BaseModel):
 
 
 class LoyaltyCouponSettings(BaseModel):
-    enabled: bool = True
+    enabled: bool = False
     qualifying_order_count: int = Field(default=3, ge=1, le=20)
     qualifying_order_minimum: Decimal = Field(default=Decimal("50.00"), ge=0)
     discount_type: CouponDiscountType = CouponDiscountType.FIXED_VALUE
