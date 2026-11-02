@@ -20,6 +20,7 @@ import { Link, useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import Navbar from "../components/Navbar"
 import { useToast } from "../components/ui/toastContext"
+
 import { useAuth, useCart } from "../hooks"
 import { cartService, checkoutService, customizationSummary, hasUnavailableCartItems, productService } from "../services"
 import { readGuestOrderAccesses, rememberGuestOrderAccess } from "../components/orderStatusStorage"
@@ -519,6 +520,7 @@ function Checkout() {
             </div>
 
             <section className="confirmation-premium-hero" aria-labelledby="order-confirmation-title">
+
               <div className="confirmation-success-motion" aria-hidden="true">
                 <svg className="confirmation-checkmark" viewBox="0 0 100 100">
                   <circle cx="50" cy="50" r="44" />

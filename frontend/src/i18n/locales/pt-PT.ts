@@ -112,6 +112,12 @@ const ptPT = {
       description: "Utilizamos cookies e armazenamento local para manter a sessão, o carrinho e as preferências, bem como para melhorar a experiência.",
       accept: "Aceitar todos os cookies",
     },
+    prototypeNotice: {
+      general: "Website de protótipo — não é o website oficial do Bonefree.",
+      account: "Esta conta é criada num ambiente de teste do protótipo e não corresponde a uma conta oficial do Bonefree.",
+      product: "Website de protótipo — não é o website oficial do Bonefree.",
+      close: "Fechar aviso",
+    },
     footer: { links: "Ligações", contact: "Contacto", follow: "Siga-nos", socialLabel: "Ligações para redes sociais", privacy: "Política de Privacidade", terms: "Termos e Condições", prototypeNotice: "Website de protótipo — não é o website oficial do Bonefree.", rights: "Todos os direitos reservados." },
     resourceNotFound: {
       product: {

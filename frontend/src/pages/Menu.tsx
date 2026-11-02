@@ -5,6 +5,7 @@ import { useRef } from "react";
 
 import Navbar from "../components/Navbar";
 import { Pagination, ProductCard, ProductCardSkeleton } from "../components/ui";
+
 import "./Menu.css";
 import "../theme.css";
 import { cartService, getPublicLoyaltyCouponSettings, productService } from "../services";

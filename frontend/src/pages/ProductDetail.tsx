@@ -30,6 +30,7 @@ import "./ProductDetail.css"
 import "../theme.css"
 import { isApiErrorWithStatus } from "../api/errors"
 import Navbar from "../components/Navbar"
+
 import ResourceNotFound from "../components/ResourceNotFound"
 import { AddToCartButton, AvailabilityBadge, Badge, Pagination, ProductCard, Skeleton, Textarea } from "../components/ui"
 import ConfirmDialog from "../components/ui/ConfirmDialog"

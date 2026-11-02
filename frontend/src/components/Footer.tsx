@@ -4,6 +4,7 @@ import { getPublicCompanyDetails, getPublicSocialMediaSettings } from "../servic
 import { defaultCompanyDetails, defaultSocialMediaSettings, socialIconPaths } from "../utils/footerSettings"
 import { useTranslation } from "react-i18next"
 
+
 const Footer: React.FC = () => {
   const { t } = useTranslation(["storefront", "common"])
   const [companyDetails, setCompanyDetails] = useState(defaultCompanyDetails)
@@ -84,7 +85,6 @@ const Footer: React.FC = () => {
 
         <div className="row">
           <div className="col text-center">
-            <p className="footer-prototype-notice">{t("footer.prototypeNotice")}</p>
             <p className="mb-0">&copy; {new Date().getFullYear()} {companyDetails.brandName}. {t("footer.rights")}</p>
 
           </div>

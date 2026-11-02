@@ -70,8 +70,8 @@ function Login() {
             {t('welcomeTitle')} <span className="green">.</span>
           </h1>
 
-
           {error && <div className="alert alert-danger">{error}</div>}
+
 
           <form onSubmit={handleSubmit} className="auth-form">
             <div className="form-group">

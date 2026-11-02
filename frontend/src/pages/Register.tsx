@@ -135,6 +135,7 @@ function Register() {
 
           {error && <div className="alert alert-danger">{error}</div>}
 
+
           <form onSubmit={handleSubmit} className="auth-form">
             <div className="form-group">
               <label htmlFor="email" className="form-label">
