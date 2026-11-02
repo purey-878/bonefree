@@ -323,15 +323,15 @@ const HomePage = () => {
   };
 
   return (
-    <HomeShell>
+    <HomeShell >
       <HeroSection>
         <HeroOverlay />
         <Navbar />
         <HeroContent>
 
           <HeroCopy>
-            <Eyebrow>
-              <Sparkles size={16} />
+            <Eyebrow className="mt-4">
+              <Sparkles size={16}  />
               {t("home.heroEyebrow")}
             </Eyebrow>
             <HeroTitle>{t("home.heroTitle")}</HeroTitle>

@@ -4,13 +4,13 @@ import { useTranslation } from "react-i18next";
 const WelcomeSection = () => {
   const { t } = useTranslation("storefront");
   return (
-    <section className="welcome container section-mt">
+    <section className="welcome container section-mt ">
       <div className="container">
         <div className="row align-items-center py-5">
 
           {/* Text column */}
           <div
-            className="col-lg-7 col-md-12 mb-4 mb-lg-0"
+            className="col-lg-7 col-md-12 mb-4 mb-lg-0 "
             data-aos="fade-right"
             data-aos-duration="300"
             data-aos-delay="100"

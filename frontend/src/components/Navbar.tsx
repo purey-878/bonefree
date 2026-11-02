@@ -80,6 +80,7 @@ const TopNav = styled.header<{ $glassDark?: boolean }>`
   /* Above sticky page controls, but below application overlays such as the cart drawer. */
   z-index: 1300;
   height:72px;
+  
 
   --nav-text: ${({ $glassDark }) =>
     $glassDark
@@ -985,7 +986,7 @@ const Navbar = () => {
               </IconLink>
             )}
             <IconLink aria-label={t("navigation.cart")} state={cartLinkState} to="/cart">
-              <ShoppingBag size={21} />
+              <ShoppingBag size={10}  />
               {cartCount > 0 && <CartBadge key={cartCount}>{cartCount}</CartBadge>}
             </IconLink>
 
@@ -1027,9 +1028,7 @@ const Navbar = () => {
                   <LogIn size={16} />
                   {t("account.signIn")}
                 </AuthLink>
-                <AuthLink $primary to="/register">
-                  {t("account.create")}
-                </AuthLink>
+                
               </>
             )}
           </NavActions>
@@ -1037,7 +1036,7 @@ const Navbar = () => {
           <MobileRight>
             <LanguageSwitcher className="language-switcher-mobile-nav" />
             <IconLink aria-label={t("navigation.cart")} state={cartLinkState} to="/cart">
-              <ShoppingBag size={22} />
+              <ShoppingBag size={16} />
               {cartCount > 0 && <CartBadge key={cartCount}>{cartCount}</CartBadge>}
             </IconLink>
           </MobileRight>
