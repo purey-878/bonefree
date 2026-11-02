@@ -30,6 +30,7 @@ venv/
 .env
 .env.*
 !.env.example
+!/frontend/.env.production
 examples/
 
 # Local databases and runtime files
