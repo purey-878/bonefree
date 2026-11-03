@@ -1,5 +1,5 @@
-import { ASSETS } from "../constants/assets";
 import { useTranslation } from "react-i18next";
+import { ASSETS } from "../constants/assets";
 
 const WelcomeSection = () => {
   const { t } = useTranslation("storefront");
@@ -28,15 +28,9 @@ const WelcomeSection = () => {
             </h1>
 
             <h6 className="lh-lg mb-4 text-muted">
-             {t("welcome.description")}
+              {t("welcome.description")}
             </h6>
 
-            <h4 className="fw-semi-bold fs-4 green">
-              {t("welcome.reviews")}
-            </h4>
-            <p className="text-muted">
-              {t("welcome.reviewScore")}
-            </p>
           </div>
 
           {/* Image column */}

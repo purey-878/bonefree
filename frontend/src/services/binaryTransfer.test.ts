@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { adminApiClient } from '../api/clients';
 import { uploadProductMedia } from './adminService';
-import { contentDispositionFilename } from './checkoutService';
 
 class MemoryStorage implements Storage {
   private values = new Map<string, string>();
@@ -15,20 +14,9 @@ class MemoryStorage implements Storage {
   setItem(key: string, value: string) { this.values.set(key, String(value)); }
 }
 
-describe('uploads and downloads', () => {
+describe('product media uploads', () => {
   beforeEach(() => {
     Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: new MemoryStorage() });
-  });
-
-  it('extracts regular and UTF-8 download filenames', () => {
-    expect(contentDispositionFilename(
-      new Response(null, { headers: { 'Content-Disposition': 'attachment; filename="receipt-42.pdf"' } }),
-      'fallback.pdf',
-    )).toBe('receipt-42.pdf');
-    expect(contentDispositionFilename(
-      new Response(null, { headers: { 'Content-Disposition': "attachment; filename*=UTF-8''fatura%2042.pdf" } }),
-      'fallback.pdf',
-    )).toBe('fatura 42.pdf');
   });
 
   it('sends product media as authenticated multipart data', async () => {

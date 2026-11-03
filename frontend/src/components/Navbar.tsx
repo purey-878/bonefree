@@ -1,29 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Home,
-  LogIn,
-  LogOut,
+  MapPin,
   Menu as MenuIcon,
-  ReceiptText,
-  ShoppingBag,
-  User,
   UtensilsCrossed,
-  X,
+  X
 } from "lucide-react";
-import styled, { createGlobalStyle, css, keyframes } from "styled-components";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
+import { Link, useLocation } from "react-router-dom";
+import styled, { createGlobalStyle, css, keyframes } from "styled-components";
 
-import ConfirmDialog from "./ui/ConfirmDialog";
 import LanguageSwitcher from "./LanguageSwitcher";
-import { useAuth } from "../hooks";
-import { cartService } from "../services";
-import {
-  GUEST_ORDERS_UPDATED_EVENT,
-  readGuestOrderAccesses,
-} from "./orderStatusStorage";
-
 const desktopLinks = [
   { path: "/", labelKey: "navigation.home" },
   { path: "/menu", labelKey: "navigation.menu" },
@@ -35,22 +23,8 @@ const desktopLinks = [
 const bottomLinks = [
   { path: "/", labelKey: "navigation.home", icon: Home },
   { path: "/menu", labelKey: "navigation.menu", icon: UtensilsCrossed },
-  { path: "/profile", labelKey: "navigation.profile", icon: User },
+  { path: "/contact", labelKey: "navigation.contact", icon: MapPin },
 ];
-
-const badgePop = keyframes`
-  0% {
-    transform: scale(0.72);
-  }
-
-  60% {
-    transform: scale(1.12);
-  }
-
-  100% {
-    transform: scale(1);
-  }
-`;
 
 const drawerIn = keyframes`
   from {
@@ -77,7 +51,7 @@ const TopNav = styled.header<{ $glassDark?: boolean }>`
   top: 0;
   right: 0;
   left: 0;
-  /* Above sticky page controls, but below application overlays such as the cart drawer. */
+  /* Above sticky page controls and below application overlays. */
   z-index: 1300;
   height:72px;
 
@@ -133,9 +107,9 @@ const TopNav = styled.header<{ $glassDark?: boolean }>`
 
   border-bottom:1px solid
     ${({ $glassDark }) =>
-      $glassDark
-        ? "rgba(255,255,255,0.16)"
-        : "rgba(23,33,29,0.12)"};
+    $glassDark
+      ? "rgba(255,255,255,0.16)"
+      : "rgba(23,33,29,0.12)"};
 
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
@@ -224,24 +198,12 @@ const CenterNav = styled.nav`
   }
 `;
 
-const popoverIn = keyframes`
-  from {
-    opacity: 0;
-    transform: translateY(-7px) scale(0.985);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-`;
-
 const backdropIn = keyframes`
   from { opacity: 0; }
   to { opacity: 1; }
 `;
 
-const PillLink = styled(Link)<{ $active: boolean }>`
+const PillLink = styled(Link) <{ $active: boolean }>`
   display: inline-flex;
   flex: 0 0 auto;
   min-height: 38px;
@@ -368,257 +330,6 @@ const IconAction = styled.button`
   }
 `;
 
-const IconLink = styled(Link)`
-  position: relative;
-  display: inline-grid;
-  width: 44px;
-  min-width: 44px;
-  height: 44px;
-  min-height: 44px;
-  flex: 0 0 44px;
-  place-items: center;
-  border: 1px solid var(--nav-border, var(--glass-border));
-  border-radius: var(--radius-sm);
-  background: var(--nav-surface, #ffffff);
-  color: var(--nav-strong, var(--brand-ink));
-  text-decoration: none;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(18px) saturate(150%);
-  -webkit-backdrop-filter: blur(18px) saturate(150%);
-  transition:
-    background 180ms ease,
-    border-color 180ms ease,
-    color 180ms ease,
-    transform 180ms ease;
-
-  > svg {
-    width: 21px;
-    min-width: 21px;
-    height: 21px;
-    flex: 0 0 21px;
-  }
-
-  &:hover {
-    transform: translateY(-1px);
-    border-color: rgba(138, 107, 0, 0.45);
-    background: var(--nav-surface-hover, #f4f8f1);
-    color: var(--nav-strong, var(--brand-secondary));
-  }
-`;
-
-const CartBadge = styled.span`
-  position: absolute;
-  top: -7px;
-  right: -7px;
-  display: inline-flex;
-  min-width: 20px;
-  height: 20px;
-  align-items: center;
-  justify-content: center;
-  padding: 0 0.32rem;
-  border: 1px solid rgba(255, 255, 255, 0.34);
-  border-radius: 999px;
-  background: var(--brand-accent);
-  color: #171915;
-  font-size: 0.7rem;
-  font-weight: 900;
-  line-height: 1;
-  box-shadow: 0 8px 18px rgba(253, 205, 67, 0.28);
-  animation: ${badgePop} 320ms ease;
-`;
-
-const AuthLink = styled(Link)<{ $primary?: boolean }>`
-  display: inline-flex;
-  flex: 0 0 auto;
-  min-height: 38px;
-  align-items: center;
-  justify-content: center;
-  gap: 0.45rem;
-  padding: 0 0.86rem;
-  border: 1px solid
-    ${({ $primary }) =>
-      $primary ? "rgba(138, 107, 0, 0.45)" : "var(--nav-border, var(--glass-border))"};
-  border-radius: var(--radius-sm);
-  background: ${({ $primary }) =>
-    $primary ? "var(--brand-gradient)" : "var(--nav-surface, #ffffff)"};
-  color: ${({ $primary }) => ($primary ? "var(--white)" : "var(--nav-strong, var(--brand-ink))")};
-  font-size: 0.86rem;
-  font-weight: 800;
-  text-decoration: none;
-  white-space: nowrap;
-  transition:
-    transform 180ms ease,
-    border-color 180ms ease,
-    background 180ms ease;
-
-  &:hover {
-    transform: translateY(-1px);
-    border-color: rgba(138, 107, 0, 0.52);
-    color: ${({ $primary }) => ($primary ? "var(--white)" : "var(--nav-strong, var(--brand-ink))")};
-  }
-
-  > svg {
-    width: 16px;
-    min-width: 16px;
-    height: 16px;
-    flex: 0 0 16px;
-  }
-
-  @media (min-width: 1280px) and (max-width: 1439px) {
-    padding-inline: 0.58rem;
-    font-size: 0.8rem;
-  }
-`;
-
-const AuthButton = styled.button`
-  display: inline-flex;
-  flex: 0 0 auto;
-  min-height: 38px;
-  align-items: center;
-  justify-content: center;
-  gap: 0.45rem;
-  padding: 0 0.86rem;
-  border: 1px solid rgba(138, 107, 0, 0.45);
-  border-radius: var(--radius-sm);
-  background: var(--brand-gradient);
-  color: var(--white);
-  font-size: 0.86rem;
-  font-weight: 800;
-  white-space: nowrap;
-  transition:
-    transform 180ms ease,
-    border-color 180ms ease;
-
-  &:hover {
-    transform: translateY(-1px);
-    border-color: rgba(138, 107, 0, 0.52);
-  }
-
-
-  > svg {
-    width: 16px;
-    min-width: 16px;
-    height: 16px;
-    flex: 0 0 16px;
-  }
-`;
-
-const AccountMenu = styled.div`
-  position: relative;
-  flex: 0 0 auto;
-`;
-
-const AccountButton = styled.button`
-  display: inline-grid;
-  width: 44px;
-  height: 44px;
-  place-items: center;
-  border: 1px solid var(--brand-main);
-  border-radius: 999px;
-  background: var(--brand-main);
-  color: #ffffff;
-  font-size: 0.94rem;
-  font-weight: 900;
-  line-height: 1;
-  text-transform: uppercase;
-  box-shadow: 0 8px 18px rgba(23, 33, 29, 0.08);
-  transition:
-    transform 180ms ease,
-    border-color 180ms ease,
-    background 180ms ease,
-    color 180ms ease;
-
-  &:hover {
-    transform: translateY(-1px);
-    border-color: var(--brand-secondary);
-    background: var(--brand-secondary);
-    color: #ffffff;
-  }
-`;
-
-const AccountDropdown = styled.div`
-  position: absolute;
-  top: calc(100% + 0.75rem);
-  right: 0;
-  z-index: 1130;
-  display: grid;
-  width: min(260px, calc(100vw - 2rem));
-  gap: 0.45rem;
-  padding: 0.7rem;
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-sm);
-  background: #ffffff;
-  box-shadow: 0 22px 52px rgba(23, 33, 29, 0.16);
-  backdrop-filter: blur(22px) saturate(150%);
-  -webkit-backdrop-filter: blur(22px) saturate(150%);
-  transform-origin: top right;
-  animation: ${popoverIn} 190ms cubic-bezier(0.22, 1, 0.36, 1) both;
-`;
-
-const AccountSummary = styled.div`
-  display: grid;
-  gap: 0.2rem;
-  padding: 0.35rem 0.45rem 0.65rem;
-  border-bottom: 1px solid var(--glass-border);
-`;
-
-const AccountName = styled.span`
-  overflow: hidden;
-  color: var(--brand-ink);
-  font-size: 0.92rem;
-  font-weight: 900;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-
-const AccountEmail = styled.span`
-  overflow: hidden;
-  color: var(--brand-muted);
-  font-size: 0.8rem;
-  font-weight: 700;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-
-const AccountMenuLink = styled(Link)`
-  display: flex;
-  min-height: 40px;
-  align-items: center;
-  gap: 0.55rem;
-  padding: 0 0.6rem;
-  border-radius: var(--radius-sm);
-  color: var(--brand-ink);
-  font-size: 0.86rem;
-  font-weight: 800;
-  text-decoration: none;
-
-  &:hover {
-    background: #f4f8f1;
-    color: var(--brand-secondary);
-  }
-`;
-
-const AccountMenuButton = styled.button`
-  display: flex;
-  min-height: 40px;
-  width: 100%;
-  align-items: center;
-  gap: 0.55rem;
-  padding: 0 0.6rem;
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--brand-ink);
-  font-size: 0.86rem;
-  font-weight: 800;
-  text-align: left;
-
-  &:hover {
-    background: #f4f8f1;
-    color: var(--brand-secondary);
-  }
-`;
-
 const Backdrop = styled.button`
   position: fixed;
   inset: 72px 0 0;
@@ -698,7 +409,7 @@ const DrawerNav = styled.nav`
   gap: 0.2rem;
 `;
 
-const DrawerLink = styled(Link)<{ $active: boolean }>`
+const DrawerLink = styled(Link) <{ $active: boolean }>`
   display: flex;
   min-height: 44px;
   align-items: center;
@@ -730,50 +441,6 @@ const DrawerLink = styled(Link)<{ $active: boolean }>`
   }
 `;
 
-const DrawerAuth = styled.div`
-  display: grid;
-  gap: 0.75rem;
-  padding-top: 1rem;
-  margin-top: auto;
-  border-top: 1px solid rgba(23, 33, 29, 0.1);
-`;
-
-const DrawerWelcome = styled.p`
-  margin: 0;
-  color: var(--brand-muted);
-  font-size: 0.92rem;
-  font-weight: 700;
-`;
-
-const DrawerAuthGrid = styled.div`
-  display: grid;
-  gap: 0.5rem;
-
-  ${AuthLink},
-  ${AuthButton} {
-    min-height: 42px;
-    border-color: rgba(23, 33, 29, 0.12);
-    border-radius: 10px;
-    background: #ffffff;
-    color: #17211d;
-    box-shadow: none;
-  }
-
-  ${AuthLink}:hover,
-  ${AuthButton}:hover {
-    border-color: rgba(23, 33, 29, 0.18);
-    background: #f7f8f5;
-    color: #17211d;
-    transform: none;
-  }
-
-  ${AuthLink}[href="/register"] {
-    border-color: #17211d;
-    background: #17211d;
-    color: #ffffff;
-  }
-`;
-
 const BottomNav = styled.nav`
   position: fixed;
   right: 0;
@@ -794,7 +461,7 @@ const BottomNav = styled.nav`
   }
 `;
 
-const BottomLink = styled(Link)<{ $active: boolean }>`
+const BottomLink = styled(Link) <{ $active: boolean }>`
   position: relative;
   display: flex;
   min-width: 0;
@@ -822,326 +489,33 @@ const BottomLink = styled(Link)<{ $active: boolean }>`
 const Navbar = () => {
   const { t } = useTranslation("common");
   const location = useLocation();
-  const navigate = useNavigate();
-  const { isAuthenticated, user, logout } = useAuth();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [accountOpenPath, setAccountOpenPath] = useState<string | null>(null);
-  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
-  const [cartCount, setCartCount] = useState(0);
-  const [guestOrderCount, setGuestOrderCount] = useState(() => readGuestOrderAccesses().length);
-  const accountMenuRef = useRef<HTMLDivElement | null>(null);
-  const accountOpen = accountOpenPath === location.pathname;
-
-  const cartLinkState = useMemo(
-    () =>
-      location.pathname === "/cart"
-        ? undefined
-        : {
-            backgroundLocation: location,
-            from: `${location.pathname}${location.search}${location.hash}`,
-          },
-    [location],
-  );
-
-  const isActive = (path: string) => {
-    if (path === "/") return location.pathname === "/";
-    if (path === "/menu") {
-      return location.pathname.startsWith("/menu") || location.pathname.startsWith("/product");
-    }
-    return location.pathname.startsWith(path);
-  };
-
   const closeDrawer = () => setDrawerOpen(false);
-  const closeAccountMenu = () => setAccountOpenPath(null);
-
+  const isActive = (path: string) => path === "/" ? location.pathname === "/" : path === "/menu" ? /^\/(menu|product)(\/|$)/.test(location.pathname) : location.pathname.startsWith(path);
+  const glassDarkNav = ["/", "/contact", "/about"].includes(location.pathname);
   useEffect(() => {
-    document.body.style.overflow = drawerOpen ? "hidden" : "";
-
-    return () => {
-      document.body.style.overflow = "";
-    };
+    if (!drawerOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") closeDrawer(); };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => { document.body.style.overflow = previous; document.removeEventListener("keydown", closeOnEscape); };
   }, [drawerOpen]);
-
-  useEffect(() => {
-    if (!accountOpen) return;
-
-    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
-      if (
-        accountMenuRef.current &&
-        !accountMenuRef.current.contains(event.target as Node)
-      ) {
-        closeAccountMenu();
-      }
-    };
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") closeAccountMenu();
-    };
-
-    document.addEventListener("mousedown", handlePointerDown);
-    document.addEventListener("touchstart", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
-      document.removeEventListener("touchstart", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [accountOpen]);
-
-  useEffect(() => {
-    const fetchCartCount = async () => {
-      try {
-        const cart = await cartService.getCart();
-        setCartCount(cart.items?.length ?? 0);
-      } catch (error) {
-        console.error("Error fetching cart:", error);
-      }
-    };
-
-    fetchCartCount();
-  }, [location.pathname]);
-
-  useEffect(() => {
-    const handleCartUpdate = async () => {
-      try {
-        const cart = await cartService.getCart();
-        setCartCount(cart.items?.length ?? 0);
-      } catch (error) {
-        console.error("Error fetching cart:", error);
-      }
-    };
-
-    window.addEventListener("cartUpdated", handleCartUpdate);
-    handleCartUpdate();
-
-    return () => window.removeEventListener("cartUpdated", handleCartUpdate);
-  }, []);
-
-  useEffect(() => {
-    const refreshGuestOrderCount = () => setGuestOrderCount(readGuestOrderAccesses().length);
-    window.addEventListener(GUEST_ORDERS_UPDATED_EVENT, refreshGuestOrderCount);
-    window.addEventListener("storage", refreshGuestOrderCount);
-    return () => {
-      window.removeEventListener(GUEST_ORDERS_UPDATED_EVENT, refreshGuestOrderCount);
-      window.removeEventListener("storage", refreshGuestOrderCount);
-    };
-  }, []);
-
-  const requestLogout = () => {
-    closeDrawer();
-    closeAccountMenu();
-    setLogoutConfirmOpen(true);
-  };
-
-  const handleLogout = () => {
-    logout();
-    closeDrawer();
-    closeAccountMenu();
-    setLogoutConfirmOpen(false);
-    navigate("/");
-  };
-
-  const fullName = [user?.name, user?.lastName].filter(Boolean).join(" ").trim();
-  const displayName = fullName || user?.email || t("navigation.profile");
-  const profileInitial = (fullName || user?.email || "P").trim().charAt(0).toUpperCase();
-  const ordersHref = isAuthenticated ? "/profile?tab=orders" : "/orders";
-  const glassDarkNav = location.pathname === "/" || location.pathname === "/contact" || location.pathname === "/about";
-  const isAuthRoute = ["/login", "/register", "/forgot-password"].includes(location.pathname);
-
-  return createPortal(
-    <>
-      <NavigationGlobalStyles />
-      <TopNav $glassDark={glassDarkNav}>
-        <NavInner>
-          <MobileLeft>
-            <IconAction
-              aria-label={t("navigation.openMenu")}
-              onClick={() => setDrawerOpen(true)}
-              type="button"
-            >
-              <MenuIcon size={22} />
-            </IconAction>
-          </MobileLeft>
-
-          <Logo className="logo-bonefree" aria-label={t("navigation.bonefreeHome")} onClick={closeDrawer} to="/">
-            <img src="/assets/images/bonefree-logo.webp" className="img-fluid img-25" alt="Bonefree" />
-          </Logo>
-
-          <CenterNav aria-label={t("navigation.main")}>
-            {desktopLinks.map(({ path, labelKey }) => (
-              <PillLink $active={isActive(path)} key={path} to={path}>
-                {t(labelKey)}
-              </PillLink>
-            ))}
-          </CenterNav>
-
-          <NavActions>
-            <LanguageSwitcher />
-            {(isAuthenticated || guestOrderCount > 0) && (
-              <IconLink aria-label={t("navigation.orders")} to={ordersHref}>
-                <ReceiptText size={21} />
-                {!isAuthenticated && guestOrderCount > 0 && <CartBadge key={guestOrderCount}>{guestOrderCount}</CartBadge>}
-              </IconLink>
-            )}
-            <IconLink aria-label={t("navigation.cart")} state={cartLinkState} to="/cart">
-              <ShoppingBag size={21} />
-              {cartCount > 0 && <CartBadge key={cartCount}>{cartCount}</CartBadge>}
-            </IconLink>
-
-            {isAuthenticated ? (
-              <AccountMenu ref={accountMenuRef}>
-                <AccountButton
-                  aria-expanded={accountOpen}
-                  aria-haspopup="menu"
-                  aria-label={t("account.openMenu")}
-                  onClick={() => setAccountOpenPath((openPath) => openPath === location.pathname ? null : location.pathname)}
-                  type="button"
-                >
-                  {profileInitial}
-                </AccountButton>
-                {accountOpen && (
-                  <AccountDropdown role="menu">
-                    <AccountSummary>
-                      <AccountName>{displayName}</AccountName>
-                      {user?.email && <AccountEmail>{user.email}</AccountEmail>}
-                    </AccountSummary>
-                    <AccountMenuLink onClick={closeAccountMenu} role="menuitem" to="/profile">
-                      <User size={16} />
-                      {t("navigation.profile")}
-                    </AccountMenuLink>
-                    <AccountMenuLink onClick={closeAccountMenu} role="menuitem" to="/profile?tab=orders">
-                      <ReceiptText size={16} />
-                      {t("navigation.orders")}
-                    </AccountMenuLink>
-                    <AccountMenuButton onClick={requestLogout} role="menuitem" type="button">
-                      <LogOut size={16} />
-                      {t("account.signOut")}
-                    </AccountMenuButton>
-                  </AccountDropdown>
-                )}
-              </AccountMenu>
-            ) : isAuthRoute ? null : (
-              <>
-                <AuthLink to="/login">
-                  <LogIn size={16} />
-                  {t("account.signIn")}
-                </AuthLink>
-                <AuthLink $primary to="/register">
-                  {t("account.create")}
-                </AuthLink>
-              </>
-            )}
-          </NavActions>
-
-          <MobileRight>
-            <LanguageSwitcher className="language-switcher-mobile-nav" />
-            <IconLink aria-label={t("navigation.cart")} state={cartLinkState} to="/cart">
-              <ShoppingBag size={22} />
-              {cartCount > 0 && <CartBadge key={cartCount}>{cartCount}</CartBadge>}
-            </IconLink>
-          </MobileRight>
-        </NavInner>
-      </TopNav>
-
-      {drawerOpen && (
-        <>
-          <Backdrop aria-label={t("navigation.closeMenu")} onClick={closeDrawer} type="button" />
-          <MobileDrawer aria-label={t("navigation.mobile")}>
-            <DrawerHeader>
-              <Logo aria-label={t("navigation.bonefreeHome")} onClick={closeDrawer} to="/">
-                <img src="/assets/images/bonefree-logo.webp" className="img-fluid img-25" alt="Bonefree" />
-              </Logo>
-              <IconAction aria-label={t("navigation.closeMenu")} onClick={closeDrawer} type="button">
-                <X size={22} />
-              </IconAction>
-            </DrawerHeader>
-
-            <DrawerBody>
-              <DrawerNav>
-                {desktopLinks.map(({ path, labelKey }) => (
-                  <DrawerLink
-                    $active={isActive(path)}
-                    key={path}
-                    onClick={closeDrawer}
-                    to={path}
-                  >
-                    {t(labelKey)}
-                  </DrawerLink>
-                ))}
-                {(isAuthenticated || guestOrderCount > 0) && (
-                  <DrawerLink
-                    $active={isAuthenticated ? location.pathname === "/profile" && location.search.includes("tab=orders") : isActive("/orders")}
-                    onClick={closeDrawer}
-                    to={ordersHref}
-                  >
-                    {t("navigation.orders")}
-                  </DrawerLink>
-                )}
-              </DrawerNav>
-
-              <DrawerAuth>
-                {isAuthenticated ? (
-                  <>
-                    {displayName && <DrawerWelcome>{displayName}</DrawerWelcome>}
-                    <DrawerAuthGrid>
-                      <AuthLink onClick={closeDrawer} to="/profile">
-                        <User size={16} />
-                        {t("navigation.profile")}
-                      </AuthLink>
-                      <AuthButton onClick={requestLogout} type="button">
-                        <LogOut size={16} />
-                        {t("account.signOut")}
-                      </AuthButton>
-                    </DrawerAuthGrid>
-                  </>
-                ) : isAuthRoute ? null : (
-                  <DrawerAuthGrid>
-                    <AuthLink onClick={closeDrawer} to="/login">
-                      <LogIn size={16} />
-                      {t("account.signIn")}
-                    </AuthLink>
-                    <AuthLink $primary onClick={closeDrawer} to="/register">
-                      {t("account.create")}
-                    </AuthLink>
-                  </DrawerAuthGrid>
-                )}
-              </DrawerAuth>
-            </DrawerBody>
-          </MobileDrawer>
-        </>
-      )}
-
-      <ConfirmDialog
-        open={logoutConfirmOpen}
-        title={t("account.signOutTitle")}
-        description={t("account.signOutDescription")}
-        confirmText={t("account.signOut")}
-        cancelText={t("actions.cancel")}
-        onConfirm={handleLogout}
-        onCancel={() => setLogoutConfirmOpen(false)}
-      />
-
-      <BottomNav aria-label={t("navigation.mobileBottom")} >
-        {(isAuthenticated || guestOrderCount === 0
-          ? bottomLinks
-          : bottomLinks.map((link) => link.path === "/profile"
-            ? { path: "/orders", labelKey: "navigation.orders", icon: ReceiptText }
-            : link)
-        ).map(({ path, labelKey, icon: Icon }) => (
-          <BottomLink
-            $active={isActive(path)}
-            key={path}
-            to={path}
-          >
-            <Icon aria-hidden="true" />
-            <span>{t(labelKey)}</span>
-          </BottomLink>
-        ))}
-      </BottomNav>
-    </>,
-    document.body,
-  );
+  return createPortal(<>
+    <NavigationGlobalStyles />
+    <TopNav $glassDark={glassDarkNav}><NavInner>
+      <MobileLeft><IconAction aria-label={t("navigation.openMenu")} onClick={() => setDrawerOpen(true)} type="button"><MenuIcon size={22} /></IconAction></MobileLeft>
+      <Logo className="logo-bonefree" aria-label={t("navigation.bonefreeHome")} onClick={closeDrawer} to="/"><img src="/assets/images/bonefree-logo.webp" className="img-fluid img-25" alt="Bonefree" /></Logo>
+      <CenterNav aria-label={t("navigation.main")}>{desktopLinks.map(({ path, labelKey }) => <PillLink $active={isActive(path)} key={path} to={path}>{t(labelKey)}</PillLink>)}</CenterNav>
+      <NavActions><LanguageSwitcher /></NavActions>
+      <MobileRight><LanguageSwitcher className="language-switcher-mobile-nav" /></MobileRight>
+    </NavInner></TopNav>
+    {drawerOpen && <><Backdrop aria-label={t("navigation.closeMenu")} onClick={closeDrawer} type="button" /><MobileDrawer aria-label={t("navigation.mobile")}>
+      <DrawerHeader><Logo aria-label={t("navigation.bonefreeHome")} onClick={closeDrawer} to="/"><img src="/assets/images/bonefree-logo.webp" className="img-fluid img-25" alt="Bonefree" /></Logo><IconAction aria-label={t("navigation.closeMenu")} onClick={closeDrawer} type="button"><X size={22} /></IconAction></DrawerHeader>
+      <DrawerBody><DrawerNav>{desktopLinks.map(({ path, labelKey }) => <DrawerLink $active={isActive(path)} key={path} onClick={closeDrawer} to={path}>{t(labelKey)}</DrawerLink>)}</DrawerNav></DrawerBody>
+    </MobileDrawer></>}
+    <BottomNav aria-label={t("navigation.mobileBottom")}>{bottomLinks.map(({ path, labelKey, icon: Icon }) => <BottomLink $active={isActive(path)} key={path} to={path}><Icon aria-hidden="true" /><span>{t(labelKey)}</span></BottomLink>)}</BottomNav>
+  </>, document.body);
 };
 
 export default Navbar;

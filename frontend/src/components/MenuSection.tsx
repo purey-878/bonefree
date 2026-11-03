@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { productService } from '../services';
 import type { Product } from '../types/product';
-import { useTranslation } from 'react-i18next';
 
 type ProductsByCategory = Record<string, Product[]>;
 
@@ -14,7 +14,7 @@ const MenuSection: React.FC = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const data = await productService.getPage({ page: 1, perPage: 20, sort: "popular" });
+        const data = await productService.getPage({ page: 1, perPage: 20, sort: "default" });
         setProducts(data.items);
       } catch (fetchError) {
         setError(t('menuSection.loadError'));
@@ -46,12 +46,8 @@ const MenuSection: React.FC = () => {
             <div key={category} className="menu-column glassy-card title-menu">
               <h2>{category}</h2>
 
-             <div className="custom-border-bottom my-3"></div>
+              <div className="custom-border-bottom my-3"></div>
 
-             
-            
-
-           
               {items.map((item) => (
                 <div key={item.id} className="menu-item">
                   <h3>{item.name}</h3>

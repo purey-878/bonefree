@@ -6,24 +6,11 @@ export type ApiErrorField = {
 };
 
 const EXACT_MESSAGE_TRANSLATIONS: Record<string, string> = {
-  "Failed to load cart": "cartLoad",
-  "Failed to add item": "cartAdd",
-  "Failed to remove item": "cartRemove",
-  "Failed to update quantity": "cartQuantity",
-  "Failed to clear cart": "cartClear",
+
   "Failed to fetch products": "productsLoad",
-  "Failed to get cart": "cartLoad",
-  "Failed to add customized item": "customItemAdd",
-  "Failed to update item": "itemUpdate",
-  "Failed to merge cart": "cartMerge",
-  "Failed to place order": "orderPlace",
-  "Failed to download receipt": "receiptDownload",
-  "Failed to fetch order history": "orderHistoryLoad",
-  "Failed to cancel order": "orderCancel",
-  "Failed to fetch coupons": "couponsLoad",
-  "Failed to validate coupon": "couponValidate",
+
   "Unable to add this item.": "itemAdd",
-  "Item added to cart.": "itemAdded",
+
   "Please fix the highlighted fields.": "fixFields",
   "Product updated successfully.": "productUpdated",
   "Product added successfully.": "productAdded",
@@ -57,17 +44,7 @@ const EXACT_MESSAGE_TRANSLATIONS: Record<string, string> = {
   "Produto indisponível.": "productUnavailable",
   "Não foi possível alterar a disponibilidade do ingrediente": "ingredientAvailability",
   "Não foi possível alterar a disponibilidade do produto": "productAvailability",
-  "Order status updated successfully.": "orderStatusUpdated",
-  "Unable to update order status.": "orderStatusUpdate",
-  "Order marked as paid.": "orderPaid",
-  "Unable to mark order as paid.": "orderMarkPaid",
-  "Customer updated successfully.": "customerUpdated",
-  "Customer created successfully.": "customerCreated",
-  "Unable to save customer.": "customerSave",
-  "Customer deactivated successfully.": "customerDeactivated",
-  "Unable to deactivate customer.": "customerDeactivate",
-  "Customer reactivated successfully.": "customerReactivated",
-  "Unable to reactivate customer.": "customerReactivate",
+
   "Staff admin updated successfully.": "adminUpdated",
   "Staff admin created successfully.": "adminCreated",
   "Unable to save staff admin.": "adminSave",
@@ -80,21 +57,12 @@ const EXACT_MESSAGE_TRANSLATIONS: Record<string, string> = {
   "Unable to deactivate staff admin.": "adminDeactivate",
   "Staff admin reactivated successfully.": "adminReactivated",
   "Unable to reactivate staff admin.": "adminReactivate",
-  "Reply text cannot be empty.": "replyEmpty",
-  "O texto da resposta não pode estar vazio.": "replyEmpty",
+
   "A palavra-passe é obrigatória para um novo administrador": "adminPasswordRequired",
-  "Review reply updated successfully.": "replyUpdated",
-  "Review reply posted successfully.": "replyPosted",
-  "Unable to save review reply.": "replySave",
-  "Review reply deleted successfully.": "replyDeleted",
-  "Unable to delete review reply.": "replyDelete",
+
   "Admin session not loaded.": "adminSession",
   "Admin session not loaded": "adminSession",
-  "Review reaction removed.": "reactionRemoved",
-  "Review reaction updated.": "reactionUpdated",
-  "Unable to update review reaction.": "reactionUpdate",
-  "Choose a purchased item to review.": "choosePurchased",
-  "You already reviewed this product. Edit your existing review instead.": "alreadyReviewed",
+
 };
 
 const ERROR_CODE_TRANSLATIONS: Record<string, string> = {
@@ -119,13 +87,9 @@ const ERROR_CODE_TRANSLATIONS: Record<string, string> = {
   product_not_found: "codes.productNotFound",
   category_not_found: "codes.categoryNotFound",
   ingredient_not_found: "codes.ingredientNotFound",
-  order_not_found: "codes.orderNotFound",
+
   customer_not_found: "codes.customerNotFound",
-  cart_item_not_found: "codes.cartItemNotFound",
-  coupon_not_found: "codes.couponNotFound",
-  invalid_coupon: "codes.invalidCoupon",
-  coupon_expired: "codes.couponExpired",
-  coupon_not_active: "codes.couponInactive",
+
   product_unavailable: "codes.productUnavailable",
   ingredient_unavailable: "codes.ingredientUnavailable",
 };
@@ -198,22 +162,6 @@ export function translateUserMessage(message: string): string {
     return failedActionMessage(unableAction[1], translatedResource(unableAction[2]));
   }
 
-  const couldNotBeAdded = trimmed.match(/^(.+?)\s+could not be added\.?$/i);
-  if (couldNotBeAdded?.[1]) {
-    return i18n.t("messages.couldNotAdd", { ns: "errors", item: couldNotBeAdded[1] });
-  }
-
-  const addedItems = trimmed.match(/^Added\s+(\d+)\s+items?\s+to cart\.?$/i);
-  if (addedItems?.[1]) {
-    const count = Number(addedItems[1]);
-    return i18n.t("messages.itemsAdded", { ns: "errors", count });
-  }
-
-  const addedQuantity = trimmed.match(/^Added\s+(\d+)x\s+(.+?)\s+to cart\.?$/i);
-  if (addedQuantity?.[1] && addedQuantity?.[2]) {
-    return i18n.t("messages.quantityAdded", { ns: "errors", count: addedQuantity[1], item: addedQuantity[2] });
-  }
-
   return trimmed;
 }
 
@@ -229,13 +177,13 @@ function failedActionMessage(action: string, resource: string): string {
 function translatedResource(resource: string): string {
   const normalized = resource.trim().toLowerCase();
   const resources: Record<string, string> = {
-    "dashboard analytics": "dashboardAnalytics", "current admin": "currentAdmin", products: "products", product: "product",
-    "product analytics": "productAnalytics", ingredients: "ingredients", ingredient: "ingredient", orders: "orders",
-    "staff orders": "staffOrders", "kitchen orders": "kitchenOrders", order: "order", customers: "customers", customer: "customer",
+    "current admin": "currentAdmin", products: "products", product: "product",
+    ingredients: "ingredients", ingredient: "ingredient",
+
     "staff admins": "staffAdmins", "staff admin": "staffAdmin", categories: "categories", category: "category", image: "image",
-    "unavailable products": "unavailableProducts", "popular products": "popularProducts", "sales performance": "salesPerformance",
-    "analytics series": "analyticsSeries", reviews: "reviews", "review reply": "reviewReply", "review reaction": "reviewReaction",
-    reaction: "reaction", dashboard: "dashboard", "analytics chart": "analyticsChart", "site settings": "siteSettings",
+    "unavailable products": "unavailableProducts",
+
+    dashboard: "dashboard", "site settings": "siteSettings",
   };
   const key = resources[normalized];
   return key ? i18n.t(`resources.${key}`, { ns: "errors" }) : resource;

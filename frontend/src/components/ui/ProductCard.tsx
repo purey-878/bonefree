@@ -1,19 +1,18 @@
+import { Flame } from 'lucide-react'
 import type {
   ComponentPropsWithoutRef,
   MouseEvent,
   SyntheticEvent,
 } from 'react'
-import { Flame } from 'lucide-react'
 import styled, { css } from 'styled-components'
 
-import { AddToCartButton } from './Button'
-import { AvailabilityBadge, Badge } from './Badge'
+import { useTranslation } from 'react-i18next'
+import { resolvedLocale } from '../../i18n'
+import type { ProductMedia as ProductMediaItem } from '../../types/product'
 import { applyApiImageFallback, productImageFallback, resolveProductImageUrl } from '../../utils/imageFallback'
 import { formatEuro } from '../../utils/money'
 import { primaryProductMediaUrl } from '../../utils/productMedia'
-import type { ProductMedia as ProductMediaItem } from '../../types/product'
-import { useTranslation } from 'react-i18next'
-import { resolvedLocale } from '../../i18n'
+import { AvailabilityBadge, Badge } from './Badge'
 
 export type ProductCardProduct = {
   category: string
@@ -22,10 +21,7 @@ export type ProductCardProduct = {
   media?: ProductMediaItem[]
   name: string
   price?: number | null
-  originalPrice?: number | null
-  discountPercent?: number
   totalCalories?: number | null
-  customizable?: boolean
   tags?: string[]
   highlighted?: boolean
   available?: boolean
@@ -37,11 +33,8 @@ export type ProductCardProps = Omit<
   ComponentPropsWithoutRef<'article'>,
   'children'
 > & {
-  addingToCart?: boolean
-  addToCartLabel?: string
   currencySymbol?: string
   imageFallback?: string
-  onAddToCart?: (product: ProductCardProduct) => void | Promise<void>
   onSelect?: (product: ProductCardProduct) => void
   product: ProductCardProduct
   resolveImageSrc?: (image: string | null | undefined) => string
@@ -337,54 +330,15 @@ const ProductCalories = styled.span`
   }
 `
 
-const ActionRow = styled.div<{ $split: boolean }>`
-  display: grid;
-  grid-template-columns: ${({ $split }) => ($split ? 'minmax(0, 1fr) minmax(0, 1fr)' : '1fr')};
-  gap: 0.65rem;
-`
-
-const DetailsButton = styled.button`
-  min-height: 46px;
-  border: 1px solid #c8d6c3;
-  border-radius: var(--radius-sm);
-  background: #f6f6f5;
-  color: #111c18;
-  font-weight: 700;
-  line-height: 1;
-  cursor: pointer;
-  box-shadow: inset 0 -1px 0 rgba(23, 33, 29, 0.04);
-  transition:
-    background 160ms ease,
-    border-color 160ms ease,
-    transform 160ms ease;
-
-  &:hover {
-    border-color: rgba(123, 175, 75, 0.38);
-    background: #eef7e9;
-    transform: translateY(-1px);
-  }
-`
-
 const PriceStack = styled.div`
   display: grid;
   gap: 0.25rem;
 `
 
-const OriginalPrice = styled.span`
-  color: #8b9890;
-  font-size: 0.86rem;
-  font-weight: 800;
-  line-height: 1;
-  text-decoration: line-through;
-`
-
 export function ProductCard({
-  addingToCart = false,
-  addToCartLabel,
   className,
   currencySymbol = '€',
   imageFallback = defaultImageFallback,
-  onAddToCart,
   onSelect,
   product,
   resolveImageSrc = defaultResolveImageSrc,
@@ -396,16 +350,11 @@ export function ProductCard({
   const baseUnavailable = Boolean(product.unavailableDueToUnavailableBase)
   const dimUnavailable = unavailable && !baseUnavailable
   const imageSrc = resolveImageSrc(primaryProductMediaUrl(product.media, 'card'))
-  const discountPercent = Number(product.discountPercent ?? 0)
-  const showDiscount =
-    discountPercent > 0 &&
-    product.originalPrice != null &&
-    Number(product.originalPrice) > Number(product.price ?? 0)
+
   const displayTags = (product.tags ?? [])
     .filter((tag) => tag && tag.toLowerCase() !== 'highlight')
     .slice(0, 3)
   const hasImageTags = displayTags.length > 0
-  const showDetailsAction = Boolean(product.customizable && onSelect)
   const calories = formatCalories(product.totalCalories)
 
   const handleSelect = () => {
@@ -416,13 +365,6 @@ export function ProductCard({
     event.stopPropagation()
     handleSelect()
   }
-
-  const handleAddToCart = (event: MouseEvent<HTMLButtonElement>) => {
-    event.stopPropagation()
-    void onAddToCart?.(product)
-  }
-
-
 
   const handleImageError = (event: SyntheticEvent<HTMLImageElement>) => {
     applyApiImageFallback(event.currentTarget, imageFallback)
@@ -514,42 +456,13 @@ export function ProductCard({
         <ProductFooter>
           <ProductPurchaseRow>
             <PriceStack>
-              {showDiscount && (
-                <OriginalPrice>
-                  {formatPrice(product.originalPrice, currencySymbol)}
-                </OriginalPrice>
-              )}
+
               <ProductPrice>
                 {formatPrice(product.price, currencySymbol)}
               </ProductPrice>
             </PriceStack>
           </ProductPurchaseRow>
 
-          {onAddToCart && (
-            <ActionRow $split={showDetailsAction}>
-              {showDetailsAction && (
-                <DetailsButton onClick={handleSelectClick} type="button" className="rounded-pill fw-normal">
-                 {t('productCard.customise')}
-                </DetailsButton>
-              )}
-              <AddToCartButton
-               className="rounded-pill fw-semibold letter-spacing-1"
-                aria-label={t('productCard.addLabel', { name: product.name })}
-                disabled={unavailable || addingToCart}
-                fullWidth
-                isLoading={addingToCart}
-                onClick={handleAddToCart}
-                unavailable={unavailable}
-              >
-                {addToCartLabel ??
-                  (addingToCart
-                    ? t('productCard.adding')
-                    : unavailable
-                      ? t('productCard.unavailable')
-                      : t('productCard.add'))}
-              </AddToCartButton>
-            </ActionRow>
-          )}
         </ProductFooter>
       </ProductBody>
     </ProductCardShell>

@@ -1,100 +1,59 @@
-import {
-  adminManagementAdminLogin,
-  adminManagementCreateCategory,
-  adminManagementCreateCustomer,
-  adminManagementCreateIngredient,
-  adminManagementCreateProduct,
-  adminManagementCreateStaffAdmin,
-  adminManagementDeleteCategory,
-  adminManagementDeleteCancelledOrder,
-  adminManagementDeleteCustomer,
-  adminManagementDeleteIngredient,
-  adminManagementDeleteProduct,
-  adminManagementDeleteProductMedia,
-  adminManagementDeleteStaffAdmin,
-  adminManagementGetAnalyticsSeries,
-  adminManagementGetDashboardAnalytics,
-  adminManagementGetOrder,
-  adminManagementGetPopularProducts,
-  adminManagementGetProduct,
-  adminManagementGetProductAnalytics,
-  adminManagementGetSalesPerformance,
-  adminManagementListCategories,
-  adminManagementListCustomers,
-  adminManagementListIngredients,
-  adminManagementListIngredientProducts,
-  adminManagementListKitchenOrders,
-  adminManagementListOrders,
-  adminManagementListProducts,
-  adminManagementListStaffAdmins,
-  adminManagementListStaffOrders,
-  adminManagementPayCounterOrder,
-  adminManagementReadCurrentAdmin,
-  adminManagementSetIngredientAvailability,
-  adminManagementSetProductAvailability,
-  adminManagementToggleProductStatus,
-  adminManagementUpdateCategory,
-  adminManagementUpdateCustomer,
-  adminManagementUpdateIngredient,
-  adminManagementUpdateOrderStatus,
-  adminManagementUpdateProduct,
-  adminManagementUpdateStaffAdmin,
-  adminManagementUploadProductMedia,
-  reviewsCreateReviewReply,
-  reviewsDeleteReviewReaction,
-  reviewsDeleteReviewReply,
-  reviewsListAdminReviews,
-  reviewsUpdateReviewReply,
-  reviewsUpsertReviewReaction,
-} from '../api/generated';
+import { adminApiClient, apiData, publicApiClient } from '../api/clients';
 import type {
+  IngredientType as ApiIngredientType,
   CategoryCreate,
   CategoryUpdate,
-  CustomerAdminCreate,
-  CustomerAdminUpdate,
-  IngredientCreate,
-  IngredientType as ApiIngredientType,
-  IngredientUpdate,
   EntityStatus,
-  OrderState,
-  PaymentMethod,
-  PaymentStatus,
+  IngredientCreate,
+  IngredientUpdate,
   ProductCreate,
   ProductUpdate,
   StaffAdminCreate,
   StaffAdminUpdate,
   UserRole,
-  UserStatus,
-  ReviewStatus,
+  UserStatus
 } from '../api/generated';
-import { adminApiClient, apiData, publicApiClient } from '../api/clients';
+import {
+  adminManagementAdminLogin,
+  adminManagementCreateCategory,
+  adminManagementCreateIngredient,
+  adminManagementCreateProduct,
+  adminManagementCreateStaffAdmin,
+  adminManagementDeleteCategory,
+  adminManagementDeleteIngredient,
+  adminManagementDeleteProduct,
+  adminManagementDeleteProductMedia,
+  adminManagementDeleteStaffAdmin,
+  adminManagementGetProduct,
+  adminManagementListCategories,
+  adminManagementListIngredientProducts,
+  adminManagementListIngredients,
+  adminManagementListProducts,
+  adminManagementListStaffAdmins,
+  adminManagementReadCurrentAdmin,
+  adminManagementSetIngredientAvailability,
+  adminManagementSetProductAvailability,
+  adminManagementToggleProductStatus,
+  adminManagementUpdateCategory,
+  adminManagementUpdateIngredient,
+  adminManagementUpdateProduct,
+  adminManagementUpdateStaffAdmin,
+  adminManagementUploadProductMedia
+} from '../api/generated';
 import { toDomain, toDto } from '../api/mappers';
 import type {
-  AdminCustomer,
-  AdminCustomerPayload,
   AdminIngredient,
   AdminIngredientPayload,
-  AdminOrder,
   AdminProduct,
   AdminProductPayload,
-  AdminReview,
   AdminUserPayload,
-  AnalyticsMetric,
-  AnalyticsRange,
-  AnalyticsSeries,
   Category,
   CategoryPayload,
   CurrentAdmin,
-  DashboardData,
-  ProductAnalytics,
-  ProductFilters,
-  ReactionType,
-  ReviewReaction,
-  ReviewReply,
-  SalesPerformance,
+  ProductFilters
 } from '../types/admin';
-import type { ProductMedia } from '../types/product';
 import type { Page } from '../types/pagination';
+import type { ProductMedia } from '../types/product';
 
 const pathId = (value: string | number) => String(value);
 
@@ -102,16 +61,6 @@ export async function adminLogin(email: string, password: string): Promise<{ acc
   return toDomain(await apiData(adminManagementAdminLogin({
     body: { email, password }, client: publicApiClient, throwOnError: true,
   })));
-}
-
-export async function getDashboardAnalytics(): Promise<DashboardData> {
-  const value = toDomain<DashboardData>(await apiData(adminManagementGetDashboardAnalytics({ client: adminApiClient, throwOnError: true })));
-  return {
-    ...value,
-    unavailableProducts: value.unavailableProducts ?? [],
-    popularProducts: value.popularProducts ?? [],
-    salesCharts: value.salesCharts ?? { byHour: [], byDay: [], byMonth: [], byYear: [] },
-  };
 }
 
 export async function getCurrentAdmin(): Promise<CurrentAdmin> {
@@ -163,12 +112,6 @@ export async function listAllProducts(options: Omit<AdminProductListOptions, 'pa
 export async function getProduct(productId: string | number): Promise<AdminProduct> {
   return toDomain(await apiData(adminManagementGetProduct({
     path: { product_id: pathId(productId) }, client: adminApiClient, throwOnError: true,
-  })));
-}
-
-export async function getProductAnalytics(productId: string | number, days = 30): Promise<ProductAnalytics> {
-  return toDomain(await apiData(adminManagementGetProductAnalytics({
-    path: { product_id: pathId(productId) }, query: { days }, client: adminApiClient, throwOnError: true,
   })));
 }
 
@@ -265,88 +208,6 @@ export async function setProductAvailability(productId: string | number, availab
   })));
 }
 
-export interface AdminOrderListOptions {
-  page?: number;
-  perPage?: number;
-  search?: string;
-  state?: string;
-  paymentMethod?: string;
-  paymentStatus?: string;
-  dateFrom?: string;
-  dateTo?: string;
-  customization?: string;
-}
-
-export interface AdminOrderPage extends Page<AdminOrder> {
-  summary: { pending: number; preparing: number; ready: number; completed: number; revenue: number };
-}
-
-export async function listOrders(options: AdminOrderListOptions = {}): Promise<AdminOrderPage> {
-  return toDomain(await apiData(adminManagementListOrders({
-    query: {
-      page: options.page ?? 1,
-      per_page: options.perPage ?? 20,
-      search: options.search?.trim() || undefined,
-      state: (options.state || undefined) as OrderState | undefined,
-      payment_method: (options.paymentMethod || undefined) as PaymentMethod | undefined,
-      payment_status: (options.paymentStatus || undefined) as PaymentStatus | undefined,
-      date_from: options.dateFrom || undefined,
-      date_to: options.dateTo || undefined,
-      customization: options.customization || undefined,
-    },
-    client: adminApiClient,
-    throwOnError: true,
-  })));
-}
-export async function listStaffOrders(): Promise<AdminOrder[]> {
-  return toDomain(await apiData(adminManagementListStaffOrders({ client: adminApiClient, throwOnError: true })));
-}
-export async function listKitchenOrders(): Promise<AdminOrder[]> {
-  return toDomain(await apiData(adminManagementListKitchenOrders({ client: adminApiClient, throwOnError: true })));
-}
-export async function getOrder(orderId: number): Promise<AdminOrder> {
-  return toDomain(await apiData(adminManagementGetOrder({ path: { order_id: orderId }, client: adminApiClient, throwOnError: true })));
-}
-export async function updateOrderStatus(orderId: number, state: string): Promise<AdminOrder> {
-  return toDomain(await apiData(adminManagementUpdateOrderStatus({
-    path: { order_id: orderId }, body: { state: state as OrderState }, client: adminApiClient, throwOnError: true,
-  })));
-}
-export async function deleteOrder(orderId: number): Promise<void> {
-  await apiData(adminManagementDeleteCancelledOrder({
-    path: { order_id: orderId }, client: adminApiClient, throwOnError: true,
-  }));
-}
-export async function payCounterOrder(orderId: number): Promise<AdminOrder> {
-  const value = await apiData(adminManagementPayCounterOrder({ path: { order_id: orderId }, client: adminApiClient, throwOnError: true }));
-  return toDomain(value.order);
-}
-export async function listCustomers(options: { page?: number; perPage?: number; search?: string; status?: string } = {}): Promise<Page<AdminCustomer>> {
-  return toDomain(await apiData(adminManagementListCustomers({
-    query: {
-      page: options.page ?? 1,
-      per_page: options.perPage ?? 20,
-      search: options.search?.trim() || undefined,
-      status: (options.status || undefined) as UserStatus | undefined,
-    }, client: adminApiClient, throwOnError: true,
-  })));
-}
-export async function createCustomer(payload: AdminCustomerPayload): Promise<AdminCustomer> {
-  return toDomain(await apiData(adminManagementCreateCustomer({
-    body: toDto<CustomerAdminCreate>(payload), client: adminApiClient, throwOnError: true,
-  })));
-}
-export async function updateCustomer(customerId: number, payload: Partial<AdminCustomerPayload>): Promise<AdminCustomer> {
-  return toDomain(await apiData(adminManagementUpdateCustomer({
-    path: { customer_id: customerId }, body: toDto<CustomerAdminUpdate>(payload), client: adminApiClient, throwOnError: true,
-  })));
-}
-export async function deleteCustomer(customerId: number): Promise<AdminCustomer> {
-  return toDomain(await apiData(adminManagementDeleteCustomer({
-    path: { customer_id: customerId }, client: adminApiClient, throwOnError: true,
-  })));
-}
-
 export async function listStaffAdmins(options: { page?: number; perPage?: number; search?: string; role?: string; status?: string } = {}): Promise<Page<CurrentAdmin>> {
   return toDomain(await apiData(adminManagementListStaffAdmins({
     query: {
@@ -423,65 +284,4 @@ export async function deleteProductMedia(productId: string | number, mediaId: nu
   await adminManagementDeleteProductMedia({
     path: { product_id: pathId(productId), media_id: mediaId }, client: adminApiClient, throwOnError: true,
   });
-}
-
-export async function getPopularProducts(limit = 5): Promise<DashboardData['popularProducts']> {
-  return toDomain(await apiData(adminManagementGetPopularProducts({ query: { limit }, client: adminApiClient, throwOnError: true })));
-}
-export async function getSalesPerformance(days = 7): Promise<SalesPerformance> {
-  return toDomain(await apiData(adminManagementGetSalesPerformance({ query: { days }, client: adminApiClient, throwOnError: true })));
-}
-export async function getAnalyticsSeries(metric: AnalyticsMetric, range: AnalyticsRange, startDate?: string, endDate?: string): Promise<AnalyticsSeries> {
-  return toDomain(await apiData(adminManagementGetAnalyticsSeries({
-    query: { metric, range, start_date: range === 'custom' ? startDate : undefined, end_date: range === 'custom' ? endDate : undefined },
-    client: adminApiClient,
-    throwOnError: true,
-  })));
-}
-
-export interface AdminReviewPage extends Page<AdminReview> {
-  summary: { averageRating: number | null; withReply: number; awaitingReply: number };
-}
-
-export async function listAdminReviews(options: {
-  page?: number;
-  perPage?: number;
-  search?: string;
-  rating?: number;
-  hasText?: boolean;
-  status?: string;
-} = {}): Promise<AdminReviewPage> {
-  return toDomain(await apiData(reviewsListAdminReviews({
-    query: {
-      page: options.page ?? 1,
-      per_page: options.perPage ?? 20,
-      search: options.search?.trim() || undefined,
-      rating: options.rating,
-      has_text: options.hasText,
-      status: (options.status || undefined) as ReviewStatus | undefined,
-    }, client: adminApiClient, throwOnError: true,
-  })));
-}
-export async function createReviewReply(reviewId: number, text: string): Promise<ReviewReply> {
-  return toDomain(await apiData(reviewsCreateReviewReply({
-    path: { review_id: reviewId }, body: { text }, client: adminApiClient, throwOnError: true,
-  })));
-}
-export async function updateReviewReply(reviewId: number, replyId: number, text: string): Promise<ReviewReply> {
-  return toDomain(await apiData(reviewsUpdateReviewReply({
-    path: { review_id: reviewId, reply_id: replyId }, body: { text }, client: adminApiClient, throwOnError: true,
-  })));
-}
-export async function deleteReviewReply(reviewId: number, replyId: number): Promise<void> {
-  await reviewsDeleteReviewReply({
-    path: { review_id: reviewId, reply_id: replyId }, client: adminApiClient, throwOnError: true,
-  });
-}
-export async function setReviewReaction(reviewId: number, type: ReactionType): Promise<ReviewReaction> {
-  return toDomain(await apiData(reviewsUpsertReviewReaction({
-    path: { review_id: reviewId }, body: { type }, client: adminApiClient, throwOnError: true,
-  })));
-}
-export async function deleteReviewReaction(reviewId: number): Promise<void> {
-  await reviewsDeleteReviewReaction({ path: { review_id: reviewId }, client: adminApiClient, throwOnError: true });
 }

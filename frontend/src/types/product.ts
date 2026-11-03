@@ -34,11 +34,7 @@ export interface Product {
   description: string | null;
   media: ProductMedia[];
   price: number | null;
-  originalPrice?: number | null;
-  discountPercent?: number;
-  sold?: number;
   totalCalories?: number | null;
-  customizable: boolean;
   tags?: string[];
   glutenFree?: boolean;
   containsAlcohol?: boolean;
@@ -58,94 +54,4 @@ export interface ProductIngredientNutrition {
   quantity?: string | null;
   caloriesPerGram?: number | null;
   calories: number;
-}
-
-export interface ProductSuggestion {
-  productId: number;
-  productDisplayId: string;
-  name: string;
-  category: string;
-  price: number | null;
-  score: number;
-  reason: string;
-}
-
-export interface ProductAvailabilitySuggestions {
-  productId: number;
-  productDisplayId: string;
-  name: string;
-  available: boolean;
-  availabilityReason: string;
-  substitutes: ProductSuggestion[];
-  similarDishes: ProductSuggestion[];
-}
-
-export type ReviewStatus = 'pending' | 'approved' | 'rejected';
-
-export interface ReviewReply {
-  replyId: number;
-  reviewId: number;
-  adminId: number;
-  text: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface ReviewReaction {
-  reactionId: number;
-  reviewId: number;
-  adminId: number;
-  type: 'like' | 'heart';
-  createdAt: string;
-}
-
-export interface ProductReview {
-  reviewId: number;
-  productId: number;
-  productDisplayId: string;
-  customerId: number;
-  orderProductId: number | null;
-  customerName: string | null;
-  rating: number;
-  title: string | null;
-  comment: string | null;
-  status: ReviewStatus;
-  createdAt: string;
-  updatedAt: string;
-  isOwner: boolean;
-  reply?: ReviewReply | null;
-  replies?: ReviewReply[];
-  reactions?: ReviewReaction[];
-}
-
-export interface ProductReviewStats {
-  productId: number;
-  productDisplayId: string;
-  averageRating: number | null;
-  totalReviews: number;
-}
-
-export interface ProductReviewEligibilityItem {
-  orderProductId: number;
-  orderId: number;
-  productId: number;
-  productDisplayId: string;
-  productName: string;
-  orderedAt: string;
-  existingReview: ProductReview | null;
-}
-
-export interface ProductReviewEligibility {
-  eligible: boolean;
-  authenticated: boolean;
-  items: ProductReviewEligibilityItem[];
-  existingReview?: ProductReview | null;
-  message: string;
-}
-
-export interface ProductReviewPayload {
-  orderProductId?: number;
-  rating?: number;
-  title?: string | null;
-  comment?: string | null;
 }

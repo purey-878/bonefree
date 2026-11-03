@@ -11,10 +11,9 @@ import i18n, {
   resolvedLocale,
   resources,
 } from "."
-import { formatEuro, formatPercent } from "../utils/money"
 import { translateFieldError, translateUserMessage } from "../utils/messages"
+import { formatEuro, formatPercent } from "../utils/money"
 import { validateEmail } from "../utils/validation"
-import { customizationSummary } from "../services/cartService"
 
 function flatten(value: unknown, prefix = ""): Map<string, string> {
   const result = new Map<string, string>()
@@ -79,15 +78,6 @@ describe("translation catalogues", () => {
     }
   })
 
-  it.each([
-    ["pt-PT", "1 artigo", "2 artigos"],
-    ["en-GB", "1 item", "2 items"],
-    ["de-DE", "1 Artikel", "2 Artikel"],
-  ] as const)("supports pluralisation in %s", async (locale, singular, plural) => {
-    await i18n.changeLanguage(locale)
-    expect(i18n.t("orders.common.items", { ns: "admin", count: 1 })).toBe(singular)
-    expect(i18n.t("orders.common.items", { ns: "admin", count: 2 })).toBe(plural)
-  })
 })
 
 describe("locale-aware messages and formatting", () => {
@@ -118,13 +108,4 @@ describe("locale-aware messages and formatting", () => {
     expect(translateFieldError({ field: "email", code: "required" })).toBe("E-Mail ist erforderlich.")
   })
 
-  it("translates legacy customisation labels while preserving free-form customer notes", async () => {
-    await i18n.changeLanguage("en-GB")
-    expect(customizationSummary({
-      remove: ["onion"], add: ["extra sauce"], preferences: ["cut in half"], note: "Sem sal",
-      removedIngredients: [], extras: [], substitutions: [], finalUnitPrice: null,
-    })).toEqual([
-      "Remove: Onion", "Add: Extra sauce", "Preferences: Cut in half", "Note: Sem sal",
-    ])
-  })
 })

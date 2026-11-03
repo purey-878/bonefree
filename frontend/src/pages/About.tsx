@@ -1,15 +1,13 @@
+import { Heart, Leaf, MapPin, Sparkles, Users, UtensilsCrossed } from "lucide-react";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { Heart, Leaf, MapPin, Sparkles, Star, UtensilsCrossed, Users } from "lucide-react";
 import styled from "styled-components";
 import FloatingAboutIcons from "../components/FloatingAboutIcons";
 import Navbar from "../components/Navbar";
-import { useTranslation } from "react-i18next";
 
 const stats = [
-  { value: "431", labelKey: "about.stats.reviews" },
   { value: "30+", labelKey: "about.stats.dishes" },
-  { value: "12k+", labelKey: "about.stats.orders" },
 ];
 
 const values = [
@@ -53,10 +51,7 @@ const About: React.FC = () => {
 
           <HeroPhoto>
             <img src="/assets/images/about-us-photo-1.webp" alt={t("about.heroAlt")} />
-            <PhotoTag>
-              <Star size={16} />
-              {t("about.googleRating")}
-            </PhotoTag>
+
           </HeroPhoto>
         </HeroInner>
       </AboutHero>
@@ -262,20 +257,6 @@ const HeroPhoto = styled.figure`
     min-height: 360px;
     transform: none;
   }
-`;
-
-const PhotoTag = styled.figcaption`
-  position: absolute;
-  right: 14px;
-  bottom: 14px;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  border-radius: 999px;
-  background: #1a1a14;
-  color: #edeade;
-  padding: 0.7rem 0.9rem;
-  font-weight: 900;
 `;
 
 const AboutBento = styled.section`

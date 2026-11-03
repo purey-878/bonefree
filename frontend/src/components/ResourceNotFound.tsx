@@ -1,12 +1,12 @@
+import { ArrowRight, Home, UtensilsCrossed } from "lucide-react"
 import { useEffect } from "react"
-import { ArrowRight, Home, ReceiptText, UtensilsCrossed } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 import styled from "styled-components"
-import { useTranslation } from "react-i18next"
 
 import Navbar from "./Navbar"
 
-type ResourceKind = "product" | "order"
+type ResourceKind = "product"
 
 type ResourceNotFoundProps = {
   kind: ResourceKind
@@ -18,12 +18,6 @@ const resourceCopy = {
     primaryHref: "/menu",
     secondaryHref: "/",
     Icon: UtensilsCrossed,
-  },
-  order: {
-    key: "order",
-    primaryHref: "/orders",
-    secondaryHref: "/menu",
-    Icon: ReceiptText,
   },
 } as const
 

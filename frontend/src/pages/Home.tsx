@@ -1,97 +1,27 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowRight, Sparkles } from "lucide-react";
 import type { PointerEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ArrowRight, Clock, Sparkles, Star, UtensilsCrossed } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 
 import Navbar from "../components/Navbar";
 import { ProductCard, ProductCardSkeleton, Skeleton } from "../components/ui";
 import { ASSETS } from "../constants/assets";
-import { getPublicChefSpecial, getPublicLoyaltyCouponSettings, productService } from "../services";
-import type { Product, ProductReview } from "../types/product";
-import {
-  defaultLoyaltyCouponSettings,
-  loyaltyCouponDetail,
-  loyaltyCouponHeadline,
-} from "../utils/loyaltyCoupon";
+import i18n from "../i18n";
+import { getPublicChefSpecial, productService } from "../services";
+import type { Product } from "../types/product";
 import { applyApiImageFallback, productImageFallback, resolveProductImageUrl } from "../utils/imageFallback";
 import { formatEuro } from "../utils/money";
 import { primaryProductMediaUrl } from "../utils/productMedia";
-import i18n, { resolvedLocale } from "../i18n";
-
 
 type CategorySummary = {
   count: number;
   name: string;
 };
 
-type HomeReview = ProductReview & {
-  productName: string;
-  productId: number;
-  productPath?: string;
-};
-
-const HOME_REVIEW_PRODUCT_LIMIT = 18;
-const HOME_REVIEW_LIMIT = 3;
 const fallbackDishImage = productImageFallback;
 const hiddenHomeProductNames = new Set(["latino loaded nachos", "lationo loaded nachos"]);
-
-const fallbackHomeReviews: HomeReview[] = [
-  {
-    reviewId: -1,
-    productId: 0,
-    productDisplayId: "bonefree-menu",
-    customerId: 0,
-    orderProductId: null,
-    customerName: "Marta S.",
-    rating: 5,
-    title: "Jantar leve, cheio de sabor",
-    comment: "Os pratos chegaram coloridos, bem temperados e com aquele cuidado de cozinha que faz a mesa ficar em silêncio por uns segundos.",
-    status: "approved",
-    createdAt: "2026-05-18T20:30:00Z",
-    updatedAt: "2026-05-18T20:30:00Z",
-    isOwner: false,
-    productName: "Menu BONEFREE",
-    productPath: "/menu",
-  },
-  {
-    reviewId: -2,
-    productId: 0,
-    productDisplayId: "bonefree-favorites",
-    customerId: 0,
-    orderProductId: null,
-    customerName: "Rui e Ana",
-    rating: 5,
-    title: "Perfeito para partilhar",
-    comment: "Pedimos vários pratos para dividir e tudo tinha textura, frescura e molhos com personalidade. Ficou vontade de voltar e provar o resto.",
-    status: "approved",
-    createdAt: "2026-05-09T21:15:00Z",
-    updatedAt: "2026-05-09T21:15:00Z",
-    isOwner: false,
-    productName: "Favoritos da casa",
-    productPath: "/menu",
-  },
-  {
-    reviewId: -3,
-    productId: 0,
-    productDisplayId: "bonefree-experience",
-    customerId: 0,
-    orderProductId: null,
-    customerName: "Cliente BONEFREE",
-    rating: 5,
-    title: "Ambiente descontraído",
-    comment: "Boa música, equipa atenta e comida vegan que não parece uma alternativa. Parece simplesmente uma boa escolha.",
-    status: "approved",
-    createdAt: "2026-04-27T19:45:00Z",
-    updatedAt: "2026-04-27T19:45:00Z",
-    isOwner: false,
-    productName: "Experiência BONEFREE",
-    productPath: "/menu",
-  },
-];
-
-
 
 function resolveImage(image: string | null | undefined) {
   return resolveProductImageUrl(image, fallbackDishImage);
@@ -105,23 +35,12 @@ function isHiddenHomeProduct(product: Product) {
   return hiddenHomeProductNames.has(product.name.trim().toLowerCase());
 }
 
-function reviewCopy(review: ProductReview) {
-  return review.comment?.trim() || review.title?.trim() || "";
-}
-
-function hasMeaningfulReviewCopy(review: ProductReview) {
-  return reviewCopy(review).length >= 24;
-}
-
 const HomePage = () => {
   const { t } = useTranslation("storefront");
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [catalogCategories, setCatalogCategories] = useState<CategorySummary[]>([]);
-  const [homeReviews, setHomeReviews] = useState<HomeReview[]>([]);
-  const [reviewsLoading, setReviewsLoading] = useState(true);
   const [chefSpecialProductId, setChefSpecialProductId] = useState<number | null>(null);
-  const [loyaltyCouponSettings, setLoyaltyCouponSettings] = useState(defaultLoyaltyCouponSettings);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [heroCarouselPaused, setHeroCarouselPaused] = useState(false);
@@ -133,63 +52,21 @@ const HomePage = () => {
   const [activePopularIndex, setActivePopularIndex] = useState(0);
 
   useEffect(() => {
-    const fetchHomeReviews = async (menuProducts: Product[]) => {
-      setReviewsLoading(true);
-      const reviewProducts = [...menuProducts]
-        .sort((a, b) => {
-          if (a.highlighted !== b.highlighted) return a.highlighted ? -1 : 1;
-          return (b.sold ?? 0) - (a.sold ?? 0);
-        })
-        .slice(0, HOME_REVIEW_PRODUCT_LIMIT);
-
-      const reviewGroups = await Promise.allSettled(
-        reviewProducts.map(async (product) => {
-          const reviewPage = await productService.getReviewsPage(product.id, {
-            page: 1,
-            perPage: HOME_REVIEW_LIMIT,
-            hasText: true,
-          });
-          return reviewPage.items.map((review) => ({
-            ...review,
-            productId: product.id,
-            productName: product.name,
-          }));
-        }),
-      );
-
-      const writtenReviews = reviewGroups
-        .flatMap((result) => (result.status === "fulfilled" ? result.value : []))
-        .filter((review) => review.status === "approved" && hasMeaningfulReviewCopy(review))
-        .sort((a, b) => {
-          const dateDiff = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-          if (dateDiff !== 0) return dateDiff;
-          return b.rating - a.rating;
-        })
-        .slice(0, HOME_REVIEW_LIMIT);
-
-      setHomeReviews(writtenReviews);
-      setReviewsLoading(false);
-    };
-
     const fetchHomeData = async () => {
       try {
-        const [catalogPage, chefSpecialSetting, couponSettings] = await Promise.all([
-          productService.getPage({ page: 1, perPage: 20, sort: "popular" }),
+        const [catalogPage, chefSpecialSetting] = await Promise.all([
+          productService.getPage({ page: 1, perPage: 20, sort: "default" }),
           getPublicChefSpecial().catch(() => ({ productId: null })),
-          getPublicLoyaltyCouponSettings().catch(() => defaultLoyaltyCouponSettings),
         ]);
         const data = catalogPage.items;
         setProducts(data);
         setCatalogCategories(catalogPage.facets.categories.map((category) => ({ name: category.name, count: category.count })).slice(0, 7));
         setChefSpecialProductId(chefSpecialSetting.productId ?? null);
-        setLoyaltyCouponSettings(couponSettings);
-        void fetchHomeReviews(data);
         if (chefSpecialSetting.productId && !data.some((product) => product.id === chefSpecialSetting.productId)) {
           void productService.getById(chefSpecialSetting.productId).then((special) => setProducts((current) => [...current, special])).catch(() => undefined);
         }
       } catch (fetchError) {
         setError(t("home.loadError"));
-        setReviewsLoading(false);
         console.error(fetchError);
       } finally {
         setLoading(false);
@@ -215,7 +92,7 @@ const HomePage = () => {
   const sortedPopularProducts = [...availableProducts]
     .sort((a, b) => {
       if (a.highlighted !== b.highlighted) return a.highlighted ? -1 : 1;
-      return (b.sold ?? 0) - (a.sold ?? 0);
+      return a.name.localeCompare(b.name);
     });
   const highlightedProducts = sortedPopularProducts.filter((product) => product.highlighted);
   const popularProducts = highlightedProducts.length > 0 ? highlightedProducts : sortedPopularProducts.slice(0, 4);
@@ -224,7 +101,6 @@ const HomePage = () => {
     ?? availableProducts.find((product) => product.id !== featuredDish?.id)
     ?? featuredDish;
   const heroDish = popularProducts[activeHeroProductIndex] ?? featuredDish;
-  const displayedHomeReviews = homeReviews.length > 0 ? homeReviews : fallbackHomeReviews;
 
   useEffect(() => {
     setActiveHeroProductIndex(0);
@@ -345,20 +221,6 @@ const HomePage = () => {
                 {t("home.findRestaurant")}
               </SecondaryCta>
             </HeroActions>
-            <TrustStrip aria-label={t("home.highlights")}>
-              <TrustItem>
-                <Star size={17} />
-                {t("home.rating")}
-              </TrustItem>
-              <TrustItem>
-                <UtensilsCrossed size={17} />
-                {t("home.tableOrders")}
-              </TrustItem>
-              <TrustItem>
-                <Clock size={17} />
-                {t("home.kitchenRhythm")}
-              </TrustItem>
-            </TrustStrip>
 
           </HeroCopy>
 
@@ -428,36 +290,20 @@ const HomePage = () => {
         </HeroContent>
       </HeroSection>
 
-
       <CategorySection aria-label={t("home.categories")}>
         <CategoryTrack>
           {loading
             ? Array.from({ length: 6 }, (_, index) => (
-                <Skeleton key={index} width="140px" height="44px" radius="999px" />
-              ))
+              <Skeleton key={index} width="140px" height="44px" radius="999px" />
+            ))
             : categories.map((category) => (
-                <CategoryPill key={category.name} to="/menu">
-                  <span>{category.name}</span>
-                  <strong>{category.count}</strong>
-                </CategoryPill>
-              ))}
+              <CategoryPill key={category.name} to="/menu">
+                <span>{category.name}</span>
+                <strong>{category.count}</strong>
+              </CategoryPill>
+            ))}
         </CategoryTrack>
       </CategorySection>
-
-
-      {loyaltyCouponSettings.enabled && (
-        <LoyaltyRewardBanner aria-label={t("home.loyaltyAria")} className="mt-5">
-          <div>
-            <SectionKicker>{t("home.loyaltyTitle")}</SectionKicker>
-            <h2>{loyaltyCouponHeadline(loyaltyCouponSettings)}</h2>
-            <p>{loyaltyCouponDetail(loyaltyCouponSettings)}</p>
-          </div>
-          <PrimaryCta to="/profile">
-            {t("home.viewCoupons")}
-            <ArrowRight size={18} />
-          </PrimaryCta>
-        </LoyaltyRewardBanner>
-      )}
 
       <FavoritesSection>
         <SectionHeader>
@@ -473,19 +319,19 @@ const HomePage = () => {
         >
           {loading
             ? Array.from({ length: 4 }, (_, index) => (
-                <ProductCardSkeleton key={index} />
-              ))
+              <ProductCardSkeleton key={index} />
+            ))
             : popularProducts.map((product) => (
-                <ProductCard
+              <ProductCard
                 className="p-4"
-                  key={product.id}
-                  currencySymbol="€"
-                  product={product}
-                  resolveImageSrc={resolveImage}
-                  onSelect={() => navigate(`/product/${product.id}`)}
-                  tone="light"
-                />
-              ))}
+                key={product.id}
+                currencySymbol="€"
+                product={product}
+                resolveImageSrc={resolveImage}
+                onSelect={() => navigate(`/product/${product.id}`)}
+                tone="light"
+              />
+            ))}
         </PopularCarousel>
         {!loading && popularProducts.length > 1 && (
           <PopularCarouselDots aria-label={t("home.choosePopular")}>
@@ -538,44 +384,6 @@ const HomePage = () => {
         </ChefCopy>
       </ChefSpecialBanner>
 
-      <TestimonialsSection>
-        <SectionHeader>
-          <SectionKicker>{t("home.reviewsLabel")}</SectionKicker>
-          <h2>{t("home.reviewsTitle")}</h2>
-        </SectionHeader>
-        {reviewsLoading ? (
-          <TestimonialGrid aria-label={t("home.loadingReviews")}>
-            {Array.from({ length: 3 }, (_, index) => (
-              <TestimonialSkeleton key={index}>
-                <Skeleton width="42%" height="18px" />
-                <Skeleton width="100%" height="72px" />
-                <Skeleton width="62%" height="16px" />
-              </TestimonialSkeleton>
-            ))}
-          </TestimonialGrid>
-        ) : (
-          <TestimonialGrid aria-label={t("home.reviewsAria")}>
-            {displayedHomeReviews.map((review) => (
-              <TestimonialCard key={review.reviewId}>
-                <ReviewStars aria-label={t("home.stars", { rating: review.rating })}>
-                  {Array.from({ length: 5 }, (_, index) => (
-                    <Star key={index} size={15} fill={index < review.rating ? "currentColor" : "none"} />
-                  ))}
-                </ReviewStars>
-                <blockquote>{reviewCopy(review)}</blockquote>
-                <ReviewMeta>
-                  <span>{review.customerName || t("home.customer")}</span>
-                  <small>
-                    <ProductReviewLink to={review.productPath ?? `/product/${review.productId}`}>{review.productName}</ProductReviewLink>
-                    {" | "}
-                    {new Date(review.createdAt).toLocaleDateString(resolvedLocale())}
-                  </small>
-                </ReviewMeta>
-              </TestimonialCard>
-            ))}
-          </TestimonialGrid>
-        )}
-      </TestimonialsSection>
     </HomeShell>
   );
 };
@@ -746,33 +554,6 @@ const SecondaryCta = styled(Link)`
   }
 `;
 
-const TrustStrip = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.65rem;
-  margin-top: 1.75rem;
-`;
-
-const TrustItem = styled.span`
-  display: inline-flex;
-  min-height: 36px;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0 0.85rem;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(247, 250, 245, 0.86);
-  font-size: 0.85rem;
-  font-weight: 800;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-
-  svg {
-    color: var(--brand-accent);
-  }
-`;
-
 const FeaturedDishCard = styled.aside`
   display: grid;
   grid-template-rows: clamp(230px, 28vw, 340px) auto minmax(3.3rem, auto) minmax(4.8rem, auto) 24px;
@@ -913,63 +694,6 @@ const CategorySection = styled.section`
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
-`;
-
-const LoyaltyRewardBanner = styled.section`
-  display: flex;
-  width: min(calc(100% - 3rem), 1280px);
-  align-items: center;
-  justify-content: space-between;
-  gap: 1.25rem;
-  margin: clamp(2rem, 5vw, 4rem) auto 0;
-  padding: clamp(1.2rem, 3vw, 1.8rem);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: var(--radius-md);
-  background:
-    linear-gradient(135deg, rgba(7, 96, 80, 0.96), rgba(24, 128, 76, 0.9)),
-    #076050;
-  color: #ffffff;
-  box-shadow: none;
-  position: relative;
-  z-index: 2;
-
-  h2 {
-    max-width: 760px;
-    margin: 0.45rem 0 0;
-    color: #ffffff;
-    font-size: clamp(1.35rem, 3vw, 2.35rem);
-    line-height: 1.05;
-  }
-
-  p {
-    max-width: 620px;
-    margin: 0.7rem 0 0;
-    color: rgba(255, 255, 255, 0.8);
-    line-height: 1.6;
-  }
-
-  & > div > span {
-    color: #fff0b8;
-  }
-
-  ${PrimaryCta} {
-    flex: 0 0 auto;
-    background: #ffffff;
-    color: #076050;
-    border-color: rgba(255, 255, 255, 0.35);
-    box-shadow: none;
-
-    &:hover {
-      color: #076050;
-    }
-  }
-
-  @media (max-width: 760px) {
-    width: min(calc(100% - 2rem), 1280px);
-    align-items: stretch;
-    flex-direction: column;
-    margin-top: -1rem;
-  }
 `;
 
 const CategoryTrack = styled.div`
@@ -1263,92 +987,6 @@ const ChefDetails = styled.div`
     padding: 0 0.9rem;
     font-size: 1.25rem;
   }
-`;
-
-const TestimonialsSection = styled.section`
-  width: min(100%, 1280px);
-  margin: 0 auto;
-  padding: 0 1.5rem clamp(4rem, 8vw, 6.5rem);
-`;
-
-const TestimonialGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1rem;
-
-  @media (max-width: 900px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const TestimonialCard = styled.article`
-  display: flex;
-  min-height: 240px;
-  flex-direction: column;
-  justify-content: space-between;
-  border: 1px solid rgba(7, 96, 80, 0.12);
-  border-radius: 8px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(246, 250, 243, 0.92)),
-    #ffffff;
-  box-shadow: 0 16px 42px rgba(23, 33, 29, 0.08);
-  padding: clamp(1.15rem, 3vw, 1.5rem);
-
-  blockquote {
-    margin: 1.1rem 0;
-    color: var(--brand-ink);
-    font-size: clamp(1.05rem, 2vw, 1.25rem);
-    font-weight: 750;
-    line-height: 1.45;
-  }
-`;
-
-const ReviewStars = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  color: #b78b07;
-`;
-
-const ReviewMeta = styled.footer`
-  display: grid;
-  gap: 0.25rem;
-
-  span {
-    color: var(--brand-ink);
-    font-weight: 900;
-  }
-
-  small {
-    color: var(--brand-muted);
-    font-size: 0.86rem;
-    line-height: 1.4;
-  }
-`;
-
-const ProductReviewLink = styled(Link)`
-  color: inherit;
-  font-weight: 900;
-  text-decoration: none;
-
-  &:hover {
-    color: #076050;
-  }
-
-  &:focus-visible {
-    outline: 3px solid rgba(7, 96, 80, 0.18);
-    outline-offset: 2px;
-  }
-`;
-
-const TestimonialSkeleton = styled.div`
-  display: grid;
-  min-height: 220px;
-  align-content: space-between;
-  border: 1px solid rgba(7, 96, 80, 0.1);
-  border-radius: 8px;
-  background: #ffffff;
-  padding: clamp(1.15rem, 3vw, 1.5rem);
 `;
 
 export default HomePage;

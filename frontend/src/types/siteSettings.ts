@@ -76,15 +76,6 @@ export interface ChefSpecialSettings {
   productId?: number | null;
 }
 
-export interface LoyaltyCouponSettings {
-  enabled: boolean;
-  qualifyingOrderCount: number;
-  qualifyingOrderMinimum: number | string;
-  discountType: "fixed_value" | "percentage";
-  discountValue: number | string;
-  couponMinimumOrder: number | string;
-}
-
 export interface CompanyDetailsSettings {
   brandName: string;
   description: string;

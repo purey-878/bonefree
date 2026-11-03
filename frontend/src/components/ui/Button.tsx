@@ -1,8 +1,6 @@
-import { forwardRef, useState } from 'react'
 import type { ComponentPropsWithoutRef, ReactNode } from 'react'
+import { forwardRef } from 'react'
 import styled, { css } from 'styled-components'
-import { formatEuro } from '../../utils/money'
-import { useTranslation } from 'react-i18next'
 
 type ButtonVariant = 'primary' | 'secondary'
 type ButtonSize = 'sm' | 'md' | 'lg'
@@ -115,93 +113,6 @@ const IconSlot = styled.span`
   flex: 0 0 auto;
 `
 
-const AddToCartPopper = styled.span`
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  z-index: 2;
-  width: 1px;
-  height: 1px;
-  pointer-events: none;
-
-  span {
-    position: absolute;
-    width: 7px;
-    height: 7px;
-    border-radius: 999px;
-    background: #ffffff;
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.25);
-    animation: add-to-cart-popper 1250ms cubic-bezier(0.16, 0.84, 0.22, 1) forwards;
-  }
-
-  span:nth-child(1) {
-    --pop-x: -96px;
-    --pop-y: -42px;
-    background: #fdcd43;
-  }
-
-  span:nth-child(2) {
-    --pop-x: -54px;
-    --pop-y: -72px;
-    background: #ffffff;
-    animation-delay: 25ms;
-  }
-
-  span:nth-child(3) {
-    --pop-x: 10px;
-    --pop-y: -82px;
-    background: #b7df8f;
-    animation-delay: 45ms;
-  }
-
-  span:nth-child(4) {
-    --pop-x: 92px;
-    --pop-y: -42px;
-    background: #fdcd43;
-    animation-delay: 65ms;
-  }
-
-  span:nth-child(5) {
-    --pop-x: 78px;
-    --pop-y: 50px;
-    background: #ffffff;
-    animation-delay: 35ms;
-  }
-
-  span:nth-child(6) {
-    --pop-x: -82px;
-    --pop-y: 52px;
-    background: #b7df8f;
-    animation-delay: 55ms;
-  }
-
-  @keyframes add-to-cart-popper {
-    0% {
-      opacity: 0;
-      transform: translate(-50%, -50%) scale(0.4);
-    }
-
-    22% {
-      opacity: 1;
-      transform: translate(-50%, -50%) scale(1.35);
-    }
-
-    72% {
-      opacity: 0.72;
-    }
-
-    100% {
-      opacity: 0;
-      transform: translate(
-          calc(-50% + var(--pop-x)),
-          calc(-50% + var(--pop-y))
-        )
-        scale(1);
-    }
-  }
-`
-
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   {
     children,
@@ -302,71 +213,3 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
     )
   },
 )
-
-export type AddToCartButtonProps = Omit<ButtonProps, 'variant'> & {
-  currencySymbol?: string
-  unavailable?: boolean
-  price?: number | null
-  quantity?: number
-}
-
-export const AddToCartButton = forwardRef<
-  HTMLButtonElement,
-  AddToCartButtonProps
->(function AddToCartButton(
-  {
-    children,
-    currencySymbol = '€',
-    disabled,
-    isLoading = false,
-    onClick,
-    unavailable = false,
-    price,
-    quantity = 1,
-    ...props
-  },
-  ref,
-) {
-  const { t } = useTranslation('storefront')
-  const [popperKey, setPopperKey] = useState(0)
-  void currencySymbol
-  const total = typeof price === 'number' ? price * quantity : null
-  const label =
-    children ??
-    (isLoading
-      ? t('productCard.adding')
-      : unavailable
-        ? t('productCard.unavailable')
-        : total === null
-          ? t('productCard.addToCart')
-          : t('productCard.addWithPrice', { price: formatEuro(total) }))
-  const handleClick: ButtonProps['onClick'] = (event) => {
-    if (!disabled && !unavailable && !isLoading) {
-      setPopperKey((current) => current + 1)
-    }
-
-    onClick?.(event)
-  }
-
-  return (
-    <Button
-      ref={ref}
-      disabled={disabled || unavailable || isLoading}
-      onClick={handleClick}
-      variant="primary"
-      {...props}
-    >
-      {popperKey > 0 && (
-        <AddToCartPopper key={popperKey} aria-hidden="true">
-          <span />
-          <span />
-          <span />
-          <span />
-          <span />
-          <span />
-        </AddToCartPopper>
-      )}
-      {label}
-    </Button>
-  )
-})

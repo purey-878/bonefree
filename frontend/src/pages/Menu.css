@@ -131,7 +131,6 @@
 }
 
 .menu-page-hero,
-.menu-loyalty-banner,
 .menu-popular-strip,
 .menu-shell {
   position: relative;
@@ -176,81 +175,6 @@
   width: min(100%, 1400px);
   margin: 0 auto;
   padding: 0 2rem 1.35rem;
-}
-
-.menu-loyalty-banner {
-  width: min(calc(100% - 4rem), 1336px);
-  margin: 0 auto 1.35rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 1.15rem 1.25rem;
-  border: 1px solid rgba(7, 96, 80, 0.16);
-  border-radius: 18px;
-  background: #076050;
-  color: #ffffff;
-  box-shadow: 0 18px 42px rgba(7, 96, 80, 0.18);
-}
-
-.menu-loyalty-actions {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.55rem;
-}
-
-.menu-loyalty-banner .menu-eyebrow {
-  margin-bottom: 0.35rem;
-  color: #fff0b8;
-}
-
-.menu-loyalty-banner h2 {
-  margin: 0;
-  font-size: clamp(1.15rem, 2.3vw, 1.8rem);
-  line-height: 1.12;
-}
-
-.menu-loyalty-banner span {
-  display: block;
-  margin-top: 0.45rem;
-  color: rgba(255, 255, 255, 0.78);
-  line-height: 1.5;
-}
-
-.menu-loyalty-link {
-  display: inline-flex;
-  min-height: 42px;
-  align-items: center;
-  justify-content: center;
-  padding: 0 1rem;
-  border-radius: 12px;
-  background: #ffffff;
-  color: #076050;
-  font-weight: 900;
-  text-decoration: none;
-}
-
-.menu-loyalty-dismiss {
-  width: 42px;
-  height: 42px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
-  transition:
-    background-color 0.18s ease,
-    border-color 0.18s ease,
-    transform 0.18s ease;
-}
-
-.menu-loyalty-dismiss:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.42);
-  transform: translateY(-1px);
 }
 
 .menu-section-heading {
@@ -932,7 +856,7 @@
     display: inline-flex;
     flex: 0 0 auto;
     justify-content: center;
-    
+
   }
 
   .menu-sort-trigger {
@@ -976,20 +900,6 @@
 
   .menu-popular-strip {
     padding: 0 1rem 1rem;
-  }
-
-  .menu-loyalty-banner {
-    width: min(calc(100% - 2rem), 1400px);
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .menu-loyalty-actions {
-    width: 100%;
-  }
-
-  .menu-loyalty-link {
-    flex: 1 1 auto;
   }
 
   .menu-popular-grid {

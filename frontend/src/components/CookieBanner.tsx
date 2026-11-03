@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react"
-import { useAuth } from "../hooks"
-import "./CookieBanner.css"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
+import "./CookieBanner.css"
 
 const COOKIE_CONSENT_KEY = "bonefree_cookie_consent"
 const COOKIE_CONSENT_VERSION = 1
@@ -34,21 +33,14 @@ function storeAcceptedCookies() {
 
 export default function CookieBanner() {
   const { t } = useTranslation("storefront")
-  const { isAuthenticated, loading } = useAuth()
   const [accepted, setAccepted] = useState(() => hasAcceptedCookies())
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      storeAcceptedCookies()
-    }
-  }, [isAuthenticated])
 
   const acceptAllCookies = () => {
     storeAcceptedCookies()
     setAccepted(true)
   }
 
-  const visible = !loading && !isAuthenticated && !accepted
+  const visible = !accepted
 
   if (!visible) return null
 

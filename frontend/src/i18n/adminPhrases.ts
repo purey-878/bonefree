@@ -4,22 +4,23 @@ import type { SupportedLocale } from "."
 type Phrase = readonly [source: string, portuguese: string, english: string, german: string]
 
 const phrases = {
-  navOverview: ["Visão geral", "Visão geral", "Overview", "Übersicht"],
+  contentSettingsDescription: ["Gerir destaques do menu, tema, detalhes da empresa, eventos e links sociais.", "Gerir destaques do menu, tema, detalhes da empresa, eventos e links sociais.", "Manage menu highlights, theme, company details, events and social links.", "Menü-Highlights, Design, Unternehmensdaten, Veranstaltungen und soziale Links verwalten."],
+  catalogIngredientsDescription: ["Gerir os ingredientes e a informação nutricional dos pratos.", "Gerir os ingredientes e a informação nutricional dos pratos.", "Manage dish ingredients and nutrition information.", "Zutaten und Nährwertinformationen der Gerichte verwalten."],
+  catalogEditorDescription: ["Preencha os detalhes do produto, a informação nutricional e as imagens num fluxo simples.", "Preencha os detalhes do produto, a informação nutricional e as imagens num fluxo simples.", "Edit dish details, nutrition information and images in one flow.", "Gerichtdetails, Nährwertinformationen und Bilder in einem Ablauf bearbeiten."],
+  catalogConfigurationDescription: ["Controle destaques e etiquetas do menu.", "Controle destaques e etiquetas do menu.", "Manage featured dishes and menu labels.", "Ausgewählte Gerichte und Menükennzeichnungen verwalten."],
+  catalogPriceHelp: ["Preços dos pratos", "Preços dos pratos", "Dish prices", "Gerichtpreise"],
+  browseMenu: ["Ver menu", "Ver menu", "View menu", "Speisekarte ansehen"],
+
   navProducts: ["Produtos", "Produtos", "Products", "Produkte"],
   navIngredients: ["Ingredientes", "Ingredientes", "Ingredients", "Zutaten"],
   navCategories: ["Categorias", "Categorias", "Categories", "Kategorien"],
-  navOrders: ["Pedidos", "Pedidos", "Orders", "Bestellungen"],
-  navReviews: ["Avaliações", "Avaliações", "Reviews", "Bewertungen"],
-  navCustomers: ["Clientes", "Clientes", "Customers", "Kunden"],
+
   navStaff: ["Equipa", "Equipa", "Staff", "Team"],
   navSettings: ["Definições", "Definições", "Settings", "Einstellungen"],
-  navAnalytics: ["Análises", "Análises", "Analytics", "Analysen"],
-  groupMain: ["Principal", "Principal", "Main", "Hauptbereich"],
-  groupCommunity: ["Comunidade", "Comunidade", "Community", "Community"],
+
   promoteProducts: ["Promover produtos", "Promover produtos", "Promote products", "Produkte bewerben"],
   promoteDescription: ["Produto em destaque na página inicial", "Produto em destaque na página inicial", "Featured product on the home page", "Ausgewähltes Produkt auf der Startseite"],
-  couponSettings: ["Definições de cupões", "Definições de cupões", "Voucher settings", "Gutscheineinstellungen"],
-  couponSettingsDescription: ["Regras de recompensas por sequência", "Regras de recompensas por sequência", "Streak reward rules", "Regeln für Serienprämien"],
+
   siteTheme: ["Tema do site", "Tema do site", "Site theme", "Website-Design"],
   siteThemeDescription: ["Aspeto sazonal do website", "Aspeto sazonal do website", "Seasonal website appearance", "Saisonales Erscheinungsbild"],
   companyDetails: ["Detalhes da empresa", "Detalhes da empresa", "Company details", "Unternehmensdaten"],
@@ -45,59 +46,25 @@ const phrases = {
   textHelp: ["Texto principal legível", "Texto principal legível", "Readable primary text", "Gut lesbarer Haupttext"],
   mutedHelp: ["Descrições e metadados", "Descrições e metadados", "Descriptions and metadata", "Beschreibungen und Metadaten"],
   borderHelp: ["Inputs, cartões e divisórias", "Campos, cartões e divisórias", "Inputs, cards and dividers", "Eingaben, Karten und Trennlinien"],
-  priceHelp: ["Descontos e preços", "Descontos e preços", "Discounts and prices", "Rabatte und Preise"],
-  like: ["Gosto", "Gosto", "Like", "Gefällt mir"],
-  heart: ["Coração", "Coração", "Heart", "Herz"],
-  hour: ["Hora", "Hora", "Hour", "Stunde"],
+
   day: ["Dia", "Dia", "Day", "Tag"],
-  month: ["Mês", "Mês", "Month", "Monat"],
-  year: ["Ano", "Ano", "Year", "Jahr"],
-  last24Hours: ["Últimas 24 horas", "Últimas 24 horas", "Last 24 hours", "Letzte 24 Stunden"],
-  last30Days: ["Últimos 30 dias", "Últimos 30 dias", "Last 30 days", "Letzte 30 Tage"],
-  last12Months: ["Últimos 12 meses", "Últimos 12 meses", "Last 12 months", "Letzte 12 Monate"],
-  last5Years: ["Últimos 5 anos", "Últimos 5 anos", "Last 5 years", "Letzte 5 Jahre"],
-  oneDay: ["1 dia", "1 dia", "1 day", "1 Tag"],
-  oneWeek: ["1 semana", "1 semana", "1 week", "1 Woche"],
-  thirtyDays: ["30 dias", "30 dias", "30 days", "30 Tage"],
-  oneDaySales: ["Vendas de 1 dia", "Vendas de 1 dia", "1-day sales", "Verkäufe eines Tages"],
-  oneWeekSales: ["Vendas de 1 semana", "Vendas de 1 semana", "1-week sales", "Verkäufe einer Woche"],
-  thirtyDaySales: ["Vendas de 30 dias", "Vendas de 30 dias", "30-day sales", "Verkäufe von 30 Tagen"],
-  sales: ["Vendas", "Vendas", "Sales", "Verkäufe"],
-  revenueOverTime: ["Receita ao longo do tempo", "Receita ao longo do tempo", "Revenue over time", "Umsatz im Zeitverlauf"],
-  revenue: ["Receita", "Receita", "Revenue", "Umsatz"],
-  orderVolume: ["Volume de pedidos", "Volume de pedidos", "Order volume", "Bestellvolumen"],
-  newAccounts: ["Novas contas de cliente", "Novas contas de cliente", "New customer accounts", "Neue Kundenkonten"],
-  itemsSold: ["Itens vendidos", "Artigos vendidos", "Items sold", "Verkaufte Artikel"],
-  items: ["Itens", "Artigos", "Items", "Artikel"],
-  custom: ["Personalizado", "Personalizado", "Custom", "Benutzerdefiniert"],
+
   allStatuses: ["Todos os estados", "Todos os estados", "All statuses", "Alle Status"],
   active: ["Ativo", "Ativo", "Active", "Aktiv"],
   inactive: ["Inativo", "Inativo", "Inactive", "Inaktiv"],
-  allRoles: ["Todos os cargos", "Todos os cargos", "All roles", "Alle Rollen"],
-  apply: ["Aplicar", "Aplicar", "Apply", "Anwenden"],
-  loadingChart: ["A carregar gráfico...", "A carregar o gráfico...", "Loading chart...", "Diagramm wird geladen..."],
-  peak: ["Pico", "Pico", "Peak", "Spitze"],
-  noRating: ["Sem avaliação", "Sem avaliação", "No rating", "Keine Bewertung"],
-  productAnalytics: ["Análises do produto", "Análises do produto", "Product analytics", "Produktanalysen"],
-  closeAnalytics: ["Fechar análises", "Fechar análises", "Close analytics", "Analysen schließen"],
-  analyticsViewMode: ["Modo de visualização das análises", "Modo de visualização das análises", "Analytics view mode", "Ansichtsmodus der Analysen"],
-  analyticsDrawerMode: ["Mostrar análises no painel lateral", "Mostrar análises no painel lateral", "Show analytics in the side panel", "Analysen im Seitenbereich anzeigen"],
-  analyticsDrawer: ["Painel lateral", "Painel lateral", "Side panel", "Seitenbereich"],
-  analyticsModalMode: ["Mostrar análises num modal", "Mostrar análises numa janela modal", "Show analytics in a modal", "Analysen in einem Dialog anzeigen"],
+
   analyticsModal: ["Modal", "Modal", "Modal", "Dialog"],
   editorViewMode: ["Modo de visualização do editor", "Modo de visualização do editor", "Editor view mode", "Ansichtsmodus des Editors"],
   editorDrawerMode: ["Mostrar editor no painel lateral", "Mostrar editor no painel lateral", "Show editor in the side panel", "Editor im Seitenbereich anzeigen"],
   editorModalMode: ["Mostrar editor num modal", "Mostrar editor numa janela modal", "Show editor in a modal", "Editor in einem Dialog anzeigen"],
   closeCategoryEditor: ["Fechar editor de categoria", "Fechar editor de categoria", "Close category editor", "Kategorie-Editor schließen"],
-  closeCustomerEditor: ["Fechar editor de cliente", "Fechar editor de cliente", "Close customer editor", "Kunden-Editor schließen"],
+
   closeStaffEditor: ["Fechar editor de funcionário", "Fechar editor de funcionário", "Close staff editor", "Mitarbeiter-Editor schließen"],
   editStaffMember: ["Editar funcionário", "Editar funcionário", "Edit staff member", "Mitarbeiter bearbeiten"],
   addStaffMember: ["Adicionar funcionário", "Adicionar funcionário", "Add staff member", "Mitarbeiter hinzufügen"],
   saveStaffMember: ["Guardar funcionário", "Guardar funcionário", "Save staff member", "Mitarbeiter speichern"],
   createStaffMember: ["Criar funcionário", "Criar funcionário", "Create staff member", "Mitarbeiter erstellen"],
-  loadingProductAnalytics: ["A carregar análises do produto...", "A carregar as análises do produto...", "Loading product analytics...", "Produktanalysen werden geladen..."],
-  unitsSold: ["Unidades vendidas", "Unidades vendidas", "Units sold", "Verkaufte Einheiten"],
-  rating: ["Avaliação", "Avaliação", "Rating", "Bewertung"],
+
   price: ["Preço", "Preço", "Price", "Preis"],
   availability: ["Disponibilidade", "Disponibilidade", "Availability", "Verfügbarkeit"],
   available: ["Disponível", "Disponível", "Available", "Verfügbar"],
@@ -105,7 +72,7 @@ const phrases = {
   editProduct: ["Editar produto", "Editar produto", "Edit product", "Produkt bearbeiten"],
   deleteProduct: ["Eliminar produto", "Eliminar produto", "Delete product", "Produkt löschen"],
   close: ["Fechar", "Fechar", "Close", "Schließen"],
-  noAnalytics: ["Sem análises disponíveis.", "Sem análises disponíveis.", "No analytics available.", "Keine Analysen verfügbar."],
+
   websiteSettings: ["Definições do website", "Definições do site", "Website settings", "Website-Einstellungen"],
   websiteSettingsIntro: ["Gerir promoções, cupões, tema, detalhes da empresa e links sociais do rodapé.", "Gerir promoções, cupões, tema, detalhes da empresa e ligações às redes sociais no rodapé.", "Manage promotions, vouchers, theme, company details and footer social links.", "Werbeaktionen, Gutscheine, Design, Unternehmensdaten und Social-Media-Links verwalten."],
   saved: ["Guardado", "Guardado", "Saved", "Gespeichert"],
@@ -117,17 +84,7 @@ const phrases = {
   homeProduct: ["Produto da página inicial", "Produto da página inicial", "Home page product", "Produkt der Startseite"],
   automaticChoice: ["Escolha automática", "Escolha automática", "Automatic choice", "Automatische Auswahl"],
   automaticChoiceHelp: ["A escolha automática usa o primeiro item ativo disponível no menu.", "A escolha automática utiliza o primeiro artigo ativo disponível no menu.", "Automatic choice uses the first active menu item available.", "Die automatische Auswahl verwendet den ersten verfügbaren aktiven Menüartikel."],
-  couponPromotionActive: ["Promoção de cupões ativa", "Promoção de cupões ativa", "Voucher promotion active", "Gutscheinaktion aktiv"],
-  couponPromotionInactive: ["Promoção de cupões inativa", "Promoção de cupões inativa", "Voucher promotion inactive", "Gutscheinaktion inaktiv"],
-  couponPromotionHelp: ["Permite iniciar novas sequências de fidelidade e ganhar recompensas em cupão.", "Permite iniciar novas sequências de fidelização e ganhar recompensas em cupão.", "Allows new loyalty streaks to start and voucher rewards to be earned.", "Ermöglicht neue Treueserien und Gutscheinprämien."],
-  couponInactiveHelp: ["Quando estiver inativa, os clientes que já têm uma sequência em curso podem terminar essa sequência. Novas sequências ficam bloqueadas até voltar a ativar esta promoção.", "Quando estiver inativa, os clientes que já têm uma sequência em curso podem terminá-la. As novas sequências ficam bloqueadas até esta promoção ser reativada.", "When inactive, customers with an existing streak can finish it. New streaks remain blocked until the promotion is reactivated.", "Wenn sie inaktiv ist, können Kunden eine laufende Serie beenden. Neue Serien bleiben bis zur Reaktivierung gesperrt."],
-  requiredOrders: ["Pedidos necessários", "Pedidos necessários", "Orders required", "Erforderliche Bestellungen"],
-  qualifyingMinimum: ["Valor mínimo por pedido qualificável (EUR)", "Valor mínimo por pedido elegível (EUR)", "Minimum value per qualifying order (EUR)", "Mindestwert je berechtigter Bestellung (EUR)"],
-  discountType: ["Tipo de desconto", "Tipo de desconto", "Discount type", "Rabattart"],
-  fixedValue: ["Valor fixo", "Valor fixo", "Fixed value", "Fester Betrag"],
-  percentage: ["Percentagem", "Percentagem", "Percentage", "Prozentsatz"],
-  discountValue: ["Valor do desconto", "Valor do desconto", "Discount value", "Rabattwert"],
-  redemptionMinimum: ["Valor mínimo para resgate (EUR)", "Valor mínimo para utilização (EUR)", "Minimum redemption value (EUR)", "Mindestwert für Einlösung (EUR)"],
+
   themeSettings: ["Definições do tema do site", "Definições do tema do site", "Site theme settings", "Website-Design-Einstellungen"],
   customColours: ["Cores personalizadas", "Cores personalizadas", "Custom colours", "Benutzerdefinierte Farben"],
   customColoursHelp: ["Substitua as cores do preset selecionado e pré-visualize o tema do site antes de publicar.", "Substitua as cores da predefinição selecionada e pré-visualize o tema do site antes de publicar.", "Override the selected preset colours and preview the site theme before publishing.", "Überschreibe die Farben der ausgewählten Vorlage und sieh dir das Design vor der Veröffentlichung an."],
@@ -135,8 +92,7 @@ const phrases = {
   customerPreview: ["Pré-visualização do website do cliente", "Pré-visualização do site do cliente", "Customer website preview", "Vorschau der Kundenwebsite"],
   featuredDish: ["Prato em destaque", "Prato em destaque", "Featured dish", "Ausgewähltes Gericht"],
   sampleDish: ["Taco de abóbora", "Taco de abóbora", "Pumpkin taco", "Kürbis-Taco"],
-  discount15: ["15% desconto", "15% de desconto", "15% off", "15 % Rabatt"],
-  orderNow: ["Pedir agora", "Pedir agora", "Order now", "Jetzt bestellen"],
+
   decorationsActive: ["Decorações ativas", "Decorações ativas", "Decorations active", "Dekorationen aktiv"],
   decorationIntensity: ["Intensidade da decoração", "Intensidade da decoração", "Decoration intensity", "Dekorationsintensität"],
   low: ["Baixa", "Baixa", "Low", "Niedrig"],
@@ -169,22 +125,13 @@ const phrases = {
   expandSidebar: ["Expandir barra lateral", "Expandir a barra lateral", "Expand sidebar", "Seitenleiste aufklappen"],
   collapseSidebar: ["Recolher barra lateral", "Recolher a barra lateral", "Collapse sidebar", "Seitenleiste einklappen"],
   signOut: ["Terminar sessão", "Terminar sessão", "Sign out", "Abmelden"],
-  adminConsole: ["Consola de administração", "Consola de administração", "Administration console", "Administrationskonsole"],
-  overviewIntro: ["Resumo em tempo real do estado do menu, atividade de vendas, disponibilidade e procura dos clientes.", "Resumo em tempo real do estado do menu, da atividade de vendas, da disponibilidade e da procura dos clientes.", "Real-time summary of menu status, sales activity, availability and customer demand.", "Echtzeitübersicht zu Menüzustand, Verkaufsaktivität, Verfügbarkeit und Kundennachfrage."],
-  refreshOverview: ["Atualizar visão geral", "Atualizar a visão geral", "Refresh overview", "Übersicht aktualisieren"],
-  salesSummary: ["Resumo de vendas", "Resumo de vendas", "Sales summary", "Verkaufsübersicht"],
-  salesTrend: ["Tendência de vendas", "Tendência de vendas", "Sales trend", "Verkaufstrend"],
-  salesPeriod: ["Período do gráfico de vendas", "Período do gráfico de vendas", "Sales chart period", "Zeitraum des Verkaufsdiagramms"],
-  unavailableProducts: ["Produtos indisponíveis", "Produtos indisponíveis", "Unavailable products", "Nicht verfügbare Produkte"],
+
   name: ["Nome", "Nome", "Name", "Name"],
-  reason: ["Motivo", "Motivo", "Reason", "Grund"],
-  action: ["Ação", "Ação", "Action", "Aktion"],
+
   refresh: ["Atualizar", "Atualizar", "Refresh", "Aktualisieren"],
-  allActiveAvailable: ["Todos os produtos ativos estão disponíveis", "Todos os produtos ativos estão disponíveis", "All active products are available", "Alle aktiven Produkte sind verfügbar"],
-  bestSellers: ["Produtos mais vendidos", "Produtos mais vendidos", "Best-selling products", "Meistverkaufte Produkte"],
+
   product: ["Produto", "Produto", "Product", "Produkt"],
-  sold: ["Vendidos", "Vendidos", "Sold", "Verkauft"],
-  noData: ["Ainda não há dados", "Ainda não há dados", "No data yet", "Noch keine Daten"],
+
   categoriesEnglish: ["Categories", "Categorias", "Categories", "Kategorien"],
   categoriesIntro: ["Gira as categorias do menu para os produtos e para a navegação dos clientes.", "Gira as categorias do menu para os produtos e para a navegação dos clientes.", "Manage menu categories for products and customer navigation.", "Menükategorien für Produkte und Kundennavigation verwalten."],
   addCategoryEnglish: ["+ Add category", "+ Adicionar categoria", "+ Add category", "+ Kategorie hinzufügen"],
@@ -207,7 +154,7 @@ const phrases = {
   restore: ["Restaurar", "Restaurar", "Restore", "Wiederherstellen"],
   noCategories: ["No categories found.", "Não foram encontradas categorias.", "No categories found.", "Keine Kategorien gefunden."],
   noCategoriesFilters: ["No categories match these filters.", "Nenhuma categoria corresponde a estes filtros.", "No categories match these filters.", "Keine Kategorien entsprechen diesen Filtern."],
-  ingredientsIntro: ["Gerir os ingredientes removíveis que os clientes veem ao personalizar produtos.", "Gerir os ingredientes removíveis que os clientes veem ao personalizar produtos.", "Manage removable ingredients customers see when customising products.", "Entfernbare Zutaten verwalten, die Kunden bei der Produktanpassung sehen."],
+
   addIngredient: ["Adicionar ingrediente", "Adicionar ingrediente", "Add ingredient", "Zutat hinzufügen"],
   editIngredient: ["Editar ingrediente", "Editar ingrediente", "Edit ingredient", "Zutat bearbeiten"],
   closeIngredientEditor: ["Fechar editor de ingrediente", "Fechar o editor de ingredientes", "Close ingredient editor", "Zutateneditor schließen"],
@@ -225,7 +172,7 @@ const phrases = {
   inactivePlural: ["Inativos", "Inativos", "Inactive", "Inaktiv"],
   clearFilters: ["Limpar filtros", "Limpar filtros", "Clear filters", "Filter löschen"],
   noCalories: ["kcal/g por definir", "kcal/g por definir", "kcal/g not set", "kcal/g nicht festgelegt"],
-  noLinkedProducts: ["Sem produtos associados", "Sem produtos associados", "No linked products", "Keine verknüpften Produkte"],
+
   inactiveIngredientWarning: ["Ingrediente inativo - os produtos associados podem ser afetados", "Ingrediente inativo — os produtos associados podem ser afetados", "Inactive ingredient — linked products may be affected", "Inaktive Zutat — verknüpfte Produkte können betroffen sein"],
   markUnavailable: ["Marcar indisponível", "Marcar como indisponível", "Mark unavailable", "Als nicht verfügbar markieren"],
   markAvailable: ["Marcar disponível", "Marcar como disponível", "Mark available", "Als verfügbar markieren"],
@@ -244,7 +191,7 @@ const phrases = {
   alcohol: ["Álcool", "Álcool", "Alcohol", "Alkohol"],
   menuProduct: ["Produto do menu", "Produto do menu", "Menu product", "Menüprodukt"],
   createProduct: ["Criar produto", "Criar produto", "Create product", "Produkt erstellen"],
-  productFormIntro: ["Preencha os detalhes do produto, a personalização para clientes e as imagens num fluxo simples.", "Preencha os detalhes do produto, a personalização para clientes e as imagens num processo simples.", "Complete the product details, customer customisation and images in one simple flow.", "Produktdetails, Kundenanpassung und Bilder in einem einfachen Ablauf erfassen."],
+
   closeProductEditor: ["Fechar editor de produto", "Fechar o editor de produtos", "Close product editor", "Produkteditor schließen"],
   productFormProgress: ["Progresso do formulário do produto", "Progresso do formulário do produto", "Product form progress", "Fortschritt des Produktformulars"],
   productEditorSections: ["Secções do editor de produto", "Secções do editor de produtos", "Product editor sections", "Bereiche des Produkteditors"],
@@ -261,13 +208,12 @@ const phrases = {
   pricingAvailability: ["Preço e disponibilidade", "Preço e disponibilidade", "Price and availability", "Preis und Verfügbarkeit"],
   pricingHelp: ["Defina o preço, a disponibilidade operacional e a promoção ativa.", "Defina o preço, a disponibilidade operacional e a promoção ativa.", "Set the price, operational availability and active promotion.", "Preis, betriebliche Verfügbarkeit und aktive Aktion festlegen."],
   euroPrice: ["Preço em euros", "Preço em euros", "Price in euros", "Preis in Euro"],
-  discountPercentage: ["Percentagem de desconto", "Percentagem de desconto", "Discount percentage", "Rabattprozentsatz"],
+
   configuration: ["Configuração", "Configuração", "Configuration", "Konfiguration"],
-  configurationHelp: ["Controle destaques, personalização e etiquetas do menu.", "Controle os destaques, a personalização e as etiquetas do menu.", "Control highlights, customisation and menu tags.", "Hervorhebungen, Anpassung und Menü-Tags steuern."],
+
   featuredProduct: ["Produto em destaque", "Produto em destaque", "Featured product", "Hervorgehobenes Produkt"],
   featuredProductHelp: ["Mostra este item nas áreas promocionais do menu.", "Mostra este artigo nas áreas promocionais do menu.", "Shows this item in promotional areas of the menu.", "Zeigt diesen Artikel in Werbebereichen der Speisekarte."],
-  customisable: ["Personalizável", "Personalizável", "Customisable", "Anpassbar"],
-  customisableHelp: ["Mostra controlos de ingredientes na página de detalhe do produto.", "Mostra controlos de ingredientes na página de detalhes do produto.", "Shows ingredient controls on the product details page.", "Zeigt Zutatensteuerungen auf der Produktdetailseite."],
+
   glutenHelp: ["Permite aos clientes filtrar este item como sem glúten.", "Permite aos clientes filtrar este artigo como sem glúten.", "Allows customers to filter this item as gluten-free.", "Ermöglicht Kunden, diesen Artikel als glutenfrei zu filtern."],
   containsAlcohol: ["Contém álcool", "Contém álcool", "Contains alcohol", "Enthält Alkohol"],
   alcoholHelp: ["Separa bebidas alcoólicas das bebidas sem álcool.", "Separa as bebidas alcoólicas das bebidas sem álcool.", "Separates alcoholic from non-alcoholic drinks.", "Trennt alkoholische von alkoholfreien Getränken."],
@@ -305,70 +251,37 @@ const phrases = {
   continueEnglish: ["Continue", "Continuar", "Continue", "Weiter"],
   saveChanges: ["Guardar alterações", "Guardar alterações", "Save changes", "Änderungen speichern"],
   noActiveProducts: ["Nenhum produto ativo", "Nenhum produto ativo", "No active products", "Keine aktiven Produkte"],
-  reviewsHeading: ["Respostas e reações a avaliações", "Respostas e reações a avaliações", "Review replies and reactions", "Antworten und Reaktionen auf Bewertungen"],
-  reviewsIntro: ["Responda publicamente a avaliações de itens comprados e adicione uma reação simples de administrador.", "Responda publicamente a avaliações de artigos comprados e adicione uma reação simples de administrador.", "Reply publicly to reviews of purchased items and add a simple administrator reaction.", "Öffentlich auf Bewertungen gekaufter Artikel antworten und eine Administratorreaktion hinzufügen."],
-  reviewsSummary: ["Resumo das avaliações", "Resumo das avaliações", "Review summary", "Bewertungsübersicht"],
-  totalReviews: ["Total de avaliações", "Total de avaliações", "Total reviews", "Bewertungen gesamt"],
-  publicReplies: ["Public replies", "Respostas públicas", "Public replies", "Öffentliche Antworten"],
-  needsReply: ["Needs reply", "Aguardam resposta", "Needs reply", "Antwort erforderlich"],
-  averageRating: ["Average rating", "Avaliação média", "Average rating", "Durchschnittsbewertung"],
-  searchReviews: ["Pesquisar avaliações", "Pesquisar avaliações", "Search reviews", "Bewertungen suchen"],
-  loadingReviews: ["A carregar avaliações...", "A carregar avaliações...", "Loading reviews...", "Bewertungen werden geladen..."],
-  noReviews: ["Nenhuma avaliação encontrada.", "Nenhuma avaliação encontrada.", "No reviews found.", "Keine Bewertungen gefunden."],
-  noComment: ["Sem comentário escrito.", "Sem comentário escrito.", "No written comment.", "Kein schriftlicher Kommentar."],
-  publicAdminReply: ["Public admin reply", "Resposta pública da administração", "Public admin reply", "Öffentliche Administratorantwort"],
-  published: ["Publicado", "Publicado", "Published", "Veröffentlicht"],
-  noReply: ["Sem resposta", "Sem resposta", "No reply", "Keine Antwort"],
-  updateReply: ["Update reply", "Atualizar resposta", "Update reply", "Antwort aktualisieren"],
-  postReply: ["Post reply", "Publicar resposta", "Post reply", "Antwort veröffentlichen"],
-  deleteReply: ["Eliminar resposta", "Eliminar resposta", "Delete reply", "Antwort löschen"],
-  adminReaction: ["Admin reaction", "Reação da administração", "Admin reaction", "Administratorreaktion"],
-  reactionVisible: ["Visível na avaliação do cliente", "Visível na avaliação do cliente", "Visible on the customer review", "In der Kundenbewertung sichtbar"],
-  addCustomer: ["+ Adicionar cliente", "+ Adicionar cliente", "+ Add customer", "+ Kunde hinzufügen"],
-  editCustomer: ["Editar cliente", "Editar cliente", "Edit customer", "Kunde bearbeiten"],
-  addCustomerPlain: ["Adicionar cliente", "Adicionar cliente", "Add customer", "Kunde hinzufügen"],
-  lastName: ["Apelido", "Apelido", "Last name", "Nachname"],
+
   password: ["Palavra-passe", "Palavra-passe", "Password", "Passwort"],
   suspended: ["Suspenso", "Suspenso", "Suspended", "Gesperrt"],
-  saveCustomer: ["Guardar cliente", "Guardar cliente", "Save customer", "Kunde speichern"],
-  searchCustomers: ["Pesquisar clientes", "Pesquisar clientes", "Search customers", "Kunden suchen"],
-  noCustomersFilters: ["Nenhum cliente corresponde a estes filtros.", "Nenhum cliente corresponde a estes filtros.", "No customers match these filters.", "Keine Kunden entsprechen diesen Filtern."],
-  unnamedCustomer: ["Cliente sem nome", "Cliente sem nome", "Unnamed customer", "Unbenannter Kunde"],
+
   reactivate: ["Reativar", "Reativar", "Reactivate", "Reaktivieren"],
-  city: ["Cidade", "Cidade", "City", "Stadt"],
-  editCustomerButton: ["Editar cliente", "Editar cliente", "Edit customer", "Kunde bearbeiten"],
+
   adminUsers: ["Utilizadores admin", "Utilizadores administradores", "Administrator users", "Administratoren"],
   addAdmin: ["+ Adicionar admin", "+ Adicionar administrador", "+ Add administrator", "+ Administrator hinzufügen"],
-  editAdmin: ["Editar admin", "Editar administrador", "Edit administrator", "Administrator bearbeiten"],
+
   addAdminPlain: ["Adicionar admin", "Adicionar administrador", "Add administrator", "Administrator hinzufügen"],
   role: ["Cargo", "Cargo", "Role", "Rolle"],
-  saveAdmin: ["Guardar admin", "Guardar administrador", "Save administrator", "Administrator speichern"],
+
   searchStaff: ["Pesquisar equipa", "Pesquisar equipa", "Search staff", "Team suchen"],
   noStaffFilters: ["Nenhum utilizador da equipa corresponde a estes filtros.", "Nenhum utilizador da equipa corresponde a estes filtros.", "No staff users match these filters.", "Keine Teammitglieder entsprechen diesen Filtern."],
-  analyticsIntro: ["Vendas, pedidos, clientes e movimento de produtos com filtros independentes.", "Vendas, pedidos, clientes e movimento de produtos com filtros independentes.", "Sales, orders, customers and product movement with independent filters.", "Verkäufe, Bestellungen, Kunden und Produktbewegungen mit unabhängigen Filtern."],
-  refreshAll: ["Atualizar tudo", "Atualizar tudo", "Refresh all", "Alle aktualisieren"],
+
   menu: ["Menu", "Menu", "Menu", "Menü"],
   admin: ["Admin", "Administração", "Admin", "Administration"],
-  kitchen: ["Kitchen", "Cozinha", "Kitchen", "Küche"],
+
   adminConsoleShort: ["Admin Console", "Consola de administração", "Admin console", "Administrationskonsole"],
   staffConsole: ["Staff Console", "Consola da equipa", "Staff console", "Teamkonsole"],
   expand: ["Expandir", "Expandir", "Expand", "Ausklappen"],
   collapse: ["Recolher", "Recolher", "Collapse", "Einklappen"],
   owner: ["Owner", "Proprietário", "Owner", "Inhaber"],
-  manager: ["Manager", "Gerente", "Manager", "Manager"],
-  waiter: ["Waiter", "Empregado de mesa", "Waiter", "Servicekraft"],
+
   chef: ["Chef", "Cozinheiro", "Chef", "Koch"],
-  ordersLower: ["pedidos", "pedidos", "orders", "Bestellungen"],
-  ordersPipe: ["pedidos |", "pedidos |", "orders |", "Bestellungen |"],
-  itemsSoldLower: ["itens vendidos", "artigos vendidos", "items sold", "verkaufte Artikel"],
-  itemsLower: ["itens", "artigos", "items", "Artikel"],
-  reviewsPipe: ["avaliações |", "avaliações |", "reviews |", "Bewertungen |"],
-  productSalesRange: ["Intervalo de vendas do produto", "Intervalo de vendas do produto", "Product sales range", "Zeitraum der Produktverkäufe"],
+
   activeLower: ["ativo", "ativo", "active", "aktiv"],
   inactiveLower: ["inativo", "inativo", "inactive", "inaktiv"],
   availableLower: ["disponível", "disponível", "available", "verfügbar"],
   unavailableLower: ["indisponível", "indisponível", "unavailable", "nicht verfügbar"],
-  position: ["Posição", "Posição", "Position", "Position"],
+
   state: ["Estado", "Estado", "Status", "Status"],
   actions: ["Ações", "Ações", "Actions", "Aktionen"],
   actionsEnglish: ["Actions", "Ações", "Actions", "Aktionen"],
@@ -403,45 +316,32 @@ const phrases = {
   newIngredientPlaceholder: ["Adicionar novo ingrediente...", "Adicionar novo ingrediente...", "Add a new ingredient...", "Neue Zutat hinzufügen..."],
   undefinedCalories: ["kcal/g não definido", "kcal/g não definido", "kcal/g not set", "kcal/g nicht festgelegt"],
   caloriesPerGramPortuguese: ["Calorias por grama", "Calorias por grama", "Calories per gram", "Kalorien pro Gramm"],
-  quantityAbbreviation: ["Qtd.", "Qtd.", "Qty", "Anz."],
+
   total: ["Total", "Total", "Total", "Gesamt"],
   removing: ["A remover...", "A remover...", "Removing...", "Wird entfernt..."],
   removeEnglish: ["Remove", "Remover", "Remove", "Entfernen"],
-  productIdEnglish: ["Product ID", "ID do produto", "Product ID", "Produkt-ID"],
-  priceEuroEnglish: ["Price (€)", "Preço (€)", "Price (€)", "Preis (€)"],
-  menuTagsEnglish: ["Menu tags", "Etiquetas do menu", "Menu tags", "Menü-Tags"],
-  popularTagPlaceholder: ["Mais popular, Novo, Picante", "Mais popular, Novo, Picante", "Most popular, New, Spicy", "Am beliebtesten, Neu, Scharf"],
-  discountEnglish: ["Discount (%)", "Desconto (%)", "Discount (%)", "Rabatt (%)"],
-  customisableEnglish: ["Customizable", "Personalizável", "Customisable", "Anpassbar"],
-  removableHelp: ["Escolha os ingredientes removíveis que os clientes podem ajustar na página de detalhe do produto.", "Escolha os ingredientes removíveis que os clientes podem ajustar na página de detalhes do produto.", "Choose the removable ingredients customers can adjust on the product details page.", "Wähle die entfernbaren Zutaten, die Kunden auf der Produktdetailseite anpassen können."],
-  noSavedIngredients: ["Ainda não há ingredientes guardados.", "Ainda não há ingredientes guardados.", "No ingredients have been saved yet.", "Noch keine Zutaten gespeichert."],
-  savingEnglish: ["Saving...", "A guardar...", "Saving...", "Wird gespeichert..."],
+
   addEnglish: ["Add", "Adicionar", "Add", "Hinzufügen"],
   defaultEnglish: ["default", "predefinido", "default", "Standard"],
   removableEnglish: ["removable", "removível", "removable", "entfernbar"],
-  removeIngredient: ["Remover ingrediente", "Remover ingrediente", "Remove ingredient", "Zutat entfernen"],
+
   imageProduct: ["Imagem do produto", "Imagem do produto", "Product image", "Produktbild"],
   preview: ["Preview", "Pré-visualização", "Preview", "Vorschau"],
   current: ["Atual", "Atual", "Current", "Aktuell"],
-  currentImage: ["Imagem atual", "Imagem atual", "Current image", "Aktuelles Bild"],
+
   newProductImage: ["Nova imagem do produto", "Nova imagem do produto", "New product image", "Neues Produktbild"],
   readyToUpload: ["Pronta para carregar", "Pronta para carregar", "Ready to upload", "Bereit zum Hochladen"],
   existingMedia: ["Multimédia existente", "Multimédia existente", "Existing media", "Vorhandene Medien"],
   priceLower: ["preço", "preço", "price", "Preis"],
-  soldLower: ["vendidos", "vendidos", "sold", "verkauft"],
+
   promotion: ["Promo", "Promoção", "Promotion", "Aktion"],
-  noPromotion: ["Sem promo", "Sem promoção", "No promotion", "Keine Aktion"],
+
   baseUnavailable: ["Base indisponível", "Base indisponível", "Base unavailable", "Basis nicht verfügbar"],
-  softlyDeletedProducts: ["Produtos eliminados suavemente (", "Produtos eliminados (", "Deleted products (", "Gelöschte Produkte ("],
+
   image: ["Imagem", "Imagem", "Image", "Bild"],
   calories: ["Calorias", "Calorias", "Calories", "Kalorien"],
   caloriesEnglish: ["Calories", "Calorias", "Calories", "Kalorien"],
-  soldSingular: ["Vendido", "Vendido", "Sold", "Verkauft"],
-  customer: ["Cliente", "Cliente", "Customer", "Kunde"],
-  customerSearchPlaceholder: ["Cliente, produto, comentário...", "Cliente, produto, comentário...", "Customer, product, comment...", "Kunde, Produkt, Kommentar..."],
-  replyPlaceholder: ["Escreva uma resposta pública da administração...", "Escreva uma resposta pública da administração...", "Write a public reply from the administration...", "Öffentliche Antwort der Administration verfassen..."],
-  nif: ["NIF", "NIF", "Tax number", "Steuernummer"],
-  customerDirectoryPlaceholder: ["Nome, ID do cliente, email, telefone, NIF...", "Nome, ID do cliente, e-mail, telefone, NIF...", "Name, customer ID, email, phone, tax number...", "Name, Kunden-ID, E-Mail, Telefon, Steuernummer..."],
+
   staffDirectoryPlaceholder: ["Nome, ID da equipa, email, cargo...", "Nome, ID da equipa, e-mail, cargo...", "Name, staff ID, email, role...", "Name, Team-ID, E-Mail, Rolle..."],
   adminConsoleDate: ["Admin Console ·", "Consola de administração ·", "Admin console ·", "Administrationskonsole ·"],
   stepBasic: ["01 Básico", "01 Básico", "01 Basic", "01 Grundlagen"],
@@ -463,18 +363,13 @@ const phrases = {
   deactivateIngredientQuestion: ["Desativar este ingrediente?", "Desativar este ingrediente?", "Deactivate this ingredient?", "Diese Zutat deaktivieren?"],
   deactivateIngredientDescription: ["As ligações existentes aos produtos serão mantidas, mas este ingrediente deixará de estar ativo.", "As ligações existentes aos produtos serão mantidas, mas este ingrediente deixará de estar ativo.", "Existing product links will be kept, but this ingredient will no longer be active.", "Bestehende Produktverknüpfungen bleiben erhalten, aber diese Zutat ist nicht mehr aktiv."],
   deactivateIngredient: ["Desativar ingrediente", "Desativar ingrediente", "Deactivate ingredient", "Zutat deaktivieren"],
-  deactivateCustomerQuestion: ["Desativar este cliente?", "Desativar este cliente?", "Deactivate this customer?", "Diesen Kunden deaktivieren?"],
-  deactivateCustomerDescription: ["A conta do cliente será marcada como inativa.", "A conta do cliente será marcada como inativa.", "The customer account will be marked as inactive.", "Das Kundenkonto wird als inaktiv markiert."],
-  deactivateCustomer: ["Desativar cliente", "Desativar cliente", "Deactivate customer", "Kunden deaktivieren"],
-  reactivateCustomerQuestion: ["Reativar este cliente?", "Reativar este cliente?", "Reactivate this customer?", "Diesen Kunden reaktivieren?"],
-  reactivateCustomer: ["Reativar cliente", "Reativar cliente", "Reactivate customer", "Kunden reaktivieren"],
+
   deactivateAdministratorQuestion: ["Desativar este administrador?", "Desativar este administrador?", "Deactivate this administrator?", "Diesen Administrator deaktivieren?"],
   deactivateAdministratorDescription: ["Este utilizador administrador perderá o acesso ativo até ser reativado.", "Este utilizador administrador perderá o acesso até ser reativado.", "This administrator will lose access until reactivated.", "Dieser Administrator verliert bis zur Reaktivierung den Zugriff."],
   deactivateAdministrator: ["Desativar admin", "Desativar administrador", "Deactivate administrator", "Administrator deaktivieren"],
   reactivateAdministratorQuestion: ["Reativar este administrador?", "Reativar este administrador?", "Reactivate this administrator?", "Diesen Administrator reaktivieren?"],
   reactivateAdministrator: ["Reativar admin", "Reativar administrador", "Reactivate administrator", "Administrator reaktivieren"],
-  deleteReplyQuestion: ["Eliminar esta resposta à avaliação?", "Eliminar esta resposta à avaliação?", "Delete this review reply?", "Diese Bewertungsantwort löschen?"],
-  deleteReplyDescription: ["A resposta pública do administrador será removida desta avaliação.", "A resposta pública do administrador será removida desta avaliação.", "The public administrator reply will be removed from this review.", "Die öffentliche Administratorantwort wird aus dieser Bewertung entfernt."],
+
   signOutQuestion: ["Terminar sessão?", "Terminar sessão?", "Sign out?", "Abmelden?"],
   signOutDescription: ["Vai sair da consola de administração e terá de iniciar sessão novamente para continuar.", "Vai sair da consola de administração e terá de iniciar sessão novamente para continuar.", "You will leave the administration console and must sign in again to continue.", "Du verlässt die Administrationskonsole und musst dich erneut anmelden, um fortzufahren."],
   operationsFooter: ["Painel de operações da equipa", "Painel de operações da equipa", "Staff operations dashboard", "Betriebsübersicht des Teams"],
@@ -498,14 +393,10 @@ export function translateAdminText(value: string, t: TFunction): string {
   if (shown) translated = t("legacyDynamic.shown", { count: Number(shown[1]) })
   const actionsFor = trimmed.match(/^Ações para (.+)$/)
   if (actionsFor) translated = t("legacyDynamic.actionsFor", { name: actionsFor[1] })
-  const reactionsFor = trimmed.match(/^Reações para a avaliação (\d+)$/)
-  if (reactionsFor) translated = t("legacyDynamic.reactionsFor", { id: reactionsFor[1] })
+
   const theme = trimmed.match(/^Mudar para tema (claro|escuro)$/)
   if (theme) translated = t(theme[1] === "claro" ? "legacyDynamic.switchThemeLight" : "legacyDynamic.switchThemeDark")
-  const analyticsFor = trimmed.match(/^Análises de (.+)$/)
-  if (analyticsFor) translated = t("legacyDynamic.analyticsFor", { name: analyticsFor[1] })
-  const rating = trimmed.match(/^(\d+) de 5 na avaliação$/)
-  if (rating) translated = t("legacyDynamic.rating", { rating: rating[1] })
+
   const restoredAccount = trimmed.match(/^(.+) \(#(\d+)\) voltará a ter acesso com a mesma conta\.$/)
   if (restoredAccount) translated = t("legacyDynamic.accountRestored", { name: restoredAccount[1], id: restoredAccount[2] })
   const missingQuantities = trimmed.match(/^(\d+) ingredientes? sem quantidade$/)
@@ -515,7 +406,7 @@ export function translateAdminText(value: string, t: TFunction): string {
 }
 
 export const adminLegacyDynamicResources = {
-  "pt-PT": { shown_one: "{{count}} apresentado", shown_other: "{{count}} apresentados", actionsFor: "Ações para {{name}}", reactionsFor: "Reações à avaliação {{id}}", switchThemeLight: "Mudar para o tema claro", switchThemeDark: "Mudar para o tema escuro", analyticsFor: "Análises de {{name}}", rating: "{{rating}} em 5 na avaliação", accountRestored: "{{name}} (#{{id}}) voltará a ter acesso com a mesma conta.", missingQuantities_one: "{{count}} ingrediente sem quantidade", missingQuantities_other: "{{count}} ingredientes sem quantidade" },
-  "en-GB": { shown_one: "{{count}} shown", shown_other: "{{count}} shown", actionsFor: "Actions for {{name}}", reactionsFor: "Reactions to review {{id}}", switchThemeLight: "Switch to light theme", switchThemeDark: "Switch to dark theme", analyticsFor: "Analytics for {{name}}", rating: "{{rating}} out of 5 in the review", accountRestored: "{{name}} (#{{id}}) will regain access with the same account.", missingQuantities_one: "{{count}} ingredient without a quantity", missingQuantities_other: "{{count}} ingredients without quantities" },
-  "de-DE": { shown_one: "{{count}} angezeigt", shown_other: "{{count}} angezeigt", actionsFor: "Aktionen für {{name}}", reactionsFor: "Reaktionen auf Bewertung {{id}}", switchThemeLight: "Zum hellen Design wechseln", switchThemeDark: "Zum dunklen Design wechseln", analyticsFor: "Analysen für {{name}}", rating: "{{rating}} von 5 in der Bewertung", accountRestored: "{{name}} (#{{id}}) erhält mit demselben Konto wieder Zugriff.", missingQuantities_one: "{{count}} Zutat ohne Mengenangabe", missingQuantities_other: "{{count}} Zutaten ohne Mengenangaben" },
+  "pt-PT": { shown_one: "{{count}} apresentado", shown_other: "{{count}} apresentados", actionsFor: "Ações para {{name}}", switchThemeLight: "Mudar para o tema claro", switchThemeDark: "Mudar para o tema escuro", accountRestored: "{{name}} (#{{id}}) voltará a ter acesso com a mesma conta.", missingQuantities_one: "{{count}} ingrediente sem quantidade", missingQuantities_other: "{{count}} ingredientes sem quantidade" },
+  "en-GB": { shown_one: "{{count}} shown", shown_other: "{{count}} shown", actionsFor: "Actions for {{name}}", switchThemeLight: "Switch to light theme", switchThemeDark: "Switch to dark theme", accountRestored: "{{name}} (#{{id}}) will regain access with the same account.", missingQuantities_one: "{{count}} ingredient without a quantity", missingQuantities_other: "{{count}} ingredients without quantities" },
+  "de-DE": { shown_one: "{{count}} angezeigt", shown_other: "{{count}} angezeigt", actionsFor: "Aktionen für {{name}}", switchThemeLight: "Zum hellen Design wechseln", switchThemeDark: "Zum dunklen Design wechseln", accountRestored: "{{name}} (#{{id}}) erhält mit demselben Konto wieder Zugriff.", missingQuantities_one: "{{count}} Zutat ohne Mengenangabe", missingQuantities_other: "{{count}} Zutaten ohne Mengenangaben" },
 } as const
