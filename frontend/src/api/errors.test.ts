@@ -1,8 +1,21 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import i18n, { DEFAULT_LOCALE, i18nReady } from '../i18n';
 import { ApiError, isApiErrorWithStatus, toApiError } from './errors';
 
 describe('ApiError', () => {
+  let previousLanguage: string;
+
+  beforeEach(async () => {
+    await i18nReady;
+    previousLanguage = i18n.language;
+    await i18n.changeLanguage(DEFAULT_LOCALE);
+  });
+
+  afterEach(async () => {
+    await i18n.changeLanguage(previousLanguage);
+  });
+
   it('preserves status, code and validation fields', () => {
     const error = toApiError({
       detail: {
@@ -30,7 +43,12 @@ describe('ApiError', () => {
     expect(isApiErrorWithStatus(new Error('Missing'), 404)).toBe(false);
   });
 
-  it('translates invalid login credentials without treating them as a missing session', () => {
+  it.each([
+    ['pt-PT', 'Email ou palavra-passe inválidos.', 'Tem de iniciar sessão para continuar.'],
+    ['en-GB', 'Invalid email or password.', 'You need to sign in to continue.'],
+    ['de-DE', 'Ungültige E-Mail-Adresse oder ungültiges Passwort.', 'Sie müssen sich anmelden, um fortzufahren.'],
+  ])('translates invalid login credentials without treating them as a missing session (%s)', async (locale, expected, sessionMessage) => {
+    await i18n.changeLanguage(locale);
     const error = toApiError({
       detail: {
         error: 'invalid_credentials',
@@ -38,6 +56,16 @@ describe('ApiError', () => {
       },
     }, 401);
 
-    expect(error.message).toBe('Email ou palavra-passe inválidos.');
+    expect(error.message).toBe(expected);
+    expect(error.code).toBe('invalid_credentials');
+    expect(error.status).toBe(401);
+
+    const sessionError = toApiError({
+      detail: { error: 'authentication_required', message: 'Authentication required.' },
+    }, 401);
+    expect(sessionError.message).toBe(sessionMessage);
+    expect(sessionError.code).toBe('authentication_required');
+    expect(sessionError.status).toBe(401);
+    expect(error.message).not.toBe(sessionError.message);
   });
 });
