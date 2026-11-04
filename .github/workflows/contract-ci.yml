@@ -26,7 +26,6 @@ jobs:
           --health-retries 5
     env:
       ENVIRONMENT: test
-      AUTO_APPLY_MIGRATIONS: "false"
       DATABASE_URL: sqlite://
       TEST_POSTGRES_DATABASE_URL: postgresql+psycopg2://bonefree:bonefree@localhost:5432/bonefree_test
 
@@ -50,6 +49,9 @@ jobs:
       - name: Install backend dependencies
         run: python -m pip install -r backend/requirements-dev.txt
 
+      - name: Check backend dependency consistency
+        run: python -m pip check
+
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci
@@ -62,7 +64,7 @@ jobs:
 
       - name: Run backend tests
         working-directory: backend
-        run: python -m unittest discover -s tests -v
+        run: python -m pytest -v
 
       - name: Run frontend tests
         working-directory: frontend
