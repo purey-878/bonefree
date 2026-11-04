@@ -1,3 +1,4 @@
+import { resolvedLocale } from "../i18n";
 import { CakeSlice, Check, ChevronDown, CupSoda, Salad, Sandwich, Search, SlidersHorizontal, Soup, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -115,6 +116,8 @@ function clampPrice(value: number, maxPrice: number) {
 
 function Menu() {
   const { t } = useTranslation("storefront");
+  const locale = resolvedLocale();
+  const localeRef = useRef(locale);
   const [searchParams, setSearchParams] = useSearchParams();
   const [initialFilters] = useState(() => {
     const saved = readSavedMenuFilters();
@@ -167,11 +170,18 @@ function Menu() {
 
   useEffect(() => {
     const requestId = ++requestIdRef.current;
+    const languageChanged = localeRef.current !== locale;
+    const requestedPage = languageChanged ? 1 : page;
     const loadPage = async () => {
+      if (languageChanged) {
+        localeRef.current = locale;
+        if (page !== 1) { setPage(1); return; }
+      }
       setLoading(true);
       setErrorMessage(null);
       await productService.getPage({
-        page,
+        page: requestedPage,
+        locale,
         perPage,
         search: debouncedSearch.trim() || undefined,
         categoryId: Number(selectedCategory) || undefined,
@@ -200,13 +210,14 @@ function Menu() {
       }).catch((error) => {
         if (requestId === requestIdRef.current) setErrorMessage(error instanceof Error ? error.message : t("menu.loadError"));
       }).finally(() => {
+        if (requestId !== requestIdRef.current) return;
         initialFilterEffectRef.current = false;
-        if (requestId === requestIdRef.current) setLoading(false);
+        setLoading(false);
       });
     };
     void loadPage();
     return () => { if (requestIdRef.current === requestId) requestIdRef.current += 1; };
-  }, [debouncedSearch, initialFilters.hasSavedFilters, maxPrice, page, perPage, priceRange, selectedCategory, sortBy, specialFilter, t]);
+  }, [debouncedSearch, initialFilters.hasSavedFilters, locale, maxPrice, page, perPage, priceRange, selectedCategory, sortBy, specialFilter, t]);
 
   useEffect(() => {
     const currentSearch = searchParams.toString();

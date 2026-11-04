@@ -5,7 +5,7 @@ from enum import StrEnum
 from decimal import Decimal
 from typing import List
 
-from sqlalchemy import Boolean, DateTime, Enum as SAEnum, ForeignKey, Index, Integer, Numeric, String, Text, UniqueConstraint, text
+from sqlalchemy import CheckConstraint, Boolean, DateTime, Enum as SAEnum, ForeignKey, Index, Integer, Numeric, String, Text, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship, synonym
 
 from database import Base
@@ -645,3 +645,33 @@ class Payment(AppBaseModel):
 
     order: Mapped[Order] = relationship("Order", back_populates="payment")
     confirmed_by: Mapped["User"] = relationship("User")
+
+
+class ProductTranslation(Base):
+    __tablename__ = "product_translation"
+    __table_args__ = (CheckConstraint("locale IN ('en-GB', 'de-DE')", name="ck_product_translation_locale"),)
+
+    product_id: Mapped[int] = mapped_column(ForeignKey("product.id", ondelete="CASCADE"), primary_key=True)
+    locale: Mapped[str] = mapped_column(String(5), primary_key=True)
+    name: Mapped[str | None] = mapped_column(String(150))
+    description: Mapped[str | None] = mapped_column(String(255))
+    menu_tags: Mapped[str | None] = mapped_column(String(255))
+
+
+class CategoryTranslation(Base):
+    __tablename__ = "category_translation"
+    __table_args__ = (CheckConstraint("locale IN ('en-GB', 'de-DE')", name="ck_category_translation_locale"),)
+
+    category_id: Mapped[int] = mapped_column(ForeignKey("category.id", ondelete="CASCADE"), primary_key=True)
+    locale: Mapped[str] = mapped_column(String(5), primary_key=True)
+    name: Mapped[str | None] = mapped_column(String(100))
+    description: Mapped[str | None] = mapped_column(String(255))
+
+
+class IngredientTranslation(Base):
+    __tablename__ = "ingredient_translation"
+    __table_args__ = (CheckConstraint("locale IN ('en-GB', 'de-DE')", name="ck_ingredient_translation_locale"),)
+
+    ingredient_id: Mapped[int] = mapped_column(ForeignKey("ingredient.id", ondelete="CASCADE"), primary_key=True)
+    locale: Mapped[str] = mapped_column(String(5), primary_key=True)
+    name: Mapped[str | None] = mapped_column(String(120))

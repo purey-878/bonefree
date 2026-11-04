@@ -18,6 +18,8 @@ from models import (
     Category, Order, OrderProduct, Payment, ProductReview,
     Ingredient, ProductIngredient, CustomerBillingAddress, Media, MediaVariant, ProductMedia,
 )
+from models import ProductTranslation, CategoryTranslation, IngredientTranslation
+from services.catalog_translation import translation_maps, update_translations
 from services.auth_service import (
     CHEF_ROLE,
     STAFF_ADMIN_ROLE,
@@ -476,23 +478,33 @@ def _product_ingredient_lookup(db: Session, product_ids: List[int]) -> Dict[int,
     return lookup
 
 
+def _translated_admin_response(db, schema, entity, model, identifier):
+    translations = translation_maps(db, model, [identifier]).get(identifier, {})
+    return schema.model_validate({**schema.model_validate(entity).model_dump(), "translations": translations})
+
+
 def _product_admin_response(
     db: Session,
     product: Product,
     ingredient_lookup: Optional[Dict[int, List[ProductIngredientResponse]]] = None,
     unavailable_base_lookup: Optional[Dict[int, List[str]]] = None,
+    translations_lookup: Optional[dict] = None,
 ) -> ProductAdminResponse:
     data = {
         field_name: getattr(product, field_name)
         for field_name in ProductAdminResponse.model_fields
         if field_name not in {
             "discount_percentage",
+            "translations",
             "effective_available",
             "ingredients",
             "media",
             "unavailable_base_ingredients",
         }
     }
+    if translations_lookup is None:
+        translations_lookup = translation_maps(db, ProductTranslation, [product.product_id])
+    data["translations"] = translations_lookup.get(product.product_id, {})
     data["discount_percentage"] = float(product.discount_percentage or 0)
     ingredients = None if ingredient_lookup is None else ingredient_lookup.get(product.product_id)
     if ingredients is None:
@@ -813,10 +825,13 @@ def list_categories(
             .group_by(Product.category_id)
         ).all()
         active_counts = {category_id_value: int(count_value or 0) for category_id_value, count_value in rows}
+    translations_lookup = translation_maps(db, CategoryTranslation, category_ids)
     items = [
-        CategoryResponse.model_validate(category).model_copy(
-            update={"active_product_count": active_counts.get(category.category_id, 0)}
-        )
+        CategoryResponse.model_validate({
+            **CategoryResponse.model_validate(category).model_dump(),
+            "active_product_count": active_counts.get(category.category_id, 0),
+            "translations": translations_lookup.get(category.category_id, {}),
+        })
         for category in categories
     ]
     return CategoryPageResponse(
@@ -846,9 +861,11 @@ def create_category(
         status=EntityStatus.ACTIVE,
     )
     db.add(new_category)
+    db.flush()
+    update_translations(db, CategoryTranslation, new_category.category_id, category.translations)
     db.commit()
     db.refresh(new_category)
-    return new_category
+    return _translated_admin_response(db, CategoryResponse, new_category, CategoryTranslation, new_category.category_id)
 
 
 @router.put(
@@ -874,9 +891,10 @@ def update_category(
     if category_update.status is not None:
         category.status = category_update.status
 
+    update_translations(db, CategoryTranslation, category.category_id, category_update.translations)
     db.commit()
     db.refresh(category)
-    return category
+    return _translated_admin_response(db, CategoryResponse, category, CategoryTranslation, category.category_id)
 
 
 @router.delete(
@@ -907,7 +925,7 @@ def delete_category(
     category.status = EntityStatus.INACTIVE
     db.commit()
     db.refresh(category)
-    return category
+    return _translated_admin_response(db, CategoryResponse, category, CategoryTranslation, category.category_id)
 
 
 # ─────────────────────────────────────────────────────────────
@@ -974,10 +992,13 @@ def list_ingredients(
             .group_by(ProductIngredient.ingredient_id)
         ).all()
         linked_counts = {ingredient_id_value: int(count_value or 0) for ingredient_id_value, count_value in rows}
+    translations_lookup = translation_maps(db, IngredientTranslation, ingredient_ids)
     items = [
-        IngredientResponse.model_validate(ingredient).model_copy(
-            update={"linked_product_count": linked_counts.get(ingredient.ingredient_id, 0)}
-        )
+        IngredientResponse.model_validate({
+            **IngredientResponse.model_validate(ingredient).model_dump(),
+            "linked_product_count": linked_counts.get(ingredient.ingredient_id, 0),
+            "translations": translations_lookup.get(ingredient.ingredient_id, {}),
+        })
         for ingredient in ingredients
     ]
     return IngredientPageResponse(
@@ -1009,9 +1030,10 @@ def create_ingredient(
             existing.available = ingredient.available
             if "calories_per_gram" in getattr(ingredient, "model_fields_set", set()):
                 existing.calories_per_gram = ingredient.calories_per_gram
+            update_translations(db, IngredientTranslation, existing.ingredient_id, ingredient.translations)
             db.commit()
             db.refresh(existing)
-            return existing
+            return _translated_admin_response(db, IngredientResponse, existing, IngredientTranslation, existing.ingredient_id)
         raise AppHTTPException(status_code=status.HTTP_409_CONFLICT, error="duplicate_ingredient_name", message="An ingredient with this name already exists.", details={"name": name})
 
     new_ingredient = Ingredient(
@@ -1022,9 +1044,11 @@ def create_ingredient(
         calories_per_gram=ingredient.calories_per_gram,
     )
     db.add(new_ingredient)
+    db.flush()
+    update_translations(db, IngredientTranslation, new_ingredient.ingredient_id, ingredient.translations)
     db.commit()
     db.refresh(new_ingredient)
-    return new_ingredient
+    return _translated_admin_response(db, IngredientResponse, new_ingredient, IngredientTranslation, new_ingredient.ingredient_id)
 
 
 @router.put(
@@ -1064,9 +1088,10 @@ def update_ingredient(
     if "calories_per_gram" in getattr(ingredient_update, "model_fields_set", set()):
         ingredient.calories_per_gram = ingredient_update.calories_per_gram
 
+    update_translations(db, IngredientTranslation, ingredient.ingredient_id, ingredient_update.translations)
     db.commit()
     db.refresh(ingredient)
-    return ingredient
+    return _translated_admin_response(db, IngredientResponse, ingredient, IngredientTranslation, ingredient.ingredient_id)
 
 
 @router.put(
@@ -1087,7 +1112,7 @@ def set_ingredient_availability(
     ingredient.available = availability.available
     db.commit()
     db.refresh(ingredient)
-    return ingredient
+    return _translated_admin_response(db, IngredientResponse, ingredient, IngredientTranslation, ingredient.ingredient_id)
 
 
 @router.delete(
@@ -1107,7 +1132,7 @@ def delete_ingredient(
     ingredient.status = EntityStatus.INACTIVE
     db.commit()
     db.refresh(ingredient)
-    return ingredient
+    return _translated_admin_response(db, IngredientResponse, ingredient, IngredientTranslation, ingredient.ingredient_id)
 
 
 @router.post(
@@ -1150,6 +1175,7 @@ def create_product(
     db.add(new_product)
     db.flush()
     _sync_product_ingredients(db, new_product.product_id, product.ingredients)
+    update_translations(db, ProductTranslation, new_product.product_id, product.translations)
     db.commit()
     db.refresh(new_product)
 
@@ -1228,8 +1254,9 @@ def list_products(
     product_ids = [product.product_id for product in products]
     ingredient_lookup = _product_ingredient_lookup(db, product_ids)
     unavailable_base_lookup = unavailable_base_ingredients(db, product_ids)
+    translations_lookup = translation_maps(db, ProductTranslation, product_ids)
     items = [
-        _product_admin_response(db, product, ingredient_lookup, unavailable_base_lookup)
+        _product_admin_response(db, product, ingredient_lookup, unavailable_base_lookup, translations_lookup)
         for product in products
     ]
     return ProductAdminPageResponse(
@@ -1271,8 +1298,9 @@ def list_ingredient_products(
     product_ids = [product.product_id for product in products]
     ingredient_lookup = _product_ingredient_lookup(db, product_ids)
     unavailable_base_lookup = unavailable_base_ingredients(db, product_ids)
+    translations_lookup = translation_maps(db, ProductTranslation, product_ids)
     return ProductAdminPageResponse(
-        items=[_product_admin_response(db, product, ingredient_lookup, unavailable_base_lookup) for product in products],
+        items=[_product_admin_response(db, product, ingredient_lookup, unavailable_base_lookup, translations_lookup) for product in products],
         page=page,
         per_page=per_page,
         total=int(total),
@@ -1435,6 +1463,7 @@ def update_product(
     if product_update.ingredients is not None:
         _sync_product_ingredients(db, parsed_product_id, product_update.ingredients)
 
+    update_translations(db, ProductTranslation, product.product_id, product_update.translations)
     db.commit()
     db.refresh(product)
     return _product_admin_response(db, product)

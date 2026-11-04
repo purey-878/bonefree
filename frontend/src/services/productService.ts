@@ -1,3 +1,5 @@
+import { resolvedLocale } from '../i18n';
+import type { SupportedLocale } from '../i18n';
 import { apiData, publicApiClient } from '../api/clients';
 import {
   productsGetProduct,
@@ -10,6 +12,7 @@ import type {
 } from '../types/product';
 
 export interface ProductListOptions extends PageRequest {
+  locale?: SupportedLocale;
   search?: string;
   categoryId?: number;
   minPrice?: number;
@@ -34,6 +37,7 @@ export const productService = {
   async getPage(options: ProductListOptions = {}): Promise<ProductPage> {
     return toDomain<ProductPage>(await apiData(productsListProducts({
       query: {
+        locale: options.locale ?? resolvedLocale(),
         page: options.page,
         per_page: options.perPage,
         search: options.search,
@@ -49,18 +53,19 @@ export const productService = {
     })));
   },
 
-  async getAll(): Promise<Product[]> {
-    const first = await this.getPage({ page: 1, perPage: 100 });
+  async getAll(locale = resolvedLocale()): Promise<Product[]> {
+    const first = await this.getPage({ page: 1, perPage: 100, locale });
     const items = [...first.items];
     for (let page = 2; page <= first.totalPages; page += 1) {
-      items.push(...(await this.getPage({ page, perPage: 100 })).items);
+      items.push(...(await this.getPage({ page, perPage: 100, locale })).items);
     }
     return items;
   },
 
-  async getById(id: string | number): Promise<Product> {
+  async getById(id: string | number, locale = resolvedLocale()): Promise<Product> {
     return toDomain<Product>(await apiData(productsGetProduct({
       path: { product_id: String(id) },
+      query: { locale },
       client: publicApiClient,
       throwOnError: true,
     })));

@@ -32,3 +32,12 @@ describe('DTO/domain mappers', () => {
     expect(toDto(blob)).toBe(blob);
   });
 });
+
+describe('catalog translation serialization', () => {
+  it('preserves locale keys while mapping nested API fields', () => {
+    const draft = { translations: { 'en-GB': { name: 'Soup', menuTags: 'Vegan' }, 'de-DE': null } };
+    const dto = toDto(draft);
+    expect(dto).toEqual({ translations: { 'en-GB': { name: 'Soup', menu_tags: 'Vegan' }, 'de-DE': null } });
+    expect(toDomain(dto)).toEqual(draft);
+  });
+});

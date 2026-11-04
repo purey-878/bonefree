@@ -660,6 +660,33 @@
           "category_name": {
             "title": "Category Name",
             "type": "string"
+          },
+          "translations": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/CategoryTranslationText"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "propertyNames": {
+                  "enum": [
+                    "en-GB",
+                    "de-DE"
+                  ]
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Translations"
           }
         },
         "required": [
@@ -748,6 +775,19 @@
                 "type": "null"
               }
             ]
+          },
+          "translations": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/CategoryTranslationText"
+            },
+            "propertyNames": {
+              "enum": [
+                "en-GB",
+                "de-DE"
+              ]
+            },
+            "title": "Translations",
+            "type": "object"
           }
         },
         "required": [
@@ -756,6 +796,37 @@
           "category_name"
         ],
         "title": "CategoryResponse",
+        "type": "object"
+      },
+      "CategoryTranslationText": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "title": "CategoryTranslationText",
         "type": "object"
       },
       "CategoryUpdate": {
@@ -792,6 +863,33 @@
                 "type": "null"
               }
             ]
+          },
+          "translations": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/CategoryTranslationText"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "propertyNames": {
+                  "enum": [
+                    "en-GB",
+                    "de-DE"
+                  ]
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Translations"
           }
         },
         "title": "CategoryUpdate",
@@ -2168,6 +2266,33 @@
             "$ref": "#/components/schemas/EntityStatus",
             "default": "active"
           },
+          "translations": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/IngredientTranslationText"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "propertyNames": {
+                  "enum": [
+                    "en-GB",
+                    "de-DE"
+                  ]
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Translations"
+          },
           "type": {
             "$ref": "#/components/schemas/IngredientType",
             "default": "normal"
@@ -2252,6 +2377,19 @@
           "status": {
             "$ref": "#/components/schemas/EntityStatus"
           },
+          "translations": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/IngredientTranslationText"
+            },
+            "propertyNames": {
+              "enum": [
+                "en-GB",
+                "de-DE"
+              ]
+            },
+            "title": "Translations",
+            "type": "object"
+          },
           "type": {
             "$ref": "#/components/schemas/IngredientType"
           }
@@ -2264,6 +2402,25 @@
           "available"
         ],
         "title": "IngredientResponse",
+        "type": "object"
+      },
+      "IngredientTranslationText": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "title": "IngredientTranslationText",
         "type": "object"
       },
       "IngredientType": {
@@ -2325,6 +2482,33 @@
                 "type": "null"
               }
             ]
+          },
+          "translations": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/IngredientTranslationText"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "propertyNames": {
+                  "enum": [
+                    "en-GB",
+                    "de-DE"
+                  ]
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Translations"
           },
           "type": {
             "anyOf": [
@@ -3351,6 +3535,19 @@
             ],
             "title": "Total Calories"
           },
+          "translations": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ProductTranslationText"
+            },
+            "propertyNames": {
+              "enum": [
+                "en-GB",
+                "de-DE"
+              ]
+            },
+            "title": "Translations",
+            "type": "object"
+          },
           "unavailable_base_ingredients": {
             "items": {
               "type": "string"
@@ -3587,6 +3784,33 @@
               }
             ],
             "title": "Total Calories"
+          },
+          "translations": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/ProductTranslationText"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "propertyNames": {
+                  "enum": [
+                    "en-GB",
+                    "de-DE"
+                  ]
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Translations"
           }
         },
         "required": [
@@ -4655,6 +4879,49 @@
         "title": "ProductSuggestion",
         "type": "object"
       },
+      "ProductTranslationText": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "menu_tags": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Menu Tags"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 150,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "title": "ProductTranslationText",
+        "type": "object"
+      },
       "ProductUpdate": {
         "description": "Schema for updating a product.",
         "properties": {
@@ -4816,6 +5083,33 @@
               }
             ],
             "title": "Total Calories"
+          },
+          "translations": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/ProductTranslationText"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "propertyNames": {
+                  "enum": [
+                    "en-GB",
+                    "de-DE"
+                  ]
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Translations"
           }
         },
         "title": "ProductUpdate",
@@ -17078,6 +17372,21 @@
               ],
               "title": "Product Ids"
             }
+          },
+          {
+            "in": "query",
+            "name": "locale",
+            "required": false,
+            "schema": {
+              "default": "pt-PT",
+              "enum": [
+                "pt-PT",
+                "en-GB",
+                "de-DE"
+              ],
+              "title": "Locale",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -17179,6 +17488,21 @@
             "required": true,
             "schema": {
               "title": "Product Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "locale",
+            "required": false,
+            "schema": {
+              "default": "pt-PT",
+              "enum": [
+                "pt-PT",
+                "en-GB",
+                "de-DE"
+              ],
+              "title": "Locale",
               "type": "string"
             }
           }

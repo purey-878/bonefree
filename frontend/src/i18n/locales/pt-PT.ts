@@ -188,6 +188,7 @@ const ptPT = {
   account: {
 
     admin: {
+    catalogTranslation: {"language": "Idioma do conteúdo", "original": "Português é o conteúdo original. Preços, fotografias e dados nutricionais são partilhados entre idiomas.", "fallback": "As traduções são opcionais. Campos vazios mostram o original em português. Guarde para publicar as alterações.", "sourceRequired": "Introduza primeiro o nome original em português."},
       accessDenied: "Acesso indisponível", contentAccessOnly: "A administração de conteúdos está disponível apenas para proprietários e gestores.", signOut: "Terminar sessão", backToSite: "Voltar ao site",
 
       title: "Início de sessão de administrador.",

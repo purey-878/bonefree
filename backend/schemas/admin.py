@@ -18,6 +18,7 @@ from schemas.enums import (
     enum_values,
     normalize_admin_role,
 )
+from .catalog_translation import TranslationLocale, ProductTranslationText, CategoryTranslationText, IngredientTranslationText
 from .id_types import CategoryId, ProductId
 from .media import ProductMediaResponse
 from .pagination import PaginatedResponse
@@ -155,6 +156,7 @@ class ProductIngredientPayload(BaseModel):
 
 
 class IngredientCreate(BaseModel):
+    translations: dict[TranslationLocale, IngredientTranslationText | None] | None = None
     name: str = Field(..., min_length=1, max_length=120)
     type: IngredientType = IngredientType.NORMAL
     status: EntityStatus = EntityStatus.ACTIVE
@@ -173,6 +175,7 @@ class IngredientCreate(BaseModel):
 
 
 class IngredientUpdate(BaseModel):
+    translations: dict[TranslationLocale, IngredientTranslationText | None] | None = None
     name: Optional[str] = Field(None, min_length=1, max_length=120)
     type: Optional[IngredientType] = None
     status: Optional[EntityStatus] = None
@@ -191,6 +194,7 @@ class IngredientUpdate(BaseModel):
 
 
 class IngredientResponse(BaseModel):
+    translations: dict[TranslationLocale, IngredientTranslationText] = Field(default_factory=dict)
     ingredient_id: int
     name: str
     type: IngredientType
@@ -216,6 +220,7 @@ class ProductIngredientResponse(BaseModel):
 
 class ProductBase(BaseModel):
     """Base product schema for create/update."""
+    translations: dict[TranslationLocale, ProductTranslationText | None] | None = None
     name: str
     product_description: Optional[str] = None
     price: float
@@ -253,6 +258,7 @@ class ProductCreate(ProductBase):
 
 class ProductUpdate(BaseModel):
     """Schema for updating a product."""
+    translations: dict[TranslationLocale, ProductTranslationText | None] | None = None
     name: Optional[str] = None
     product_description: Optional[str] = None
     price: Optional[float] = None
@@ -291,6 +297,7 @@ class ProductMediaUploadResponse(BaseModel):
 
 class ProductAdminResponse(BaseModel):
     """Response model for product in admin context."""
+    translations: dict[TranslationLocale, ProductTranslationText] = Field(default_factory=dict)
     product_id: int
     product_display_id: str
     name: str
@@ -512,6 +519,7 @@ class AvailabilityUpdate(BaseModel):
 
 class CategoryResponse(BaseModel):
     """Response model for category."""
+    translations: dict[TranslationLocale, CategoryTranslationText] = Field(default_factory=dict)
     category_id: int
     category_display_id: str
     category_name: str
@@ -528,12 +536,14 @@ class CategoryPageResponse(PaginatedResponse[CategoryResponse]):
 
 class CategoryCreate(BaseModel):
     """Schema for creating a category."""
+    translations: dict[TranslationLocale, CategoryTranslationText | None] | None = None
     category_name: str
     category_description: Optional[str] = None
 
 
 class CategoryUpdate(BaseModel):
     """Schema for updating a category."""
+    translations: dict[TranslationLocale, CategoryTranslationText | None] | None = None
     category_name: Optional[str] = None
     category_description: Optional[str] = None
     status: Optional[EntityStatus] = None

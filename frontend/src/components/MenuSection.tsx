@@ -1,3 +1,4 @@
+import { resolvedLocale } from "../i18n";
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { productService } from '../services';
@@ -7,25 +8,28 @@ type ProductsByCategory = Record<string, Product[]>;
 
 const MenuSection: React.FC = () => {
   const { t } = useTranslation('storefront');
+  const locale = resolvedLocale();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let current = true;
     const fetchProducts = async () => {
       try {
-        const data = await productService.getPage({ page: 1, perPage: 20, sort: "default" });
-        setProducts(data.items);
+        const data = await productService.getPage({ page: 1, perPage: 20, sort: "default", locale });
+        if (current) setProducts(data.items);
       } catch (fetchError) {
-        setError(t('menuSection.loadError'));
+        if (current) setError(t('menuSection.loadError'));
         console.error(fetchError);
       } finally {
-        setLoading(false);
+        if (current) setLoading(false);
       }
     };
 
-    fetchProducts();
-  }, [t]);
+    void fetchProducts();
+    return () => { current = false; };
+  }, [locale, t]);
 
   const groupedProducts = products.reduce<ProductsByCategory>((acc, product) => {
     const category = product.category || t('menuSection.uncategorised');

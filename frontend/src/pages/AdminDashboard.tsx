@@ -1,3 +1,6 @@
+import CatalogLanguageTabs from "../components/admin/CatalogLanguageTabs"
+import { catalogText, editCatalogTranslation } from "../utils/catalogTranslations"
+import type { CatalogLocale, CatalogText } from "../utils/catalogTranslations"
 import { Menu, MoreHorizontal, Search, X } from "lucide-react"
 import type { FormEvent, MouseEvent, SyntheticEvent } from "react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
@@ -864,6 +867,9 @@ export default function AdminDashboard() {
   const [productFormStep, setProductFormStep] = useState(0)
   const [productFormMessage, setProductFormMessage] = useState("")
   const [editingProduct, setEditingProduct] = useState<AdminProduct | null>(null)
+  const [productTextLocale, setProductTextLocale] = useState<CatalogLocale>("pt-PT")
+  const [categoryTextLocale, setCategoryTextLocale] = useState<CatalogLocale>("pt-PT")
+  const [ingredientTextLocale, setIngredientTextLocale] = useState<CatalogLocale>("pt-PT")
   const [formData, setFormData] = useState<AdminProductPayload>({
     name: "",
     productDescription: "",
@@ -889,7 +895,9 @@ export default function AdminDashboard() {
   const [customQuantityChips, setCustomQuantityChips] = useState<string[]>([])
   const [isCustomQuantityOpen, setIsCustomQuantityOpen] = useState(false)
   const [customQuantityValue, setCustomQuantityValue] = useState("")
-  const [productTagInput, setProductTagInput] = useState("")
+  const [productTagInputs, setProductTagInputs] = useState<Partial<Record<CatalogLocale, string>>>({})
+  const productTagInput = productTagInputs[productTextLocale] ?? ""
+  const setProductTagInput = (value: string) => setProductTagInputs(current => ({ ...current, [productTextLocale]: value }))
   const [imageFiles, setImageFiles] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [deletingProductMediaId, setDeletingProductMediaId] = useState<number | null>(null)
@@ -1555,6 +1563,7 @@ export default function AdminDashboard() {
 
   const openNewForm = async () => {
     setEditingProduct(null)
+    setProductTextLocale("pt-PT")
     const [nextCategories, nextIngredients] = await Promise.all([
       listAllCategories({ status: "active" }),
       listAllIngredients({ status: "all", customizationOnly: false }),
@@ -1563,6 +1572,7 @@ export default function AdminDashboard() {
     setCatalogIngredients(nextIngredients)
     const activeCategories = nextCategories.filter((category) => category.status !== "inactive")
     setFormData({
+      translations: {},
       name: "",
       productDescription: "",
       price: 0,
@@ -1583,7 +1593,7 @@ export default function AdminDashboard() {
     setNewProductIngredientCalories("")
     setProductIngredientSearch("")
     resetQuantitySelector()
-    setProductTagInput("")
+    setProductTagInputs({})
     setProductFormStep(0)
     setProductFormMessage("")
     setImageFiles([])
@@ -1600,7 +1610,7 @@ export default function AdminDashboard() {
     setNewProductIngredientCalories("")
     setProductIngredientSearch("")
     resetQuantitySelector()
-    setProductTagInput("")
+    setProductTagInputs({})
     setProductFormStep(0)
     setProductFormMessage("")
     setImageFiles([])
@@ -1610,6 +1620,7 @@ export default function AdminDashboard() {
 
   const handleEditProduct = async (product: AdminProduct, startStep = 0) => {
     setEditingProduct(product)
+    setProductTextLocale("pt-PT")
     const [nextCategories, nextIngredients] = await Promise.all([
       listAllCategories({ status: "active" }),
       listAllIngredients({ status: "all", customizationOnly: false }),
@@ -1620,6 +1631,7 @@ export default function AdminDashboard() {
       nextIngredients.map((ingredient) => [ingredient.ingredientId, ingredient.caloriesPerGram ?? null]),
     )
     setFormData({
+      translations: product.translations ?? {},
       name: product.name,
       productDescription: product.productDescription,
       price: product.price,
@@ -1647,7 +1659,7 @@ export default function AdminDashboard() {
     setNewProductIngredientCalories("")
     setProductIngredientSearch("")
     resetQuantitySelector()
-    setProductTagInput("")
+    setProductTagInputs({})
     setProductFormStep(startStep)
     setProductFormMessage("")
     setImageFiles([])
@@ -1656,7 +1668,26 @@ export default function AdminDashboard() {
     setShowProductForm(true)
   }
 
-  const productTags = (formData.menuTags ?? "")
+  const productText = catalogText({ name: formData.name, description: formData.productDescription, menuTags: formData.menuTags }, formData.translations, productTextLocale)
+  const categoryText = catalogText({ name: categoryForm.categoryName, description: categoryForm.categoryDescription }, categoryForm.translations, categoryTextLocale)
+  const ingredientText = catalogText({ name: ingredientForm.name }, ingredientForm.translations, ingredientTextLocale)
+  const updateProductText = (field: keyof CatalogText, value: string) => {
+    setFormData(current => productTextLocale === "pt-PT"
+      ? { ...current, [field === "description" ? "productDescription" : field]: value }
+      : { ...current, translations: editCatalogTranslation(current.translations, productTextLocale, field, value) })
+  }
+  const updateCategoryText = (field: "name" | "description", value: string) => {
+    setCategoryForm(current => categoryTextLocale === "pt-PT"
+      ? { ...current, [field === "name" ? "categoryName" : "categoryDescription"]: value }
+      : { ...current, translations: editCatalogTranslation(current.translations, categoryTextLocale, field, value) })
+  }
+  const updateIngredientText = (value: string) => {
+    setIngredientForm(current => ingredientTextLocale === "pt-PT"
+      ? { ...current, name: value }
+      : { ...current, translations: editCatalogTranslation(current.translations, ingredientTextLocale, "name", value) })
+  }
+
+  const productTags = (productText.menuTags ?? "")
     .split(",")
     .map((tag) => tag.trim())
     .filter(Boolean)
@@ -1664,22 +1695,13 @@ export default function AdminDashboard() {
   const addProductTag = () => {
     const nextTag = productTagInput.trim()
     if (!nextTag || productTags.some((tag) => tag.toLowerCase() === nextTag.toLowerCase())) return
-    setFormData((current) => ({
-      ...current,
-      menuTags: [...productTags, nextTag].join(", "),
-    }))
+    const nextTags = [...productTags, nextTag].join(", ")
+    if (nextTags.length <= 255) updateProductText("menuTags", nextTags)
     setProductTagInput("")
   }
 
   const removeProductTag = (tagToRemove: string) => {
-    setFormData((current) => ({
-      ...current,
-      menuTags: (current.menuTags ?? "")
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter((tag) => tag && tag !== tagToRemove)
-        .join(", "),
-    }))
+    updateProductText("menuTags", productTags.filter(tag => tag !== tagToRemove).join(", "))
   }
 
   const getProductStepValidationMessage = (step: number): string => {
@@ -1738,6 +1760,7 @@ export default function AdminDashboard() {
     const invalid = firstInvalidProductStep(targetStep - 1)
     if (invalid) {
       setProductFormMessage(invalid.message)
+      if (invalid.step === 0) setProductTextLocale("pt-PT")
       setProductFormStep(invalid.step)
       return
     }
@@ -1749,6 +1772,7 @@ export default function AdminDashboard() {
   const goToNextProductStep = () => {
     const message = getProductStepValidationMessage(productFormStep)
     if (message) {
+      if (productFormStep === 0) setProductTextLocale("pt-PT")
       setProductFormMessage(message)
       return
     }
@@ -1765,6 +1789,7 @@ export default function AdminDashboard() {
     const invalid = firstInvalidProductStep()
     if (invalid) {
       setProductFormMessage(invalid.message)
+      if (invalid.step === 0) setProductTextLocale("pt-PT")
       setProductFormStep(invalid.step)
       toast.warning("Please fix the highlighted fields.")
       return
@@ -2099,6 +2124,7 @@ export default function AdminDashboard() {
   const openNewCategoryForm = () => {
     setCategoryFormClosing(false)
     setEditingCategory(null)
+    setCategoryTextLocale("pt-PT")
     setCategoryForm({ categoryName: "", categoryDescription: "" })
     setShowCategoryForm(true)
   }
@@ -2106,7 +2132,9 @@ export default function AdminDashboard() {
   const openEditCategoryForm = (category: Category) => {
     setCategoryFormClosing(false)
     setEditingCategory(category)
+    setCategoryTextLocale("pt-PT")
     setCategoryForm({
+      translations: category.translations ?? {},
       categoryName: category.categoryName,
       categoryDescription: category.categoryDescription ?? "",
     })
@@ -2121,14 +2149,17 @@ export default function AdminDashboard() {
     setShowCategoryForm(false)
     setCategoryFormClosing(false)
     setEditingCategory(null)
+    setCategoryTextLocale("pt-PT")
     setCategoryForm({ categoryName: "", categoryDescription: "" })
   }
 
   const handleCategorySubmit = async (event: FormEvent) => {
     event.preventDefault()
+    if (!categoryForm.categoryName.trim()) { setCategoryTextLocale("pt-PT"); toast.warning(t("catalogTranslation.sourceRequired")); return }
     try {
       if (editingCategory) {
         await updateCategory(editingCategory.categoryId, {
+          translations: categoryForm.translations,
           categoryName: categoryForm.categoryName,
           categoryDescription: categoryForm.categoryDescription,
         })
@@ -2188,6 +2219,7 @@ export default function AdminDashboard() {
   const openNewIngredientForm = () => {
     setIngredientFormClosing(false)
     setEditingIngredient(null)
+    setIngredientTextLocale("pt-PT")
     setIngredientForm({ name: "", type: "normal", status: "active", available: true, caloriesPerGram: null })
     setShowIngredientForm(true)
   }
@@ -2195,7 +2227,9 @@ export default function AdminDashboard() {
   const openEditIngredientForm = (ingredient: AdminIngredient) => {
     setIngredientFormClosing(false)
     setEditingIngredient(ingredient)
+    setIngredientTextLocale("pt-PT")
     setIngredientForm({
+      translations: ingredient.translations ?? {},
       name: ingredient.name,
       type: ingredient.type,
       status: ingredient.status,
@@ -2213,11 +2247,13 @@ export default function AdminDashboard() {
     setShowIngredientForm(false)
     setIngredientFormClosing(false)
     setEditingIngredient(null)
+    setIngredientTextLocale("pt-PT")
     setIngredientForm({ name: "", type: "normal", status: "active", available: true, caloriesPerGram: null })
   }
 
   const handleIngredientSubmit = async (event: FormEvent) => {
     event.preventDefault()
+    if (!ingredientForm.name.trim()) { setIngredientTextLocale("pt-PT"); toast.warning(t("catalogTranslation.sourceRequired")); return }
     try {
       if (editingIngredient) {
         await updateIngredient(editingIngredient.ingredientId, ingredientForm)
@@ -2781,6 +2817,7 @@ export default function AdminDashboard() {
                     <p>Defina o nome e a descrição apresentados na organização do menu.</p>
                   </div>
                   <form className="ad-form" onSubmit={handleCategorySubmit}>
+                    <CatalogLanguageTabs locale={categoryTextLocale} onChange={setCategoryTextLocale} />
                     <div className="ad-form-row">
                       {editingCategory && (
                         <div className="ad-form-group">
@@ -2794,10 +2831,12 @@ export default function AdminDashboard() {
                       <div className="ad-form-group">
                         <label>Name</label>
                         <input
-                          value={categoryForm.categoryName}
-                          onChange={(event) => setCategoryForm({ ...categoryForm, categoryName: event.target.value })}
+                          lang={categoryTextLocale}
+                          value={categoryText.name ?? ""}
+                          maxLength={100}
+                          onChange={(event) => updateCategoryText("name", event.target.value)}
                           placeholder="Hambúrgueres"
-                          required
+                          required={categoryTextLocale === "pt-PT"}
                         />
                       </div>
                     </div>
@@ -2805,8 +2844,10 @@ export default function AdminDashboard() {
                       <label>Description</label>
                       <textarea
                         rows={3}
-                        value={categoryForm.categoryDescription ?? ""}
-                        onChange={(event) => setCategoryForm({ ...categoryForm, categoryDescription: event.target.value })}
+                        lang={categoryTextLocale}
+                        value={categoryText.description ?? ""}
+                        maxLength={255}
+                        onChange={(event) => updateCategoryText("description", event.target.value)}
                         placeholder="Descrição interna curta..."
                       />
                     </div>
@@ -2947,14 +2988,17 @@ export default function AdminDashboard() {
                     <p>Atualize a composição, as calorias e a disponibilidade operacional.</p>
                   </div>
                   <form className="ad-form" onSubmit={handleIngredientSubmit}>
+                    <CatalogLanguageTabs locale={ingredientTextLocale} onChange={setIngredientTextLocale} />
                     <div className="ad-form-row">
                       <div className="ad-form-group">
                         <label>Nome</label>
                         <input
-                          value={ingredientForm.name}
-                          onChange={(event) => setIngredientForm({ ...ingredientForm, name: event.target.value })}
+                          lang={ingredientTextLocale}
+                          value={ingredientText.name ?? ""}
+                          maxLength={120}
+                          onChange={(event) => updateIngredientText(event.target.value)}
                           placeholder="Queijo cheddar"
-                          required
+                          required={ingredientTextLocale === "pt-PT"}
                         />
                       </div>
                       <div className="ad-form-group">
@@ -3399,6 +3443,7 @@ export default function AdminDashboard() {
                         </aside>
 
                         <section className="ad-product-section" id="product-basic">
+                          <CatalogLanguageTabs locale={productTextLocale} onChange={setProductTextLocale} />
                           <div className="ad-product-section-head">
                             <div>
                               <h4>Informação básica</h4>
@@ -3411,10 +3456,12 @@ export default function AdminDashboard() {
                               <span>Nome do produto</span>
                               <input
                                 type="text"
-                                value={formData.name}
-                                onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                lang={productTextLocale}
+                                value={productText.name ?? ""}
+                                maxLength={150}
+                                onChange={e => updateProductText("name", e.target.value)}
                                 placeholder="Hambúrguer de cheddar fumado"
-                                required
+                                required={productTextLocale === "pt-PT"}
                               />
                             </label>
                             <label className="ad-field">
@@ -3446,8 +3493,10 @@ export default function AdminDashboard() {
                               <span>Descrição</span>
                               <textarea
                                 rows={4}
-                                value={formData.productDescription}
-                                onChange={e => setFormData({ ...formData, productDescription: e.target.value })}
+                                lang={productTextLocale}
+                                value={productText.description ?? ""}
+                                maxLength={255}
+                                onChange={e => updateProductText("description", e.target.value)}
                                 placeholder="Uma descrição curta e cuidada que os clientes verão na página do produto."
                               />
                             </label>
@@ -3494,6 +3543,7 @@ export default function AdminDashboard() {
                         </section>
 
                         <section className="ad-product-section" id="product-config">
+                          <CatalogLanguageTabs locale={productTextLocale} onChange={setProductTextLocale} />
                           <div className="ad-product-section-head">
                             <div>
                               <h4>Configuração</h4>

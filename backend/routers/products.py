@@ -7,6 +7,9 @@ from database import get_db
 from schemas.enums import EntityStatus, IngredientType, ProductCustomizationOptionType
 from models import Category, Ingredient, Media, Product, ProductIngredient, ProductCustomizationOption, ProductMedia
 from schemas import ProductResponse
+from schemas.catalog_translation import CatalogLocale
+from models import ProductTranslation, CategoryTranslation
+from services.catalog_translation import localize_products, localized_text
 from schemas.product import ProductCatalogFacets, ProductCategoryFacet, ProductIngredientNutrition, ProductPageResponse
 from schemas.pagination import total_pages
 from schemas.customization import (
@@ -118,13 +121,17 @@ def list_products(
     sort: str = Query("default", pattern="^(default|popular|price_asc|price_desc|name_asc)$"),
     product_ids: list[int] | None = Query(None),
     db: Session = Depends(get_db),
+    locale: CatalogLocale = "pt-PT",
 ):
     """Return a filtered page of active products and stable catalog facets."""
+    display_name = localized_text(ProductTranslation, "product_id", Product.product_id, "name", Product.name, locale)
+    display_description = localized_text(ProductTranslation, "product_id", Product.product_id, "description", Product.product_description, locale)
+    category_name = localized_text(CategoryTranslation, "category_id", Category.category_id, "name", Category.category_name, locale)
     discounted_price = Product.price * (1 - (func.coalesce(Product.discount_percentage, 0) / 100.0))
     filters = [active_product_filter()]
     if search and search.strip():
         pattern = f"%{search.strip()}%"
-        filters.append(or_(Product.name.ilike(pattern), Product.product_description.ilike(pattern)))
+        filters.append(or_(display_name.ilike(pattern), display_description.ilike(pattern), Product.name.ilike(pattern), Product.product_description.ilike(pattern)))
     if category_id is not None:
         filters.append(Product.category_id == category_id)
     if min_price is not None:
@@ -159,7 +166,7 @@ def list_products(
     elif sort == "price_desc":
         ordering = (discounted_price.desc(), Product.product_id.asc())
     elif sort == "name_asc":
-        ordering = (Product.name.asc(), Product.product_id.asc())
+        ordering = (display_name.asc(), Product.product_id.asc())
     elif sort == "popular":
         ordering = (popular_score.desc(), Product.product_id.asc())
     else:
@@ -184,12 +191,14 @@ def list_products(
         for product in products
     ]
 
+    items = localize_products(db, products, items, locale)
+
     facet_rows = db.execute(
-        select(Category.category_id, Category.category_name, func.count(Product.product_id))
+        select(Category.category_id, category_name, func.count(Product.product_id))
         .join(Product, Product.category_id == Category.category_id)
         .where(active_product_filter())
         .group_by(Category.category_id, Category.category_name)
-        .order_by(Category.category_name.asc(), Category.category_id.asc())
+        .order_by(category_name.asc(), Category.category_id.asc())
     ).all()
     catalog_total = sum(int(row[2] or 0) for row in facet_rows)
     catalog_max_price = db.scalar(select(func.max(discounted_price)).where(active_product_filter())) or 0
@@ -447,7 +456,7 @@ def get_product_customization(
 
 
 @router.get('/{product_id}', response_model=ProductResponse, operation_id="products_get_product")
-def get_product(product_id: str, db: Session = Depends(get_db)):
+def get_product(product_id: str, db: Session = Depends(get_db), locale: CatalogLocale = "pt-PT"):
     """Get a single active product by ID, including its media."""
     parsed_product_id = parse_product_id(product_id)
     product = db.scalar(
@@ -463,12 +472,13 @@ def get_product(product_id: str, db: Session = Depends(get_db)):
     if not product:
         raise AppHTTPException(status_code=404, error="product_not_found", message="Product not found.", details={"reason": "request_failed"})
     unavailable_base_ids = unavailable_base_product_ids(db, [product.product_id])
-    return ProductResponse.from_orm_custom(
+    response = ProductResponse.from_orm_custom(
         product,
         unavailable_due_to_unavailable_base=product.product_id in unavailable_base_ids,
         unavailable_reason=product_unavailable_reason(product, unavailable_base_ids),
         ingredients=_product_ingredient_nutrition(db, product.product_id),
     )
+    return localize_products(db, [product], [response], locale)[0]
 
 
 def _suggestion_response(suggestion) -> ProductSuggestion:

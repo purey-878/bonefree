@@ -1,9 +1,11 @@
+import type { CatalogTranslations } from '../utils/catalogTranslations';
 import type { ProductMedia } from './product';
 export type EntityStatus = 'active' | 'inactive';
 export type UserStatus = 'active' | 'suspended' | 'pending';
 export type IngredientType = 'normal' | 'sauce' | 'extra' | 'drink' | 'base' | 'side';
 
 export interface AdminIngredient {
+  translations?: CatalogTranslations;
   ingredientId: number;
   name: string;
   type: IngredientType;
@@ -14,6 +16,7 @@ export interface AdminIngredient {
 }
 
 export interface AdminIngredientPayload {
+  translations?: CatalogTranslations;
   name: string;
   type: IngredientType;
   status?: EntityStatus;
@@ -34,6 +37,7 @@ export interface AdminProductIngredient {
 }
 
 export interface AdminProductPayload {
+  translations?: CatalogTranslations;
   productId?: number;
   name: string;
   productDescription: string;
@@ -61,8 +65,8 @@ export interface AdminProduct extends AdminProductPayload {
   media: ProductMedia[];
 }
 
-export interface Category { categoryId: number; categoryDisplayId: string; categoryName: string; categoryDescription?: string | null; status?: EntityStatus | null; activeProductCount?: number; }
-export interface CategoryPayload { categoryName: string; categoryDescription?: string | null; }
+export interface Category { translations?: CatalogTranslations; categoryId: number; categoryDisplayId: string; categoryName: string; categoryDescription?: string | null; status?: EntityStatus | null; activeProductCount?: number; }
+export interface CategoryPayload { translations?: CatalogTranslations; categoryName: string; categoryDescription?: string | null; }
 
 export interface ProductFilters { name?: string; category?: string | number; minPrice?: number; maxPrice?: number; featured?: boolean; glutenFree?: boolean; containsAlcohol?: boolean; }
 export type AdminRole = 'owner' | 'manager' | 'waiter' | 'chef';

@@ -12,6 +12,8 @@ function camelKey(key: string): string {
 }
 
 function snakeKey(key: string): string {
+  // Locale codes are dictionary keys, not API field names.
+  if (/^[a-z]{2}-[A-Z]{2}$/.test(key)) return key;
   return key.replace(/[A-Z]/g, (character) => `_${character.toLowerCase()}`);
 }
 

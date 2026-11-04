@@ -8,7 +8,7 @@ import styled from "styled-components";
 import Navbar from "../components/Navbar";
 import { ProductCard, ProductCardSkeleton, Skeleton } from "../components/ui";
 import { ASSETS } from "../constants/assets";
-import i18n from "../i18n";
+import i18n, { resolvedLocale } from "../i18n";
 import { getPublicChefSpecial, productService } from "../services";
 import type { Product } from "../types/product";
 import { applyApiImageFallback, productImageFallback, resolveProductImageUrl } from "../utils/imageFallback";
@@ -37,6 +37,7 @@ function isHiddenHomeProduct(product: Product) {
 
 const HomePage = () => {
   const { t } = useTranslation("storefront");
+  const locale = resolvedLocale();
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [catalogCategories, setCatalogCategories] = useState<CategorySummary[]>([]);
@@ -52,29 +53,35 @@ const HomePage = () => {
   const [activePopularIndex, setActivePopularIndex] = useState(0);
 
   useEffect(() => {
+    let current = true;
     const fetchHomeData = async () => {
+      setLoading(true);
+      setError(null);
       try {
         const [catalogPage, chefSpecialSetting] = await Promise.all([
-          productService.getPage({ page: 1, perPage: 20, sort: "default" }),
+          productService.getPage({ page: 1, perPage: 20, sort: "default", locale }),
           getPublicChefSpecial().catch(() => ({ productId: null })),
         ]);
+        if (!current) return;
         const data = catalogPage.items;
         setProducts(data);
         setCatalogCategories(catalogPage.facets.categories.map((category) => ({ name: category.name, count: category.count })).slice(0, 7));
         setChefSpecialProductId(chefSpecialSetting.productId ?? null);
         if (chefSpecialSetting.productId && !data.some((product) => product.id === chefSpecialSetting.productId)) {
-          void productService.getById(chefSpecialSetting.productId).then((special) => setProducts((current) => [...current, special])).catch(() => undefined);
+          void productService.getById(chefSpecialSetting.productId, locale).then((special) => { if (current) setProducts((items) => [...items, special]); }).catch(() => undefined);
         }
       } catch (fetchError) {
+        if (!current) return;
         setError(t("home.loadError"));
         console.error(fetchError);
       } finally {
-        setLoading(false);
+        if (current) setLoading(false);
       }
     };
 
-    fetchHomeData();
-  }, [t]);
+    void fetchHomeData();
+    return () => { current = false; };
+  }, [locale, t]);
 
   const visibleProducts = useMemo(
     () => products.filter((product) => !isHiddenHomeProduct(product)),

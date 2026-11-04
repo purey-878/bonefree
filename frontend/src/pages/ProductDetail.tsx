@@ -100,6 +100,7 @@ function readRecentlyViewed() {
 
 export const ProductDetail = () => {
   const { t } = useTranslation("storefront")
+  const locale = resolvedLocale()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [product, setProduct] = useState<Product | null>(null)
@@ -121,18 +122,18 @@ export const ProductDetail = () => {
       setActiveImageIndex(0)
       setRelatedProducts([])
       setRecentProducts([])
-      await productService.getById(id ?? "").then(async data => {
+      await productService.getById(id ?? "", locale).then(async data => {
         if (!current) return
         setProduct(data)
         setLoading(false)
         const recentIds = readRecentlyViewed().filter(value => value !== data.id).slice(0, 8)
         try { localStorage.setItem(recentlyViewedKey, JSON.stringify([data.id, ...recentIds])) } catch { /* Browsing also works without storage. */ }
         const [related, recent] = await Promise.allSettled([
-          productService.getPage({ page: 1, perPage: 5, categoryId: data.categoryId }),
-          recentIds.length ? productService.getPage({ page: 1, perPage: recentIds.length, productIds: recentIds }) : Promise.resolve({ items: [] as Product[] }),
+          productService.getPage({ page: 1, perPage: 5, categoryId: data.categoryId, locale }),
+          recentIds.length ? productService.getPage({ page: 1, perPage: recentIds.length, productIds: recentIds, locale }) : Promise.resolve({ items: [] as Product[] }),
         ])
         if (!current) return
-        if (related.status === "fulfilled") setRelatedProducts(related.value.items.filter(item => item.id !== data.id && item.category === data.category).slice(0, 4))
+        if (related.status === "fulfilled") setRelatedProducts(related.value.items.filter(item => item.id !== data.id && item.categoryId === data.categoryId).slice(0, 4))
         if (recent.status === "fulfilled") setRecentProducts(recentIds.flatMap(value => recent.value.items.filter(item => item.id === value)).slice(0, 4))
       }).catch(err => {
         if (!current) return
@@ -144,7 +145,7 @@ export const ProductDetail = () => {
     }
     void loadProduct()
     return () => { current = false }
-  }, [id, t])
+  }, [id, locale, t])
   const galleryImages = useMemo<GalleryImage[]>(() => {
     if (!product) return []
     const sources = product.media.map((media) => productMediaUrl(media, "detail"))

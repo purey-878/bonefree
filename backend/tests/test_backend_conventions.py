@@ -44,7 +44,7 @@ FORBIDDEN_IDENTIFIER_PARTS = {
 def _runtime_python_files():
     for path in BACKEND.rglob("*.py"):
         relative_parts = path.relative_to(BACKEND).parts
-        if relative_parts[0] in {"alembic", "tests"}:
+        if relative_parts[0] in {"alembic", "tests", ".venv", "venv", "__pycache__"}:
             continue
         yield path
 
@@ -108,6 +108,8 @@ class BackendConventionTests(unittest.TestCase):
             if len(relative_parts) >= 2 and relative_parts[:2] in {
                 ("backend", "alembic"),
                 ("backend", "tests"),
+                ("backend", ".venv"),
+                ("backend", "venv"),
             }:
                 continue
             text = path.read_text(encoding="utf-8").casefold()

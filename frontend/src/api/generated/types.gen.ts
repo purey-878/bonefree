@@ -445,6 +445,12 @@ export type CategoryCreate = {
      * Category Name
      */
     category_name: string;
+    /**
+     * Translations
+     */
+    translations?: {
+        [key: string]: CategoryTranslationText | null;
+    } | null;
 };
 
 /**
@@ -500,6 +506,26 @@ export type CategoryResponse = {
      */
     category_name: string;
     status?: EntityStatus | null;
+    /**
+     * Translations
+     */
+    translations?: {
+        [key: string]: CategoryTranslationText;
+    };
+};
+
+/**
+ * CategoryTranslationText
+ */
+export type CategoryTranslationText = {
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Name
+     */
+    name?: string | null;
 };
 
 /**
@@ -517,6 +543,12 @@ export type CategoryUpdate = {
      */
     category_name?: string | null;
     status?: EntityStatus | null;
+    /**
+     * Translations
+     */
+    translations?: {
+        [key: string]: CategoryTranslationText | null;
+    } | null;
 };
 
 /**
@@ -1259,6 +1291,12 @@ export type IngredientCreate = {
      */
     name: string;
     status?: EntityStatus;
+    /**
+     * Translations
+     */
+    translations?: {
+        [key: string]: IngredientTranslationText | null;
+    } | null;
     type?: IngredientType;
 };
 
@@ -1313,7 +1351,23 @@ export type IngredientResponse = {
      */
     name: string;
     status: EntityStatus;
+    /**
+     * Translations
+     */
+    translations?: {
+        [key: string]: IngredientTranslationText;
+    };
     type: IngredientType;
+};
+
+/**
+ * IngredientTranslationText
+ */
+export type IngredientTranslationText = {
+    /**
+     * Name
+     */
+    name?: string | null;
 };
 
 /**
@@ -1338,6 +1392,12 @@ export type IngredientUpdate = {
      */
     name?: string | null;
     status?: EntityStatus | null;
+    /**
+     * Translations
+     */
+    translations?: {
+        [key: string]: IngredientTranslationText | null;
+    } | null;
     type?: IngredientType | null;
 };
 
@@ -1913,6 +1973,12 @@ export type ProductAdminResponse = {
      */
     total_calories?: number | null;
     /**
+     * Translations
+     */
+    translations?: {
+        [key: string]: ProductTranslationText;
+    };
+    /**
      * Unavailable Base Ingredients
      */
     unavailable_base_ingredients?: Array<string>;
@@ -2064,6 +2130,12 @@ export type ProductCreate = {
      * Total Calories
      */
     total_calories?: number | null;
+    /**
+     * Translations
+     */
+    translations?: {
+        [key: string]: ProductTranslationText | null;
+    } | null;
 };
 
 /**
@@ -2670,6 +2742,24 @@ export type ProductSuggestion = {
 };
 
 /**
+ * ProductTranslationText
+ */
+export type ProductTranslationText = {
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Menu Tags
+     */
+    menu_tags?: string | null;
+    /**
+     * Name
+     */
+    name?: string | null;
+};
+
+/**
  * ProductUpdate
  *
  * Schema for updating a product.
@@ -2728,6 +2818,12 @@ export type ProductUpdate = {
      * Total Calories
      */
     total_calories?: number | null;
+    /**
+     * Translations
+     */
+    translations?: {
+        [key: string]: ProductTranslationText | null;
+    } | null;
 };
 
 /**
@@ -8357,6 +8453,10 @@ export type ProductsListProductsData = {
          * Product Ids
          */
         product_ids?: Array<number> | null;
+        /**
+         * Locale
+         */
+        locale?: 'pt-PT' | 'en-GB' | 'de-DE';
     };
     url: '/products/';
 };
@@ -8411,7 +8511,12 @@ export type ProductsGetProductData = {
          */
         product_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Locale
+         */
+        locale?: 'pt-PT' | 'en-GB' | 'de-DE';
+    };
     url: '/products/{product_id}';
 };
 

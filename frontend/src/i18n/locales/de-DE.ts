@@ -135,6 +135,7 @@ const deDE = {
   account: {
 
     admin: {
+    catalogTranslation: {"language": "Inhaltssprache", "original": "Portugiesisch ist der Originalinhalt. Preise, Fotos und Nährwerte gelten für alle Sprachen.", "fallback": "Übersetzungen sind optional. Leere Felder zeigen das portugiesische Original. Zum Veröffentlichen speichern.", "sourceRequired": "Geben Sie zuerst den portugiesischen Originalnamen ein."},
       accessDenied: "Zugriff nicht verfügbar", contentAccessOnly: "Die Inhaltsverwaltung steht nur Inhabern und Managern zur Verfügung.", signOut: "Abmelden", backToSite: "Zur Website",
       title: "Administrator-Anmeldung.", signIn: "Als Administrator anmelden", signingIn: "Anmeldung läuft...",
       failed: "Die Administrator-Anmeldung ist fehlgeschlagen.",

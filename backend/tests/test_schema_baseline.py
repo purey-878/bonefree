@@ -18,6 +18,7 @@ import models  # noqa: F401 - register every model in Base.metadata.
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 BASELINE_REVISION = "20260822_0001"
+HEAD_REVISION = "20261103_0002"
 LEGACY_HEAD_REVISION = "b6d8f0a2c4e7"
 
 
@@ -71,7 +72,7 @@ class SchemaBaselineTests(unittest.TestCase):
         finally:
             engine.dispose()
 
-    def test_history_contains_only_the_static_baseline(self):
+    def test_history_preserves_the_static_baseline_and_adds_translations(self):
         engine = create_engine("sqlite://")
         connection = engine.connect()
         config = migrations._alembic_config(connection)
@@ -82,9 +83,10 @@ class SchemaBaselineTests(unittest.TestCase):
             connection.close()
             engine.dispose()
 
-        self.assertEqual([revision.revision for revision in revisions], [BASELINE_REVISION])
-        self.assertIsNone(revisions[0].down_revision)
-        baseline_source = Path(revisions[0].path).read_text(encoding="utf-8")
+        self.assertEqual([revision.revision for revision in revisions], [HEAD_REVISION, BASELINE_REVISION])
+        self.assertEqual(revisions[0].down_revision, BASELINE_REVISION)
+        self.assertIsNone(revisions[-1].down_revision)
+        baseline_source = Path(revisions[-1].path).read_text(encoding="utf-8")
         self.assertNotIn("Base.metadata", baseline_source)
         self.assertNotIn("product_image", baseline_source)
 
@@ -98,7 +100,7 @@ class SchemaBaselineTests(unittest.TestCase):
                 inspector = inspect(connection)
                 self.assertEqual(
                     connection.scalar(text("SELECT version_num FROM alembic_version")),
-                    BASELINE_REVISION,
+                    HEAD_REVISION,
                 )
                 self.assertEqual(
                     set(inspector.get_table_names()) - {"alembic_version"},
@@ -152,6 +154,40 @@ class SchemaBaselineTests(unittest.TestCase):
         finally:
             engine.dispose()
 
+    def test_translation_upgrade_preserves_populated_catalog_and_repeated_startup(self):
+        from sqlalchemy.orm import Session
+        from models import User, Category, Ingredient, Product, ProductTranslation
+        from schemas.enums import UserRole, UserStatus, EntityStatus, IngredientType
+        from sqlalchemy import select, func
+
+        self._alembic("upgrade", BASELINE_REVISION)
+        engine = create_engine(self.database_url)
+        try:
+            with Session(engine) as db:
+                owner = User(name="Owner", email="owner@example.test", password="unchanged-hash", role=UserRole.OWNER, status=UserStatus.ACTIVE)
+                db.add(owner)
+                db.flush()
+                category = Category(category_name="Pratos", category_description="Original category", admin_id=owner.id, status=EntityStatus.ACTIVE)
+                ingredient = Ingredient(name="Cogumelo", type=IngredientType.NORMAL, status=EntityStatus.ACTIVE, available=True, calories_per_gram=2)
+                db.add_all([category, ingredient])
+                db.flush()
+                product = Product(name="Cogumelos", product_description="Original description", category_id=category.id, admin_id=owner.id, price=12.5, status=EntityStatus.ACTIVE, total_calories=100)
+                db.add(product)
+                db.commit()
+                identifiers = (owner.id, category.id, ingredient.id, product.id)
+            with patch.object(migrations, "engine", engine):
+                migrations.run_migrations()
+                migrations.run_migrations()
+            with Session(engine) as db:
+                self.assertEqual(db.get(User, identifiers[0]).password, "unchanged-hash")
+                self.assertEqual(db.get(Category, identifiers[1]).category_description, "Original category")
+                self.assertEqual(db.get(Ingredient, identifiers[2]).name, "Cogumelo")
+                product = db.get(Product, identifiers[3])
+                self.assertEqual((product.name, product.product_description, float(product.price), float(product.total_calories)), ("Cogumelos", "Original description", 12.5, 100))
+                self.assertEqual(db.scalar(select(func.count()).select_from(ProductTranslation)), 0)
+        finally:
+            engine.dispose()
+
     def test_startup_upgrades_empty_and_recognized_databases(self):
         engine = create_engine(self.database_url)
         try:
@@ -162,7 +198,7 @@ class SchemaBaselineTests(unittest.TestCase):
             with engine.connect() as connection:
                 self.assertEqual(
                     connection.scalar(text("SELECT version_num FROM alembic_version")),
-                    BASELINE_REVISION,
+                    HEAD_REVISION,
                 )
         finally:
             engine.dispose()
@@ -205,7 +241,7 @@ class SchemaBaselineTests(unittest.TestCase):
             with engine.connect() as connection:
                 self.assertEqual(
                     connection.scalar(text("SELECT version_num FROM alembic_version")),
-                    BASELINE_REVISION,
+                    HEAD_REVISION,
                 )
         finally:
             engine.dispose()

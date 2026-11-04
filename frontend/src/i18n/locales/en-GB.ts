@@ -135,6 +135,7 @@ const enGB = {
   account: {
 
     admin: {
+    catalogTranslation: {"language": "Content language", "original": "Portuguese is the original content. Prices, photos and nutrition are shared across languages.", "fallback": "Translations are optional. Empty fields display the Portuguese original. Save to publish your changes.", "sourceRequired": "Enter the original Portuguese name first."},
       accessDenied: "Access unavailable", contentAccessOnly: "Content administration is available to owners and managers only.", signOut: "Sign out", backToSite: "Back to website",
       title: "Administrator sign in.", signIn: "Sign in as administrator", signingIn: "Signing in...",
       failed: "We couldn't sign you in as an administrator.",

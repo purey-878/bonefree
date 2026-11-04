@@ -18,7 +18,8 @@ describe('public and administrator API clients', () => {
     for (const client of [publicApiClient, adminApiClient]) client.setConfig({ baseUrl: 'https://api.example.test', fetch: fetchMock });
     await productService.getById(7);
     await getCurrentAdmin();
-    expect(requests[0].url).toBe('https://api.example.test/products/7');
+    expect(new URL(requests[0].url).pathname).toBe('/products/7');
+    expect(['pt-PT', 'en-GB', 'de-DE']).toContain(new URL(requests[0].url).searchParams.get('locale'));
     expect(requests[0].headers.get('Authorization')).toBeNull();
     expect(requests[1].headers.get('Authorization')).toBe('Bearer admin-secret');
     expect(requests.every(request => !request.url.includes('secret'))).toBe(true);

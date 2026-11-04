@@ -55,3 +55,10 @@ untracked `.env.development.local` can override the local API URL.
 
 The backend must allow both frontend HTTPS origins through CORS. No DNS or backend
 changes are performed by the frontend build. Deployment remains manual.
+
+## Database-backed menu languages
+
+Menu content follows the existing language switcher, with Portuguese fallbacks
+for missing English or German text. Owners and managers enter optional translations
+in catalog editor language tabs; management lists stay Portuguese.
+See [menu translation administration and backend-first rollout](../CATALOG_TRANSLATIONS.md).
