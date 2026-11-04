@@ -1,0 +1,916 @@
+{
+  "product": {
+    "description": {
+      "Tortilha chips, pico de gallo, maionese de chipotle, guacamole, cebola frita e queijo fumado derretido.": [
+        "Tortilla chips with pico de gallo, chipotle mayonnaise, guacamole, fried onion and melted smoked cheese.",
+        "Tortillachips mit Pico de Gallo, Chipotle-Mayonnaise, Guacamole, Röstzwiebeln und geschmolzenem Räucherkäse."
+      ],
+      "Dumplings fritos com Beyond Meat, cebola roxa, coentros e masalas.": [
+        "Fried dumplings with Beyond Meat, red onion, coriander and masala spices.",
+        "Frittierte Dumplings mit Beyond Meat, roten Zwiebeln, Koriander und Masala-Gewürzen."
+      ],
+      "Pão brioche, hambúrguer Beyond Meat, queijo cheddar, fakon, cebola roxa, alface, tomate e molho BBQ servido com batata frita normal ou doce.": [
+        "Brioche bun with a Beyond Meat burger, cheddar, fakon, red onion, lettuce, tomato and BBQ sauce, served with regular or sweet potato fries.",
+        "Brioche-Brötchen mit Beyond-Meat-Burger, Cheddar, Fakon, roten Zwiebeln, Salat, Tomate und BBQ-Sauce. Dazu Pommes frites oder Süßkartoffelpommes."
+      ],
+      "Pão de cebola roxa, hambúrguer de feijão preto, maionese de sriracha, alface, tomate, duo de cebola e queijo fumado derretido servido com batata frita normal ou doce.": [
+        "Red onion bun with a black bean burger, sriracha mayonnaise, lettuce, tomato, an onion duo and melted smoked cheese, served with regular or sweet potato fries.",
+        "Rote-Zwiebel-Brötchen mit Schwarze-Bohnen-Burger, Sriracha-Mayonnaise, Salat, Tomate, Zwiebelduo und geschmolzenem Räucherkäse. Dazu Pommes frites oder Süßkartoffelpommes."
+      ],
+      "Pão de cebola roxa, tofu marinado frito, maionese de alho, alface, tomate e pickles servido com batata frita normal ou doce.": [
+        "Red onion bun with fried marinated tofu, garlic mayonnaise, lettuce, tomato and pickles, served with regular or sweet potato fries.",
+        "Rote-Zwiebel-Brötchen mit frittiertem mariniertem Tofu, Knoblauchmayonnaise, Salat, Tomate und Pickles. Dazu Pommes frites oder Süßkartoffelpommes."
+      ],
+      "Mistura de masalas com legumes, grão de bico e leite de côco acompanhado com arroz basmati.": [
+        "A masala spice blend with vegetables, chickpeas and coconut milk, served with basmati rice.",
+        "Masala-Gewürzmischung mit Gemüse, Kichererbsen und Kokosmilch, dazu Basmatireis."
+      ],
+      "Douradinhos Moving Mountains fritos, coleslaw, pico de gallo, cebola roxa, coentros e maionese de chipotle.": [
+        "Fried Moving Mountains fingers with coleslaw, pico de gallo, red onion, coriander and chipotle mayonnaise.",
+        "Frittierte Moving-Mountains-Stäbchen mit Coleslaw, Pico de Gallo, roten Zwiebeln, Koriander und Chipotle-Mayonnaise."
+      ],
+      "Estufado de lentinhas fumadas com legumes, pickles de cebola roxa e coentros.": [
+        "Smoky lentil stew with vegetables, pickled red onion and coriander.",
+        "Rauchiges Linsenragout mit Gemüse, eingelegten roten Zwiebeln und Koriander."
+      ],
+      "Couve-flor crocante, coleslaw, abacate, cebola roxa, coentros e maionese de sriracha.": [
+        "Crispy cauliflower with coleslaw, avocado, red onion, coriander and sriracha mayonnaise.",
+        "Knuspriger Blumenkohl mit Coleslaw, Avocado, roten Zwiebeln, Koriander und Sriracha-Mayonnaise."
+      ],
+      "Cachorro de salsicha Beyond com guacamole, queijo derretido, duo de cebola e molho de mostarda servido com batata frita normal ou doce.": [
+        "Beyond sausage hot dog with guacamole, melted cheese, an onion duo and mustard sauce, served with regular or sweet potato fries.",
+        "Hotdog mit Beyond-Wurst, Guacamole, geschmolzenem Käse, Zwiebelduo und Senfsauce. Dazu Pommes frites oder Süßkartoffelpommes."
+      ],
+      "Alface, pico de gallo, feijão preto, pimentos assados com cebola, abacate, maionese de chipotle e coentros.": [
+        "Lettuce, pico de gallo, black beans, roasted peppers with onion, avocado, chipotle mayonnaise and coriander.",
+        "Salat, Pico de Gallo, schwarze Bohnen, geröstete Paprika mit Zwiebeln, Avocado, Chipotle-Mayonnaise und Koriander."
+      ],
+      "Massa com tomate, queijo creme, ervas aromáticas e queijo parmesão.": [
+        "Pasta with tomato, cream cheese, herbs and Parmesan.",
+        "Pasta mit Tomate, Frischkäse, Kräutern und Parmesan."
+      ],
+      "Tequila, Triple Sec e sumo de limão.": [
+        "Tequila, Triple Sec and lemon juice.",
+        "Tequila, Triple Sec und Zitronensaft."
+      ],
+      "Vodka, Ginger Beer e lima.": [
+        "Vodka, ginger beer and lime.",
+        "Wodka, Ginger Beer und Limette."
+      ],
+      "Aperol, Espumante Cinzano e água com gás.": [
+        "Aperol, Cinzano sparkling wine and sparkling water.",
+        "Aperol, Cinzano-Schaumwein und Sprudelwasser."
+      ],
+      "Peach&Ginger, Lemon&Mate, Raspberry&Thyme.": [
+        "Peach & Ginger, Lemon & Mate, Raspberry & Thyme.",
+        "Pfirsich & Ingwer, Zitrone & Mate, Himbeere & Thymian."
+      ],
+      "Kola, Kola 0, limão, laranja, Organic Apple.": [
+        "Kola, Kola 0, lemon, orange, Organic Apple.",
+        "Kola, Kola 0, Zitrone, Orange, Organic Apple."
+      ],
+      "Sobremesa do dia.": [
+        "Dessert of the day.",
+        "Dessert des Tages."
+      ],
+      "Couve-flor frita com molho BBQ.": [
+        "Fried cauliflower with BBQ sauce.",
+        "Frittierter Blumenkohl mit BBQ-Sauce."
+      ],
+      "Aros de cebola fritos com molho BBQ.": [
+        "Fried onion rings with BBQ sauce.",
+        "Frittierte Zwiebelringe mit BBQ-Sauce."
+      ],
+      "Sopa caseira do dia.": [
+        "Homemade soup of the day.",
+        "Hausgemachte Tagessuppe."
+      ],
+      "Azeitonas.": [
+        "Olives.",
+        "Oliven."
+      ],
+      "Chips de tortilha simples.": [
+        "Plain tortilla chips.",
+        "Tortillachips pur."
+      ],
+      "Batatas fritas.": [
+        "Fries.",
+        "Pommes frites."
+      ],
+      "Batatas fritas doces.": [
+        "Sweet potato fries.",
+        "Süßkartoffelpommes."
+      ],
+      "Molho extra.": [
+        "Extra sauce.",
+        "Zusätzliche Sauce."
+      ],
+      "Rum branco, rum escuro, licor de laranja, xarope de amêndoas e lima.": [
+        "White rum, dark rum, orange liqueur, almond syrup and lime.",
+        "Weißer Rum, dunkler Rum, Orangenlikör, Mandelsirup und Limette."
+      ],
+      "Vodka, sumo de limão, aquafaba e xarope de morango.": [
+        "Vodka, lemon juice, aquafaba and strawberry syrup.",
+        "Wodka, Zitronensaft, Aquafaba und Erdbeersirup."
+      ],
+      "Blue Curação, rum branco, sumo de ananás e rum de côco.": [
+        "Blue Curação, white rum, pineapple juice and coconut rum.",
+        "Blue Curação, weißer Rum, Ananassaft und Kokosrum."
+      ],
+      "Lima, hortelã, rum branco e água com gás.": [
+        "Lime, mint, white rum and sparkling water.",
+        "Limette, Minze, weißer Rum und Sprudelwasser."
+      ],
+      "Cachaça, lima e açúcar.": [
+        "Cachaça, lime and sugar.",
+        "Cachaça, Limette und Zucker."
+      ],
+      "Whisky, bitters e açúcar.": [
+        "Whisky, bitters and sugar.",
+        "Whisky, Bitters und Zucker."
+      ],
+      "Gin, Martini Rosso e Campari.": [
+        "Gin, Martini Rosso and Campari.",
+        "Gin, Martini Rosso und Campari."
+      ],
+      "Whisky, sumo de limão e aquafaba.": [
+        "Whisky, lemon juice and aquafaba.",
+        "Whisky, Zitronensaft und Aquafaba."
+      ],
+      "Vodka, shot de expresso e Tia Maria.": [
+        "Vodka, a shot of espresso and Tia Maria.",
+        "Wodka, ein Espresso und Tia Maria."
+      ],
+      "Tequila, sumo de laranja e grenadina.": [
+        "Tequila, orange juice and grenadine.",
+        "Tequila, Orangensaft und Grenadine."
+      ],
+      "Club Mate.": [
+        "Club Mate.",
+        "Club Mate."
+      ],
+      "Ice Tea.": [
+        "Iced tea.",
+        "Eistee."
+      ],
+      "Kombucha.": [
+        "Kombucha.",
+        "Kombucha."
+      ],
+      "Sumo do dia.": [
+        "Juice of the day.",
+        "Saft des Tages."
+      ],
+      "Ginger Ale.": [
+        "Ginger ale.",
+        "Ginger Ale."
+      ],
+      "Água de coco.": [
+        "Coconut water.",
+        "Kokoswasser."
+      ],
+      "Água das Pedras.": [
+        "Água das Pedras.",
+        "Água das Pedras."
+      ],
+      "Matcha.": [
+        "Matcha.",
+        "Matcha."
+      ],
+      "Café expresso.": [
+        "Espresso.",
+        "Espresso."
+      ],
+      "Americano.": [
+        "Americano.",
+        "Americano."
+      ],
+      "Iced latte.": [
+        "Iced latte.",
+        "Iced Latte."
+      ],
+      "Cappuccino.": [
+        "Cappuccino.",
+        "Cappuccino."
+      ],
+      "Esporão tinto ou branco, garrafa.": [
+        "Esporão red or white wine, by the bottle.",
+        "Esporão Rot- oder Weißwein, als Flasche."
+      ],
+      "Sangria tinto, branco ou rosé, jarro 1L.": [
+        "Red, white or rosé sangria, 1-litre jug.",
+        "Rote, weiße oder Rosé-Sangria, 1-Liter-Krug."
+      ]
+    }
+  },
+  "category": {
+    "name": {
+      "Entradas": [
+        "Starters",
+        "Vorspeisen"
+      ],
+      "Pratos Principais": [
+        "Main dishes",
+        "Hauptgerichte"
+      ],
+      "Bebidas": [
+        "Drinks",
+        "Getränke"
+      ],
+      "Sobremesas": [
+        "Desserts",
+        "Desserts"
+      ],
+      "Tacos": [
+        "Tacos",
+        "Tacos"
+      ],
+      "Extras": [
+        "Sides",
+        "Beilagen"
+      ],
+      "Molhos": [
+        "Sauces",
+        "Saucen"
+      ]
+    },
+    "description": {
+      "Entradas e petiscos para começar bem": [
+        "Starters and small bites to begin your meal.",
+        "Vorspeisen und kleine Gerichte zum Auftakt."
+      ],
+      "Burgers, tacos e pratos quentes": [
+        "Burgers, tacos and hot dishes.",
+        "Burger, Tacos und warme Gerichte."
+      ],
+      "Cocktails, sumos e refrigerantes": [
+        "Cocktails, juices and soft drinks.",
+        "Cocktails, Säfte und Erfrischungsgetränke."
+      ],
+      "Doces e sobremesas veganas": [
+        "Vegan sweets and desserts.",
+        "Vegane Süßspeisen und Desserts."
+      ],
+      "Tacos veganos com ingredientes frescos": [
+        "Vegan tacos with fresh ingredients.",
+        "Vegane Tacos mit frischen Zutaten."
+      ],
+      "Batatas, chips e acompanhamentos": [
+        "Fries, chips and sides.",
+        "Pommes, Chips und Beilagen."
+      ],
+      "Molhos extra e substituições de molho": [
+        "Extra sauces and sauce swaps.",
+        "Zusätzliche Saucen und Saucen zum Austauschen."
+      ]
+    }
+  },
+  "ingredient": {
+    "name": {
+      "Abacate": [
+        "Avocado",
+        "Avocado"
+      ],
+      "Alface": [
+        "Lettuce",
+        "Salat"
+      ],
+      "Amarguinha": [
+        "Amarguinha",
+        "Amarguinha"
+      ],
+      "Americano": [
+        "Americano",
+        "Americano"
+      ],
+      "Aperol": [
+        "Aperol",
+        "Aperol"
+      ],
+      "Aquafaba": [
+        "Aquafaba",
+        "Aquafaba"
+      ],
+      "Aros de cebola fritos": [
+        "Fried onion rings",
+        "Frittierte Zwiebelringe"
+      ],
+      "Arroz basmati": [
+        "Basmati rice",
+        "Basmatireis"
+      ],
+      "Azeitonas": [
+        "Olives",
+        "Oliven"
+      ],
+      "Açúcar": [
+        "Sugar",
+        "Zucker"
+      ],
+      "Batatas fritas": [
+        "Fries",
+        "Pommes frites"
+      ],
+      "Batatas fritas doces": [
+        "Sweet potato fries",
+        "Süßkartoffelpommes"
+      ],
+      "Beyond Meat": [
+        "Beyond Meat",
+        "Beyond Meat"
+      ],
+      "Bife Beyond Meat": [
+        "Beyond Meat steak",
+        "Beyond-Meat-Steak"
+      ],
+      "Bitters": [
+        "Bitters",
+        "Bitters"
+      ],
+      "Blondie Ale 0,25L": [
+        "Blondie Ale 0.25 L",
+        "Blondie Ale 0,25 l"
+      ],
+      "Blondie Ale 0,50L": [
+        "Blondie Ale 0.50 L",
+        "Blondie Ale 0,50 l"
+      ],
+      "Blue Curação": [
+        "Blue Curação",
+        "Blue Curação"
+      ],
+      "Bolo do caco": [
+        "Bolo do caco bread",
+        "Bolo-do-caco-Brot"
+      ],
+      "Born In IPA 0,25L": [
+        "Born In IPA 0.25 L",
+        "Born In IPA 0,25 l"
+      ],
+      "Born In IPA 0,50L": [
+        "Born In IPA 0.50 L",
+        "Born In IPA 0,50 l"
+      ],
+      "Cachaça": [
+        "Cachaça",
+        "Cachaça"
+      ],
+      "Café Expresso": [
+        "Espresso",
+        "Espresso"
+      ],
+      "Café Expresso Duplo": [
+        "Double espresso",
+        "Doppelter Espresso"
+      ],
+      "Campari": [
+        "Campari",
+        "Campari"
+      ],
+      "Cappuccino": [
+        "Cappuccino",
+        "Cappuccino"
+      ],
+      "Cebola caramelizada": [
+        "Caramelised onion",
+        "Karamellisierte Zwiebeln"
+      ],
+      "Cebola em pickles": [
+        "Pickled onion",
+        "Eingelegte Zwiebeln"
+      ],
+      "Cebola frita": [
+        "Fried onion",
+        "Röstzwiebeln"
+      ],
+      "Cebola roxa": [
+        "Red onion",
+        "Rote Zwiebeln"
+      ],
+      "Cerveja Sem Álcool": [
+        "Alcohol-free beer",
+        "Alkoholfreies Bier"
+      ],
+      "Chips de tortilha": [
+        "Tortilla chips",
+        "Tortillachips"
+      ],
+      "Chocolate Quente": [
+        "Hot chocolate",
+        "Heiße Schokolade"
+      ],
+      "Chá": [
+        "Tea",
+        "Tee"
+      ],
+      "Club Mate": [
+        "Club Mate",
+        "Club Mate"
+      ],
+      "Coentros": [
+        "Coriander",
+        "Koriander"
+      ],
+      "Coleslaw": [
+        "Coleslaw",
+        "Coleslaw"
+      ],
+      "Couve-flor crocante": [
+        "Crispy cauliflower",
+        "Knuspriger Blumenkohl"
+      ],
+      "Couve-flor frita": [
+        "Fried cauliflower",
+        "Frittierter Blumenkohl"
+      ],
+      "Douradinhos Moving Mountains": [
+        "Moving Mountains fingers",
+        "Moving-Mountains-Stäbchen"
+      ],
+      "Dumplings fritos": [
+        "Fried dumplings",
+        "Frittierte Dumplings"
+      ],
+      "Ervas aromáticas": [
+        "Herbs",
+        "Kräuter"
+      ],
+      "Esporão Copo": [
+        "Esporão, glass",
+        "Esporão, Glas"
+      ],
+      "Esporão Garrafa": [
+        "Esporão, bottle",
+        "Esporão, Flasche"
+      ],
+      "Espumante Cinzano": [
+        "Cinzano sparkling wine",
+        "Cinzano-Schaumwein"
+      ],
+      "Estufado de lentinhas fumadas": [
+        "Smoky lentil stew",
+        "Rauchiges Linsenragout"
+      ],
+      "Fakon": [
+        "Fakon",
+        "Fakon"
+      ],
+      "Feijão preto": [
+        "Black beans",
+        "Schwarze Bohnen"
+      ],
+      "Frank APA 0,25L": [
+        "Frank APA 0.25 L",
+        "Frank APA 0,25 l"
+      ],
+      "Frank APA 0,50L": [
+        "Frank APA 0.50 L",
+        "Frank APA 0,50 l"
+      ],
+      "Fritz": [
+        "Fritz",
+        "Fritz"
+      ],
+      "Gin": [
+        "Gin",
+        "Gin"
+      ],
+      "Ginger Ale": [
+        "Ginger ale",
+        "Ginger Ale"
+      ],
+      "Ginger Beer": [
+        "Ginger beer",
+        "Ginger Beer"
+      ],
+      "Ginger Beer 0%": [
+        "Ginger beer 0%",
+        "Ginger Beer 0 %"
+      ],
+      "Grenadina": [
+        "Grenadine",
+        "Grenadine"
+      ],
+      "Grão de bico": [
+        "Chickpeas",
+        "Kichererbsen"
+      ],
+      "Guacamole": [
+        "Guacamole",
+        "Guacamole"
+      ],
+      "Habanero": [
+        "Habanero",
+        "Habanero"
+      ],
+      "Hambúrguer Beyond Meat": [
+        "Beyond Meat burger",
+        "Beyond-Meat-Burger"
+      ],
+      "Hambúrguer de feijão preto": [
+        "Black bean burger",
+        "Schwarze-Bohnen-Burger"
+      ],
+      "Hortelã": [
+        "Mint",
+        "Minze"
+      ],
+      "Ice Tea": [
+        "Iced tea",
+        "Eistee"
+      ],
+      "Iced Latte": [
+        "Iced latte",
+        "Iced Latte"
+      ],
+      "Jagermeister": [
+        "Jagermeister",
+        "Jagermeister"
+      ],
+      "Jameson": [
+        "Jameson",
+        "Jameson"
+      ],
+      "Ketchup": [
+        "Ketchup",
+        "Ketchup"
+      ],
+      "Kombucha": [
+        "Kombucha",
+        "Kombucha"
+      ],
+      "Latte": [
+        "Latte",
+        "Latte"
+      ],
+      "Legumes": [
+        "Vegetables",
+        "Gemüse"
+      ],
+      "Leite de côco": [
+        "Coconut milk",
+        "Kokosmilch"
+      ],
+      "Licor Beirão": [
+        "Licor Beirão",
+        "Licor Beirão"
+      ],
+      "Licor de laranja": [
+        "Orange liqueur",
+        "Orangenlikör"
+      ],
+      "Lima": [
+        "Lime",
+        "Limette"
+      ],
+      "Macchiato": [
+        "Macchiato",
+        "Macchiato"
+      ],
+      "Maionese de 3 pimentas": [
+        "Three-pepper mayonnaise",
+        "Drei-Pfeffer-Mayonnaise"
+      ],
+      "Maionese de alho": [
+        "Garlic mayonnaise",
+        "Knoblauchmayonnaise"
+      ],
+      "Maionese de chipotle": [
+        "Chipotle mayonnaise",
+        "Chipotle-Mayonnaise"
+      ],
+      "Maionese de sriracha": [
+        "Sriracha mayonnaise",
+        "Sriracha-Mayonnaise"
+      ],
+      "Manga": [
+        "Mango",
+        "Mango"
+      ],
+      "Martini Rosso": [
+        "Martini Rosso",
+        "Martini Rosso"
+      ],
+      "Masalas": [
+        "Masala spices",
+        "Masala-Gewürze"
+      ],
+      "Massa": [
+        "Pasta",
+        "Pasta"
+      ],
+      "Matcha": [
+        "Matcha",
+        "Matcha"
+      ],
+      "Molho BBQ": [
+        "BBQ sauce",
+        "BBQ-Sauce"
+      ],
+      "Molho de mostarda": [
+        "Mustard sauce",
+        "Senfsauce"
+      ],
+      "Pickles": [
+        "Pickles",
+        "Pickles"
+      ],
+      "Pickles de cebola roxa": [
+        "Pickled red onion",
+        "Eingelegte rote Zwiebeln"
+      ],
+      "Pico de gallo": [
+        "Pico de gallo",
+        "Pico de Gallo"
+      ],
+      "Pimentos assados com cebola": [
+        "Roasted peppers with onion",
+        "Geröstete Paprika mit Zwiebeln"
+      ],
+      "Pão brioche": [
+        "Brioche bun",
+        "Brioche-Brötchen"
+      ],
+      "Pão de cachorro": [
+        "Hot dog bun",
+        "Hotdog-Brötchen"
+      ],
+      "Pão de cebola roxa": [
+        "Red onion bun",
+        "Rote-Zwiebel-Brötchen"
+      ],
+      "Queijo cheddar": [
+        "Cheddar",
+        "Cheddar"
+      ],
+      "Queijo creme": [
+        "Cream cheese",
+        "Frischkäse"
+      ],
+      "Queijo derretido": [
+        "Melted cheese",
+        "Geschmolzener Käse"
+      ],
+      "Queijo fumado derretido": [
+        "Melted smoked cheese",
+        "Geschmolzener Räucherkäse"
+      ],
+      "Queijo parmesão": [
+        "Parmesan",
+        "Parmesan"
+      ],
+      "Rum branco": [
+        "White rum",
+        "Weißer Rum"
+      ],
+      "Rum de côco": [
+        "Coconut rum",
+        "Kokosrum"
+      ],
+      "Rum escuro": [
+        "Dark rum",
+        "Dunkler Rum"
+      ],
+      "Salsa": [
+        "Parsley",
+        "Petersilie"
+      ],
+      "Salsicha Beyond": [
+        "Beyond sausage",
+        "Beyond-Wurst"
+      ],
+      "Sangria Jarro 1L": [
+        "Sangria, 1-litre jug",
+        "Sangria, 1-Liter-Krug"
+      ],
+      "Schneider Weiss 0,25L": [
+        "Schneider Weiss 0.25 L",
+        "Schneider Weiss 0,25 l"
+      ],
+      "Schneider Weiss 0,50L": [
+        "Schneider Weiss 0.50 L",
+        "Schneider Weiss 0,50 l"
+      ],
+      "Shot de expresso": [
+        "Espresso shot",
+        "Espresso"
+      ],
+      "Sobremesa do Dia": [
+        "Dessert of the day",
+        "Dessert des Tages"
+      ],
+      "Somersby Maçã": [
+        "Somersby Apple",
+        "Somersby Apfel"
+      ],
+      "Sopa caseira do dia": [
+        "Homemade soup of the day",
+        "Hausgemachte Tagessuppe"
+      ],
+      "Sumo de ananás": [
+        "Pineapple juice",
+        "Ananassaft"
+      ],
+      "Sumo de laranja": [
+        "Orange juice",
+        "Orangensaft"
+      ],
+      "Sumo de limão": [
+        "Lemon juice",
+        "Zitronensaft"
+      ],
+      "Sumo do Dia": [
+        "Juice of the day",
+        "Saft des Tages"
+      ],
+      "Tequila": [
+        "Tequila",
+        "Tequila"
+      ],
+      "Tia Maria": [
+        "Tia Maria",
+        "Tia Maria"
+      ],
+      "Tofu marinado frito": [
+        "Fried marinated tofu",
+        "Frittierter marinierter Tofu"
+      ],
+      "Tomate": [
+        "Tomato",
+        "Tomate"
+      ],
+      "Tortilha chips": [
+        "Tortilla chips",
+        "Tortillachips"
+      ],
+      "Tostadas de milho": [
+        "Corn tostadas",
+        "Mais-Tostadas"
+      ],
+      "Triple Sec": [
+        "Triple Sec",
+        "Triple Sec"
+      ],
+      "Vinho da Casa Copo": [
+        "House wine, glass",
+        "Hauswein, Glas"
+      ],
+      "Vinho da Casa Garrafa": [
+        "House wine, bottle",
+        "Hauswein, Flasche"
+      ],
+      "Vinho do Porto": [
+        "Port wine",
+        "Portwein"
+      ],
+      "Vinho do Porto 10 Anos": [
+        "10-year-old port wine",
+        "10 Jahre alter Portwein"
+      ],
+      "Vodka": [
+        "Vodka",
+        "Wodka"
+      ],
+      "Weekly Favourite Garrafa": [
+        "Weekly Favourite, bottle",
+        "Weekly Favourite, Flasche"
+      ],
+      "Whisky": [
+        "Whisky",
+        "Whisky"
+      ],
+      "Why Not - Refrigerante Artesanal": [
+        "Why Not - Craft Soft Drink",
+        "Why Not – handwerklich hergestelltes Erfrischungsgetränk"
+      ],
+      "Xarope de amêndoas": [
+        "Almond syrup",
+        "Mandelsirup"
+      ],
+      "Xarope de morango": [
+        "Strawberry syrup",
+        "Erdbeersirup"
+      ],
+      "Água com gás": [
+        "Sparkling water",
+        "Sprudelwasser"
+      ],
+      "Água das Pedras": [
+        "Água das Pedras",
+        "Água das Pedras"
+      ],
+      "Água de Coco": [
+        "Coconut water",
+        "Kokoswasser"
+      ],
+      "Água Filtrada 0,5": [
+        "Filtered water 0.5",
+        "Gefiltertes Wasser 0,5"
+      ],
+      "Água Filtrada 0,75": [
+        "Filtered water 0.75",
+        "Gefiltertes Wasser 0,75"
+      ],
+      "Água Filtrada Gás 0,5": [
+        "Filtered sparkling water 0.5",
+        "Gefiltertes Sprudelwasser 0,5"
+      ],
+      "Água Filtrada Gás 0,75": [
+        "Filtered sparkling water 0.75",
+        "Gefiltertes Sprudelwasser 0,75"
+      ],
+      "Tortilha de trigo": [
+        "Wheat tortilla",
+        "Weizentortilla"
+      ],
+      "Tortilha de milho": [
+        "Corn tortilla",
+        "Maistortilla"
+      ],
+      "cafe": [
+        "Coffee",
+        "Kaffee"
+      ],
+      "acucar": [
+        "Sugar",
+        "Zucker"
+      ],
+      "asucar": [
+        "Sugar",
+        "Zucker"
+      ]
+    }
+  },
+  "product_names": {
+    "Why Not - Refrigerante Artesanal": "Why Not - Craft Soft Drink",
+    "Sobremesa do Dia": "Dessert of the Day",
+    "Azeitonas": "Olives",
+    "Chips de Tortilha Simples": "Plain Tortilla Chips",
+    "Batatas Fritas": "Fries",
+    "Batatas Fritas Doces": "Sweet Potato Fries",
+    "Maionese de Chipotle": "Chipotle Mayonnaise",
+    "Maionese de Alho": "Garlic Mayonnaise",
+    "Sumo do Dia": "Juice of the Day",
+    "Água de Coco": "Coconut Water",
+    "Café Expresso": "Espresso",
+    "Esporão Garrafa": "Esporão Bottle",
+    "Sangria Jarro 1L": "Sangria 1-Litre Jug",
+    "Molho BBQ": "BBQ Sauce"
+  },
+  "notes": {
+    "Tiramisu": [
+      "Source is only a placeholder (Descricao do tiramisu). Supply a real Portuguese description; no ingredients or preparation details inferred."
+    ],
+    "Latino Loaded Nachos": [
+      "The source says fried onion, not caramelised onion; kept fried onion."
+    ],
+    "Baja California": [
+      "Moving Mountains brand retained; no fish or other ingredient claim added."
+    ],
+    "Lentil Taco": [
+      "Source spelling lentinhas interpreted as lentils; confirm smoky lentil stew wording."
+    ],
+    "Margarita": [
+      "Source says lemon juice; kept lemon, not the lime often used in this cocktail."
+    ],
+    "Blue Hawaiian": [
+      "Source brand/product spelling Blue Curação retained verbatim."
+    ],
+    "TEST": [
+      "Likely test data; untranslated. Review whether this record belongs in the catalog."
+    ],
+    "house": [
+      "Ambiguous name; untranslated."
+    ],
+    "house2": [
+      "Ambiguous name; untranslated."
+    ],
+    "creme": [
+      "Ambiguous: may mean cream or a cream-based product. Clarify the Portuguese source before translating."
+    ],
+    "crema": [
+      "Ambiguous: may refer to espresso crema or cream. Clarify the source before translating."
+    ],
+    "cafe": [
+      "Informal source spelling interpreted as café (coffee)."
+    ],
+    "acucar": [
+      "Informal source spelling interpreted as açúcar (sugar)."
+    ],
+    "asucar": [
+      "Nonstandard source spelling interpreted as açúcar (sugar); confirm."
+    ],
+    "Água Filtrada 0,5": [
+      "Source does not specify a unit; none added."
+    ],
+    "Água Filtrada 0,75": [
+      "Source does not specify a unit; none added."
+    ],
+    "Água Filtrada Gás 0,5": [
+      "Source does not specify a unit; none added."
+    ],
+    "Água Filtrada Gás 0,75": [
+      "Source does not specify a unit; none added."
+    ]
+  }
+}

@@ -1,0 +1,3999 @@
+{
+  "version": 1,
+  "source_locale": "pt-PT",
+  "entries": [
+    {
+      "entity": "product",
+      "id": 3,
+      "source": {
+        "name": "Latino Loaded Nachos",
+        "description": "Tortilha chips, pico de gallo, maionese de chipotle, guacamole, cebola frita e queijo fumado derretido."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Latino Loaded Nachos",
+          "description": "Tortilla chips with pico de gallo, chipotle mayonnaise, guacamole, fried onion and melted smoked cheese."
+        },
+        "de-DE": {
+          "name": "Latino Loaded Nachos",
+          "description": "Tortillachips mit Pico de Gallo, Chipotle-Mayonnaise, Guacamole, Röstzwiebeln und geschmolzenem Räucherkäse."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": [
+        "The source says fried onion, not caramelised onion; kept fried onion."
+      ]
+    },
+    {
+      "entity": "product",
+      "id": 4,
+      "source": {
+        "name": "Vegan Momos",
+        "description": "Dumplings fritos com Beyond Meat, cebola roxa, coentros e masalas."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Vegan Momos",
+          "description": "Fried dumplings with Beyond Meat, red onion, coriander and masala spices."
+        },
+        "de-DE": {
+          "name": "Vegan Momos",
+          "description": "Frittierte Dumplings mit Beyond Meat, roten Zwiebeln, Koriander und Masala-Gewürzen."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 5,
+      "source": {
+        "name": "Bonefree Cheeseburger",
+        "description": "Pão brioche, hambúrguer Beyond Meat, queijo cheddar, fakon, cebola roxa, alface, tomate e molho BBQ servido com batata frita normal ou doce."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Bonefree Cheeseburger",
+          "description": "Brioche bun with a Beyond Meat burger, cheddar, fakon, red onion, lettuce, tomato and BBQ sauce, served with regular or sweet potato fries."
+        },
+        "de-DE": {
+          "name": "Bonefree Cheeseburger",
+          "description": "Brioche-Brötchen mit Beyond-Meat-Burger, Cheddar, Fakon, roten Zwiebeln, Salat, Tomate und BBQ-Sauce. Dazu Pommes frites oder Süßkartoffelpommes."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 6,
+      "source": {
+        "name": "Big Poppa",
+        "description": "Pão de cebola roxa, hambúrguer de feijão preto, maionese de sriracha, alface, tomate, duo de cebola e queijo fumado derretido servido com batata frita normal ou doce."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Big Poppa",
+          "description": "Red onion bun with a black bean burger, sriracha mayonnaise, lettuce, tomato, an onion duo and melted smoked cheese, served with regular or sweet potato fries."
+        },
+        "de-DE": {
+          "name": "Big Poppa",
+          "description": "Rote-Zwiebel-Brötchen mit Schwarze-Bohnen-Burger, Sriracha-Mayonnaise, Salat, Tomate, Zwiebelduo und geschmolzenem Räucherkäse. Dazu Pommes frites oder Süßkartoffelpommes."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 7,
+      "source": {
+        "name": "Finger Lickin Chicken Burger",
+        "description": "Pão de cebola roxa, tofu marinado frito, maionese de alho, alface, tomate e pickles servido com batata frita normal ou doce."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Finger Lickin Chicken Burger",
+          "description": "Red onion bun with fried marinated tofu, garlic mayonnaise, lettuce, tomato and pickles, served with regular or sweet potato fries."
+        },
+        "de-DE": {
+          "name": "Finger Lickin Chicken Burger",
+          "description": "Rote-Zwiebel-Brötchen mit frittiertem mariniertem Tofu, Knoblauchmayonnaise, Salat, Tomate und Pickles. Dazu Pommes frites oder Süßkartoffelpommes."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 8,
+      "source": {
+        "name": "Chickpeas Tikka Masala",
+        "description": "Mistura de masalas com legumes, grão de bico e leite de côco acompanhado com arroz basmati."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Chickpeas Tikka Masala",
+          "description": "A masala spice blend with vegetables, chickpeas and coconut milk, served with basmati rice."
+        },
+        "de-DE": {
+          "name": "Chickpeas Tikka Masala",
+          "description": "Masala-Gewürzmischung mit Gemüse, Kichererbsen und Kokosmilch, dazu Basmatireis."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 9,
+      "source": {
+        "name": "Baja California",
+        "description": "Douradinhos Moving Mountains fritos, coleslaw, pico de gallo, cebola roxa, coentros e maionese de chipotle."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Baja California",
+          "description": "Fried Moving Mountains fingers with coleslaw, pico de gallo, red onion, coriander and chipotle mayonnaise."
+        },
+        "de-DE": {
+          "name": "Baja California",
+          "description": "Frittierte Moving-Mountains-Stäbchen mit Coleslaw, Pico de Gallo, roten Zwiebeln, Koriander und Chipotle-Mayonnaise."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": [
+        "Moving Mountains brand retained; no fish or other ingredient claim added."
+      ]
+    },
+    {
+      "entity": "product",
+      "id": 10,
+      "source": {
+        "name": "Lentil Taco",
+        "description": "Estufado de lentinhas fumadas com legumes, pickles de cebola roxa e coentros."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Lentil Taco",
+          "description": "Smoky lentil stew with vegetables, pickled red onion and coriander."
+        },
+        "de-DE": {
+          "name": "Lentil Taco",
+          "description": "Rauchiges Linsenragout mit Gemüse, eingelegten roten Zwiebeln und Koriander."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": [
+        "Source spelling lentinhas interpreted as lentils; confirm smoky lentil stew wording."
+      ]
+    },
+    {
+      "entity": "product",
+      "id": 11,
+      "source": {
+        "name": "Crispy Cauliflower",
+        "description": "Couve-flor crocante, coleslaw, abacate, cebola roxa, coentros e maionese de sriracha."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Crispy Cauliflower",
+          "description": "Crispy cauliflower with coleslaw, avocado, red onion, coriander and sriracha mayonnaise."
+        },
+        "de-DE": {
+          "name": "Crispy Cauliflower",
+          "description": "Knuspriger Blumenkohl mit Coleslaw, Avocado, roten Zwiebeln, Koriander und Sriracha-Mayonnaise."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 12,
+      "source": {
+        "name": "Drop It Like It’s Hot Dog",
+        "description": "Cachorro de salsicha Beyond com guacamole, queijo derretido, duo de cebola e molho de mostarda servido com batata frita normal ou doce."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Drop It Like It’s Hot Dog",
+          "description": "Beyond sausage hot dog with guacamole, melted cheese, an onion duo and mustard sauce, served with regular or sweet potato fries."
+        },
+        "de-DE": {
+          "name": "Drop It Like It’s Hot Dog",
+          "description": "Hotdog mit Beyond-Wurst, Guacamole, geschmolzenem Käse, Zwiebelduo und Senfsauce. Dazu Pommes frites oder Süßkartoffelpommes."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 14,
+      "source": {
+        "name": "Burritinho",
+        "description": "Alface, pico de gallo, feijão preto, pimentos assados com cebola, abacate, maionese de chipotle e coentros."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Burritinho",
+          "description": "Lettuce, pico de gallo, black beans, roasted peppers with onion, avocado, chipotle mayonnaise and coriander."
+        },
+        "de-DE": {
+          "name": "Burritinho",
+          "description": "Salat, Pico de Gallo, schwarze Bohnen, geröstete Paprika mit Zwiebeln, Avocado, Chipotle-Mayonnaise und Koriander."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 15,
+      "source": {
+        "name": "Bonefree Pasta",
+        "description": "Massa com tomate, queijo creme, ervas aromáticas e queijo parmesão."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Bonefree Pasta",
+          "description": "Pasta with tomato, cream cheese, herbs and Parmesan."
+        },
+        "de-DE": {
+          "name": "Bonefree Pasta",
+          "description": "Pasta mit Tomate, Frischkäse, Kräutern und Parmesan."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 16,
+      "source": {
+        "name": "Margarita",
+        "description": "Tequila, Triple Sec e sumo de limão."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Margarita",
+          "description": "Tequila, Triple Sec and lemon juice."
+        },
+        "de-DE": {
+          "name": "Margarita",
+          "description": "Tequila, Triple Sec und Zitronensaft."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": [
+        "Source says lemon juice; kept lemon, not the lime often used in this cocktail."
+      ]
+    },
+    {
+      "entity": "product",
+      "id": 17,
+      "source": {
+        "name": "Moscow Mule",
+        "description": "Vodka, Ginger Beer e lima."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Moscow Mule",
+          "description": "Vodka, ginger beer and lime."
+        },
+        "de-DE": {
+          "name": "Moscow Mule",
+          "description": "Wodka, Ginger Beer und Limette."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 18,
+      "source": {
+        "name": "Aperol Spritz",
+        "description": "Aperol, Espumante Cinzano e água com gás."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Aperol Spritz",
+          "description": "Aperol, Cinzano sparkling wine and sparkling water."
+        },
+        "de-DE": {
+          "name": "Aperol Spritz",
+          "description": "Aperol, Cinzano-Schaumwein und Sprudelwasser."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 19,
+      "source": {
+        "name": "Why Not - Refrigerante Artesanal",
+        "description": "Peach&Ginger, Lemon&Mate, Raspberry&Thyme."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Why Not - Refrigerante Artesanal",
+          "description": "Peach & Ginger, Lemon & Mate, Raspberry & Thyme."
+        },
+        "de-DE": {
+          "name": "Why Not - Refrigerante Artesanal",
+          "description": "Pfirsich & Ingwer, Zitrone & Mate, Himbeere & Thymian."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": "Why Not - Craft Soft Drink",
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 20,
+      "source": {
+        "name": "Fritz",
+        "description": "Kola, Kola 0, limão, laranja, Organic Apple."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Fritz",
+          "description": "Kola, Kola 0, lemon, orange, Organic Apple."
+        },
+        "de-DE": {
+          "name": "Fritz",
+          "description": "Kola, Kola 0, Zitrone, Orange, Organic Apple."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 21,
+      "source": {
+        "name": "Sobremesa do Dia",
+        "description": "Sobremesa do dia."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Sobremesa do Dia",
+          "description": "Dessert of the day."
+        },
+        "de-DE": {
+          "name": "Sobremesa do Dia",
+          "description": "Dessert des Tages."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": "Dessert of the Day",
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 22,
+      "source": {
+        "name": "Superfly - BBQ Wings",
+        "description": "Couve-flor frita com molho BBQ."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Superfly - BBQ Wings",
+          "description": "Fried cauliflower with BBQ sauce."
+        },
+        "de-DE": {
+          "name": "Superfly - BBQ Wings",
+          "description": "Frittierter Blumenkohl mit BBQ-Sauce."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 23,
+      "source": {
+        "name": "Fried Onion Rings",
+        "description": "Aros de cebola fritos com molho BBQ."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Fried Onion Rings",
+          "description": "Fried onion rings with BBQ sauce."
+        },
+        "de-DE": {
+          "name": "Fried Onion Rings",
+          "description": "Frittierte Zwiebelringe mit BBQ-Sauce."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 24,
+      "source": {
+        "name": "Soup of the Day",
+        "description": "Sopa caseira do dia."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Soup of the Day",
+          "description": "Homemade soup of the day."
+        },
+        "de-DE": {
+          "name": "Soup of the Day",
+          "description": "Hausgemachte Tagessuppe."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 25,
+      "source": {
+        "name": "Azeitonas",
+        "description": "Azeitonas."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Azeitonas",
+          "description": "Olives."
+        },
+        "de-DE": {
+          "name": "Azeitonas",
+          "description": "Oliven."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": "Olives",
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 26,
+      "source": {
+        "name": "Chips de Tortilha Simples",
+        "description": "Chips de tortilha simples."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Chips de Tortilha Simples",
+          "description": "Plain tortilla chips."
+        },
+        "de-DE": {
+          "name": "Chips de Tortilha Simples",
+          "description": "Tortillachips pur."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": "Plain Tortilla Chips",
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 27,
+      "source": {
+        "name": "Batatas Fritas",
+        "description": "Batatas fritas."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Batatas Fritas",
+          "description": "Fries."
+        },
+        "de-DE": {
+          "name": "Batatas Fritas",
+          "description": "Pommes frites."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": "Fries",
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 28,
+      "source": {
+        "name": "Batatas Fritas Doces",
+        "description": "Batatas fritas doces."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Batatas Fritas Doces",
+          "description": "Sweet potato fries."
+        },
+        "de-DE": {
+          "name": "Batatas Fritas Doces",
+          "description": "Süßkartoffelpommes."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": "Sweet Potato Fries",
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 29,
+      "source": {
+        "name": "Maionese de Chipotle",
+        "description": "Molho extra."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Maionese de Chipotle",
+          "description": "Extra sauce."
+        },
+        "de-DE": {
+          "name": "Maionese de Chipotle",
+          "description": "Zusätzliche Sauce."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": "Chipotle Mayonnaise",
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 30,
+      "source": {
+        "name": "Maionese de Alho",
+        "description": "Molho extra."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Maionese de Alho",
+          "description": "Extra sauce."
+        },
+        "de-DE": {
+          "name": "Maionese de Alho",
+          "description": "Zusätzliche Sauce."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": "Garlic Mayonnaise",
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 32,
+      "source": {
+        "name": "Ketchup",
+        "description": "Molho extra."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Ketchup",
+          "description": "Extra sauce."
+        },
+        "de-DE": {
+          "name": "Ketchup",
+          "description": "Zusätzliche Sauce."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 34,
+      "source": {
+        "name": "Mai Tai",
+        "description": "Rum branco, rum escuro, licor de laranja, xarope de amêndoas e lima."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Mai Tai",
+          "description": "White rum, dark rum, orange liqueur, almond syrup and lime."
+        },
+        "de-DE": {
+          "name": "Mai Tai",
+          "description": "Weißer Rum, dunkler Rum, Orangenlikör, Mandelsirup und Limette."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 35,
+      "source": {
+        "name": "Cheeky Strawberry",
+        "description": "Vodka, sumo de limão, aquafaba e xarope de morango."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Cheeky Strawberry",
+          "description": "Vodka, lemon juice, aquafaba and strawberry syrup."
+        },
+        "de-DE": {
+          "name": "Cheeky Strawberry",
+          "description": "Wodka, Zitronensaft, Aquafaba und Erdbeersirup."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 36,
+      "source": {
+        "name": "Blue Hawaiian",
+        "description": "Blue Curação, rum branco, sumo de ananás e rum de côco."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Blue Hawaiian",
+          "description": "Blue Curação, white rum, pineapple juice and coconut rum."
+        },
+        "de-DE": {
+          "name": "Blue Hawaiian",
+          "description": "Blue Curação, weißer Rum, Ananassaft und Kokosrum."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": [
+        "Source brand/product spelling Blue Curação retained verbatim."
+      ]
+    },
+    {
+      "entity": "product",
+      "id": 37,
+      "source": {
+        "name": "Mojito",
+        "description": "Lima, hortelã, rum branco e água com gás."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Mojito",
+          "description": "Lime, mint, white rum and sparkling water."
+        },
+        "de-DE": {
+          "name": "Mojito",
+          "description": "Limette, Minze, weißer Rum und Sprudelwasser."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 38,
+      "source": {
+        "name": "Caipirinha",
+        "description": "Cachaça, lima e açúcar."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Caipirinha",
+          "description": "Cachaça, lime and sugar."
+        },
+        "de-DE": {
+          "name": "Caipirinha",
+          "description": "Cachaça, Limette und Zucker."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 39,
+      "source": {
+        "name": "Old Fashioned",
+        "description": "Whisky, bitters e açúcar."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Old Fashioned",
+          "description": "Whisky, bitters and sugar."
+        },
+        "de-DE": {
+          "name": "Old Fashioned",
+          "description": "Whisky, Bitters und Zucker."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 40,
+      "source": {
+        "name": "Negroni",
+        "description": "Gin, Martini Rosso e Campari."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Negroni",
+          "description": "Gin, Martini Rosso and Campari."
+        },
+        "de-DE": {
+          "name": "Negroni",
+          "description": "Gin, Martini Rosso und Campari."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 41,
+      "source": {
+        "name": "Whisky Sour",
+        "description": "Whisky, sumo de limão e aquafaba."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Whisky Sour",
+          "description": "Whisky, lemon juice and aquafaba."
+        },
+        "de-DE": {
+          "name": "Whisky Sour",
+          "description": "Whisky, Zitronensaft und Aquafaba."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 42,
+      "source": {
+        "name": "Expresso Martini",
+        "description": "Vodka, shot de expresso e Tia Maria."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Expresso Martini",
+          "description": "Vodka, a shot of espresso and Tia Maria."
+        },
+        "de-DE": {
+          "name": "Expresso Martini",
+          "description": "Wodka, ein Espresso und Tia Maria."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 43,
+      "source": {
+        "name": "Tequila Sunrise",
+        "description": "Tequila, sumo de laranja e grenadina."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Tequila Sunrise",
+          "description": "Tequila, orange juice and grenadine."
+        },
+        "de-DE": {
+          "name": "Tequila Sunrise",
+          "description": "Tequila, Orangensaft und Grenadine."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 44,
+      "source": {
+        "name": "Club Mate",
+        "description": "Club Mate."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Club Mate",
+          "description": "Club Mate."
+        },
+        "de-DE": {
+          "name": "Club Mate",
+          "description": "Club Mate."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 45,
+      "source": {
+        "name": "Ice Tea",
+        "description": "Ice Tea."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Ice Tea",
+          "description": "Iced tea."
+        },
+        "de-DE": {
+          "name": "Ice Tea",
+          "description": "Eistee."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 46,
+      "source": {
+        "name": "Kombucha",
+        "description": "Kombucha."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Kombucha",
+          "description": "Kombucha."
+        },
+        "de-DE": {
+          "name": "Kombucha",
+          "description": "Kombucha."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 47,
+      "source": {
+        "name": "Sumo do Dia",
+        "description": "Sumo do dia."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Sumo do Dia",
+          "description": "Juice of the day."
+        },
+        "de-DE": {
+          "name": "Sumo do Dia",
+          "description": "Saft des Tages."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": "Juice of the Day",
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 48,
+      "source": {
+        "name": "Ginger Ale",
+        "description": "Ginger Ale."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Ginger Ale",
+          "description": "Ginger ale."
+        },
+        "de-DE": {
+          "name": "Ginger Ale",
+          "description": "Ginger Ale."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 49,
+      "source": {
+        "name": "Água de Coco",
+        "description": "Água de coco."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Água de Coco",
+          "description": "Coconut water."
+        },
+        "de-DE": {
+          "name": "Água de Coco",
+          "description": "Kokoswasser."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": "Coconut Water",
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 50,
+      "source": {
+        "name": "Água das Pedras",
+        "description": "Água das Pedras."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Água das Pedras",
+          "description": "Água das Pedras."
+        },
+        "de-DE": {
+          "name": "Água das Pedras",
+          "description": "Água das Pedras."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 56,
+      "source": {
+        "name": "Matcha",
+        "description": "Matcha."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Matcha",
+          "description": "Matcha."
+        },
+        "de-DE": {
+          "name": "Matcha",
+          "description": "Matcha."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 58,
+      "source": {
+        "name": "Café Expresso",
+        "description": "Café expresso."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Café Expresso",
+          "description": "Espresso."
+        },
+        "de-DE": {
+          "name": "Café Expresso",
+          "description": "Espresso."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": "Espresso",
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 60,
+      "source": {
+        "name": "Americano",
+        "description": "Americano."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Americano",
+          "description": "Americano."
+        },
+        "de-DE": {
+          "name": "Americano",
+          "description": "Americano."
+        }
+      },
+      "existing_translations": {
+        "en-GB": {
+          "name": "ameracano",
+          "description": "english test",
+          "menu_tags": null
+        }
+      },
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 63,
+      "source": {
+        "name": "Iced Latte",
+        "description": "Iced latte."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Iced Latte",
+          "description": "Iced latte."
+        },
+        "de-DE": {
+          "name": "Iced Latte",
+          "description": "Iced Latte."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 64,
+      "source": {
+        "name": "Cappuccino",
+        "description": "Cappuccino."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Cappuccino",
+          "description": "Cappuccino."
+        },
+        "de-DE": {
+          "name": "Cappuccino",
+          "description": "Cappuccino."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 84,
+      "source": {
+        "name": "Esporão Garrafa",
+        "description": "Esporão tinto ou branco, garrafa."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Esporão Garrafa",
+          "description": "Esporão red or white wine, by the bottle."
+        },
+        "de-DE": {
+          "name": "Esporão Garrafa",
+          "description": "Esporão Rot- oder Weißwein, als Flasche."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": "Esporão Bottle",
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 87,
+      "source": {
+        "name": "Sangria Jarro 1L",
+        "description": "Sangria tinto, branco ou rosé, jarro 1L."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Sangria Jarro 1L",
+          "description": "Red, white or rosé sangria, 1-litre jug."
+        },
+        "de-DE": {
+          "name": "Sangria Jarro 1L",
+          "description": "Rote, weiße oder Rosé-Sangria, 1-Liter-Krug."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": "Sangria 1-Litre Jug",
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 601,
+      "source": {
+        "name": "Molho BBQ",
+        "description": "Molho extra."
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Molho BBQ",
+          "description": "Extra sauce."
+        },
+        "de-DE": {
+          "name": "Molho BBQ",
+          "description": "Zusätzliche Sauce."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": "BBQ Sauce",
+      "notes": []
+    },
+    {
+      "entity": "product",
+      "id": 608,
+      "source": {
+        "name": "Tiramisu",
+        "description": "Descricao do tiramisu"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Tiramisu",
+          "description": null
+        },
+        "de-DE": {
+          "name": "Tiramisu",
+          "description": null
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": [
+        "Untranslated description: requires manual review; no text invented.",
+        "Source is only a placeholder (Descricao do tiramisu). Supply a real Portuguese description; no ingredients or preparation details inferred."
+      ]
+    },
+    {
+      "entity": "category",
+      "id": 1,
+      "source": {
+        "name": "Entradas",
+        "description": "Entradas e petiscos para começar bem"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Starters",
+          "description": "Starters and small bites to begin your meal."
+        },
+        "de-DE": {
+          "name": "Vorspeisen",
+          "description": "Vorspeisen und kleine Gerichte zum Auftakt."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "category",
+      "id": 2,
+      "source": {
+        "name": "Pratos Principais",
+        "description": "Burgers, tacos e pratos quentes"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Main dishes",
+          "description": "Burgers, tacos and hot dishes."
+        },
+        "de-DE": {
+          "name": "Hauptgerichte",
+          "description": "Burger, Tacos und warme Gerichte."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "category",
+      "id": 3,
+      "source": {
+        "name": "Bebidas",
+        "description": "Cocktails, sumos e refrigerantes"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Drinks",
+          "description": "Cocktails, juices and soft drinks."
+        },
+        "de-DE": {
+          "name": "Getränke",
+          "description": "Cocktails, Säfte und Erfrischungsgetränke."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "category",
+      "id": 4,
+      "source": {
+        "name": "Sobremesas",
+        "description": "Doces e sobremesas veganas"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Desserts",
+          "description": "Vegan sweets and desserts."
+        },
+        "de-DE": {
+          "name": "Desserts",
+          "description": "Vegane Süßspeisen und Desserts."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "category",
+      "id": 5,
+      "source": {
+        "name": "Tacos",
+        "description": "Tacos veganos com ingredientes frescos"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Tacos",
+          "description": "Vegan tacos with fresh ingredients."
+        },
+        "de-DE": {
+          "name": "Tacos",
+          "description": "Vegane Tacos mit frischen Zutaten."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "category",
+      "id": 6,
+      "source": {
+        "name": "Extras",
+        "description": "Batatas, chips e acompanhamentos"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Sides",
+          "description": "Fries, chips and sides."
+        },
+        "de-DE": {
+          "name": "Beilagen",
+          "description": "Pommes, Chips und Beilagen."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "category",
+      "id": 7,
+      "source": {
+        "name": "Molhos",
+        "description": "Molhos extra e substituições de molho"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Sauces",
+          "description": "Extra sauces and sauce swaps."
+        },
+        "de-DE": {
+          "name": "Saucen",
+          "description": "Zusätzliche Saucen und Saucen zum Austauschen."
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 1,
+      "source": {
+        "name": "Abacate"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Avocado"
+        },
+        "de-DE": {
+          "name": "Avocado"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 2,
+      "source": {
+        "name": "Alface"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Lettuce"
+        },
+        "de-DE": {
+          "name": "Salat"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 3,
+      "source": {
+        "name": "Amarguinha"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Amarguinha"
+        },
+        "de-DE": {
+          "name": "Amarguinha"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 4,
+      "source": {
+        "name": "Americano"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Americano"
+        },
+        "de-DE": {
+          "name": "Americano"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 5,
+      "source": {
+        "name": "Aperol"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Aperol"
+        },
+        "de-DE": {
+          "name": "Aperol"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 6,
+      "source": {
+        "name": "Aquafaba"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Aquafaba"
+        },
+        "de-DE": {
+          "name": "Aquafaba"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 7,
+      "source": {
+        "name": "Aros de cebola fritos"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Fried onion rings"
+        },
+        "de-DE": {
+          "name": "Frittierte Zwiebelringe"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 8,
+      "source": {
+        "name": "Arroz basmati"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Basmati rice"
+        },
+        "de-DE": {
+          "name": "Basmatireis"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 9,
+      "source": {
+        "name": "Azeitonas"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Olives"
+        },
+        "de-DE": {
+          "name": "Oliven"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 10,
+      "source": {
+        "name": "Açúcar"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Sugar"
+        },
+        "de-DE": {
+          "name": "Zucker"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 11,
+      "source": {
+        "name": "Batatas fritas"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Fries"
+        },
+        "de-DE": {
+          "name": "Pommes frites"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 12,
+      "source": {
+        "name": "Batatas fritas doces"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Sweet potato fries"
+        },
+        "de-DE": {
+          "name": "Süßkartoffelpommes"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 13,
+      "source": {
+        "name": "Beyond Meat"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Beyond Meat"
+        },
+        "de-DE": {
+          "name": "Beyond Meat"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 14,
+      "source": {
+        "name": "Bife Beyond Meat"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Beyond Meat steak"
+        },
+        "de-DE": {
+          "name": "Beyond-Meat-Steak"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 15,
+      "source": {
+        "name": "Bitters"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Bitters"
+        },
+        "de-DE": {
+          "name": "Bitters"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 16,
+      "source": {
+        "name": "Blondie Ale 0,25L"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Blondie Ale 0.25 L"
+        },
+        "de-DE": {
+          "name": "Blondie Ale 0,25 l"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 17,
+      "source": {
+        "name": "Blondie Ale 0,50L"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Blondie Ale 0.50 L"
+        },
+        "de-DE": {
+          "name": "Blondie Ale 0,50 l"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 18,
+      "source": {
+        "name": "Blue Curação"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Blue Curação"
+        },
+        "de-DE": {
+          "name": "Blue Curação"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 19,
+      "source": {
+        "name": "Bolo do caco"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Bolo do caco bread"
+        },
+        "de-DE": {
+          "name": "Bolo-do-caco-Brot"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 20,
+      "source": {
+        "name": "Born In IPA 0,25L"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Born In IPA 0.25 L"
+        },
+        "de-DE": {
+          "name": "Born In IPA 0,25 l"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 21,
+      "source": {
+        "name": "Born In IPA 0,50L"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Born In IPA 0.50 L"
+        },
+        "de-DE": {
+          "name": "Born In IPA 0,50 l"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 22,
+      "source": {
+        "name": "Cachaça"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Cachaça"
+        },
+        "de-DE": {
+          "name": "Cachaça"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 23,
+      "source": {
+        "name": "Café Expresso"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Espresso"
+        },
+        "de-DE": {
+          "name": "Espresso"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 24,
+      "source": {
+        "name": "Café Expresso Duplo"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Double espresso"
+        },
+        "de-DE": {
+          "name": "Doppelter Espresso"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 25,
+      "source": {
+        "name": "Campari"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Campari"
+        },
+        "de-DE": {
+          "name": "Campari"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 26,
+      "source": {
+        "name": "Cappuccino"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Cappuccino"
+        },
+        "de-DE": {
+          "name": "Cappuccino"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 27,
+      "source": {
+        "name": "Cebola caramelizada"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Caramelised onion"
+        },
+        "de-DE": {
+          "name": "Karamellisierte Zwiebeln"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 28,
+      "source": {
+        "name": "Cebola em pickles"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Pickled onion"
+        },
+        "de-DE": {
+          "name": "Eingelegte Zwiebeln"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 29,
+      "source": {
+        "name": "Cebola frita"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Fried onion"
+        },
+        "de-DE": {
+          "name": "Röstzwiebeln"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 30,
+      "source": {
+        "name": "Cebola roxa"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Red onion"
+        },
+        "de-DE": {
+          "name": "Rote Zwiebeln"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 31,
+      "source": {
+        "name": "Cerveja Sem Álcool"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Alcohol-free beer"
+        },
+        "de-DE": {
+          "name": "Alkoholfreies Bier"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 32,
+      "source": {
+        "name": "Chips de tortilha"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Tortilla chips"
+        },
+        "de-DE": {
+          "name": "Tortillachips"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 33,
+      "source": {
+        "name": "Chocolate Quente"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Hot chocolate"
+        },
+        "de-DE": {
+          "name": "Heiße Schokolade"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 34,
+      "source": {
+        "name": "Chá"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Tea"
+        },
+        "de-DE": {
+          "name": "Tee"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 35,
+      "source": {
+        "name": "Club Mate"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Club Mate"
+        },
+        "de-DE": {
+          "name": "Club Mate"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 36,
+      "source": {
+        "name": "Coentros"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Coriander"
+        },
+        "de-DE": {
+          "name": "Koriander"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 37,
+      "source": {
+        "name": "Coleslaw"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Coleslaw"
+        },
+        "de-DE": {
+          "name": "Coleslaw"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 38,
+      "source": {
+        "name": "Couve-flor crocante"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Crispy cauliflower"
+        },
+        "de-DE": {
+          "name": "Knuspriger Blumenkohl"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 39,
+      "source": {
+        "name": "Couve-flor frita"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Fried cauliflower"
+        },
+        "de-DE": {
+          "name": "Frittierter Blumenkohl"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 40,
+      "source": {
+        "name": "Douradinhos Moving Mountains"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Moving Mountains fingers"
+        },
+        "de-DE": {
+          "name": "Moving-Mountains-Stäbchen"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 41,
+      "source": {
+        "name": "Dumplings fritos"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Fried dumplings"
+        },
+        "de-DE": {
+          "name": "Frittierte Dumplings"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 42,
+      "source": {
+        "name": "Ervas aromáticas"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Herbs"
+        },
+        "de-DE": {
+          "name": "Kräuter"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 43,
+      "source": {
+        "name": "Esporão Copo"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Esporão, glass"
+        },
+        "de-DE": {
+          "name": "Esporão, Glas"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 44,
+      "source": {
+        "name": "Esporão Garrafa"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Esporão, bottle"
+        },
+        "de-DE": {
+          "name": "Esporão, Flasche"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 45,
+      "source": {
+        "name": "Espumante Cinzano"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Cinzano sparkling wine"
+        },
+        "de-DE": {
+          "name": "Cinzano-Schaumwein"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 46,
+      "source": {
+        "name": "Estufado de lentinhas fumadas"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Smoky lentil stew"
+        },
+        "de-DE": {
+          "name": "Rauchiges Linsenragout"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 47,
+      "source": {
+        "name": "Fakon"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Fakon"
+        },
+        "de-DE": {
+          "name": "Fakon"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 48,
+      "source": {
+        "name": "Feijão preto"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Black beans"
+        },
+        "de-DE": {
+          "name": "Schwarze Bohnen"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 50,
+      "source": {
+        "name": "Frank APA 0,25L"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Frank APA 0.25 L"
+        },
+        "de-DE": {
+          "name": "Frank APA 0,25 l"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 51,
+      "source": {
+        "name": "Frank APA 0,50L"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Frank APA 0.50 L"
+        },
+        "de-DE": {
+          "name": "Frank APA 0,50 l"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 52,
+      "source": {
+        "name": "Fritz"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Fritz"
+        },
+        "de-DE": {
+          "name": "Fritz"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 53,
+      "source": {
+        "name": "Gin"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Gin"
+        },
+        "de-DE": {
+          "name": "Gin"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 54,
+      "source": {
+        "name": "Ginger Ale"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Ginger ale"
+        },
+        "de-DE": {
+          "name": "Ginger Ale"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 55,
+      "source": {
+        "name": "Ginger Beer"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Ginger beer"
+        },
+        "de-DE": {
+          "name": "Ginger Beer"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 56,
+      "source": {
+        "name": "Ginger Beer 0%"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Ginger beer 0%"
+        },
+        "de-DE": {
+          "name": "Ginger Beer 0 %"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 57,
+      "source": {
+        "name": "Grenadina"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Grenadine"
+        },
+        "de-DE": {
+          "name": "Grenadine"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 58,
+      "source": {
+        "name": "Grão de bico"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Chickpeas"
+        },
+        "de-DE": {
+          "name": "Kichererbsen"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 59,
+      "source": {
+        "name": "Guacamole"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Guacamole"
+        },
+        "de-DE": {
+          "name": "Guacamole"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 60,
+      "source": {
+        "name": "Habanero"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Habanero"
+        },
+        "de-DE": {
+          "name": "Habanero"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 61,
+      "source": {
+        "name": "Hambúrguer Beyond Meat"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Beyond Meat burger"
+        },
+        "de-DE": {
+          "name": "Beyond-Meat-Burger"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 62,
+      "source": {
+        "name": "Hambúrguer de feijão preto"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Black bean burger"
+        },
+        "de-DE": {
+          "name": "Schwarze-Bohnen-Burger"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 63,
+      "source": {
+        "name": "Hortelã"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Mint"
+        },
+        "de-DE": {
+          "name": "Minze"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 64,
+      "source": {
+        "name": "Ice Tea"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Iced tea"
+        },
+        "de-DE": {
+          "name": "Eistee"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 65,
+      "source": {
+        "name": "Iced Latte"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Iced latte"
+        },
+        "de-DE": {
+          "name": "Iced Latte"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 66,
+      "source": {
+        "name": "Jagermeister"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Jagermeister"
+        },
+        "de-DE": {
+          "name": "Jagermeister"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 67,
+      "source": {
+        "name": "Jameson"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Jameson"
+        },
+        "de-DE": {
+          "name": "Jameson"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 68,
+      "source": {
+        "name": "Ketchup"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Ketchup"
+        },
+        "de-DE": {
+          "name": "Ketchup"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 69,
+      "source": {
+        "name": "Kombucha"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Kombucha"
+        },
+        "de-DE": {
+          "name": "Kombucha"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 70,
+      "source": {
+        "name": "Latte"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Latte"
+        },
+        "de-DE": {
+          "name": "Latte"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 71,
+      "source": {
+        "name": "Legumes"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Vegetables"
+        },
+        "de-DE": {
+          "name": "Gemüse"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 72,
+      "source": {
+        "name": "Leite de côco"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Coconut milk"
+        },
+        "de-DE": {
+          "name": "Kokosmilch"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 73,
+      "source": {
+        "name": "Licor Beirão"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Licor Beirão"
+        },
+        "de-DE": {
+          "name": "Licor Beirão"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 74,
+      "source": {
+        "name": "Licor de laranja"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Orange liqueur"
+        },
+        "de-DE": {
+          "name": "Orangenlikör"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 75,
+      "source": {
+        "name": "Lima"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Lime"
+        },
+        "de-DE": {
+          "name": "Limette"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 76,
+      "source": {
+        "name": "Macchiato"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Macchiato"
+        },
+        "de-DE": {
+          "name": "Macchiato"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 77,
+      "source": {
+        "name": "Maionese de 3 pimentas"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Three-pepper mayonnaise"
+        },
+        "de-DE": {
+          "name": "Drei-Pfeffer-Mayonnaise"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 78,
+      "source": {
+        "name": "Maionese de alho"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Garlic mayonnaise"
+        },
+        "de-DE": {
+          "name": "Knoblauchmayonnaise"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 79,
+      "source": {
+        "name": "Maionese de chipotle"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Chipotle mayonnaise"
+        },
+        "de-DE": {
+          "name": "Chipotle-Mayonnaise"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 80,
+      "source": {
+        "name": "Maionese de sriracha"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Sriracha mayonnaise"
+        },
+        "de-DE": {
+          "name": "Sriracha-Mayonnaise"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 81,
+      "source": {
+        "name": "Manga"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Mango"
+        },
+        "de-DE": {
+          "name": "Mango"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 82,
+      "source": {
+        "name": "Martini Rosso"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Martini Rosso"
+        },
+        "de-DE": {
+          "name": "Martini Rosso"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 83,
+      "source": {
+        "name": "Masalas"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Masala spices"
+        },
+        "de-DE": {
+          "name": "Masala-Gewürze"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 84,
+      "source": {
+        "name": "Massa"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Pasta"
+        },
+        "de-DE": {
+          "name": "Pasta"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 85,
+      "source": {
+        "name": "Matcha"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Matcha"
+        },
+        "de-DE": {
+          "name": "Matcha"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 86,
+      "source": {
+        "name": "Molho BBQ"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "BBQ sauce"
+        },
+        "de-DE": {
+          "name": "BBQ-Sauce"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 87,
+      "source": {
+        "name": "Molho de mostarda"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Mustard sauce"
+        },
+        "de-DE": {
+          "name": "Senfsauce"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 88,
+      "source": {
+        "name": "Pickles"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Pickles"
+        },
+        "de-DE": {
+          "name": "Pickles"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 89,
+      "source": {
+        "name": "Pickles de cebola roxa"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Pickled red onion"
+        },
+        "de-DE": {
+          "name": "Eingelegte rote Zwiebeln"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 90,
+      "source": {
+        "name": "Pico de gallo"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Pico de gallo"
+        },
+        "de-DE": {
+          "name": "Pico de Gallo"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 91,
+      "source": {
+        "name": "Pimentos assados com cebola"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Roasted peppers with onion"
+        },
+        "de-DE": {
+          "name": "Geröstete Paprika mit Zwiebeln"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 92,
+      "source": {
+        "name": "Pão brioche"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Brioche bun"
+        },
+        "de-DE": {
+          "name": "Brioche-Brötchen"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 93,
+      "source": {
+        "name": "Pão de cachorro"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Hot dog bun"
+        },
+        "de-DE": {
+          "name": "Hotdog-Brötchen"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 94,
+      "source": {
+        "name": "Pão de cebola roxa"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Red onion bun"
+        },
+        "de-DE": {
+          "name": "Rote-Zwiebel-Brötchen"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 95,
+      "source": {
+        "name": "Queijo cheddar"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Cheddar"
+        },
+        "de-DE": {
+          "name": "Cheddar"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 96,
+      "source": {
+        "name": "Queijo creme"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Cream cheese"
+        },
+        "de-DE": {
+          "name": "Frischkäse"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 97,
+      "source": {
+        "name": "Queijo derretido"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Melted cheese"
+        },
+        "de-DE": {
+          "name": "Geschmolzener Käse"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 98,
+      "source": {
+        "name": "Queijo fumado derretido"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Melted smoked cheese"
+        },
+        "de-DE": {
+          "name": "Geschmolzener Räucherkäse"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 99,
+      "source": {
+        "name": "Queijo parmesão"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Parmesan"
+        },
+        "de-DE": {
+          "name": "Parmesan"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 100,
+      "source": {
+        "name": "Rum branco"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "White rum"
+        },
+        "de-DE": {
+          "name": "Weißer Rum"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 101,
+      "source": {
+        "name": "Rum de côco"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Coconut rum"
+        },
+        "de-DE": {
+          "name": "Kokosrum"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 102,
+      "source": {
+        "name": "Rum escuro"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Dark rum"
+        },
+        "de-DE": {
+          "name": "Dunkler Rum"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 103,
+      "source": {
+        "name": "Salsa"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Parsley"
+        },
+        "de-DE": {
+          "name": "Petersilie"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 104,
+      "source": {
+        "name": "Salsicha Beyond"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Beyond sausage"
+        },
+        "de-DE": {
+          "name": "Beyond-Wurst"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 105,
+      "source": {
+        "name": "Sangria Jarro 1L"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Sangria, 1-litre jug"
+        },
+        "de-DE": {
+          "name": "Sangria, 1-Liter-Krug"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 106,
+      "source": {
+        "name": "Schneider Weiss 0,25L"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Schneider Weiss 0.25 L"
+        },
+        "de-DE": {
+          "name": "Schneider Weiss 0,25 l"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 107,
+      "source": {
+        "name": "Schneider Weiss 0,50L"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Schneider Weiss 0.50 L"
+        },
+        "de-DE": {
+          "name": "Schneider Weiss 0,50 l"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 108,
+      "source": {
+        "name": "Shot de expresso"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Espresso shot"
+        },
+        "de-DE": {
+          "name": "Espresso"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 109,
+      "source": {
+        "name": "Sobremesa do Dia"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Dessert of the day"
+        },
+        "de-DE": {
+          "name": "Dessert des Tages"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 110,
+      "source": {
+        "name": "Somersby Maçã"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Somersby Apple"
+        },
+        "de-DE": {
+          "name": "Somersby Apfel"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 111,
+      "source": {
+        "name": "Sopa caseira do dia"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Homemade soup of the day"
+        },
+        "de-DE": {
+          "name": "Hausgemachte Tagessuppe"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 112,
+      "source": {
+        "name": "Sumo de ananás"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Pineapple juice"
+        },
+        "de-DE": {
+          "name": "Ananassaft"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 113,
+      "source": {
+        "name": "Sumo de laranja"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Orange juice"
+        },
+        "de-DE": {
+          "name": "Orangensaft"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 115,
+      "source": {
+        "name": "Sumo de limão"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Lemon juice"
+        },
+        "de-DE": {
+          "name": "Zitronensaft"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 116,
+      "source": {
+        "name": "Sumo do Dia"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Juice of the day"
+        },
+        "de-DE": {
+          "name": "Saft des Tages"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 117,
+      "source": {
+        "name": "Tequila"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Tequila"
+        },
+        "de-DE": {
+          "name": "Tequila"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 118,
+      "source": {
+        "name": "Tia Maria"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Tia Maria"
+        },
+        "de-DE": {
+          "name": "Tia Maria"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 119,
+      "source": {
+        "name": "Tofu marinado frito"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Fried marinated tofu"
+        },
+        "de-DE": {
+          "name": "Frittierter marinierter Tofu"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 120,
+      "source": {
+        "name": "Tomate"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Tomato"
+        },
+        "de-DE": {
+          "name": "Tomate"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 121,
+      "source": {
+        "name": "Tortilha chips"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Tortilla chips"
+        },
+        "de-DE": {
+          "name": "Tortillachips"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 122,
+      "source": {
+        "name": "Tostadas de milho"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Corn tostadas"
+        },
+        "de-DE": {
+          "name": "Mais-Tostadas"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 123,
+      "source": {
+        "name": "Triple Sec"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Triple Sec"
+        },
+        "de-DE": {
+          "name": "Triple Sec"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 124,
+      "source": {
+        "name": "Vinho da Casa Copo"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "House wine, glass"
+        },
+        "de-DE": {
+          "name": "Hauswein, Glas"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 125,
+      "source": {
+        "name": "Vinho da Casa Garrafa"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "House wine, bottle"
+        },
+        "de-DE": {
+          "name": "Hauswein, Flasche"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 126,
+      "source": {
+        "name": "Vinho do Porto"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Port wine"
+        },
+        "de-DE": {
+          "name": "Portwein"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 127,
+      "source": {
+        "name": "Vinho do Porto 10 Anos"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "10-year-old port wine"
+        },
+        "de-DE": {
+          "name": "10 Jahre alter Portwein"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 128,
+      "source": {
+        "name": "Vodka"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Vodka"
+        },
+        "de-DE": {
+          "name": "Wodka"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 129,
+      "source": {
+        "name": "Weekly Favourite Garrafa"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Weekly Favourite, bottle"
+        },
+        "de-DE": {
+          "name": "Weekly Favourite, Flasche"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 130,
+      "source": {
+        "name": "Whisky"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Whisky"
+        },
+        "de-DE": {
+          "name": "Whisky"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 131,
+      "source": {
+        "name": "Why Not - Refrigerante Artesanal"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Why Not - Craft Soft Drink"
+        },
+        "de-DE": {
+          "name": "Why Not – handwerklich hergestelltes Erfrischungsgetränk"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 132,
+      "source": {
+        "name": "Xarope de amêndoas"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Almond syrup"
+        },
+        "de-DE": {
+          "name": "Mandelsirup"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 133,
+      "source": {
+        "name": "Xarope de morango"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Strawberry syrup"
+        },
+        "de-DE": {
+          "name": "Erdbeersirup"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 134,
+      "source": {
+        "name": "Água com gás"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Sparkling water"
+        },
+        "de-DE": {
+          "name": "Sprudelwasser"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 135,
+      "source": {
+        "name": "Água das Pedras"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Água das Pedras"
+        },
+        "de-DE": {
+          "name": "Água das Pedras"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 136,
+      "source": {
+        "name": "Água de Coco"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Coconut water"
+        },
+        "de-DE": {
+          "name": "Kokoswasser"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 137,
+      "source": {
+        "name": "Água Filtrada 0,5"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Filtered water 0.5"
+        },
+        "de-DE": {
+          "name": "Gefiltertes Wasser 0,5"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": [
+        "Source does not specify a unit; none added."
+      ]
+    },
+    {
+      "entity": "ingredient",
+      "id": 138,
+      "source": {
+        "name": "Água Filtrada 0,75"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Filtered water 0.75"
+        },
+        "de-DE": {
+          "name": "Gefiltertes Wasser 0,75"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": [
+        "Source does not specify a unit; none added."
+      ]
+    },
+    {
+      "entity": "ingredient",
+      "id": 139,
+      "source": {
+        "name": "Água Filtrada Gás 0,5"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Filtered sparkling water 0.5"
+        },
+        "de-DE": {
+          "name": "Gefiltertes Sprudelwasser 0,5"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": [
+        "Source does not specify a unit; none added."
+      ]
+    },
+    {
+      "entity": "ingredient",
+      "id": 140,
+      "source": {
+        "name": "Água Filtrada Gás 0,75"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Filtered sparkling water 0.75"
+        },
+        "de-DE": {
+          "name": "Gefiltertes Sprudelwasser 0,75"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": [
+        "Source does not specify a unit; none added."
+      ]
+    },
+    {
+      "entity": "ingredient",
+      "id": 141,
+      "source": {
+        "name": "TEST"
+      },
+      "translations": {
+        "en-GB": {
+          "name": null
+        },
+        "de-DE": {
+          "name": null
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": [
+        "Untranslated name: requires manual review; no text invented.",
+        "Likely test data; untranslated. Review whether this record belongs in the catalog."
+      ]
+    },
+    {
+      "entity": "ingredient",
+      "id": 142,
+      "source": {
+        "name": "house"
+      },
+      "translations": {
+        "en-GB": {
+          "name": null
+        },
+        "de-DE": {
+          "name": null
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": [
+        "Untranslated name: requires manual review; no text invented.",
+        "Ambiguous name; untranslated."
+      ]
+    },
+    {
+      "entity": "ingredient",
+      "id": 143,
+      "source": {
+        "name": "house2"
+      },
+      "translations": {
+        "en-GB": {
+          "name": null
+        },
+        "de-DE": {
+          "name": null
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": [
+        "Untranslated name: requires manual review; no text invented.",
+        "Ambiguous name; untranslated."
+      ]
+    },
+    {
+      "entity": "ingredient",
+      "id": 144,
+      "source": {
+        "name": "Tortilha de trigo"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Wheat tortilla"
+        },
+        "de-DE": {
+          "name": "Weizentortilla"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 145,
+      "source": {
+        "name": "Tortilha de milho"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Corn tortilla"
+        },
+        "de-DE": {
+          "name": "Maistortilla"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": []
+    },
+    {
+      "entity": "ingredient",
+      "id": 146,
+      "source": {
+        "name": "cafe"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Coffee"
+        },
+        "de-DE": {
+          "name": "Kaffee"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": [
+        "Informal source spelling interpreted as café (coffee)."
+      ]
+    },
+    {
+      "entity": "ingredient",
+      "id": 147,
+      "source": {
+        "name": "acucar"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Sugar"
+        },
+        "de-DE": {
+          "name": "Zucker"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": [
+        "Informal source spelling interpreted as açúcar (sugar)."
+      ]
+    },
+    {
+      "entity": "ingredient",
+      "id": 148,
+      "source": {
+        "name": "creme"
+      },
+      "translations": {
+        "en-GB": {
+          "name": null
+        },
+        "de-DE": {
+          "name": null
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": [
+        "Untranslated name: requires manual review; no text invented.",
+        "Ambiguous: may mean cream or a cream-based product. Clarify the Portuguese source before translating."
+      ]
+    },
+    {
+      "entity": "ingredient",
+      "id": 149,
+      "source": {
+        "name": "asucar"
+      },
+      "translations": {
+        "en-GB": {
+          "name": "Sugar"
+        },
+        "de-DE": {
+          "name": "Zucker"
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": [
+        "Nonstandard source spelling interpreted as açúcar (sugar); confirm."
+      ]
+    },
+    {
+      "entity": "ingredient",
+      "id": 150,
+      "source": {
+        "name": "crema"
+      },
+      "translations": {
+        "en-GB": {
+          "name": null
+        },
+        "de-DE": {
+          "name": null
+        }
+      },
+      "existing_translations": {},
+      "proposed_name_en": null,
+      "notes": [
+        "Untranslated name: requires manual review; no text invented.",
+        "Ambiguous: may refer to espresso crema or cream. Clarify the source before translating."
+      ]
+    }
+  ]
+}
