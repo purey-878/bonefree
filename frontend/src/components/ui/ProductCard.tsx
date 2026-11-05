@@ -1,4 +1,4 @@
-import { Flame } from 'lucide-react'
+import { ArrowRight, Flame } from 'lucide-react'
 import type {
   ComponentPropsWithoutRef,
   MouseEvent,
@@ -283,9 +283,36 @@ const ProductFooter = styled.div`
 
 const ProductPurchaseRow = styled.div`
   display: flex;
-  align-items: end;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
+`
+
+const ProductDetailsButton = styled.button`
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.55rem 0.8rem;
+  border: 0;
+  border-radius: var(--product-card-radius);
+  background: transparent;
+  color: var(--product-card-description, var(--brand-muted));
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #076050;
+    outline-offset: 2px;
+  }
 `
 
 const ProductPrice = styled.span`
@@ -461,6 +488,16 @@ export function ProductCard({
                 {formatPrice(product.price, currencySymbol)}
               </ProductPrice>
             </PriceStack>
+            {onSelect && (
+              <ProductDetailsButton
+                type="button"
+                aria-label={t('productCard.view', { name: product.name })}
+                onClick={handleSelectClick}
+              >
+                {t('productCard.viewDetails')}
+                <ArrowRight size={16} aria-hidden="true" />
+              </ProductDetailsButton>
+            )}
           </ProductPurchaseRow>
 
         </ProductFooter>

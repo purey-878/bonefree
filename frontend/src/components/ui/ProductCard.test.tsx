@@ -14,6 +14,7 @@ describe('browse-only product card', () => {
     expect(html).toContain('Fresh ingredients');
     expect(html).toContain('Currently unavailable');
     expect(html).toContain('View Plant burger');
+    expect(html).toContain('View details');
     expect(html).not.toMatch(/add to|basket|checkout|quantity|customise/i);
   });
 });

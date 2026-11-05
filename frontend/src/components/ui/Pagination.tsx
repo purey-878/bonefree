@@ -33,7 +33,7 @@ export function Pagination({ page, perPage, total, totalPages, onPageChange, onP
 
   if (totalPages <= 1) {
     return (
-      <div className={`pagination pagination--${variant} pagination--single ${className}`.trim()}>
+      <div className={`bf-pagination pagination--${variant} pagination--single ${className}`.trim()}>
         <span>{rangeLabel}</span>
       </div>
     );
@@ -52,7 +52,7 @@ export function Pagination({ page, perPage, total, totalPages, onPageChange, onP
   };
 
   return (
-    <nav className={`pagination pagination--${variant} ${className}`.trim()} aria-label={t('pagination.navigation')}>
+    <nav className={`bf-pagination pagination--${variant} ${className}`.trim()} aria-label={t('pagination.navigation')}>
       <div className="pagination__summary">
         <span>{rangeLabel}</span>
         <div className="pagination__per-page">

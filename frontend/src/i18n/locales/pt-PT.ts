@@ -164,7 +164,7 @@ const ptPT = {
       noResults: "Sem resultados", noResultsTitle: "Nenhum prato encontrado", noResultsText: "Experimente outra categoria, termo de pesquisa ou intervalo de preço.", resetFilters: "Repor filtros",
       dish: "pratos", dishes: "prato"
     },
-    productCard: {
+    productCard: { viewDetails: "Ver detalhes",
       view: "Ver {{name}}", calories: "{{count}} quilocalorias", fallbackDescription: "Um prato cuidadosamente criado com ingredientes de qualidade.",
 
       available: "Disponível", currentlyUnavailable: "Atualmente indisponível",
@@ -180,9 +180,10 @@ const ptPT = {
       ingredientUnavailable: "Ingrediente temporariamente indisponível", ingredientAdjustment: "Ingredientes atualmente indisponíveis: {{ingredients}}.", quantity: "Quantidade de {{name}}",
       easyHelp: "Ajuda fácil", speakTeam: "Fale com a equipa", qualityPromise: "Promessa de qualidade", sections: "Secções de detalhe do produto", highlights: "Destaques", details: "Detalhes", why: "Porque convence", confidence: "Feito para dar confiança antes da primeira garfada", freshPreparation: "Preparação fresca", freshPreparationText: "Preparado na nossa cozinha para preservar a textura e o sabor.", plantStandards: "Padrões vegetais", plantStandardsText: "Ingredientes vegetais, informação clara sobre os pratos e orientação da nossa equipa.",
       productInfo: "Informação do produto", choiceDetails: "Detalhes que facilitam a escolha", description: "Descrição", signatureDescription: "Um prato vegetal de assinatura, preparado com textura equilibrada, sabor vivo e um acabamento leve.", portion: "Porção equilibrada para uma pessoa ou para partilhar à mesa.", specifications: "Especificações", category: "Categoria", availability: "Disponibilidade", notSpecified: "Não indicado", diet: "Dieta",
+      ingredientsUsed: "Ingredientes utilizados", ingredientsEmpty: "Pergunte à nossa equipa pelos ingredientes deste prato.",
       ingredientCalories: "Calorias por ingrediente", calorieEstimate: "Estimativa baseada nas quantidades guardadas e nas kcal por grama.", ingredientInactive: "Indisponível", quantityUndefined: "quantidade não definida", kcalUndefined: "kcal/g não definidas", nutritionEmpty: "A discriminação calórica por ingrediente ainda não está disponível para este item.",
 
-      faqTitle: "Perguntas sobre este prato", faqAllergies: "E se tiver alergias?", faqAllergiesText: "Fale com a nossa equipa antes da visita ou no restaurante para confirmar os ingredientes e alergénios.",
+      faqTitle: "Perguntas sobre este prato", faqAllergies: "E se tiver alergias?", faqAllergiesText: "Se tiver alergias, consulte a lista de ingredientes ou fale com a nossa equipa.",
       popular: "Explore o menu", favourites: "Mais pratos em {{category}}", recentlyViewed: "Vistos recentemente", compare: "Continue a comparar",
       ingredientTypes: { normal: "ingrediente normal", sauce: "molho", extra: "extra", drink: "bebida", base: "base", side: "acompanhamento" },
     },

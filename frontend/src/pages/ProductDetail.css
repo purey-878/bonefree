@@ -10,7 +10,7 @@
   position: relative;
   overflow-x: clip;
   min-height: 100vh;
-  padding-bottom: 5rem;
+  padding-bottom: 0;
   background:
     radial-gradient(circle at 10% 8%, rgba(253, 205, 67, 0.13), transparent 26rem),
     radial-gradient(circle at 92% 16%, rgba(123, 175, 75, 0.13), transparent 30rem),
@@ -145,7 +145,7 @@
 .pd-shell {
   position: relative;
   z-index: 1;
-  width: min(1440px, calc(100% - 40px));
+  width: min(1180px, calc(100% - 40px));
   margin: 0 auto;
   padding: calc(72px + 1.5rem) 0 5rem;
 }
@@ -224,9 +224,9 @@
   position: relative;
   overflow: hidden;
   width: 100%;
-  height: clamp(520px, 56vw, 720px);
+  height: clamp(320px, 36vw, 460px);
   aspect-ratio: 1 / 0.82;
-  min-height: 560px;
+  min-height: 0;
   border: 1px solid var(--pd-line);
   border-radius: var(--radius-md);
   background:
@@ -395,22 +395,21 @@
 .pd-title-row h1 {
   margin: 0;
   color: var(--pd-ink);
-  font-size: clamp(2.35rem, 5vw, 4.65rem);
-  line-height: 0.94;
+  font-size: clamp(1.8rem, 3.4vw, 3rem);
+  line-height: 1.08;
 }
 
 .pd-price-card {
   display: grid;
-  gap: 0.35rem;
-  padding: 1rem;
-  border: 1px solid #eadfba;
-  border-radius: var(--radius-sm);
-  background: linear-gradient(135deg, rgba(253, 205, 67, 0.13), rgba(255, 255, 255, 0.88));
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
 }
 
 .pd-price-card strong {
   color:#B42318;
-  font-size: clamp(1.75rem, 3vw, 2.65rem);
+  font-size: 1.75rem;
   font-weight: 950;
   line-height: 1;
 }
@@ -589,7 +588,7 @@
 }
 
 .pd-section {
-  margin-top: clamp(3rem, 7vw, 5rem);
+  margin-top: 2rem;
   scroll-margin-top: 150px;
 }
 
@@ -601,7 +600,7 @@
 .pd-section-heading h2 {
   margin: 0;
   color: var(--pd-ink);
-  font-size: clamp(2rem, 4vw, 3.8rem);
+  font-size: clamp(1.4rem, 2.5vw, 2rem);
   line-height: 0.98;
 }
 
@@ -987,7 +986,7 @@
 
   .pd-image-frame,
   .pd-image {
-    height: clamp(420px, 62vw, 560px);
+    height: clamp(300px, 48vw, 400px);
     min-height: 0;
   }
 
@@ -999,12 +998,12 @@
 
 @media (max-width: 720px) {
   .pd-page {
-    padding-bottom: 6.5rem;
+    padding-bottom: 0;
   }
 
   .pd-shell {
-    width: min(100% - 20px, 1440px);
-    padding-top: 1rem;
+    width: calc(100% - 32px);
+    padding: calc(68px + 0.75rem) 0 2rem;
   }
 
   .pd-breadcrumb a:nth-of-type(3),
@@ -1014,7 +1013,7 @@
 
   .pd-image-frame,
   .pd-image {
-    height: clamp(310px, 88vw, 420px);
+    height: clamp(230px, 64vw, 320px);
     min-height: 0;
   }
 
@@ -1043,11 +1042,12 @@
 
   .pd-info-panel {
     position: relative;
-    padding: 1rem;
+    padding: 0;
+    gap: 0.8rem;
   }
 
   .pd-price-card {
-    grid-template-columns: 1fr;
+    grid-template-columns: auto 1fr;
     display: grid;
   }
 
@@ -1069,11 +1069,24 @@
   }
 
   .pd-section-heading h2 {
-    font-size: clamp(1.9rem, 12vw, 3rem);
+    font-size: 1.4rem;
   }
 
   .pd-related-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: min(82vw, 300px);
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    padding-bottom: 1rem;
+  }
+
+  .pd-related-grid > article {
+    scroll-snap-align: start;
+  }
+
+  .pd-breadcrumb > :not(button) {
+    display: none;
   }
 
   .pd-nutrition-head,
@@ -1089,4 +1102,67 @@
     justify-items: start;
     text-align: left;
   }
+}
+
+.pd-ingredients h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.1rem;
+  color: var(--pd-ink);
+}
+
+.pd-ingredients ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pd-ingredients li {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.4rem 0.65rem;
+  border-radius: 8px;
+  background: #edf3e8;
+  color: var(--pd-ink);
+  font-size: 0.85rem;
+}
+
+.pd-ingredients em {
+  color: #a83b32;
+  font-size: 0.75rem;
+  font-style: normal;
+}
+
+.pd-ingredients > p {
+  color: var(--pd-muted);
+  font-size: 0.9rem;
+}
+
+.pd-nutrition-details {
+  min-width: 0;
+  border-top: 1px solid var(--pd-line);
+}
+
+.pd-nutrition-details > summary {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: var(--pd-muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.pd-nutrition-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.pd-nutrition-details[open] > summary svg {
+  transform: rotate(180deg);
 }

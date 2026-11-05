@@ -1,20 +1,4 @@
-import {
-  BadgeCheck,
-  CakeSlice,
-  ChevronDown,
-  ChevronLeft,
-  CupSoda,
-  Flame,
-  Leaf,
-  PackageCheck,
-  RotateCcw,
-  Salad,
-  Sandwich,
-  ShieldCheck,
-  Soup,
-  Sprout,
-  TriangleAlert
-} from "lucide-react"
+import { ChevronDown, ChevronLeft, Flame, Leaf, TriangleAlert } from "lucide-react"
 import type { MouseEvent } from "react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
@@ -43,11 +27,7 @@ type GalleryImage = {
 
 const fallbackImage = productImageFallback
 const recentlyViewedKey = "bonefree_recently_viewed"
-const anchoredSections = [
-  { href: "#highlights", labelKey: "productDetail.highlights" },
-  { href: "#details", labelKey: "productDetail.details" },
-  { href: "#faq", labelKey: "FAQ" },
-]
+
 
 function getImage(img: string | null | undefined) {
   return resolveProductImageUrl(img, fallbackImage)
@@ -212,7 +192,6 @@ export const ProductDetail = () => {
   if (error) return <div className="pd-page"><Navbar /><div className="pd-loading pd-state-card"><p className="pd-error">{error}</p><Link to="/menu">{t("productDetail.backMenu")}</Link></div></div>
   if (!product) return null
   const isAvailable = product.available
-  const unavailableLabel = t("productCard.currentlyUnavailable")
   const ingredientBreakdown = product.ingredients ?? []
   const inactiveNonBaseIngredients = ingredientBreakdown.filter(ingredient => ingredient.status === "inactive" && ingredient.type !== "base")
   const inactiveIngredientNames = inactiveNonBaseIngredients.map(ingredient => ingredient.name).join(", ")
@@ -221,19 +200,6 @@ export const ProductDetail = () => {
   return (
     <div className="pd-page">
       <Navbar />
-
-      <div className="pd-floating-food-bg" aria-hidden="true">
-        <span className="pd-food-float pd-food-float-salad"><Salad /></span>
-        <span className="pd-food-float pd-food-float-soup"><Soup /></span>
-        <span className="pd-food-float pd-food-float-sandwich"><Sandwich /></span>
-        <span className="pd-food-float pd-food-float-drink"><CupSoda /></span>
-        <span className="pd-food-float pd-food-float-cake"><CakeSlice /></span>
-        <span className="pd-food-float pd-food-float-salad-2"><Salad /></span>
-        <span className="pd-food-float pd-food-float-soup-2"><Soup /></span>
-        <span className="pd-food-float pd-food-float-sandwich-2"><Sandwich /></span>
-        <span className="pd-food-float pd-food-float-drink-2"><CupSoda /></span>
-        <span className="pd-food-float pd-food-float-cake-2"><CakeSlice /></span>
-      </div>
 
       <main className="pd-shell">
         <nav className="pd-breadcrumb" aria-label={t("productDetail.breadcrumb")}>
@@ -273,7 +239,7 @@ export const ProductDetail = () => {
               </div>
             </div>
 
-            <div className="pd-thumbnails  " aria-label={t("productDetail.gallery")}>
+            {galleryImages.length > 1 && <div className="pd-thumbnails" aria-label={t("productDetail.gallery")}>
               {galleryImages.map((image, index) => (
                 <button
 
@@ -292,26 +258,20 @@ export const ProductDetail = () => {
                   />
                 </button>
               ))}
-            </div>
+            </div>}
 
-            <div className="pd-gallery-meta" >
-              <span><Leaf size={16} /> {t("productDetail.vegan")}</span>
-              <span><Sprout size={16} /> {t("productDetail.plantIngredients")}</span>
-              <span><BadgeCheck size={16} /> {t("productDetail.freshlyPrepared")}</span>
-            </div>
           </div>
 
           <aside className="pd-info-panel" aria-label={t("productDetail.productInfo")}>
             <div className="pd-badge-row">
               <AvailabilityBadge available={isAvailable} />
-              <Badge variant="glass" size="sm">{t("productDetail.plantBased")}</Badge>
+              <Badge variant="glass" size="sm">{t("productDetail.vegan")}</Badge>
               {product.glutenFree && <Badge variant="neutral" size="sm">{t("menu.glutenFree")}</Badge>}
               {product.containsAlcohol && <Badge variant="neutral" size="sm">{t("menu.alcohol")}</Badge>}
             </div>
 
             <div className="pd-title-row">
               <div>
-                <p className="pd-kicker">{t("productDetail.premium")}</p>
                 <h1>{product.name}</h1>
               </div>
             </div>
@@ -342,95 +302,62 @@ export const ProductDetail = () => {
               </div>
             )}
 
-            <div className="pd-assurance-grid">
-              <div><RotateCcw size={18} /><span>{t("productDetail.easyHelp")}</span><strong>{t("productDetail.speakTeam")}</strong></div>
-              <div><ShieldCheck size={18} /><span>{t("productDetail.qualityPromise")}</span><strong>{t("productDetail.freshlyPrepared")}</strong></div>
-            </div>
+            <section className="pd-ingredients" aria-labelledby="pd-ingredients-title">
+              <h2 id="pd-ingredients-title">{t("productDetail.ingredientsUsed")}</h2>
+              {ingredientBreakdown.length > 0 ? (
+                <ul>
+                  {ingredientBreakdown.map(ingredient => (
+                    <li key={ingredient.ingredientId}>
+                      <span>{ingredient.name}</span>
+                      {ingredient.status === "inactive" && <em>{t("productDetail.ingredientInactive")}</em>}
+                    </li>
+                  ))}
+                </ul>
+              ) : <p>{t("productDetail.ingredientsEmpty")}</p>}
+            </section>
+
+            <details className="pd-nutrition-details">
+              <summary>{t("productDetail.ingredientCalories")}<ChevronDown size={18} aria-hidden="true" /></summary>
+              <article className="pd-nutrition-card">
+                <div className="pd-nutrition-head">
+                  <div>
+                    <h3>{t("productDetail.ingredientCalories")}</h3>
+                    <p>{t("productDetail.calorieEstimate")}</p>
+                  </div>
+                  {productCalories && <strong>{productCalories} kcal</strong>}
+                </div>
+                {ingredientBreakdown.length > 0 ? (
+                  <div className="pd-nutrition-list">
+                    {ingredientBreakdown.map((ingredient) => {
+                      const calories = formatCalories(ingredient.calories)
+                      const caloriesPerGram = formatCalories(ingredient.caloriesPerGram)
+                      const inactive = ingredient.status === "inactive"
+                      return (
+                        <div key={ingredient.ingredientId} className={`pd-nutrition-row ${inactive ? "is-inactive" : ""}`}>
+                          <div>
+                            <strong>
+                              {ingredient.name}
+                              {inactive && <em>{t("productDetail.ingredientInactive")}</em>}
+                            </strong>
+                            <span>{ingredientTypeLabel(ingredient.type)} · {ingredient.quantity || t("productDetail.quantityUndefined")}</span>
+                          </div>
+                          <div>
+                            <span>{caloriesPerGram ? `${caloriesPerGram} kcal/g` : t("productDetail.kcalUndefined")}</span>
+                            <strong>{calories ? `${calories} kcal` : "0 kcal"}</strong>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <p className="pd-nutrition-empty">{t("productDetail.nutritionEmpty")}</p>
+                )}
+              </article>
+            </details>
           </aside>
         </section>
 
-        <nav className="pd-anchor-nav" aria-label={t("productDetail.sections")}>
-          {anchoredSections.map(section => (
-            <a key={section.href} href={section.href}>{section.labelKey === "FAQ" ? "FAQ" : t(section.labelKey)}</a>
-          ))}
-        </nav>
-
-        <section className="pd-section pd-highlights" id="highlights">
-          <div className="pd-section-heading">
-            <p>{t("productDetail.why")}</p>
-            <h2>{t("productDetail.confidence")}</h2>
-          </div>
-          <div className="pd-highlight-grid">
-            <article><PackageCheck size={22} /><h3>{t("productDetail.freshPreparation")}</h3><p>{t("productDetail.freshPreparationText")}</p></article>
-            <article><BadgeCheck size={22} /><h3>{t("productDetail.plantStandards")}</h3><p>{t("productDetail.plantStandardsText")}</p></article>
-          </div>
-        </section>
-
-        <section className="pd-section pd-details" id="details">
-          <div className="pd-section-heading">
-            <p>{t("productDetail.productInfo")}</p>
-            <h2>{t("productDetail.choiceDetails")}</h2>
-          </div>
-          <div className="pd-info-grid">
-            <article className="pd-copy-card">
-              <h3>{t("productDetail.description")}</h3>
-              <p>{product.description || t("productDetail.signatureDescription")}</p>
-              <ul>
-                <li>{t("productDetail.portion")}</li>
-              </ul>
-            </article>
-            <article className="pd-spec-card">
-              <h3>{t("productDetail.specifications")}</h3>
-              <dl>
-                <div><dt>{t("productDetail.category")}</dt><dd>{product.category}</dd></div>
-                <div><dt>{t("productDetail.availability")}</dt><dd>{isAvailable ? t("productCard.available") : unavailableLabel}</dd></div>
-                <div><dt>{t("productDetail.caloriesLabel")}</dt><dd>{productCalories ? `${productCalories} kcal` : t("productDetail.notSpecified")}</dd></div>
-                <div><dt>{t("productDetail.diet")}</dt><dd>{t("productDetail.vegan")}</dd></div>
-              </dl>
-            </article>
-            <article className="pd-nutrition-card">
-              <div className="pd-nutrition-head">
-                <div>
-                  <h3>{t("productDetail.ingredientCalories")}</h3>
-                  <p>{t("productDetail.calorieEstimate")}</p>
-                </div>
-                {productCalories && <strong>{productCalories} kcal</strong>}
-              </div>
-              {ingredientBreakdown.length > 0 ? (
-                <div className="pd-nutrition-list">
-                  {ingredientBreakdown.map((ingredient) => {
-                    const calories = formatCalories(ingredient.calories)
-                    const caloriesPerGram = formatCalories(ingredient.caloriesPerGram)
-                    const inactive = ingredient.status === "inactive"
-                    return (
-                      <div key={ingredient.ingredientId} className={`pd-nutrition-row ${inactive ? "is-inactive" : ""}`}>
-                        <div>
-                          <strong>
-                            {ingredient.name}
-                            {inactive && <em>{t("productDetail.ingredientInactive")}</em>}
-                          </strong>
-                          <span>{ingredientTypeLabel(ingredient.type)} · {ingredient.quantity || t("productDetail.quantityUndefined")}</span>
-                        </div>
-                        <div>
-                          <span>{caloriesPerGram ? `${caloriesPerGram} kcal/g` : t("productDetail.kcalUndefined")}</span>
-                          <strong>{calories ? `${calories} kcal` : "0 kcal"}</strong>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              ) : (
-                <p className="pd-nutrition-empty">{t("productDetail.nutritionEmpty")}</p>
-              )}
-            </article>
-          </div>
-        </section>
-
         <section className="pd-section pd-faq" id="faq">
-          <div className="pd-section-heading">
-            <p>FAQ</p>
-            <h2>{t("productDetail.faqTitle")}</h2>
-          </div>
           <div className="pd-faq-list">
             <details><summary>{t("productDetail.faqAllergies")}<ChevronDown size={18} /></summary><p>{t("productDetail.faqAllergiesText")}</p></details>
           </div>

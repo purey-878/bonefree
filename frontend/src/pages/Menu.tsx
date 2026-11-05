@@ -349,6 +349,10 @@ function Menu() {
           <span className="menu-food-float menu-food-float-sandwich-2"><Sandwich /></span>
           <span className="menu-food-float menu-food-float-drink-2"><CupSoda /></span>
           <span className="menu-food-float menu-food-float-cake-2"><CakeSlice /></span>
+          <span className="menu-food-float menu-food-float-salad-3"><Salad /></span>
+          <span className="menu-food-float menu-food-float-soup-3"><Soup /></span>
+          <span className="menu-food-float menu-food-float-sandwich-3"><Sandwich /></span>
+          <span className="menu-food-float menu-food-float-drink-3"><CupSoda /></span>
         </div>
 
         {errorMessage && (

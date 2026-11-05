@@ -409,7 +409,7 @@ const HomeShell = styled.main`
 const HeroSection = styled.section`
   position: relative;
   z-index: 3;
-  min-height: 94svh;
+  min-height: 100vh;
   overflow: hidden;
   background:
     linear-gradient(90deg, rgba(5, 12, 10, 0.82), rgba(7, 17, 15, 0.58) 54%, rgba(7, 17, 15, 0.84)),
@@ -418,7 +418,6 @@ const HeroSection = styled.section`
   background-position: center;
 
   @media (max-width: 767px) {
-    min-height: 100svh;
     background-attachment: scroll;
   }
 `;
@@ -440,7 +439,7 @@ const HeroContent = styled.div`
   grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.62fr);
   box-sizing: border-box;
   width: min(100%, 1280px);
-  min-height: calc(94svh - 72px);
+  min-height: 100vh;
   align-items: center;
   gap: clamp(1.5rem, 4vw, 3rem);
   margin: 0 auto;
@@ -451,7 +450,6 @@ const HeroContent = styled.div`
   }
 
   @media (max-width: 767px) {
-    min-height: 100svh;
     padding: calc(68px + clamp(2rem, 6svh, 4rem)) 1.25rem clamp(3rem, 8svh, 5rem);
   }
 `;
