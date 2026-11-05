@@ -418,6 +418,7 @@ const HeroSection = styled.section`
   background-position: center;
 
   @media (max-width: 767px) {
+    min-height: 100svh;
     background-attachment: scroll;
   }
 `;
@@ -450,7 +451,11 @@ const HeroContent = styled.div`
   }
 
   @media (max-width: 767px) {
-    padding: calc(68px + clamp(2rem, 6svh, 4rem)) 1.25rem clamp(3rem, 8svh, 5rem);
+    display: flex;
+    min-height: 100svh;
+    flex-direction: column;
+    align-items: stretch;
+    padding: calc(68px + clamp(1rem, 3svh, 1.5rem)) 1.25rem clamp(1.5rem, 4svh, 2.5rem);
   }
 `;
 
@@ -458,6 +463,14 @@ const HeroCopy = styled.div`
   min-width: 0;
   width: 100%;
   max-width: 820px;
+
+  @media (max-width: 767px) {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: clamp(1rem, 2.5svh, 1.75rem);
+  }
 `;
 
 const Eyebrow = styled.p`
@@ -473,6 +486,18 @@ const Eyebrow = styled.p`
   letter-spacing: 0.08em;
   line-height: 1.35;
   text-transform: uppercase;
+
+  @media (max-width: 767px) {
+    flex-wrap: nowrap;
+    gap: 0.4rem;
+    margin-bottom: 0;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+
+    svg {
+      flex-shrink: 0;
+    }
+  }
 `;
 
 const HeroTitle = styled.h1`
@@ -496,6 +521,10 @@ const HeroText = styled.p`
   color: rgba(247, 250, 245, 0.82);
   font-size: clamp(1.02rem, 2vw, 1.24rem);
   line-height: 1.65;
+
+  @media (max-width: 767px) {
+    margin-top: 0;
+  }
 `;
 
 const HeroActions = styled.div`
@@ -503,6 +532,10 @@ const HeroActions = styled.div`
   flex-wrap: wrap;
   gap: 0.85rem;
   margin-top: 2rem;
+
+  @media (max-width: 767px) {
+    margin-top: 0;
+  }
 
   @media (max-width: 480px) {
     align-items: stretch;

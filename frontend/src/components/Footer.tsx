@@ -46,6 +46,7 @@ const Footer: React.FC = () => {
               <li><Link to="/menu" className="text-light text-decoration-none footer-link">{t("navigation.menu", { ns: "common" })}</Link></li>
               <li><Link to="/about" className="text-light text-decoration-none footer-link">{t("navigation.about", { ns: "common" })}</Link></li>
               <li><Link to="/contact" className="text-light text-decoration-none footer-link">{t("navigation.contact", { ns: "common" })}</Link></li>
+              <li><Link to="/privacy" className="text-light text-decoration-none footer-link">{t("privacy.title")}</Link></li>
             </ul>
           </div>
 

@@ -174,8 +174,7 @@
   color: var(--pd-green);
 }
 
-.pd-back-btn,
-.pd-add-review-btn {
+.pd-back-btn {
   display: inline-flex;
   min-height: 40px;
   align-items: center;
@@ -194,8 +193,7 @@
     color 160ms ease;
 }
 
-.pd-back-btn:hover,
-.pd-add-review-btn:hover {
+.pd-back-btn:hover {
   transform: translateY(-1px);
   border-color: rgba(123, 175, 75, 0.45);
   background: #64a340;
@@ -465,54 +463,6 @@
   color: var(--pd-muted);
   font-size: 1rem;
   line-height: 1.7;
-}
-
-.pd-option-pills {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 0.5rem;
-}
-
-.pd-option-pills button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  min-height: 40px;
-  border: 1px solid var(--pd-line);
-  border-radius: 999px;
-  background: #ffffff;
-  color: var(--pd-ink);
-  padding: 0 0.85rem;
-  font-weight: 850;
-  line-height: 1.15;
-  transition:
-    background 160ms ease,
-    border-color 160ms ease,
-    color 160ms ease,
-    transform 160ms ease;
-}
-
-.pd-option-pills button svg {
-  width: 0.95rem;
-  height: 0.95rem;
-  flex: 0 0 auto;
-}
-
-.pd-option-pills button span {
-  white-space: normal;
-}
-
-.pd-option-pills button:hover,
-.pd-option-pills button.selected {
-  transform: translateY(-1px);
-  border-color: rgba(123, 175, 75, 0.58);
-  background: #eef7e9;
-}
-
-.pd-cta {
-  min-height: 48px;
 }
 
 .pd-assurance-grid {
@@ -911,12 +861,6 @@
   }
 }
 
-.pd-add-review-btn {
-  border-color: rgba(123, 175, 75, 0.44);
-  background: var(--brand-gradient);
-  color: #ffffff;
-}
-
 .pd-empty-card {
   display: grid;
   gap: 0.75rem;
@@ -1049,10 +993,6 @@
   .pd-price-card {
     grid-template-columns: auto 1fr;
     display: grid;
-  }
-
-  .pd-cta {
-    width: 100%;
   }
 
   .pd-assurance-grid {

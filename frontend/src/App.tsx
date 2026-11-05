@@ -5,7 +5,8 @@ import './App.css'
 import './siteThemes.css'
 import './theme.css'
 
-import CookieBanner from './components/CookieBanner'
+import PageMetadata from './components/PageMetadata'
+import Privacy from './pages/Privacy'
 import Footer from './components/Footer'
 import SiteThemeController from './components/SiteThemeController'
 
@@ -63,6 +64,7 @@ function App() {
   return (
     <>
       <SiteThemeController />
+      <PageMetadata />
 
       <div className="app-route-stage" key={visibleLocation.pathname}>
         <Routes location={visibleLocation}>
@@ -77,12 +79,12 @@ function App() {
           <Route path="/about" element={<About />} />
           <Route path="/events" element={<Events />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/privacy" element={<Privacy />} />
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </div>
 
-      <CookieBanner />
       {!hideFooter && <Footer />}
     </>
   )

@@ -1,3 +1,7 @@
+> Historical report from the earlier browse-only conversion. Current cookie,
+> storage, SEO, HTTP status and verification details are documented in
+> [the restaurant cleanup report](../docs/RESTAURANT_CLEANUP_REPORT.md).
+
 # Browse-only frontend implementation report
 
 BoneFree now provides restaurant information and menu browsing without customer

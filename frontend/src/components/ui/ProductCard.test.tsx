@@ -15,6 +15,7 @@ describe('browse-only product card', () => {
     expect(html).toContain('Currently unavailable');
     expect(html).toContain('View Plant burger');
     expect(html).toContain('View details');
+    expect(html).toContain('href="/product/1"');
     expect(html).not.toMatch(/add to|basket|checkout|quantity|customise/i);
   });
 });

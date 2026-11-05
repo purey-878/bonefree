@@ -1,3 +1,4 @@
+import { applyPageMetadata } from "../seo/documentMetadata"
 import { useEffect } from "react"
 import { ArrowRight, Home, Leaf, UtensilsCrossed } from "lucide-react"
 import { Link } from "react-router-dom"
@@ -9,13 +10,8 @@ import { useTranslation } from "react-i18next"
 const NotFound = () => {
   const { t } = useTranslation("storefront")
   useEffect(() => {
-    const previousTitle = document.title
-    document.title = t("notFound.documentTitle")
-
-    return () => {
-      document.title = previousTitle
-    }
-  }, [t])
+    applyPageMetadata({ title: t("notFound.documentTitle"), description: t("notFound.description"), noindex: true });
+  }, [t]);
 
   return (
     <NotFoundPage className="not-found-page">

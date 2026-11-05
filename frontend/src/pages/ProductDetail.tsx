@@ -10,6 +10,8 @@ import ResourceNotFound from "../components/ResourceNotFound"
 import { AvailabilityBadge, Badge, ProductCard, Skeleton } from "../components/ui"
 import i18n, { resolvedLocale } from "../i18n"
 import { productService } from "../services"
+import { applyPageMetadata } from "../seo/documentMetadata"
+import { pageMetadata } from "../seo/metadata"
 import "../theme.css"
 import type {
   Product
@@ -126,6 +128,22 @@ export const ProductDetail = () => {
     void loadProduct()
     return () => { current = false }
   }, [id, locale, t])
+  useEffect(() => {
+    if (loading) return;
+    if (product) {
+      applyPageMetadata({
+        title: `${product.name} | Bonefree`,
+        description: product.description || pageMetadata('/menu', locale).description,
+        path: `/product/${product.id}`,
+      });
+    } else {
+      applyPageMetadata({
+        title: t('resourceNotFound.product.documentTitle'),
+        description: t('resourceNotFound.product.description'), noindex: true,
+      });
+    }
+  }, [loading, product, locale, t]);
+
   const galleryImages = useMemo<GalleryImage[]>(() => {
     if (!product) return []
     const sources = product.media.map((media) => productMediaUrl(media, "detail"))

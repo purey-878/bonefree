@@ -706,13 +706,11 @@
 }
 
 .ad-theme-dark .ad-metric-card,
-.ad-theme-dark .ad-recharts-tooltip,
 .ad-theme-dark .ad-category-stats div,
 .ad-theme-dark .ad-ingredient-meta,
 .ad-theme-dark .ad-ingredient-choice,
 .ad-theme-dark .ad-selected-ingredient,
 .ad-theme-dark .ad-ingredient-toolbar-meta,
-.ad-theme-dark .orders-column,
 .ad-theme-dark .ad-product-filter-row,
 .ad-theme-dark .ad-new-ingredient-row,
 .ad-theme-dark .ad-filter-grid {
@@ -727,8 +725,7 @@
 .ad-theme-dark .ad-ingredient-meta strong,
 .ad-theme-dark .ad-selected-ingredient strong,
 .ad-theme-dark .ad-product-card-title h3,
-.ad-theme-dark .ad-product-stats strong,
-.ad-theme-dark .ad-recharts-tooltip span {
+.ad-theme-dark .ad-product-stats strong {
   color: var(--ad-heading);
 }
 
@@ -737,9 +734,7 @@
 .ad-theme-dark .ad-selected-ingredient span,
 .ad-theme-dark .ad-ingredient-choice small,
 .ad-theme-dark .ad-product-card-title span,
-.ad-theme-dark .ad-product-stats span,
-.ad-theme-dark .ad-recharts-tooltip strong,
-.ad-theme-dark .ad-recharts-tooltip small {
+.ad-theme-dark .ad-product-stats span {
   color: var(--ad-muted);
 }
 
@@ -971,35 +966,6 @@
   font-weight: 600;
   color: #18181b;
   margin: 0 0 16px;
-}
-
-.ad-recharts-tooltip {
-  min-width: 150px;
-  border: 1px solid #d1fae5;
-  border-radius: 8px;
-  background: #ffffff;
-  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.14);
-  color: #0f172a;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 10px 12px;
-}
-
-.ad-recharts-tooltip strong {
-  font-size: 12px;
-  color: #475569;
-}
-
-.ad-recharts-tooltip span {
-  font-size: 16px;
-  font-weight: 800;
-}
-
-.ad-recharts-tooltip small {
-  color: #64748b;
-  font-size: 11px;
-  font-weight: 700;
 }
 
 /* Analytics dashboard */
@@ -2480,7 +2446,6 @@
   color: #dc2626;
 }
 
-.ad-row-action-menu-popover .ad-menu-action-analytics,
 .ad-row-action-menu-popover .ad-menu-action-edit,
 .ad-row-action-menu-popover .ad-menu-action-delete {
   display: none;
@@ -2739,11 +2704,6 @@
 }
 
 .ad-chef-special-settings {
-  display: grid;
-  gap: 14px;
-}
-
-.ad-loyalty-settings {
   display: grid;
   gap: 14px;
 }
@@ -3166,248 +3126,6 @@
 }
 
 /* Role-specific order boards */
-.orders-workspace {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.orders-toolbar {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.orders-toolbar-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: flex-end;
-}
-
-.orders-toolbar-copy {
-  margin: 6px 0 0;
-  color: #71717a;
-  font-size: 13px;
-}
-
-.orders-kanban {
-  display: grid;
-  align-items: start;
-  gap: 14px;
-}
-
-.orders-kanban-staff {
-  grid-template-columns: repeat(4, minmax(230px, 1fr));
-}
-
-.orders-kanban-kitchen {
-  grid-template-columns: repeat(3, minmax(280px, 1fr));
-}
-
-.orders-kanban-single {
-  grid-template-columns: minmax(280px, 1fr);
-}
-
-.orders-column {
-  align-self: start;
-  min-width: 0;
-  background: #f8fafc;
-  border: 1px solid #cbd5e1;
-  border-radius: 12px;
-  padding: 12px;
-}
-
-.orders-column.is-empty,
-.orders-column.is-collapsed {
-  min-height: 180px;
-}
-
-.orders-column-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 12px;
-  transition: margin-bottom 180ms ease;
-}
-
-.orders-column-header h3 {
-  margin: 0;
-  color: #18181b;
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.orders-column-header span {
-  display: inline-flex;
-  min-width: 26px;
-  height: 24px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  background: #fff;
-  border: 1px solid #cbd5e1;
-  color: #374151;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.orders-column-header-actions {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 6px;
-}
-
-.orders-column-collapse-toggle {
-  display: inline-flex;
-  width: 28px;
-  height: 28px;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--ad-muted);
-  cursor: pointer;
-  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
-}
-
-.orders-column-collapse-toggle:hover:not(:disabled),
-.orders-column-collapse-toggle:focus-visible {
-  border-color: var(--ad-border);
-  background: var(--ad-surface);
-  color: var(--ad-heading);
-}
-
-.orders-column-collapse-toggle:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--ad-primary) 14%, transparent);
-  outline-offset: 1px;
-}
-
-.orders-column-collapse-toggle:disabled {
-  cursor: default;
-  opacity: 0.35;
-}
-
-.orders-column-collapse-toggle svg {
-  transition: transform 180ms ease;
-}
-
-.orders-column.is-collapsed .orders-column-collapse-toggle svg {
-  transform: rotate(180deg);
-}
-
-.orders-column-collapsible {
-  display: grid;
-  grid-template-rows: 1fr;
-  opacity: 1;
-  visibility: visible;
-  transition: grid-template-rows 200ms ease, opacity 150ms ease, visibility 0s linear 0s;
-}
-
-.orders-column-collapsible > .orders-column-list {
-  min-height: 0;
-  overflow: hidden;
-}
-
-.orders-column.is-collapsed .orders-column-collapsible {
-  grid-template-rows: 0fr;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transition: grid-template-rows 200ms ease, opacity 150ms ease, visibility 0s linear 200ms;
-}
-
-.orders-column-collapsed-summary {
-  display: grid;
-  grid-template-rows: 0fr;
-  opacity: 0;
-  visibility: hidden;
-  transition: grid-template-rows 200ms ease, opacity 150ms ease, visibility 0s linear 200ms;
-}
-
-.orders-column-collapsed-summary > .orders-column-empty {
-  min-height: 0;
-  overflow: hidden;
-}
-
-.orders-column.is-collapsed {
-  cursor: pointer;
-}
-
-.orders-column.is-collapsed .orders-column-collapsed-summary {
-  grid-template-rows: 1fr;
-  opacity: 1;
-  visibility: visible;
-  transition: grid-template-rows 200ms ease, opacity 150ms ease, visibility 0s linear 0s;
-}
-
-.orders-column.is-collapsed:hover {
-  border-color: color-mix(in srgb, var(--ad-primary) 22%, var(--ad-border));
-}
-
-.orders-column-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding-right: 2px;
-}
-
-.orders-column-empty {
-  margin: 0;
-  color: #a1a1aa;
-  font-size: 13px;
-  text-align: center;
-  padding: 24px 8px;
-}
-
-.kitchen-order-card {
-  background: #fff;
-  border: 1px solid #cbd5e1;
-  border-left: 4px solid #94a3b8;
-  border-radius: 10px;
-  padding: 12px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-  animation: order-card-enter 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
-  transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
-}
-
-@keyframes order-card-enter {
-  from {
-    opacity: 0;
-    transform: translateY(6px) scale(0.99);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.kitchen-order-card-pending { border-left-color: #f97316; }
-.kitchen-order-card-confirmed { border-left-color: #3b82f6; }
-.kitchen-order-card-in_preparation { border-left-color: #f59e0b; }
-.kitchen-order-card-ready { border-left-color: #22c55e; }
-
-.kitchen-order-card-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.kitchen-order-card-header h4 {
-  margin: 0;
-  color: #111827;
-  font-size: 18px;
-}
-
-.kitchen-order-card-header h4 {
-  font-size: 26px;
-}
 
 /* Reviews */
 
@@ -3531,14 +3249,6 @@
   }
 }
 
-.kitchen-workspace .orders-column {
-  background: #f9fafb;
-}
-
-.kitchen-order-card {
-  padding: 16px;
-}
-
 .kitchen-item-list {
   display: flex;
   flex-direction: column;
@@ -3568,33 +3278,6 @@
 .kitchen-item-main strong {
   color: #111827;
   font-size: 17px;
-}
-
-@media (max-width: 1180px) {
-  .orders-kanban-staff,
-  .orders-kanban-kitchen {
-    grid-template-columns: repeat(2, minmax(240px, 1fr));
-  }
-}
-
-@media (max-width: 720px) {
-  .orders-kanban-staff,
-  .orders-kanban-kitchen {
-    grid-template-columns: 1fr;
-  }
-
-  .orders-toolbar {
-    flex-direction: column;
-  }
-
-  .orders-toolbar-actions {
-    justify-content: stretch;
-    width: 100%;
-  }
-
-  .orders-toolbar-actions .ad-btn {
-    flex: 1 1 140px;
-  }
 }
 
 /* Analytics */
@@ -3985,11 +3668,6 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
-}
-
-.ad-coupon-settings-toggle {
-  width: min(100%, 520px);
-  margin-bottom: 10px;
 }
 
 .ad-switch-card {
@@ -4477,13 +4155,6 @@
   padding: 24px;
 }
 
-@media (max-width: 1180px) {
-  .orders-kanban-staff,
-  .orders-kanban-kitchen {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
 /* Responsive */
 @media (max-width: 998px) {
   .ad-shell,
@@ -4660,10 +4331,6 @@
     flex-basis: auto;
     width: 100%;
   }
-  .orders-kanban-staff,
-  .orders-kanban-kitchen {
-    grid-template-columns: 1fr;
-  }
 }
 
 @media (max-width: 600px) {
@@ -4756,8 +4423,7 @@
   }
 
   .ad-section-bar,
-  .orders-toolbar,
-  .ad-product-section-head {
+.ad-product-section-head {
     align-items: stretch;
     flex-direction: column;
     gap: 12px;
@@ -4767,8 +4433,7 @@
     justify-content: flex-start;
   }
 
-  .ad-section-bar > .ad-btn,
-  .orders-toolbar > .ad-btn {
+  .ad-section-bar > .ad-btn {
     justify-content: center;
     width: 100%;
   }
@@ -4896,38 +4561,6 @@
 
 /* Final dark-mode order board overrides.
    These live at the end so later order-board base styles cannot turn cards white again. */
-.ad-theme-dark .orders-toolbar,
-.ad-theme-dark .orders-column,
-.ad-theme-dark .kitchen-workspace .orders-column,
-.ad-theme-dark .kitchen-order-card {
-  background: var(--ad-surface) !important;
-  border-color: var(--ad-border) !important;
-  color: var(--ad-text) !important;
-  box-shadow: none;
-}
-
-.ad-theme-dark .orders-column {
-  background: #121214 !important;
-}
-
-.ad-theme-dark .orders-column-header span,
-.ad-theme-dark .orders-toolbar-copy {
-  color: var(--ad-muted) !important;
-}
-
-.ad-theme-dark .orders-column-header h3,
-.ad-theme-dark .kitchen-order-card-header h4 {
-  color: var(--ad-heading) !important;
-}
-
-.ad-theme-dark .orders-column-empty,
-.ad-theme-dark .kitchen-order-card li {
-  color: var(--ad-muted) !important;
-}
-
-.ad-theme-dark .kitchen-order-card:hover {
-  background: var(--ad-surface-soft) !important;
-}
 
 /* Product editor UX refresh */
 .ad-product-editor-with-nav {
@@ -6248,16 +5881,13 @@
 .ad-category-card,
 .ad-ingredient-card,
 .ad-product-toolbar,
-.ad-product-table-card,
-.orders-column,
-.kitchen-order-card {
+.ad-product-table-card {
   border-color: var(--ad-border);
   background: var(--ad-surface);
   box-shadow: var(--ad-shadow);
 }
 
 .ad-section-bar,
-.orders-toolbar,
 .ad-product-ingredients-head,
 .ad-category-card-head,
 .ad-ingredient-card-head {
@@ -6268,8 +5898,7 @@
   gap: 14px;
 }
 
-.ad-section-bar > div,
-.orders-toolbar > div {
+.ad-section-bar > div {
   min-width: 0;
 }
 
@@ -6514,8 +6143,7 @@
 }
 
 .ad-category-card,
-.ad-ingredient-card,
-.kitchen-order-card {
+.ad-ingredient-card {
   min-width: 0;
 }
 
@@ -6532,8 +6160,7 @@
 }
 
 .ad-category-card h3,
-.ad-ingredient-card h3,
-.kitchen-order-card-header h4 {
+.ad-ingredient-card h3 {
   overflow-wrap: anywhere;
 }
 
@@ -6667,19 +6294,6 @@
   border-radius: 8px;
 }
 
-.staff-order-filters .ad-filter-grid,
-.management-order-filters .ad-filter-grid {
-  align-items: end;
-}
-
-.staff-order-filters input,
-.staff-order-filters .custom-select-trigger,
-.management-order-filters input,
-.management-order-filters .custom-select-trigger {
-  height: 40px;
-  min-height: 40px;
-}
-
 .ad-directory-search {
   gap: 5px;
 }
@@ -6712,9 +6326,7 @@
 .ad-theme-dark .ad-ingredient-card,
 .ad-theme-dark .ad-product-toolbar,
 .ad-theme-dark .ad-product-table-card,
-.ad-theme-dark .ad-product-drawer,
-.ad-theme-dark .orders-column,
-.ad-theme-dark .kitchen-order-card {
+.ad-theme-dark .ad-product-drawer {
   background: #181a20 !important;
   border-color: #32343c !important;
   color: #f3f4f6 !important;
@@ -6769,8 +6381,7 @@
 .ad-theme-dark .ad-dashboard-overview span,
 .ad-theme-dark .ad-section-sub,
 .ad-theme-dark .ad-category-card p,
-.ad-theme-dark .ad-ingredient-meta span,
-.ad-theme-dark .orders-toolbar-copy {
+.ad-theme-dark .ad-ingredient-meta span {
   color: #b9c0cc !important;
 }
 
@@ -6827,17 +6438,8 @@
 
 /* Kitchen console dark-mode visibility.
    Keep this late in the file so the kitchen board's light base rules cannot win. */
-.ad-theme-dark .kitchen-workspace,
-.ad-theme-dark .kitchen-workspace .orders-kanban,
-.ad-theme-dark .kitchen-workspace .orders-column {
+.ad-theme-dark .kitchen-workspace {
   background: #0f1117 !important;
-  color: #f9fafb !important;
-}
-
-.ad-theme-dark .kitchen-workspace .orders-toolbar,
-.ad-theme-dark .kitchen-workspace .kitchen-order-card {
-  background: #181a20 !important;
-  border-color: #32343c !important;
   color: #f9fafb !important;
 }
 
@@ -6848,17 +6450,9 @@
 }
 
 .ad-theme-dark .kitchen-workspace .ad-section-title,
-.ad-theme-dark .kitchen-workspace .orders-column-header h3,
-.ad-theme-dark .kitchen-workspace .kitchen-order-card-header h4,
 .ad-theme-dark .kitchen-workspace .kitchen-item-main span,
 .ad-theme-dark .kitchen-workspace .kitchen-item-main strong {
   color: #f9fafb !important;
-}
-
-.ad-theme-dark .kitchen-workspace .orders-toolbar-copy,
-.ad-theme-dark .kitchen-workspace .orders-column-empty,
-.ad-theme-dark .kitchen-workspace .orders-column-header span {
-  color: #b9c0cc !important;
 }
 
 .ad-theme-dark .kitchen-workspace .ad-btn-ghost {
@@ -6911,15 +6505,13 @@
 
 @media (max-width: 760px) {
   .ad-dashboard-overview,
-  .ad-section-bar,
-  .orders-toolbar {
+.ad-section-bar {
     align-items: stretch;
     flex-direction: column;
   }
 
   .ad-dashboard-overview .ad-btn,
-  .ad-section-bar > .ad-btn,
-  .orders-toolbar > .ad-btn {
+.ad-section-bar > .ad-btn {
     width: 100%;
   }
 
@@ -7047,8 +6639,7 @@
   }
 
   .ad-content,
-  .orders-workspace,
-  .kitchen-workspace {
+.kitchen-workspace {
     width: 100%;
     max-width: 100%;
     min-width: 0;
@@ -7076,58 +6667,43 @@
   }
 
   .ad-dashboard-overview,
-  .ad-section-bar,
-  .orders-toolbar,
-  .ad-product-toolbar {
+.ad-section-bar,
+.ad-product-toolbar {
     align-items: stretch;
     flex-direction: column;
   }
 
   .ad-metrics-grid,
-  .ad-two-col,
-  .ad-settings-grid,
-  .ad-filter-grid,
-  .ad-product-filter-row,
-  .ad-ingredient-toolbar,
-  .ad-form-row,
-  .orders-kanban,
-  .orders-kanban-staff,
-  .orders-kanban-kitchen {
+.ad-two-col,
+.ad-settings-grid,
+.ad-filter-grid,
+.ad-product-filter-row,
+.ad-ingredient-toolbar,
+.ad-form-row {
     grid-template-columns: 1fr;
   }
 
   .ad-card,
-  .ad-dashboard-overview,
-  .ad-product-toolbar,
-  .ad-product-table-card,
-  .orders-column,
-  .kitchen-order-card {
+.ad-dashboard-overview,
+.ad-product-toolbar,
+.ad-product-table-card {
     width: 100%;
     min-width: 0;
   }
 
   .ad-card,
-  .ad-dashboard-overview,
-  .orders-column {
+.ad-dashboard-overview {
     padding: 16px;
     border-radius: 10px;
   }
 
-  .orders-toolbar-actions,
   .ad-section-bar > .ad-btn,
-  .ad-dashboard-overview .ad-btn {
+.ad-dashboard-overview .ad-btn {
     width: 100%;
   }
 
-  .orders-toolbar-actions {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
-
-  .orders-toolbar-actions .ad-btn,
   .ad-dashboard-overview .ad-btn,
-  .ad-section-bar > .ad-btn {
+.ad-section-bar > .ad-btn {
     width: 100%;
   }
 
@@ -7169,15 +6745,13 @@
   }
 
   .ad-dashboard-overview h2,
-  .ad-section-title,
-  .orders-toolbar h2 {
+.ad-section-title {
     font-size: clamp(1.15rem, 5vw, 1.45rem);
     line-height: 1.15;
   }
 
   .ad-dashboard-overview span,
-  .ad-section-sub,
-  .orders-toolbar-copy {
+.ad-section-sub {
     font-size: 0.9rem;
     line-height: 1.45;
   }
@@ -7195,22 +6769,6 @@
   .ad-metric-value {
     font-size: clamp(1.55rem, 9vw, 2.2rem);
     line-height: 1;
-  }
-
-  .orders-column {
-    padding: 12px;
-  }
-
-  .orders-column-header,
-  .kitchen-order-card-header {
-    align-items: flex-start;
-    gap: 10px;
-  }
-
-  .kitchen-order-card ul {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 8px;
   }
 
   .ad-actions,
@@ -7256,8 +6814,7 @@
   }
 
   .ad-card,
-  .ad-dashboard-overview,
-  .orders-column {
+.ad-dashboard-overview {
     padding: 12px;
   }
 
@@ -7567,48 +7124,6 @@
   color: #dc2626;
 }
 
-/* Product analytics: reusable non-blocking drawer, blocking modal and mobile fullscreen panel. */
-
-@keyframes ad-product-analytics-drawer-in {
-  from { opacity: 0; transform: translateX(34px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes ad-product-analytics-drawer-out {
-  from { opacity: 1; transform: translateX(0); }
-  to { opacity: 0; transform: translateX(34px); }
-}
-
-@keyframes ad-product-analytics-modal-in {
-  from { opacity: 0; transform: translate(-50%, calc(-50% + 12px)) scale(0.982); }
-  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-}
-
-@keyframes ad-product-analytics-modal-out {
-  from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  to { opacity: 0; transform: translate(-50%, calc(-50% + 10px)) scale(0.985); }
-}
-
-@keyframes ad-product-analytics-fullscreen-in {
-  from { opacity: 0; transform: translateY(14px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes ad-product-analytics-fullscreen-out {
-  from { opacity: 1; transform: translateY(0); }
-  to { opacity: 0; transform: translateY(14px); }
-}
-
-@keyframes ad-product-analytics-backdrop-in {
-  from { opacity: 0; backdrop-filter: blur(0); -webkit-backdrop-filter: blur(0); }
-  to { opacity: 1; backdrop-filter: blur(7px) saturate(125%); -webkit-backdrop-filter: blur(7px) saturate(125%); }
-}
-
-@keyframes ad-product-analytics-backdrop-out {
-  from { opacity: 1; backdrop-filter: blur(7px) saturate(125%); -webkit-backdrop-filter: blur(7px) saturate(125%); }
-  to { opacity: 0; backdrop-filter: blur(0); -webkit-backdrop-filter: blur(0); }
-}
-
 @media (min-width: 999px) {
   .ad-product-modal {
     max-width: 1160px;
@@ -7624,7 +7139,7 @@
   }
 }
 
-/* Shared adaptive editors for categories, ingredients and customers. */
+/* Shared adaptive editors for catalog content and administrators. */
 .ad-admin-editor-panel-drawer {
   width: min(620px, 100vw);
 }

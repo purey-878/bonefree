@@ -281,7 +281,7 @@ const ProductFooter = styled.div`
   margin-top: auto;
 `
 
-const ProductPurchaseRow = styled.div`
+const ProductPriceRow = styled.div`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -289,7 +289,7 @@ const ProductPurchaseRow = styled.div`
   gap: 1rem;
 `
 
-const ProductDetailsButton = styled.button`
+const ProductDetailsButton = styled.a`
   display: inline-flex;
   min-height: 44px;
   align-items: center;
@@ -303,8 +303,10 @@ const ProductDetailsButton = styled.button`
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
+  text-decoration: none;
 
   &:hover {
+    color: var(--product-card-description, var(--brand-muted));
     text-decoration: underline;
     text-underline-offset: 3px;
   }
@@ -481,7 +483,7 @@ export function ProductCard({
         </ProductTop>
 
         <ProductFooter>
-          <ProductPurchaseRow>
+          <ProductPriceRow>
             <PriceStack>
 
               <ProductPrice>
@@ -490,15 +492,20 @@ export function ProductCard({
             </PriceStack>
             {onSelect && (
               <ProductDetailsButton
-                type="button"
+                href={`/product/${encodeURIComponent(String(product.id))}`}
                 aria-label={t('productCard.view', { name: product.name })}
-                onClick={handleSelectClick}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                  event.preventDefault();
+                  handleSelect();
+                }}
               >
                 {t('productCard.viewDetails')}
                 <ArrowRight size={16} aria-hidden="true" />
               </ProductDetailsButton>
             )}
-          </ProductPurchaseRow>
+          </ProductPriceRow>
 
         </ProductFooter>
       </ProductBody>

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Clock, Mail, MapPin, Phone, Route, UtensilsCrossed } from "lucide-react";
 import styled from "styled-components";
@@ -33,6 +33,7 @@ const contactCards = [
 
 const Contact: React.FC = () => {
   const { t } = useTranslation("storefront");
+  const [mapEnabled, setMapEnabled] = useState(false);
   return (
     <ContactPage>
       <ContactHero>
@@ -90,7 +91,7 @@ const Contact: React.FC = () => {
         </DirectionsTile>
 
         <MapTile>
-          <iframe
+          {mapEnabled ? <iframe
             src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d49878.87222597991!2d-9.2476054!3d38.615999!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xd1ecbd167fb7389%3A0x4bfb3119d6e98f29!2sBone%20Free!5e0!3m2!1sen!2spt!4v1780922610537!5m2!1sen!2spt"
             width="100%"
             height="100%"
@@ -99,7 +100,11 @@ const Contact: React.FC = () => {
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
             title={t("contact.mapTitle")}
-          />
+          /> : <MapPlaceholder>
+            <MapPin size={28} aria-hidden="true" />
+            <p>{t("privacy.mapNotice")}</p>
+            <button type="button" onClick={() => setMapEnabled(true)}>{t("privacy.loadMap")}</button>
+          </MapPlaceholder>}
         </MapTile>
       </ContactBento>
     </ContactPage>
@@ -325,6 +330,26 @@ const DirectionsTile = styled.article`
     padding: 0.72rem 0.9rem;
     font-weight: 900;
     text-decoration: none;
+  }
+`;
+
+const MapPlaceholder = styled.div`
+  display: grid;
+  min-height: 420px;
+  place-content: center;
+  justify-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  text-align: center;
+
+  button {
+    min-height: 44px;
+    padding: 0.65rem 1rem;
+    border: 1px solid var(--brand-secondary);
+    border-radius: var(--radius-sm);
+    background: var(--brand-secondary);
+    color: #ffffff;
+    cursor: pointer;
   }
 `;
 

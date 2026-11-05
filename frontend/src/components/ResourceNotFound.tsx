@@ -1,3 +1,4 @@
+import { applyPageMetadata } from "../seo/documentMetadata"
 import { ArrowRight, Home, UtensilsCrossed } from "lucide-react"
 import { useEffect } from "react"
 import { useTranslation } from "react-i18next"
@@ -27,13 +28,8 @@ export default function ResourceNotFound({ kind }: ResourceNotFoundProps) {
   const Icon = copy.Icon
 
   useEffect(() => {
-    const previousTitle = document.title
-    document.title = t(`resourceNotFound.${copy.key}.documentTitle`)
-
-    return () => {
-      document.title = previousTitle
-    }
-  }, [copy.key, t])
+    applyPageMetadata({ title: t(`resourceNotFound.${copy.key}.documentTitle`), description: t(`resourceNotFound.${copy.key}.description`), noindex: true });
+  }, [copy.key, t]);
 
   return (
     <Page className="resource-not-found-page">
