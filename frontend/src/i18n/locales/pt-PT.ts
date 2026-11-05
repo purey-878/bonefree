@@ -156,11 +156,13 @@ const ptPT = {
       sort: { default: "Destaques", priceAsc: "Preço: do mais baixo ao mais alto", priceDesc: "Preço: do mais alto ao mais baixo", nameAsc: "Nome: A–Z" },
       close: "Fechar",
       eyebrow: "O nosso menu", title: "Descubra os nossos pratos.", description: "Explore os nossos pratos vegetais, ingredientes e preços. Descubra os seus favoritos antes da visita.",
+      shortDescription: "Pratos veganos, cheios de sabor.",
 
       showing: "A mostrar", filtersLabel: "Filtros do menu", searchLabel: "Pesquisar no menu", searchPlaceholder: "Pesquisar pratos...", clearSearch: "Limpar pesquisa",
       maxPrice: "Preço máximo", filter: "Filtro", specialFilter: "Filtro especial do menu", all: "Todos", glutenFree: "Sem glúten", alcohol: "Álcool",
       sortLabel: "Ordenar", sortMenu: "Ordenar menu", reset: "Repor", categories: "Categorias",
       noResults: "Sem resultados", noResultsTitle: "Nenhum prato encontrado", noResultsText: "Experimente outra categoria, termo de pesquisa ou intervalo de preço.", resetFilters: "Repor filtros",
+      dish: "pratos", dishes: "prato"
     },
     productCard: {
       view: "Ver {{name}}", calories: "{{count}} quilocalorias", fallbackDescription: "Um prato cuidadosamente criado com ingredientes de qualidade.",

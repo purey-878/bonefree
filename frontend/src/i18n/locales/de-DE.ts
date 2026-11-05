@@ -117,7 +117,9 @@ const deDE = {
       loadError: "Die Speisekarte konnte nicht geladen werden.",
       sort: { default: "Empfohlen", priceAsc: "Preis: aufsteigend", priceDesc: "Preis: absteigend", nameAsc: "Name: A–Z" }, close: "Schließen",
       eyebrow: "Unsere Speisekarte", title: "Entdecken Sie unsere Gerichte.", description: "Entdecken Sie unsere pflanzlichen Gerichte, Zutaten und Preise. Finden Sie Ihre Favoriten vor Ihrem Besuch.",
+      shortDescription: "Vegane Gerichte voller Geschmack.",
       showing: "Angezeigt", filtersLabel: "Filter der Speisekarte", searchLabel: "Speisekarte durchsuchen", searchPlaceholder: "Gerichte suchen...", clearSearch: "Suche löschen", maxPrice: "Höchstpreis", filter: "Filter", specialFilter: "Spezialfilter der Speisekarte", all: "Alle", glutenFree: "Glutenfrei", alcohol: "Alkohol", sortLabel: "Sortieren", sortMenu: "Speisekarte sortieren", reset: "Zurücksetzen", categories: "Kategorien", noResults: "Keine Ergebnisse", noResultsTitle: "Keine Gerichte gefunden", noResultsText: "Versuchen Sie eine andere Kategorie, einen anderen Suchbegriff oder Preisbereich.", resetFilters: "Filter zurücksetzen",
+      dish: "Gericht", dishes: "Gerichte"
     },
     productCard: { view: "{{name}} ansehen", calories: "{{count}} Kilokalorien", fallbackDescription: "Ein sorgfältig zubereitetes Gericht aus hochwertigen Zutaten.", available: "Verfügbar", currentlyUnavailable: "Derzeit nicht verfügbar", },
 

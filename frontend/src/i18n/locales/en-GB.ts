@@ -117,7 +117,9 @@ const enGB = {
       loadError: "We couldn't load the menu.",
       sort: { default: "Featured", priceAsc: "Price: low to high", priceDesc: "Price: high to low", nameAsc: "Name: A–Z" }, close: "Close",
       eyebrow: "Our menu", title: "Discover our dishes.", description: "Explore our plant-based dishes, ingredients and prices. Find your favourites before your visit.",
+      shortDescription: "Vegan dishes, full of flavour.",
       showing: "Showing", filtersLabel: "Menu filters", searchLabel: "Search the menu", searchPlaceholder: "Search dishes...", clearSearch: "Clear search", maxPrice: "Maximum price", filter: "Filter", specialFilter: "Special menu filter", all: "All", glutenFree: "Gluten-free", alcohol: "Alcohol", sortLabel: "Sort", sortMenu: "Sort menu", reset: "Reset", categories: "Categories", noResults: "No results", noResultsTitle: "No dishes found", noResultsText: "Try another category, search term or price range.", resetFilters: "Reset filters",
+      dish: "dishes", dishes: "dishes",
     },
     productCard: { view: "View {{name}}", calories: "{{count}} kilocalories", fallbackDescription: "A carefully crafted dish made with quality ingredients.", available: "Available", currentlyUnavailable: "Currently unavailable", },
 

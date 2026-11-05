@@ -363,7 +363,7 @@ img {
 }
 
 footer.footer {
-  background: var(--brand-accent);
+  background: color-mix(in srgb, var(--brand-accent) 88%, #000000);
   border-top: 2px solid var(--glass-border);
   padding: 2rem 1rem;
 

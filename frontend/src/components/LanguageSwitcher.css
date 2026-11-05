@@ -162,7 +162,27 @@
     min-width: 58px;
     min-height: 44px;
     justify-content: center;
-    padding: 0.3rem 0.42rem;
+    gap: 0.25rem;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    box-shadow: none;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+  }
+
+  .language-switcher-mobile-nav .language-switcher-trigger:hover,
+  .language-switcher-mobile-nav .language-switcher-trigger[aria-expanded="true"] {
+    background: var(--nav-surface-hover, #f4f8f1);
+    transform: none;
+  }
+
+  .language-switcher-mobile-nav .language-switcher-trigger:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+    background: transparent;
+    transform: none;
   }
 
   .language-switcher-mobile-nav .language-switcher-trigger > span {

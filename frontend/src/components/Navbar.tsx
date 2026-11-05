@@ -1,15 +1,9 @@
-import {
-  Home,
-  MapPin,
-  Menu as MenuIcon,
-  UtensilsCrossed,
-  X
-} from "lucide-react";
-import { useEffect, useState } from "react";
+import { X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "react-router-dom";
-import styled, { createGlobalStyle, css, keyframes } from "styled-components";
+import styled, { css, keyframes } from "styled-components";
 
 import LanguageSwitcher from "./LanguageSwitcher";
 const desktopLinks = [
@@ -18,12 +12,6 @@ const desktopLinks = [
   { path: "/about", labelKey: "navigation.about" },
   { path: "/events", labelKey: "navigation.events" },
   { path: "/contact", labelKey: "navigation.contact" },
-];
-
-const bottomLinks = [
-  { path: "/", labelKey: "navigation.home", icon: Home },
-  { path: "/menu", labelKey: "navigation.menu", icon: UtensilsCrossed },
-  { path: "/contact", labelKey: "navigation.contact", icon: MapPin },
 ];
 
 const drawerIn = keyframes`
@@ -38,15 +26,7 @@ const drawerIn = keyframes`
   }
 `;
 
-const NavigationGlobalStyles = createGlobalStyle`
-  @media (max-width: 767px) {
-    body {
-      padding-bottom: 64px;
-    }
-  }
-`;
-
-const TopNav = styled.header<{ $glassDark?: boolean }>`
+const TopNav = styled.header<{ $glassDark?: boolean; $hidden: boolean }>`
   position: fixed;
   top: 0;
   right: 0;
@@ -54,6 +34,12 @@ const TopNav = styled.header<{ $glassDark?: boolean }>`
   /* Above sticky page controls and below application overlays. */
   z-index: 1300;
   height:72px;
+  transform: translateY(${({ $hidden }) => $hidden ? "calc(-100% - 48px)" : "0"});
+  transition: transform 220ms ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 
   --nav-text: ${({ $glassDark }) =>
     $glassDark
@@ -121,6 +107,7 @@ const TopNav = styled.header<{ $glassDark?: boolean }>`
 
   @media (max-width:767px){
     height:68px;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
   }
 `;
 const NavInner = styled.div`
@@ -328,6 +315,85 @@ const IconAction = styled.button`
     background: var(--nav-surface-hover, #f4f8f1);
     color: var(--nav-strong, var(--brand-secondary));
   }
+
+  @media (max-width: 767px) {
+    border: 0;
+    border-radius: 50%;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+
+    &:hover {
+      transform: none;
+    }
+
+    &:focus-visible {
+      outline: 2px solid currentColor;
+      outline-offset: 2px;
+    }
+  }
+`;
+
+const BurgerIcon = styled.span`
+  position: relative;
+  display: block;
+  width: 32px;
+  height: 28px;
+  pointer-events: none;
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    left: 2px;
+    width: 28px;
+    height: 9px;
+    box-sizing: border-box;
+    border: 2px solid #171915;
+    border-radius: 999px;
+    background: #ffc477;
+  }
+
+  &::before { top: 0; }
+  &::after { bottom: 0; }
+
+  > span {
+    position: absolute;
+    top: 10px;
+    left: 0;
+    width: 32px;
+    height: 9px;
+    box-sizing: border-box;
+    border: 2px solid #171915;
+    border-radius: 999px;
+    background: #9f6b43;
+    transform: rotate(-5deg);
+  }
+
+  > span::before,
+  > span::after {
+    content: "";
+    position: absolute;
+    height: 5px;
+    box-sizing: border-box;
+    border: 1.5px solid #171915;
+    border-radius: 999px;
+  }
+
+  > span::before {
+    top: -4px;
+    left: -2px;
+    width: 23px;
+    background: #ef4435;
+    transform: rotate(9deg);
+  }
+
+  > span::after {
+    right: 2px;
+    bottom: -4px;
+    width: 14px;
+    background: #7baf4b;
+  }
 `;
 
 const Backdrop = styled.button`
@@ -441,58 +507,74 @@ const DrawerLink = styled(Link) <{ $active: boolean }>`
   }
 `;
 
-const BottomNav = styled.nav`
-  position: fixed;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 1090;
-  display: none;
-  height: 64px;
-  border-top: 1px solid var(--glass-border);
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 -12px 32px rgba(23, 33, 29, 0.08);
-  backdrop-filter: blur(22px) saturate(150%);
-  -webkit-backdrop-filter: blur(22px) saturate(150%);
-
-  @media (max-width: 767px) {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-`;
-
-const BottomLink = styled(Link) <{ $active: boolean }>`
-  position: relative;
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.22rem;
-  color: ${({ $active }) => ($active ? "var(--brand-secondary)" : "var(--brand-muted)")};
-  font-size: 0.68rem;
-  font-weight: 800;
-  line-height: 1;
-  text-decoration: none;
-
-  svg {
-    width: 21px;
-    height: 21px;
-    stroke-width: ${({ $active }) => ($active ? 2.35 : 2)};
-  }
-
-  &::before {
-    content: none;
-  }
-`;
-
 const Navbar = () => {
   const { t } = useTranslation("common");
   const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [navHidden, setNavHidden] = useState(false);
+  const headerRef = useRef<HTMLElement | null>(null);
   const closeDrawer = () => setDrawerOpen(false);
   const isActive = (path: string) => path === "/" ? location.pathname === "/" : path === "/menu" ? /^\/(menu|product)(\/|$)/.test(location.pathname) : location.pathname.startsWith(path);
   const glassDarkNav = ["/", "/contact", "/about"].includes(location.pathname);
+  useEffect(() => {
+    let previousY = Math.max(0, window.scrollY);
+    let previousTime = performance.now();
+    let direction = 0;
+    let distance = 0;
+    let gestureStart = previousTime;
+    let frame = 0;
+    let hidden = false;
+
+    const update = () => {
+      frame = 0;
+      // Clamp elastic scrolling at either end of the page.
+      const maxY = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+      const y = Math.min(maxY, Math.max(0, window.scrollY));
+      const now = performance.now();
+      const delta = y - previousY;
+      const nextDirection = Math.sign(delta);
+      const pinned = drawerOpen
+        || headerRef.current?.querySelector(':focus-visible, [aria-expanded="true"]');
+
+      if (nextDirection !== direction || now - gestureStart > 160) {
+        distance = 0;
+        gestureStart = now - previousTime > 160 ? now : previousTime;
+      }
+      distance += Math.abs(delta);
+      const speed = distance / Math.max(1, now - gestureStart);
+      let nextHidden = hidden;
+
+      if (y <= 12 || pinned) {
+        nextHidden = false;
+      } else if (nextDirection > 0 && distance >= 24 && y > 80) {
+        nextHidden = true;
+      } else if (nextDirection < 0 && distance >= 48 && speed >= 0.35) {
+        nextHidden = false;
+      }
+
+      if (nextHidden !== hidden) {
+        hidden = nextHidden;
+        setNavHidden(hidden);
+      }
+      direction = nextDirection;
+      previousY = y;
+      previousTime = now;
+    };
+
+    const onScroll = () => {
+      if (!frame) frame = window.requestAnimationFrame(update);
+    };
+    frame = window.requestAnimationFrame(() => {
+      frame = 0;
+      setNavHidden(false);
+    });
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.cancelAnimationFrame(frame);
+    };
+  }, [drawerOpen, location.pathname]);
+
   useEffect(() => {
     if (!drawerOpen) return;
     const previous = document.body.style.overflow;
@@ -502,9 +584,8 @@ const Navbar = () => {
     return () => { document.body.style.overflow = previous; document.removeEventListener("keydown", closeOnEscape); };
   }, [drawerOpen]);
   return createPortal(<>
-    <NavigationGlobalStyles />
-    <TopNav $glassDark={glassDarkNav}><NavInner>
-      <MobileLeft><IconAction aria-label={t("navigation.openMenu")} onClick={() => setDrawerOpen(true)} type="button"><MenuIcon size={22} /></IconAction></MobileLeft>
+    <TopNav ref={headerRef} $glassDark={glassDarkNav} $hidden={navHidden} inert={navHidden}><NavInner>
+      <MobileLeft><IconAction aria-label={t("navigation.openMenu")} aria-expanded={drawerOpen} onClick={() => setDrawerOpen(true)} type="button"><BurgerIcon aria-hidden="true"><span /></BurgerIcon></IconAction></MobileLeft>
       <Logo className="logo-bonefree" aria-label={t("navigation.bonefreeHome")} onClick={closeDrawer} to="/"><img src="/assets/images/bonefree-logo.webp" className="img-fluid img-25" alt="Bonefree" /></Logo>
       <CenterNav aria-label={t("navigation.main")}>{desktopLinks.map(({ path, labelKey }) => <PillLink $active={isActive(path)} key={path} to={path}>{t(labelKey)}</PillLink>)}</CenterNav>
       <NavActions><LanguageSwitcher /></NavActions>
@@ -514,7 +595,6 @@ const Navbar = () => {
       <DrawerHeader><Logo aria-label={t("navigation.bonefreeHome")} onClick={closeDrawer} to="/"><img src="/assets/images/bonefree-logo.webp" className="img-fluid img-25" alt="Bonefree" /></Logo><IconAction aria-label={t("navigation.closeMenu")} onClick={closeDrawer} type="button"><X size={22} /></IconAction></DrawerHeader>
       <DrawerBody><DrawerNav>{desktopLinks.map(({ path, labelKey }) => <DrawerLink $active={isActive(path)} key={path} onClick={closeDrawer} to={path}>{t(labelKey)}</DrawerLink>)}</DrawerNav></DrawerBody>
     </MobileDrawer></>}
-    <BottomNav aria-label={t("navigation.mobileBottom")}>{bottomLinks.map(({ path, labelKey, icon: Icon }) => <BottomLink $active={isActive(path)} key={path} to={path}><Icon aria-hidden="true" /><span>{t(labelKey)}</span></BottomLink>)}</BottomNav>
   </>, document.body);
 };
 

@@ -369,6 +369,16 @@
   align-items: stretch;
 }
 
+.menu-advanced-filters {
+  display: contents;
+}
+
+.menu-mobile-filter-toggle,
+.menu-mobile-description,
+.menu-title-mobile {
+  display: none;
+}
+
 .menu-filter-group {
   display: grid;
   gap: 0.48rem;
@@ -959,6 +969,121 @@
 
   .products-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 767px) {
+  .menu-page-hero {
+    padding: 2.25rem 1rem 1rem;
+  }
+
+  .menu-page-hero h1 {
+    font-size: 1.85rem;
+    line-height: 1.1;
+  }
+
+  .menu-title-mobile {
+    display: inline;
+  }
+
+  .menu-page-hero .menu-mobile-description {
+    display: block;
+    margin: 0.5rem 0 0;
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+
+  .menu-title-desktop,
+  .menu-eyebrow,
+  .menu-page-hero > p,
+  .menu-results-summary {
+    display: none;
+  }
+
+  .menu-filter-bar {
+    gap: 0.75rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .menu-filter-top {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.65rem;
+    align-items: center;
+  }
+
+  .menu-search-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .menu-search-field {
+    min-height: 44px;
+    padding-inline: 0.75rem;
+    border-radius: 12px;
+  }
+
+  .menu-search-field > svg {
+    flex-shrink: 0;
+  }
+
+  .menu-search-field input {
+    font-size: 1rem;
+  }
+
+  .menu-mobile-filter-toggle {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0 0.75rem;
+    border: 1px solid #c8d6c3;
+    border-radius: 12px;
+    background: #ffffff;
+    color: #17211d;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .menu-mobile-filter-toggle[aria-expanded="true"] {
+    background: #eef7e9;
+  }
+
+  .menu-advanced-filters {
+    display: none;
+    grid-column: 1 / -1;
+    gap: 0.75rem;
+    padding: 1rem;
+    border: 1px solid #c8d6c3;
+    border-radius: 12px;
+    background: #ffffff;
+  }
+
+  .menu-advanced-filters.is-open {
+    display: grid;
+  }
+
+  .menu-category-list button {
+    min-height: 44px;
+    font-size: 0.85rem;
+  }
+
+  .menu-page .menu-product-card {
+    padding: 1rem;
+  }
+
+  .menu-product-card .product-card-body {
+    padding: 0.25rem 0.25rem 0.5rem;
   }
 }
 

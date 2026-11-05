@@ -152,6 +152,7 @@ function Menu() {
   const [sortBy, setSortBy] = useState<SortOption>(initialFilters.sortBy);
   const [specialFilter, setSpecialFilter] = useState<SpecialFilter>(initialFilters.specialFilter);
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const navigate = useNavigate();
@@ -368,7 +369,8 @@ function Menu() {
         <header className="menu-page-hero">
           <div>
             <p className="menu-eyebrow">{t("menu.eyebrow")}</p>
-            <h1>{t("menu.title")}</h1>
+            <h1><span className="menu-title-desktop">{t("menu.title")}</span><span className="menu-title-mobile">{t("menu.eyebrow")}</span></h1>
+            <p className="menu-mobile-description">{t("menu.shortDescription")}</p>
           </div>
           <p>
             {t("menu.description")}
@@ -388,7 +390,7 @@ function Menu() {
           <section className="menu-filter-bar" aria-label={t("menu.filtersLabel")}>
             <div className="menu-filter-top">
               <div className="menu-filter-group menu-filter-search">
-                <label htmlFor="menu-search " className=" ">
+                <label htmlFor="menu-search" className="menu-search-label">
                   {t("menu.searchLabel")}
                 </label>
                 <div className="menu-search-field">
@@ -412,100 +414,118 @@ function Menu() {
                 </div>
               </div>
 
-              <div className="menu-filter-group menu-filter-price">
-                <label htmlFor="menu-price">{t("menu.maxPrice")}</label>
-                <div className="menu-price-control">
-                  <input
-                    id="menu-price"
-                    type="range"
-                    min="0"
-                    max={maxPrice}
-                    step={PRICE_STEP}
-                    value={clampPrice(priceRange[1], maxPrice)}
-                    onChange={(e) =>
-                      setPriceRange([priceRange[0], clampPrice(Number(e.target.value), maxPrice)])
-                    }
-                    className="menu-price-slider"
-                  />
-                  <strong className="fw-bold">{formatEuro(priceRange[1])}</strong>
-                </div>
-              </div>
-
-              <div className="menu-filter-group">
-                <label>{t("menu.filter")}</label>
-                <div className="menu-segmented-filter menu-segmented-filter-3" aria-label={t("menu.specialFilter")}>
-                  <button
-                    type="button"
-                    className={specialFilter === "all" ? "active" : ""}
-                    onClick={() => setSpecialFilter("all")}
-                  >
-                    <span className="fw-bold">{t("menu.all")}</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={specialFilter === "gluten-free" ? "active" : ""}
-                    onClick={() => setSpecialFilter("gluten-free")}
-                  >
-                    <span className="fw-bold">{t("menu.glutenFree")}</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={specialFilter === "alcohol" ? "active" : ""}
-                    onClick={() => setSpecialFilter("alcohol")}
-                  >
-                    <span className="fw-bold">{t("menu.alcohol")}</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className={`menu-sort-control ${sortMenuOpen ? "open" : ""}`} ref={sortMenuRef}>
-                <SlidersHorizontal size={17} />
-                <span>{t("menu.sortLabel")}</span>
-                <button
-                  type="button"
-                  className="menu-sort-trigger"
-                  aria-haspopup="listbox"
-                  aria-expanded={sortMenuOpen}
-                  onClick={() => setSortMenuOpen((current) => !current)}
-                >
-                  <strong className="fw-bold">{t(sortLabelKeys[sortBy])}</strong>
-                  <ChevronDown size={16} strokeWidth={2.4} />
-                </button>
-                {sortMenuOpen && (
-                  <div className="menu-sort-dropdown" role="listbox" aria-label={t("menu.sortMenu")}>
-                    {Object.entries(sortLabelKeys).map(([value, labelKey]) => {
-                      const option = value as SortOption;
-                      const selected = option === sortBy;
-
-                      return (
-                        <button
-                          key={value}
-                          type="button"
-                          role="option"
-                          aria-selected={selected}
-                          className={selected ? "selected fw-bold" : ""}
-                          onClick={() => {
-                            setSortBy(option);
-                            setSortMenuOpen(false);
-                          }}
-                        >
-                          <span>{t(labelKey)}</span>
-                          {selected && <Check size={16} strokeWidth={2.4} />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
               <button
-                className="menu-reset-button  fw-bold"
+                className="menu-mobile-filter-toggle"
                 type="button"
-                onClick={handleResetFilters}
+                aria-label={t("menu.filtersLabel")}
+                aria-expanded={mobileFiltersOpen}
+                aria-controls="menu-advanced-filters"
+                onClick={() => {
+                  setMobileFiltersOpen((open) => !open);
+                  setSortMenuOpen(false);
+                }}
               >
-                {t("menu.reset")}
-                {activeFilterCount > 0 && <span>{activeFilterCount}</span>}
+                <SlidersHorizontal size={18} aria-hidden="true" />
+                <span>{t("menu.filter")}</span>
+                {activeFilterCount > 0 && <strong>{activeFilterCount}</strong>}
               </button>
+
+              <div id="menu-advanced-filters" className={`menu-advanced-filters ${mobileFiltersOpen ? "is-open" : ""}`}>
+                <div className="menu-filter-group menu-filter-price">
+                  <label htmlFor="menu-price">{t("menu.maxPrice")}</label>
+                  <div className="menu-price-control">
+                    <input
+                      id="menu-price"
+                      type="range"
+                      min="0"
+                      max={maxPrice}
+                      step={PRICE_STEP}
+                      value={clampPrice(priceRange[1], maxPrice)}
+                      onChange={(e) =>
+                        setPriceRange([priceRange[0], clampPrice(Number(e.target.value), maxPrice)])
+                      }
+                      className="menu-price-slider"
+                    />
+                    <strong className="fw-bold">{formatEuro(priceRange[1])}</strong>
+                  </div>
+                </div>
+
+                <div className="menu-filter-group">
+                  <label>{t("menu.filter")}</label>
+                  <div className="menu-segmented-filter menu-segmented-filter-3" aria-label={t("menu.specialFilter")}>
+                    <button
+                      type="button"
+                      className={specialFilter === "all" ? "active" : ""}
+                      onClick={() => setSpecialFilter("all")}
+                    >
+                      <span className="fw-bold">{t("menu.all")}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={specialFilter === "gluten-free" ? "active" : ""}
+                      onClick={() => setSpecialFilter("gluten-free")}
+                    >
+                      <span className="fw-bold">{t("menu.glutenFree")}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={specialFilter === "alcohol" ? "active" : ""}
+                      onClick={() => setSpecialFilter("alcohol")}
+                    >
+                      <span className="fw-bold">{t("menu.alcohol")}</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className={`menu-sort-control ${sortMenuOpen ? "open" : ""}`} ref={sortMenuRef}>
+                  <SlidersHorizontal size={17} />
+                  <span>{t("menu.sortLabel")}</span>
+                  <button
+                    type="button"
+                    className="menu-sort-trigger"
+                    aria-haspopup="listbox"
+                    aria-expanded={sortMenuOpen}
+                    onClick={() => setSortMenuOpen((current) => !current)}
+                  >
+                    <strong className="fw-bold">{t(sortLabelKeys[sortBy])}</strong>
+                    <ChevronDown size={16} strokeWidth={2.4} />
+                  </button>
+                  {sortMenuOpen && (
+                    <div className="menu-sort-dropdown" role="listbox" aria-label={t("menu.sortMenu")}>
+                      {Object.entries(sortLabelKeys).map(([value, labelKey]) => {
+                        const option = value as SortOption;
+                        const selected = option === sortBy;
+
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            role="option"
+                            aria-selected={selected}
+                            className={selected ? "selected fw-bold" : ""}
+                            onClick={() => {
+                              setSortBy(option);
+                              setSortMenuOpen(false);
+                            }}
+                          >
+                            <span>{t(labelKey)}</span>
+                            {selected && <Check size={16} strokeWidth={2.4} />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  className="menu-reset-button  fw-bold"
+                  type="button"
+                  onClick={handleResetFilters}
+                >
+                  {t("menu.reset")}
+                  {activeFilterCount > 0 && <span>{activeFilterCount}</span>}
+                </button>
+              </div>
             </div>
 
             <div className="menu-category-list fw-semibold" aria-label={t("menu.categories")}>
@@ -553,6 +573,7 @@ function Menu() {
                         }}
                       >
                         <ProductCard
+                          className="menu-product-card"
                           product={product}
                           currencySymbol="€"
                           onSelect={() => navigate(`/product/${product.id}`)}

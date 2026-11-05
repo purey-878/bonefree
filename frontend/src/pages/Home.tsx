@@ -418,7 +418,7 @@ const HeroSection = styled.section`
   background-position: center;
 
   @media (max-width: 767px) {
-    min-height: 92svh;
+    min-height: 100svh;
     background-attachment: scroll;
   }
 `;
@@ -451,8 +451,8 @@ const HeroContent = styled.div`
   }
 
   @media (max-width: 767px) {
-    min-height: calc(92svh - 68px);
-    padding: 4rem 1rem 3rem;
+    min-height: 100svh;
+    padding: calc(68px + clamp(2rem, 6svh, 4rem)) 1.25rem clamp(3rem, 8svh, 5rem);
   }
 `;
 
@@ -488,6 +488,7 @@ const HeroTitle = styled.h1`
 
   @media (max-width: 520px) {
     font-size: clamp(2.15rem, 12vw, 3.35rem);
+    line-height: 1.04;
   }
 `;
 

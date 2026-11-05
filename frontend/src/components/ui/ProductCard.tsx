@@ -419,7 +419,7 @@ export function ProductCard({
         </ProductMedia>
       )}
 
-      <ProductBody>
+      <ProductBody className="product-card-body">
         <ProductTop>
           <ProductMeta>
             <Badge className="product-card-category" size="sm" variant="accent">
