@@ -1,4 +1,4 @@
-import { defineConfig, type Plugin } from 'vite';
+import { createServer, defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { ASSETS } from './src/constants/assets';
 import { metadataHtml, pageMetadata, PUBLIC_PATHS, SITE_URL, staticContent, type PageMetadata } from './src/seo/metadata';
@@ -15,22 +15,59 @@ function restaurantPages(): Plugin {
       const meta = pageMetadata('/');
       const priorities = `<!--home-priority:start--><link rel="preload" as="image" href="${ASSETS.images.hero.heroBanner}" fetchpriority="high" /><!--home-priority:end-->`;
       const apiHint = apiOrigin ? `<link rel="preconnect" href="${apiOrigin}" crossorigin />` : '';
-      return html.replace('<!--seo-head-->', `${metadataHtml(meta)}\n${apiHint}\n${priorities}`).replace('<!--seo-content-->', staticContent(meta));
+      return html.replace('<!--seo-head-->', `${metadataHtml(meta)}\n${apiHint}\n${priorities}`).replace('<!--seo-content-->', `<!--initial-html:start-->${staticContent(meta)}<!--initial-html:end-->`);
     },
-    generateBundle(_options, bundle) {
+    async generateBundle(_options, bundle) {
       const index = bundle['index.html'];
       if (!index || index.type !== 'asset') throw new Error('Missing production index.html');
       const shell = String(index.source);
-      const emitPage = (fileName: string, meta: PageMetadata) => {
-        const source = shell.replace(/<!--seo:start-->[\s\S]*?<!--seo:end-->/, metadataHtml(meta))
-          .replace(/<!--home-priority:start-->[\s\S]*?<!--home-priority:end-->/, '')
-          .replace(/<div id="root">[\s\S]*?<\/div>/, `<div id="root">${staticContent(meta)}</div>`);
-        this.emitFile({ type: 'asset', fileName, source });
-      };
-      for (const path of PUBLIC_PATHS.filter(path => path !== '/')) emitPage(`${path.slice(1)}/index.html`, pageMetadata(path));
-      emitPage('admin.html', { ...pageMetadata('/admin/login'), title: 'Admin | Bonefree' });
-      const { title, description } = pageMetadata('/menu');
-      emitPage('dish.html', { title, description });
+      // A build-only Vite loader handles TSX/CSS without shipping a server or
+      // adding the prerender entry to the browser's module graph.
+      const renderer = await createServer({
+        configFile: false,
+        plugins: [react()],
+        ssr: { noExternal: ['styled-components'] },
+        optimizeDeps: { noDiscovery: true, include: [] },
+        server: { middlewareMode: true, hmr: false, ws: false, watch: null },
+      });
+      try {
+        const { renderInitialPage } = await renderer.ssrLoadModule('/src/prerender.tsx');
+        const emitPage = async (fileName: string, meta: PageMetadata, route: string) => {
+          const rendered = await renderInitialPage(route) as { html: string; styles: string };
+          // Lazy routes keep their CSS out of the home request. Their own initial
+          // HTML must nevertheless load that CSS before it can be painted.
+          const css = new Set<string>();
+          const seen = new Set<string>();
+          const collectCss = (file: string) => {
+            if (seen.has(file)) return;
+            seen.add(file);
+            const chunk = bundle[file];
+            if (!chunk || chunk.type !== 'chunk') return;
+            const metadata = (chunk as typeof chunk & { viteMetadata?: { importedCss: Set<string> } }).viteMetadata;
+            metadata?.importedCss.forEach(file => css.add(file));
+            chunk.imports.forEach(collectCss);
+          };
+          const pageName = route === '/' ? 'Home'
+            : route.startsWith('/product/') ? 'ProductDetail'
+            : route.startsWith('/admin/') ? 'AdminLogin'
+            : route.slice(1, 2).toUpperCase() + route.slice(2);
+          for (const chunk of Object.values(bundle)) {
+            if (chunk.type === 'chunk' && chunk.facadeModuleId?.endsWith(`/pages/${pageName}.tsx`)) collectCss(chunk.fileName);
+          }
+          const links = [...css].filter(file => !shell.includes(`href="/${file}"`)).map(file => `<link rel="stylesheet" href="/${file}">`).join('');
+          const pageShell = route === '/' ? shell : shell.replace(/<!--home-priority:start-->[\s\S]*?<!--home-priority:end-->/, '');
+          const source = pageShell.replace(/<!--seo:start-->[\s\S]*?<!--seo:end-->/, metadataHtml(meta))
+            .replace('</head>', `${links}${rendered.styles}</head>`)
+            .replace('<div id="root">', '<div id="root" data-initial-render>')
+            .replace(/<!--initial-html:start-->[\s\S]*?<!--initial-html:end-->/, () => `<!--initial-html:start-->${rendered.html}<!--initial-html:end-->`);
+          if (fileName === 'index.html') index.source = source;
+          else this.emitFile({ type: 'asset', fileName, source });
+        };
+        for (const path of PUBLIC_PATHS) await emitPage(path === '/' ? 'index.html' : `${path.slice(1)}/index.html`, pageMetadata(path), path);
+        await emitPage('admin.html', { ...pageMetadata('/admin/login'), title: 'Admin | Bonefree' }, '/admin/login');
+        const { title, description } = pageMetadata('/menu');
+        await emitPage('dish.html', { title, description }, '/product/0');
+      } finally { await renderer.close(); }
       // These error documents stay static: they must not mount a successful SPA.
       for (const status of [404, 410]) this.emitFile({ type: 'asset', fileName: `${status}.html`, source: `<!doctype html><html lang="pt-PT"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, follow"><title>${status} | Bonefree</title></head><body><main><h1>${status === 410 ? 'Esta página já não está disponível.' : 'Página não encontrada.'}</h1><p><a href="/menu">Explorar o menu</a> · <a href="/">Bonefree</a></p></main></body></html>` });
       this.emitFile({ type: 'asset', fileName: 'sitemap.xml', source: `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${PUBLIC_PATHS.map(path => `<url><loc>${SITE_URL}${path}</loc></url>`).join('')}</urlset>` });

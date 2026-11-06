@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { lazy, Suspense, useEffect } from 'react'
+import { lazy, Suspense, useEffect, useLayoutEffect } from 'react'
 import { loadAdminTranslations } from './i18n/loadAdminTranslations'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import './App.css'
@@ -29,10 +29,36 @@ const NotFound = lazy(() => import('./pages/NotFound'))
 const Privacy = lazy(() => import('./pages/Privacy'))
 const ProductDetail = lazy(() => import('./pages/ProductDetail'))
 
-// Keep the existing generated HTML visible on a cold, non-home route. This app
-// mounts with createRoot; that small SEO shell is not a hydration snapshot.
+// Keep the styled snapshot visible until a cold route's code/CSS is ready.
 const initialRouteMarkup = typeof document === 'undefined' ? '' : document.getElementById('root')?.innerHTML ?? ''
-const initialRouteFallback = <div dangerouslySetInnerHTML={{ __html: initialRouteMarkup }} />
+const initialStage = typeof document === 'undefined' ? null : document.querySelector('.app-route-stage')
+const initialAnimation = initialStage?.getAnimations().find(animation => 'animationName' in animation && animation.animationName === 'app-route-enter')
+const initialAnimationTime = Number(initialAnimation?.currentTime ?? 0)
+const initialAnimationClock = typeof performance === 'undefined' ? 0 : performance.now()
+
+function continueInitialAnimation() {
+  const root = document.getElementById('root')
+  if (!root?.hasAttribute('data-initial-render') || !initialAnimation) return
+  const animation = root.querySelector('.app-route-stage')?.getAnimations()
+    .find(animation => 'animationName' in animation && animation.animationName === 'app-route-enter')
+  if (animation) animation.currentTime = initialAnimationTime + performance.now() - initialAnimationClock
+}
+
+function InitialRouteFallback() {
+  useLayoutEffect(continueInitialAnimation, [])
+  return <div dangerouslySetInnerHTML={{ __html: initialRouteMarkup }} />
+}
+const initialRouteFallback = <InitialRouteFallback />
+
+function InitialRenderComplete() {
+  useLayoutEffect(() => {
+    // Neither the lazy fallback nor the committed page should replay the fade.
+    continueInitialAnimation()
+    document.getElementById('root')?.removeAttribute('data-initial-render')
+    document.querySelectorAll('style[data-initial-styles]').forEach(style => style.remove())
+  }, [])
+  return null
+}
 
 function ProtectedAdminRoute({
   children,
@@ -97,6 +123,7 @@ function App() {
         </Routes>
       </div>
       {!hideFooter && <Footer />}
+      <InitialRenderComplete />
       </Suspense>
     </>
   )

@@ -508,7 +508,7 @@ const DrawerLink = styled(Link) <{ $active: boolean }>`
   }
 `;
 
-const Navbar = () => {
+const Navbar = ({ renderStatic = false }: { renderStatic?: boolean }) => {
   const { t } = useTranslation("common");
   const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -584,7 +584,7 @@ const Navbar = () => {
     document.addEventListener("keydown", closeOnEscape);
     return () => { document.body.style.overflow = previous; document.removeEventListener("keydown", closeOnEscape); };
   }, [drawerOpen]);
-  return createPortal(<>
+  const navigation = <>
     <TopNav ref={headerRef} $glassDark={glassDarkNav} $hidden={navHidden} inert={navHidden}><NavInner>
       <MobileLeft><IconAction aria-label={t("navigation.openMenu")} aria-expanded={drawerOpen} onClick={() => setDrawerOpen(true)} type="button"><BurgerIcon aria-hidden="true"><span /></BurgerIcon></IconAction></MobileLeft>
       <Logo className="logo-bonefree" aria-label={t("navigation.bonefreeHome")} onClick={closeDrawer} to="/"><img {...brandLogo} sizes="43px" className="img-fluid img-25" alt="Bonefree" /></Logo>
@@ -596,7 +596,11 @@ const Navbar = () => {
       <DrawerHeader><Logo aria-label={t("navigation.bonefreeHome")} onClick={closeDrawer} to="/"><img {...brandLogo} sizes="43px" className="img-fluid img-25" alt="Bonefree" /></Logo><IconAction aria-label={t("navigation.closeMenu")} onClick={closeDrawer} type="button"><X size={22} /></IconAction></DrawerHeader>
       <DrawerBody><DrawerNav>{desktopLinks.map(({ path, labelKey }) => <DrawerLink $active={isActive(path)} key={path} onClick={closeDrawer} to={path}>{t(labelKey)}</DrawerLink>)}</DrawerNav></DrawerBody>
     </MobileDrawer></>}
-  </>, document.body);
+  </>;
+  // The build renderer places one navbar outside the animated route, matching
+  // the browser portal. Page-local navbar calls must not duplicate it in HTML.
+  if (typeof document === "undefined") return renderStatic ? navigation : null;
+  return createPortal(navigation, document.body);
 };
 
 export default Navbar;
