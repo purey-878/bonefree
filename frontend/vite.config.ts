@@ -1,14 +1,21 @@
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
+import { ASSETS } from './src/constants/assets';
 import { metadataHtml, pageMetadata, PUBLIC_PATHS, SITE_URL, staticContent, type PageMetadata } from './src/seo/metadata';
 
 function restaurantPages(): Plugin {
+  let apiOrigin = '';
   return {
     name: 'restaurant-pages',
     enforce: 'post',
+    configResolved(config) {
+      try { apiOrigin = new URL(config.env.VITE_API_BASE_URL).origin; } catch { /* Local API defaults need no preconnect. */ }
+    },
     transformIndexHtml(html) {
       const meta = pageMetadata('/');
-      return html.replace('<!--seo-head-->', metadataHtml(meta)).replace('<!--seo-content-->', staticContent(meta));
+      const priorities = `<!--home-priority:start--><link rel="preload" as="image" href="${ASSETS.images.hero.heroBanner}" fetchpriority="high" /><!--home-priority:end-->`;
+      const apiHint = apiOrigin ? `<link rel="preconnect" href="${apiOrigin}" crossorigin />` : '';
+      return html.replace('<!--seo-head-->', `${metadataHtml(meta)}\n${apiHint}\n${priorities}`).replace('<!--seo-content-->', staticContent(meta));
     },
     generateBundle(_options, bundle) {
       const index = bundle['index.html'];
@@ -16,6 +23,7 @@ function restaurantPages(): Plugin {
       const shell = String(index.source);
       const emitPage = (fileName: string, meta: PageMetadata) => {
         const source = shell.replace(/<!--seo:start-->[\s\S]*?<!--seo:end-->/, metadataHtml(meta))
+          .replace(/<!--home-priority:start-->[\s\S]*?<!--home-priority:end-->/, '')
           .replace(/<div id="root">[\s\S]*?<\/div>/, `<div id="root">${staticContent(meta)}</div>`);
         this.emitFile({ type: 'asset', fileName, source });
       };

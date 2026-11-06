@@ -1,3 +1,4 @@
+import { brandLogo } from "../constants/brandLogo"
 import React, { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { getPublicCompanyDetails, getPublicSocialMediaSettings } from "../services/siteSettingsService"
@@ -34,7 +35,7 @@ const Footer: React.FC = () => {
         <div className="row">
           <div className="col-lg-3 col-md-6 mb-4">
             <div className="footer-brand">
-              <img src="/assets/images/bonefree-logo.webp" alt={companyDetails.brandName} />
+              <img {...brandLogo} sizes="57px" alt={companyDetails.brandName} />
             </div>
             <p className="mt-3">{companyDetails.description}</p>
           </div>

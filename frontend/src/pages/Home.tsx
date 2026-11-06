@@ -6,7 +6,8 @@ import { Link, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 
 import Navbar from "../components/Navbar";
-import { ProductCard, ProductCardSkeleton, Skeleton } from "../components/ui";
+import { ProductCard } from "../components/ui/ProductCard";
+import { ProductCardSkeleton, Skeleton } from "../components/ui/Skeleton";
 import { ASSETS } from "../constants/assets";
 import i18n, { resolvedLocale } from "../i18n";
 import { getPublicChefSpecial, productService } from "../services";
@@ -260,6 +261,8 @@ const HomePage = () => {
             ) : heroDish ? (
               <>
                 <FeaturedImage
+                  decoding="async"
+                  loading="eager"
                   key={heroDish.id}
                   alt={heroDish.name}
                   onError={(event) => {
@@ -359,6 +362,8 @@ const HomePage = () => {
       <ChefSpecialBanner aria-label={t("home.chefAria")}>
         <ChefImageWrap>
           <ChefImage
+            loading="lazy"
+            decoding="async"
             alt={chefSpecial?.name ?? t("home.todaySpecial")}
             onError={(event) => {
               applyApiImageFallback(event.currentTarget, fallbackDishImage);

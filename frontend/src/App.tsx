@@ -1,27 +1,38 @@
 import type { ReactNode } from 'react'
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
+import { loadAdminTranslations } from './i18n/loadAdminTranslations'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import './App.css'
 import './siteThemes.css'
 import './theme.css'
 
 import PageMetadata from './components/PageMetadata'
-import Privacy from './pages/Privacy'
 import Footer from './components/Footer'
 import SiteThemeController from './components/SiteThemeController'
 
 import AdminAccessDenied from './components/AdminAccessDenied'
-import About from './pages/About'
-import AdminDashboard from './pages/AdminDashboard'
-import AdminLogin from './pages/AdminLogin'
-import Contact from './pages/Contact'
-import Events from './pages/Events'
 import HomePage from './pages/Home'
-import Menu from './pages/Menu'
-import NotFound from './pages/NotFound'
-import { ProductDetail } from './pages/ProductDetail'
 import type { AdminRole } from './types/admin'
 import { normalizeAdminRole } from './utils/adminAccess'
+
+// The homepage stays eager. Other route code and CSS load only when needed.
+const About = lazy(() => import('./pages/About'))
+const AdminDashboard = lazy(async () => {
+  const [page] = await Promise.all([import('./pages/AdminDashboard'), loadAdminTranslations()])
+  return page
+})
+const AdminLogin = lazy(() => import('./pages/AdminLogin'))
+const Contact = lazy(() => import('./pages/Contact'))
+const Events = lazy(() => import('./pages/Events'))
+const Menu = lazy(() => import('./pages/Menu'))
+const NotFound = lazy(() => import('./pages/NotFound'))
+const Privacy = lazy(() => import('./pages/Privacy'))
+const ProductDetail = lazy(() => import('./pages/ProductDetail'))
+
+// Keep the existing generated HTML visible on a cold, non-home route. This app
+// mounts with createRoot; that small SEO shell is not a hydration snapshot.
+const initialRouteMarkup = typeof document === 'undefined' ? '' : document.getElementById('root')?.innerHTML ?? ''
+const initialRouteFallback = <div dangerouslySetInnerHTML={{ __html: initialRouteMarkup }} />
 
 function ProtectedAdminRoute({
   children,
@@ -66,6 +77,7 @@ function App() {
       <SiteThemeController />
       <PageMetadata />
 
+      <Suspense fallback={initialRouteFallback}>
       <div className="app-route-stage" key={visibleLocation.pathname}>
         <Routes location={visibleLocation}>
           <Route path="/" element={<HomePage />} />
@@ -84,8 +96,8 @@ function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </div>
-
       {!hideFooter && <Footer />}
+      </Suspense>
     </>
   )
 }

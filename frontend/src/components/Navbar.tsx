@@ -1,3 +1,4 @@
+import { brandLogo } from "../constants/brandLogo"
 import { X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -586,13 +587,13 @@ const Navbar = () => {
   return createPortal(<>
     <TopNav ref={headerRef} $glassDark={glassDarkNav} $hidden={navHidden} inert={navHidden}><NavInner>
       <MobileLeft><IconAction aria-label={t("navigation.openMenu")} aria-expanded={drawerOpen} onClick={() => setDrawerOpen(true)} type="button"><BurgerIcon aria-hidden="true"><span /></BurgerIcon></IconAction></MobileLeft>
-      <Logo className="logo-bonefree" aria-label={t("navigation.bonefreeHome")} onClick={closeDrawer} to="/"><img src="/assets/images/bonefree-logo.webp" className="img-fluid img-25" alt="Bonefree" /></Logo>
+      <Logo className="logo-bonefree" aria-label={t("navigation.bonefreeHome")} onClick={closeDrawer} to="/"><img {...brandLogo} sizes="43px" className="img-fluid img-25" alt="Bonefree" /></Logo>
       <CenterNav aria-label={t("navigation.main")}>{desktopLinks.map(({ path, labelKey }) => <PillLink $active={isActive(path)} key={path} to={path}>{t(labelKey)}</PillLink>)}</CenterNav>
       <NavActions><LanguageSwitcher /></NavActions>
       <MobileRight><LanguageSwitcher className="language-switcher-mobile-nav" /></MobileRight>
     </NavInner></TopNav>
     {drawerOpen && <><Backdrop aria-label={t("navigation.closeMenu")} onClick={closeDrawer} type="button" /><MobileDrawer aria-label={t("navigation.mobile")}>
-      <DrawerHeader><Logo aria-label={t("navigation.bonefreeHome")} onClick={closeDrawer} to="/"><img src="/assets/images/bonefree-logo.webp" className="img-fluid img-25" alt="Bonefree" /></Logo><IconAction aria-label={t("navigation.closeMenu")} onClick={closeDrawer} type="button"><X size={22} /></IconAction></DrawerHeader>
+      <DrawerHeader><Logo aria-label={t("navigation.bonefreeHome")} onClick={closeDrawer} to="/"><img {...brandLogo} sizes="43px" className="img-fluid img-25" alt="Bonefree" /></Logo><IconAction aria-label={t("navigation.closeMenu")} onClick={closeDrawer} type="button"><X size={22} /></IconAction></DrawerHeader>
       <DrawerBody><DrawerNav>{desktopLinks.map(({ path, labelKey }) => <DrawerLink $active={isActive(path)} key={path} onClick={closeDrawer} to={path}>{t(labelKey)}</DrawerLink>)}</DrawerNav></DrawerBody>
     </MobileDrawer></>}
   </>, document.body);
