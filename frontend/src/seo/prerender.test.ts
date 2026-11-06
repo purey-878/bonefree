@@ -24,7 +24,7 @@ describe('styled initial pages', () => {
       for (const path of PUBLIC_PATHS) {
         const { html, styles } = await render(path)
         expect(html).toMatch(/<h1[\s>]/)
-        expect(html).toContain('class="app-route-stage"')
+        expect(html).toContain(`class="app-route-stage${path === '/' ? ' app-route-stage--home' : ''}"`)
         expect(html).toContain('<header')
         expect(html).toContain('href="/menu"')
         expect(styles).toContain('<style data-initial-styles>')

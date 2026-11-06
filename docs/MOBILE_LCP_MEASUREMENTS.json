@@ -1,0 +1,149 @@
+{
+  "lighthouse_version": "13.6.0",
+  "method": "Local gzip-enabled production server; fixed API fixtures; cold Lighthouse navigations; Google Fonts live in baseline, same unmodified font binaries local after optimization. Scores are not production measurements.",
+  "runs": {
+    "before": [
+      {
+        "mode": "mobile",
+        "index": 0,
+        "score": 0.6,
+        "fcp": 1550.10645,
+        "lcp": 3953.8424250000007,
+        "tbt": 1656.1518500000004,
+        "cls": 0,
+        "observed_render_delay_ms": 1039.0140000076294
+      },
+      {
+        "mode": "mobile",
+        "index": 1,
+        "score": 0.59,
+        "fcp": 1427.4674,
+        "lcp": 3770.5253749999997,
+        "tbt": 3121.137675,
+        "cls": 0,
+        "observed_render_delay_ms": 1121.526
+      },
+      {
+        "mode": "mobile",
+        "index": 2,
+        "score": 0.59,
+        "fcp": 2438.3993,
+        "lcp": 3854.7992,
+        "tbt": 1590.9613000000008,
+        "cls": 0,
+        "observed_render_delay_ms": 779.152
+      },
+      {
+        "mode": "desktop",
+        "index": 3,
+        "score": 0.7,
+        "fcp": 415.5128,
+        "lcp": 872.72925,
+        "tbt": 1067.2109,
+        "cls": 0.001487225651577503,
+        "observed_render_delay_ms": 1674.5589999961853
+      }
+    ],
+    "optimized": [
+      {
+        "mode": "mobile",
+        "index": 0,
+        "score": 0.63,
+        "fcp": 1236.1138,
+        "lcp": 3711.1138,
+        "tbt": 1664.4146500000002,
+        "cls": 0,
+        "observed_render_delay_ms": 830.793
+      },
+      {
+        "mode": "mobile",
+        "index": 1,
+        "score": 0.66,
+        "fcp": 1242.9599,
+        "lcp": 3642.9599,
+        "tbt": 1208.780075,
+        "cls": 0,
+        "observed_render_delay_ms": 751.7619999961853
+      },
+      {
+        "mode": "mobile",
+        "index": 2,
+        "score": 0.67,
+        "fcp": 1211.0736,
+        "lcp": 3161.0735999999997,
+        "tbt": 1502.5,
+        "cls": 0,
+        "observed_render_delay_ms": 328.953
+      },
+      {
+        "mode": "desktop",
+        "index": 3,
+        "score": 0.75,
+        "fcp": 368.96080000000006,
+        "lcp": 847.4412000000001,
+        "tbt": 622.2598,
+        "cls": 0.001487225651577503,
+        "observed_render_delay_ms": 986.624
+      }
+    ]
+  },
+  "settings": {
+    "output": "json",
+    "maxWaitForFcp": 30000,
+    "maxWaitForLoad": 45000,
+    "pauseAfterFcpMs": 1000,
+    "pauseAfterLoadMs": 1000,
+    "networkQuietThresholdMs": 1000,
+    "cpuQuietThresholdMs": 1000,
+    "formFactor": "mobile",
+    "throttling": {
+      "rttMs": 150,
+      "throughputKbps": 1638.4,
+      "requestLatencyMs": 562.5,
+      "downloadThroughputKbps": 1474.5600000000002,
+      "uploadThroughputKbps": 675,
+      "cpuSlowdownMultiplier": 4
+    },
+    "throttlingMethod": "simulate",
+    "screenEmulation": {
+      "mobile": true,
+      "width": 412,
+      "height": 823,
+      "deviceScaleFactor": 1.75,
+      "disabled": false
+    },
+    "emulatedUserAgent": "Mozilla/5.0 (Linux; Android 11; moto g power (2022)) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Mobile Safari/537.36",
+    "auditMode": false,
+    "gatherMode": false,
+    "clearStorageTypes": [
+      "file_systems",
+      "shader_cache",
+      "service_workers",
+      "cache_storage"
+    ],
+    "disableStorageReset": false,
+    "debugNavigation": false,
+    "channel": "node",
+    "usePassiveGathering": false,
+    "disableFullPageScreenshot": false,
+    "skipAboutBlank": false,
+    "blankPage": "about:blank",
+    "ignoreStatusCode": false,
+    "locale": "en-US",
+    "blockedUrlPatterns": null,
+    "additionalTraceCategories": null,
+    "extraHeaders": null,
+    "precomputedLanternData": null,
+    "onlyAudits": null,
+    "onlyCategories": [
+      "performance"
+    ],
+    "skipAudits": null
+  },
+  "environment": {
+    "networkUserAgent": "Mozilla/5.0 (Linux; Android 11; moto g power (2022)) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Mobile Safari/537.36",
+    "hostUserAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+    "benchmarkIndex": 1089,
+    "credits": {}
+  }
+}

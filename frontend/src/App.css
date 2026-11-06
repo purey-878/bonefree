@@ -11,6 +11,12 @@
   width: 100%;
 }
 
+/* The hero heading is the mobile LCP element. Paint it immediately in both
+   the generated HTML and React instead of fading its entire route from zero. */
+.app-route-stage--home {
+  animation: none;
+}
+
 @keyframes app-route-enter {
   from {
     opacity: 0;

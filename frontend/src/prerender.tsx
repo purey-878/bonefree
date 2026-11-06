@@ -35,7 +35,7 @@ export async function renderInitialPage(path: string) {
             <StaticRouter location={path}>
               <ToastProvider>
                 <Navbar renderStatic />
-                <div className="app-route-stage"><Page /></div>
+                <div className={`app-route-stage${path === '/' ? ' app-route-stage--home' : ''}`}><Page /></div>
                 {!path.startsWith('/admin/') && <Footer />}
               </ToastProvider>
             </StaticRouter>

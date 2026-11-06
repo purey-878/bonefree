@@ -1,6 +1,6 @@
 import { API_BASE } from "../services/api"
 
-export const productImageFallback = "/assets/images/menu-images/acai.avif"
+export const productImageFallback = "/assets/images/dish-placeholder.svg"
 
 export function resolveProductImageUrl(image: string | null | undefined, fallback = productImageFallback) {
   if (!image) return fallback

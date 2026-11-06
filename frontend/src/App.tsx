@@ -104,7 +104,7 @@ function App() {
       <PageMetadata />
 
       <Suspense fallback={initialRouteFallback}>
-      <div className="app-route-stage" key={visibleLocation.pathname}>
+      <div className={`app-route-stage${visibleLocation.pathname === '/' ? ' app-route-stage--home' : ''}`} key={visibleLocation.pathname}>
         <Routes location={visibleLocation}>
           <Route path="/" element={<HomePage />} />
 

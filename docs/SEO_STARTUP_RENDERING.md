@@ -1,5 +1,9 @@
 # Styled initial HTML — 2026-11-06
 
+Follow-up: [mobile LCP optimization](MOBILE_LCP_REPORT.md) disables only the
+homepage entrance animation and serves the unchanged Rubik fonts locally.
+The initial HTML and React handoff described here remain in place.
+
 ## Cause and reproduction
 
 Inspected `dist`, `vite.config.ts`, `index.html` and `main.tsx`. The old SEO
