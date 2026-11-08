@@ -1,0 +1,265 @@
+{
+  "samples": [
+    {
+      "label": "cold /",
+      "total": 5,
+      "requests": [
+        "GET /site-settings/theme",
+        "GET /products/?locale=pt-PT&page=1&per_page=20&sort=default",
+        "GET /site-settings/chef-special",
+        "GET /site-settings/company-details",
+        "GET /site-settings/social-media"
+      ],
+      "statuses": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ]
+    },
+    {
+      "label": "cold /menu",
+      "total": 5,
+      "requests": [
+        "GET /site-settings/theme",
+        "GET /products/?locale=pt-PT&page=1&per_page=20&special=all&sort=default",
+        "GET /site-settings/company-details",
+        "GET /site-settings/social-media",
+        "GET /products/?locale=pt-PT&page=1&per_page=20&special=all&sort=default"
+      ],
+      "statuses": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ]
+    },
+    {
+      "label": "cold /product/1",
+      "total": 5,
+      "requests": [
+        "GET /site-settings/theme",
+        "GET /products/1?locale=pt-PT",
+        "GET /site-settings/company-details",
+        "GET /site-settings/social-media",
+        "GET /products/?locale=pt-PT&page=1&per_page=5&category_id=1"
+      ],
+      "statuses": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ]
+    },
+    {
+      "label": "cold /admin/dashboard?tab=products",
+      "total": 6,
+      "requests": [
+        "GET /site-settings/theme",
+        "GET /admin/me",
+        "GET /admin/categories?page=1&per_page=100&status=active",
+        "GET /admin/ingredients?page=1&per_page=100&customization_only=false",
+        "GET /admin/ingredients?page=1&per_page=100&customization_only=false",
+        "GET /admin/products?page=1&per_page=20&catalog_state=active"
+      ],
+      "statuses": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        200
+      ]
+    },
+    {
+      "label": "cold /admin/dashboard?tab=settings",
+      "total": 8,
+      "requests": [
+        "GET /site-settings/theme",
+        "GET /admin/me",
+        "GET /admin/products?page=1&per_page=100&catalog_state=active",
+        "GET /admin/site-settings/theme",
+        "GET /admin/site-settings/chef-special",
+        "GET /admin/site-settings/company-details",
+        "GET /admin/site-settings/social-media",
+        "GET /admin/site-settings/events"
+      ],
+      "statuses": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200
+      ]
+    },
+    {
+      "label": "SPA /menu",
+      "total": 2,
+      "requests": [
+        "GET /products/?locale=pt-PT&page=1&per_page=20&max_price=12.5&special=all&sort=default",
+        "GET /products/?locale=pt-PT&page=1&per_page=20&special=all&sort=default"
+      ],
+      "statuses": [
+        200,
+        200
+      ]
+    },
+    {
+      "label": "SPA /product/1",
+      "total": 2,
+      "requests": [
+        "GET /products/1?locale=pt-PT",
+        "GET /products/?locale=pt-PT&page=1&per_page=5&category_id=1"
+      ],
+      "statuses": [
+        200,
+        200
+      ]
+    },
+    {
+      "label": "SPA /",
+      "total": 2,
+      "requests": [
+        "GET /products/?locale=pt-PT&page=1&per_page=20&sort=default",
+        "GET /site-settings/chef-special"
+      ],
+      "statuses": [
+        200,
+        200
+      ]
+    },
+    {
+      "label": "SPA /menu",
+      "total": 2,
+      "requests": [
+        "GET /products/?locale=pt-PT&page=1&per_page=20&max_price=12.5&special=all&sort=default",
+        "GET /products/?locale=pt-PT&page=1&per_page=20&special=all&sort=default"
+      ],
+      "statuses": [
+        200,
+        200
+      ]
+    },
+    {
+      "label": "SPA /product/1",
+      "total": 2,
+      "requests": [
+        "GET /products/1?locale=pt-PT",
+        "GET /products/?locale=pt-PT&page=1&per_page=5&category_id=1"
+      ],
+      "statuses": [
+        200,
+        200
+      ]
+    },
+    {
+      "label": "SPA /admin/dashboard?tab=products",
+      "total": 5,
+      "requests": [
+        "GET /admin/me",
+        "GET /admin/categories?page=1&per_page=100&status=active",
+        "GET /admin/ingredients?page=1&per_page=100&customization_only=false",
+        "GET /admin/ingredients?page=1&per_page=100&customization_only=false",
+        "GET /admin/products?page=1&per_page=20&catalog_state=active"
+      ],
+      "statuses": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ]
+    },
+    {
+      "label": "SPA /admin/dashboard?tab=ingredients",
+      "total": 1,
+      "requests": [
+        "GET /admin/ingredients?page=1&per_page=20"
+      ],
+      "statuses": [
+        200
+      ]
+    },
+    {
+      "label": "SPA /admin/dashboard?tab=categories",
+      "total": 1,
+      "requests": [
+        "GET /admin/categories?page=1&per_page=20"
+      ],
+      "statuses": [
+        200
+      ]
+    },
+    {
+      "label": "SPA /admin/dashboard?tab=settings",
+      "total": 6,
+      "requests": [
+        "GET /admin/products?page=1&per_page=100&catalog_state=active",
+        "GET /admin/site-settings/theme",
+        "GET /admin/site-settings/chef-special",
+        "GET /admin/site-settings/events",
+        "GET /admin/site-settings/company-details",
+        "GET /admin/site-settings/social-media"
+      ],
+      "statuses": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        200
+      ]
+    },
+    {
+      "label": "SPA /admin/dashboard?tab=products",
+      "total": 2,
+      "requests": [
+        "GET /admin/ingredients?page=1&per_page=100&customization_only=false",
+        "GET /admin/products?page=1&per_page=20&catalog_state=active"
+      ],
+      "statuses": [
+        200,
+        200
+      ]
+    },
+    {
+      "label": "SPA /admin/dashboard?tab=settings",
+      "total": 5,
+      "requests": [
+        "GET /admin/site-settings/chef-special",
+        "GET /admin/site-settings/theme",
+        "GET /admin/site-settings/company-details",
+        "GET /admin/site-settings/social-media",
+        "GET /admin/site-settings/events"
+      ],
+      "statuses": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ]
+    },
+    {
+      "label": "three concurrent theme refresh events",
+      "total": 3,
+      "requests": [
+        "GET /site-settings/theme",
+        "GET /site-settings/theme",
+        "GET /site-settings/theme"
+      ],
+      "statuses": [
+        200,
+        200,
+        200
+      ]
+    }
+  ],
+  "errors": []
+}

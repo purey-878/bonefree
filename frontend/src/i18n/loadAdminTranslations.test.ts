@@ -15,6 +15,9 @@ describe('administrator translation loading', () => {
     for (const locale of SUPPORTED_LOCALES) {
       expect(i18n.getFixedT(locale, 'admin')('legacyDynamic.actionsFor', { name: 'Tofu' })).toContain('Tofu');
       expect(i18n.getResource(locale, 'admin', 'roles.owner')).toBeTruthy();
+      for (const key of ['language', 'original', 'fallback', 'sourceRequired']) {
+        expect(i18n.getResource(locale, 'admin', `catalogTranslation.${key}`)).toBeTruthy();
+      }
     }
   });
 });

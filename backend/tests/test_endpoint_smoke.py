@@ -1117,6 +1117,57 @@ class EndpointSmokeTests(unittest.TestCase):
         self.assertEqual(responses[10].json()["error"], "rate_limit_exceeded")
         self.assertGreaterEqual(int(responses[10].headers["Retry-After"]), 1)
 
+    def test_catalog_edit_with_unknown_calories_preserves_multiple_images(self):
+        created = self.client.post(
+            "/admin/products",
+            headers=self.admin_headers,
+            json={"name": "Gallery regression", "price": 9.5, "category_id": self.category_id,
+                  "total_calories": None, "ingredients": []},
+        )
+        self.assertEqual(created.status_code, 201, created.text)
+        product_id = created.json()["product_id"]
+        updated = self.client.put(
+            f"/admin/products/{product_id}", headers=self.admin_headers,
+            json={"name": "Gallery edited", "price": 10.5, "total_calories": None},
+        )
+        self.assertEqual(updated.status_code, 200, updated.text)
+        self.assertIsNone(updated.json()["total_calories"])
+        image = BytesIO()
+        Image.new("RGB", (20, 20), color="green").save(image, format="PNG")
+        for index in range(3):
+            uploaded = self.client.post(
+                f"/admin/products/{product_id}/media?replace_existing=false",
+                headers=self.admin_headers,
+                files={"file": (f"gallery-{index}.png", image.getvalue(), "image/png")},
+            )
+            self.assertEqual(uploaded.status_code, 200, uploaded.text)
+        rejected = self.client.post(
+            f"/admin/products/{product_id}/media?replace_existing=false",
+            headers=self.admin_headers, files={"file": ("invalid.png", b"not an image", "image/png")},
+        )
+        self.assertEqual(rejected.status_code, 400, rejected.text)
+        saved = self.client.get(f"/admin/products/{product_id}", headers=self.admin_headers)
+        self.assertEqual(saved.status_code, 200, saved.text)
+        media = saved.json()["media"]
+        self.assertEqual(len(media), 3)
+        self.assertEqual([item["sort_order"] for item in media], [0, 1, 2])
+        self.assertEqual(sum(item["is_primary"] for item in media), 1)
+        removed = self.client.delete(
+            f"/admin/products/{product_id}/media/{media[0]['media_id']}", headers=self.admin_headers,
+        )
+        self.assertEqual(removed.status_code, 200, removed.text)
+        remaining = self.client.get(f"/admin/products/{product_id}", headers=self.admin_headers).json()["media"]
+        self.assertEqual(len(remaining), 2)
+        self.assertEqual([item["sort_order"] for item in remaining], [0, 1])
+        self.assertTrue(remaining[0]["is_primary"])
+        self.assertEqual(remaining[1]["media_id"], media[2]["media_id"])
+        for item in remaining:
+            cleanup = self.client.delete(
+                f"/admin/products/{product_id}/media/{item['media_id']}", headers=self.admin_headers,
+            )
+            self.assertEqual(cleanup.status_code, 200, cleanup.text)
+        self.client.delete(f"/admin/products/{product_id}", headers=self.admin_headers)
+
     def test_multipart_upload_and_review_workflow_serialize_successfully(self):
         image_buffer = BytesIO()
         Image.new("RGB", (20, 20), color="red").save(image_buffer, format="PNG")

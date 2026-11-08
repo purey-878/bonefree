@@ -1,3 +1,4 @@
+import { adminDeduplicatedFetch, publicCachedFetch } from './requestCache';
 import { toApiError } from './errors';
 import type { Client } from './generated/client';
 import { createClient } from './generated/client';
@@ -19,10 +20,11 @@ function configureClient(client: Client): Client {
   return client;
 }
 
-export const publicApiClient = configureClient(createClient({ baseUrl: API_BASE }));
+export const publicApiClient = configureClient(createClient({ baseUrl: API_BASE, fetch: publicCachedFetch }));
 
 export const adminApiClient = configureClient(createClient({
   baseUrl: API_BASE,
+  fetch: adminDeduplicatedFetch,
   auth: () => getStoredToken('admin_token'),
 }));
 

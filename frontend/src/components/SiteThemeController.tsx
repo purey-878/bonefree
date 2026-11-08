@@ -72,21 +72,28 @@ export default function SiteThemeController() {
         }
         return nextTheme;
       });
-      localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(nextTheme));
+      try { localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(nextTheme)); } catch { /* Storage is optional. */ }
       applySiteTheme(nextTheme);
     };
 
+    let active = true;
+    let requestId = 0;
     const refreshTheme = () => {
+      if (document.hidden) return;
+      const currentRequest = ++requestId;
       getPublicSiteTheme()
-        .then(applyFetchedTheme)
-        .catch(() => applyFetchedTheme(defaultSiteThemeResponse));
+        .then(nextTheme => { if (active && currentRequest === requestId) applyFetchedTheme(nextTheme); })
+        .catch(() => { /* Retain the last working theme on a transient failure. */ });
     };
 
     refreshTheme();
     const interval = window.setInterval(refreshTheme, 60000);
     window.addEventListener("siteThemeUpdated", refreshTheme);
+    document.addEventListener("visibilitychange", refreshTheme);
     return () => {
+      active = false;
       window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", refreshTheme);
       window.removeEventListener("siteThemeUpdated", refreshTheme);
     };
   }, []);

@@ -7251,3 +7251,129 @@
   gap: 0.5rem;
   margin-bottom: 0.5rem;
 }
+.ad-editor-fields {
+  display: contents;
+}
+
+/* Compact catalog search with optional advanced filters. */
+.ad-product-toolbar.ad-product-toolbar-compact {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.ad-product-search-row { display: flex; align-items: center; gap: 10px; }
+.ad-product-toolbar .ad-product-search {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  gap: 10px;
+  margin: 0;
+  padding: 0 14px;
+  border: 1px solid var(--ad-border);
+  border-radius: 12px;
+  background: var(--ad-surface);
+  color: var(--ad-muted);
+}
+.ad-product-search svg { flex-shrink: 0; }
+.ad-product-toolbar .ad-product-search input {
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  padding: 10px 0;
+  border: 0;
+  background: transparent;
+  color: var(--ad-heading);
+  box-shadow: none;
+  font-weight: 400;
+}
+.ad-product-search:focus-within { outline: 2px solid var(--ad-primary); outline-offset: 2px; }
+.ad-filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+.ad-filter-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--ad-primary);
+  color: var(--ad-bg);
+  font-size: 12px;
+}
+#admin-product-filters:not([hidden]) {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 16px;
+  border: 1px solid var(--ad-border);
+  border-radius: 12px;
+  background: var(--ad-surface);
+}
+.ad-product-toolbar-compact .ad-product-filter-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.ad-product-toolbar-compact .ad-product-filter-actions { justify-content: flex-end; }
+.ad-directory-toolbar,
+.ad-ingredient-toolbar { box-shadow: none; background: var(--ad-surface); }
+.ad-directory-search input,
+.ad-ingredient-search input { border-radius: 10px; min-height: 44px; box-shadow: none; }
+.ad-directory-search svg { bottom: 13px; }
+
+@media (max-width: 760px) {
+  /* Avoid focus zoom without restricting the browser's pinch zoom. */
+  .ad-shell input:not([type="checkbox"]):not([type="radio"]),
+  .ad-shell select,
+  .ad-shell textarea,
+  .ad-shell .ad-product-modal .ad-field input,
+  .ad-shell .ad-product-modal .ad-field textarea,
+  .ad-shell .ad-product-modal .ad-field select { font-size: 16px; }
+  .ad-shell input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  .ad-shell select { min-height: 44px; }
+  .ad-product-toolbar-compact .ad-product-filter-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ad-product-toolbar-compact .ad-product-filter-row > .ad-form-group:first-child { grid-column: 1 / -1; }
+  .ad-product-toolbar .ad-product-filter-check { justify-content: flex-start; min-height: 44px; }
+  .ad-shell .ad-product-modal {
+    inset: 0;
+    margin: 0;
+    width: 100%;
+    max-width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    animation-name: ad-mobile-product-in;
+    transform: none;
+    border: 0;
+    border-radius: 0;
+  }
+  .ad-product-modal-header { position: relative; padding: max(12px, env(safe-area-inset-top)) 16px 12px; gap: 10px; }
+  .ad-product-modal-header h3 { font-size: 22px; }
+  .ad-product-modal-header > div { padding-right: 40px; }
+  .ad-product-modal-header > div > span { font-size: 12px; line-height: 1.4; }
+  .ad-product-modal-kicker { margin-bottom: 4px; }
+  .ad-product-modal .ad-product-close { position: absolute; top: max(8px, env(safe-area-inset-top)); right: 8px; width: 44px; height: 44px; }
+  .ad-shell .ad-product-modal .ad-modal-body { flex: 1; min-height: 0; max-height: none; overflow: hidden; }
+  .ad-product-stepper-progress { grid-template-columns: repeat(5, minmax(0, 1fr)); padding-top: 4px; }
+  .ad-product-stepper-item { min-height: 48px; gap: 5px; }
+  .ad-product-stepper-form .ad-product-section { overscroll-behavior: contain; scroll-padding-block: 16px; }
+  .ad-product-modal-footer {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+    gap: 10px;
+    padding: 12px 16px max(12px, env(safe-area-inset-bottom));
+  }
+  .ad-product-modal-footer .ad-btn { min-height: 44px; width: auto; }
+  .ad-product-forward-actions { flex: 1; min-width: 0; }
+  .ad-product-action-buttons .ad-btn { flex-basis: auto; }
+  .ad-product-step-warning { overflow-wrap: anywhere; }
+}
+
+@keyframes ad-mobile-product-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

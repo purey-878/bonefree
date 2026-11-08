@@ -271,7 +271,7 @@ export async function deleteCategory(categoryId: string | number): Promise<Categ
 }
 
 export type UploadedProductMedia = { media: ProductMedia; message: string; };
-export async function uploadProductMedia(productId: string | number, file: File, replaceExisting = true): Promise<UploadedProductMedia> {
+export async function uploadProductMedia(productId: string | number, file: File, replaceExisting = false): Promise<UploadedProductMedia> {
   return toDomain(await apiData(adminManagementUploadProductMedia({
     path: { product_id: pathId(productId) },
     query: { replace_existing: replaceExisting },

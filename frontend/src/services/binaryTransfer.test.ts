@@ -43,7 +43,7 @@ describe('product media uploads', () => {
     expect(capturedRequest).toBeDefined();
     expect(capturedRequest?.headers.get('Authorization')).toBe('Bearer admin-secret');
     expect(capturedRequest?.headers.get('Content-Type')).toContain('multipart/form-data');
-    expect(capturedRequest?.url).toContain('/admin/products/9/media?replace_existing=true');
+    expect(capturedRequest?.url).toContain('/admin/products/9/media?replace_existing=false');
     expect(result.media.originalUrl).toBe('/uploads/products/PRD-009/burger-original.webp');
   });
 });

@@ -1,7 +1,8 @@
+import { saveProductDraft } from "../services/productEditor"
 import CatalogLanguageTabs from "../components/admin/CatalogLanguageTabs"
 import { catalogText, editCatalogTranslation } from "../utils/catalogTranslations"
 import type { CatalogLocale, CatalogText } from "../utils/catalogTranslations"
-import { Menu, MoreHorizontal, Search, X } from "lucide-react"
+import { Menu, MoreHorizontal, Search, SlidersHorizontal, X } from "lucide-react"
 import type { FormEvent, MouseEvent, SyntheticEvent } from "react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -18,7 +19,6 @@ import { resolvedLocale } from "../i18n"
 import {
   createCategory,
   createIngredient,
-  createProduct,
   createStaffAdmin,
   deleteCategory,
   deleteIngredient,
@@ -26,6 +26,7 @@ import {
   deleteProductMedia,
   deleteStaffAdmin,
   getCurrentAdmin,
+  getProduct,
   listAllCategories,
   listAllIngredients,
   listAllProducts,
@@ -39,9 +40,7 @@ import {
   setProductAvailability,
   updateCategory,
   updateIngredient,
-  updateProduct,
   updateStaffAdmin,
-  uploadProductMedia
 } from "../services/adminService"
 import {
   getAdminChefSpecial,
@@ -863,7 +862,22 @@ export default function AdminDashboard() {
   const [availabilityBusyKey, setAvailabilityBusyKey] = useState<string | null>(null)
 
   // Form state
+  const catalogSaveBusy = useRef(false)
+  const [catalogSaving, setCatalogSaving] = useState(false)
+  const [productSaving, setProductSaving] = useState(false)
+  const [productEditorLoading, setProductEditorLoading] = useState(false)
+  const productSaveBusy = useRef(false)
+  const productEditorRequest = useRef(0)
+  const productPreviewUrls = useRef(new Set<string>())
   const [showProductForm, setShowProductForm] = useState(false)
+  const [productFiltersOpen, setProductFiltersOpen] = useState(false)
+
+  useEffect(() => {
+    if (!showProductForm) return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    return () => { document.body.style.overflow = previousOverflow }
+  }, [showProductForm])
   const [productFormStep, setProductFormStep] = useState(0)
   const [productFormMessage, setProductFormMessage] = useState("")
   const [editingProduct, setEditingProduct] = useState<AdminProduct | null>(null)
@@ -1441,10 +1455,7 @@ export default function AdminDashboard() {
     if (catalogCategories.length === 0) {
       void listAllCategories({ status: "active" }).then(setCatalogCategories)
     }
-    if (catalogIngredients.length === 0) {
-      void listAllIngredients({ status: "all", customizationOnly: false }).then(setCatalogIngredients)
-    }
-  }, [activeTab, canViewAdminCatalog, catalogCategories.length, catalogIngredients.length, currentAdmin])
+  }, [activeTab, canViewAdminCatalog, catalogCategories.length, currentAdmin])
 
   useEffect(() => {
     if (!currentAdmin || !isOwner || activeTab !== "settings" || settingsProducts.length > 0) return
@@ -1507,6 +1518,14 @@ export default function AdminDashboard() {
 
   useEffect(() => { if (currentAdmin && isOwner && activeTab === "settings") void handleLoadSiteTheme() }, [activeTab, currentAdmin, isOwner, handleLoadSiteTheme])
 
+  useEffect(() => {
+    const invalidateCatalog = (event: Event) => {
+      if ((event as CustomEvent<string>).detail === "catalog") setSettingsProducts([])
+    }
+    window.addEventListener("publicDataInvalidated", invalidateCatalog)
+    return () => window.removeEventListener("publicDataInvalidated", invalidateCatalog)
+  }, [])
+
   const handleTabChange = (tab: TabType) => {
     const nextTab = allowedTabs.includes(tab) ? tab : "products"
     const nextParams = new URLSearchParams(searchParams)
@@ -1518,20 +1537,8 @@ export default function AdminDashboard() {
     }
     setSearchParams(nextParams)
 
-    if (nextTab === "products") {
-      if (catalogCategories.length === 0) void listAllCategories({ status: "active" }).then(setCatalogCategories)
-      if (catalogIngredients.length === 0) void listAllIngredients({ status: "all", customizationOnly: false }).then(setCatalogIngredients)
-      void handleLoadProducts()
-    } else if (nextTab === "ingredients") {
-      void handleLoadIngredients()
-    } else if (nextTab === "categories") {
-      if (categories.length === 0) void handleLoadCategories()
-    } else if (nextTab === "staff" && staffAdmins.length === 0) {
-      void handleLoadStaff()
-    } else if (nextTab === "settings") {
-      void handleLoadSiteTheme()
-      if (settingsProducts.length === 0) void listAllProducts({ catalogState: "active" }).then(setSettingsProducts)
-    }
+    // Active-tab effects own fetching; click handlers only update navigation.
+
   }
 
   const handleAdminNavItemClick = (tab: TabType) => {
@@ -1558,51 +1565,74 @@ export default function AdminDashboard() {
   }
 
   useEffect(() => {
-    if (productFormMessage) setProductFormMessage("")
-  }, [calorieMode, formData, imagePreviews, productFormMessage])
+    for (const url of productPreviewUrls.current) {
+      if (!imagePreviews.includes(url)) {
+        URL.revokeObjectURL(url)
+        productPreviewUrls.current.delete(url)
+      }
+    }
+  }, [imagePreviews])
+
+  useEffect(() => {
+    const urls = productPreviewUrls.current
+    return () => { urls.forEach(url => URL.revokeObjectURL(url)); urls.clear() }
+  }, [])
 
   const openNewForm = async () => {
-    setEditingProduct(null)
-    setProductTextLocale("pt-PT")
-    const [nextCategories, nextIngredients] = await Promise.all([
-      listAllCategories({ status: "active" }),
-      listAllIngredients({ status: "all", customizationOnly: false }),
-    ])
-    setCatalogCategories(nextCategories)
-    setCatalogIngredients(nextIngredients)
-    const activeCategories = nextCategories.filter((category) => category.status !== "inactive")
-    setFormData({
-      translations: {},
-      name: "",
-      productDescription: "",
-      price: 0,
-      available: true,
-      categoryId: activeCategories[0]?.categoryId ?? 0,
-      customizable: false,
-      menuTags: "",
-      featured: false,
-      discountPercentage: 0,
-      glutenFree: false,
-      containsAlcohol: false,
-      totalCalories: null,
-      ingredients: [],
-    })
-    setCalorieMode("auto")
-    setNewProductIngredientName("")
-    setNewProductIngredientType("normal")
-    setNewProductIngredientCalories("")
-    setProductIngredientSearch("")
-    resetQuantitySelector()
-    setProductTagInputs({})
-    setProductFormStep(0)
-    setProductFormMessage("")
-    setImageFiles([])
-    setImagePreviews([])
-    setIsProductImageDragging(false)
-    setShowProductForm(true)
+    if (productSaveBusy.current) return
+    const request = ++productEditorRequest.current
+    setProductEditorLoading(true)
+    try {
+      setEditingProduct(null)
+      setProductTextLocale("pt-PT")
+      const [nextCategories, nextIngredients] = await Promise.all([
+        listAllCategories({ status: "active" }),
+        listAllIngredients({ status: "all", customizationOnly: false }),
+      ])
+      if (request !== productEditorRequest.current) return
+      setCatalogCategories(nextCategories)
+      setCatalogIngredients(nextIngredients)
+      const activeCategories = nextCategories.filter((category) => category.status !== "inactive")
+      setFormData({
+        translations: {},
+        name: "",
+        productDescription: "",
+        price: 0,
+        available: true,
+        categoryId: activeCategories[0]?.categoryId ?? 0,
+        customizable: false,
+        menuTags: "",
+        featured: false,
+        discountPercentage: 0,
+        glutenFree: false,
+        containsAlcohol: false,
+        totalCalories: null,
+        ingredients: [],
+      })
+      setCalorieMode("manual")
+      setNewProductIngredientName("")
+      setNewProductIngredientType("normal")
+      setNewProductIngredientCalories("")
+      setProductIngredientSearch("")
+      resetQuantitySelector()
+      setProductTagInputs({})
+      setProductFormStep(0)
+      setProductFormMessage("")
+      setImageFiles([])
+      setImagePreviews([])
+      setIsProductImageDragging(false)
+      setShowProductForm(true)
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Unable to open product editor."))
+    } finally {
+      if (request === productEditorRequest.current) setProductEditorLoading(false)
+    }
   }
 
   const closeForm = () => {
+    if (productSaveBusy.current) return
+    productEditorRequest.current += 1
+    setProductEditorLoading(false)
     setShowProductForm(false)
     setEditingProduct(null)
     setNewProductIngredientName("")
@@ -1618,54 +1648,65 @@ export default function AdminDashboard() {
     setIsProductImageDragging(false)
   }
 
-  const handleEditProduct = async (product: AdminProduct, startStep = 0) => {
-    setEditingProduct(product)
-    setProductTextLocale("pt-PT")
-    const [nextCategories, nextIngredients] = await Promise.all([
-      listAllCategories({ status: "active" }),
-      listAllIngredients({ status: "all", customizationOnly: false }),
-    ])
-    setCatalogCategories(nextCategories)
-    setCatalogIngredients(nextIngredients)
-    const ingredientCaloriesById = new Map(
-      nextIngredients.map((ingredient) => [ingredient.ingredientId, ingredient.caloriesPerGram ?? null]),
-    )
-    setFormData({
-      translations: product.translations ?? {},
-      name: product.name,
-      productDescription: product.productDescription,
-      price: product.price,
-      available: product.available,
-      categoryId: product.categoryId,
-      customizable: product.customizable,
-      menuTags: product.menuTags ?? "",
-      featured: product.featured,
-      discountPercentage: product.discountPercentage ?? 0,
-      glutenFree: product.glutenFree ?? false,
-      containsAlcohol: product.containsAlcohol ?? false,
-      totalCalories: product.totalCalories ?? null,
-      ingredients: (product.ingredients ?? []).map((ingredient) => ({
-        ...ingredient,
-        caloriesPerGram: ingredient.caloriesPerGram ?? (
-          typeof ingredient.ingredientId === "number"
-            ? ingredientCaloriesById.get(ingredient.ingredientId) ?? null
-            : null
-        ),
-      })),
-    })
-    setCalorieMode("manual")
-    setNewProductIngredientName("")
-    setNewProductIngredientType("normal")
-    setNewProductIngredientCalories("")
-    setProductIngredientSearch("")
-    resetQuantitySelector()
-    setProductTagInputs({})
-    setProductFormStep(startStep)
-    setProductFormMessage("")
-    setImageFiles([])
-    setIsProductImageDragging(false)
-    setImagePreviews((product.media ?? []).map((media) => getImageUrl(productMediaUrl(media, "card") ?? media.originalUrl)))
-    setShowProductForm(true)
+  const handleEditProduct = async (selectedProduct: AdminProduct, startStep = 0) => {
+    if (productSaveBusy.current) return
+    const request = ++productEditorRequest.current
+    setProductEditorLoading(true)
+    try {
+      setProductTextLocale("pt-PT")
+      const [product, nextCategories, nextIngredients] = await Promise.all([
+        getProduct(selectedProduct.productId),
+        listAllCategories({ status: "active" }),
+        listAllIngredients({ status: "all", customizationOnly: false }),
+      ])
+      if (request !== productEditorRequest.current) return
+      setEditingProduct(product)
+      setCatalogCategories(nextCategories)
+      setCatalogIngredients(nextIngredients)
+      const ingredientCaloriesById = new Map(
+        nextIngredients.map((ingredient) => [ingredient.ingredientId, ingredient.caloriesPerGram ?? null]),
+      )
+      setFormData({
+        translations: product.translations ?? {},
+        name: product.name,
+        productDescription: product.productDescription ?? "",
+        price: product.price,
+        available: product.available,
+        categoryId: product.categoryId,
+        customizable: product.customizable,
+        menuTags: product.menuTags ?? "",
+        featured: product.featured,
+        discountPercentage: product.discountPercentage ?? 0,
+        glutenFree: product.glutenFree ?? false,
+        containsAlcohol: product.containsAlcohol ?? false,
+        totalCalories: product.totalCalories ?? null,
+        ingredients: (product.ingredients ?? []).map((ingredient) => ({
+          ...ingredient,
+          caloriesPerGram: ingredient.caloriesPerGram ?? (
+            typeof ingredient.ingredientId === "number"
+              ? ingredientCaloriesById.get(ingredient.ingredientId) ?? null
+              : null
+          ),
+        })),
+      })
+      setCalorieMode("manual")
+      setNewProductIngredientName("")
+      setNewProductIngredientType("normal")
+      setNewProductIngredientCalories("")
+      setProductIngredientSearch("")
+      resetQuantitySelector()
+      setProductTagInputs({})
+      setProductFormStep(startStep)
+      setProductFormMessage("")
+      setImageFiles([])
+      setIsProductImageDragging(false)
+      setImagePreviews([])
+      setShowProductForm(true)
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Unable to open product editor."))
+    } finally {
+      if (request === productEditorRequest.current) setProductEditorLoading(false)
+    }
   }
 
   const productText = catalogText({ name: formData.name, description: formData.productDescription, menuTags: formData.menuTags }, formData.translations, productTextLocale)
@@ -1723,10 +1764,7 @@ export default function AdminDashboard() {
 
     if (step === 2) {
       if (calorieMode === "manual") {
-        if (formData.totalCalories === null || formData.totalCalories === undefined) {
-          return "Introduza as calorias totais ou mude para o modo automático."
-        }
-        if (!Number.isFinite(formData.totalCalories) || formData.totalCalories < 0) {
+        if (formData.totalCalories != null && (!Number.isFinite(formData.totalCalories) || formData.totalCalories < 0)) {
           return "O total de calorias deve ser igual ou superior a 0."
         }
       }
@@ -1786,6 +1824,7 @@ export default function AdminDashboard() {
   }
 
   const saveProductForm = async () => {
+    if (productSaveBusy.current) return
     const invalid = firstInvalidProductStep()
     if (invalid) {
       setProductFormMessage(invalid.message)
@@ -1795,6 +1834,8 @@ export default function AdminDashboard() {
       return
     }
 
+    productSaveBusy.current = true
+    setProductSaving(true)
     try {
       setProductFormMessage("")
       const payload = buildCatalogProductPayload({
@@ -1807,25 +1848,25 @@ export default function AdminDashboard() {
           ? Number(calculateProductCalories(formData.ingredients).toFixed(2))
           : formData.totalCalories ?? null,
       }, editingProduct)
-      let savedId: number
-      if (editingProduct) {
-        await updateProduct(editingProduct.productId, payload)
-        savedId = editingProduct.productId
-      } else {
-        const created = await createProduct(payload)
-        savedId = created.productId
-      }
-      for (const [index, file] of imageFiles.entries()) {
-        await uploadProductMedia(savedId, file, !editingProduct && index === 0)
-      }
+      await saveProductDraft(editingProduct, payload, imageFiles,
+        product => setEditingProduct(product),
+        (_file, media) => {
+          setEditingProduct(current => current ? { ...current, media: [...current.media, media] } : current)
+          setImageFiles(current => current.slice(1))
+          setImagePreviews(current => current.slice(1))
+        })
+      productSaveBusy.current = false
       closeForm()
-      await handleLoadProducts()
-      await handleLoadIngredients()
+      if (activeTab === "products") await handleLoadProducts()
+      if (activeTab === "ingredients") await handleLoadIngredients()
       toast.success(editingProduct ? "Product updated successfully." : "Product added successfully.")
     } catch (err) {
       const message = getErrorMessage(err, "Failed to save product")
-      setError(message)
-      toast.error("Unable to save product. Please try again.")
+      setProductFormMessage(message)
+      toast.error(message)
+    } finally {
+      productSaveBusy.current = false
+      setProductSaving(false)
     }
   }
 
@@ -1854,13 +1895,13 @@ export default function AdminDashboard() {
     }, async () => {
       try {
         await deleteProduct(productId)
-        await handleLoadProducts()
+        if (activeTab === "products") await handleLoadProducts()
         toast.success("Product deleted successfully.")
         return true
       } catch (err) {
         const message = getErrorMessage(err, "Failed to delete product")
         setError(message)
-        toast.error("Unable to delete product. Please try again.")
+        toast.error(message)
         return false
       }
     })
@@ -1881,12 +1922,12 @@ export default function AdminDashboard() {
   const handleRestoreProduct = async (productId: number) => {
     try {
       await restoreProduct(productId)
-      await handleLoadProducts()
+      if (activeTab === "products") await handleLoadProducts()
       toast.success("Product restored successfully.")
     } catch (err) {
       const message = getErrorMessage(err, "Failed to restore product")
       setError(message)
-      toast.error("Unable to restore product.")
+      toast.error(message)
     }
   }
 
@@ -2091,10 +2132,14 @@ export default function AdminDashboard() {
   }
 
   const handleProductImageFiles = (files: FileList | File[] | null) => {
-    const nextFiles = Array.from(files ?? [])
+    if (productSaveBusy.current) return
+    const selected = Array.from(files ?? [])
+    const supported = new Set(["image/jpeg", "image/png", "image/webp", "image/avif", "image/gif"])
+    const nextFiles = selected.filter(file => supported.has(file.type))
+    if (nextFiles.length !== selected.length) toast.warning("Choose JPG, PNG, WebP, AVIF or GIF images.")
     if (nextFiles.length === 0) return
     setImageFiles((current) => [...current, ...nextFiles])
-    setImagePreviews((current) => [...current, ...nextFiles.map((file) => URL.createObjectURL(file))])
+    setImagePreviews((current) => [...current, ...nextFiles.map((file) => { const url = URL.createObjectURL(file); productPreviewUrls.current.add(url); return url })])
   }
 
   const removePendingProductImage = (previewIndex: number, fileIndex: number) => {
@@ -2102,26 +2147,30 @@ export default function AdminDashboard() {
     setImagePreviews((current) => current.filter((_, index) => index !== previewIndex))
   }
 
-  const handleDeleteExistingProductMedia = async (mediaId: number, previewIndex: number) => {
-    if (!editingProduct) return
+  const handleDeleteExistingProductMedia = async (mediaId: number) => {
+    if (!editingProduct || productSaveBusy.current) return
+    productSaveBusy.current = true
     setDeletingProductMediaId(mediaId)
     try {
       await deleteProductMedia(editingProduct.productId, mediaId)
       setEditingProduct((current) => current
         ? { ...current, media: current.media.filter((media) => media.mediaId !== mediaId) }
         : current)
-      setImagePreviews((current) => current.filter((_, index) => index !== previewIndex))
-      await handleLoadProducts()
+      const refreshed = await getProduct(editingProduct.productId)
+      setEditingProduct(current => current?.productId === refreshed.productId ? refreshed : current)
+      if (activeTab === "products") await handleLoadProducts()
       toast.success("Imagem removida com sucesso.")
     } catch (err) {
       const message = getErrorMessage(err, "Não foi possível remover a imagem.")
       toast.error(message)
     } finally {
+      productSaveBusy.current = false
       setDeletingProductMediaId(null)
     }
   }
 
   const openNewCategoryForm = () => {
+    if (catalogSaveBusy.current) return
     setCategoryFormClosing(false)
     setEditingCategory(null)
     setCategoryTextLocale("pt-PT")
@@ -2130,6 +2179,7 @@ export default function AdminDashboard() {
   }
 
   const openEditCategoryForm = (category: Category) => {
+    if (catalogSaveBusy.current) return
     setCategoryFormClosing(false)
     setEditingCategory(category)
     setCategoryTextLocale("pt-PT")
@@ -2142,6 +2192,7 @@ export default function AdminDashboard() {
   }
 
   const closeCategoryForm = () => {
+    if (catalogSaveBusy.current) return
     setCategoryFormClosing(true)
   }
 
@@ -2156,6 +2207,9 @@ export default function AdminDashboard() {
   const handleCategorySubmit = async (event: FormEvent) => {
     event.preventDefault()
     if (!categoryForm.categoryName.trim()) { setCategoryTextLocale("pt-PT"); toast.warning(t("catalogTranslation.sourceRequired")); return }
+    if (catalogSaveBusy.current) return
+    catalogSaveBusy.current = true
+    setCatalogSaving(true)
     try {
       if (editingCategory) {
         await updateCategory(editingCategory.categoryId, {
@@ -2166,15 +2220,19 @@ export default function AdminDashboard() {
       } else {
         await createCategory(categoryForm)
       }
+      catalogSaveBusy.current = false
       closeCategoryForm()
       await handleLoadCategories()
       setCatalogCategories([])
-      await handleLoadProducts()
+      if (activeTab === "products") await handleLoadProducts()
       toast.success(editingCategory ? "Category updated successfully." : "Category created successfully.")
     } catch (err) {
       const message = getErrorMessage(err, "Failed to save category")
       setError(message)
-      toast.error("Unable to save category.")
+      toast.error(message)
+    } finally {
+      catalogSaveBusy.current = false
+      setCatalogSaving(false)
     }
   }
 
@@ -2190,13 +2248,13 @@ export default function AdminDashboard() {
         await deleteCategory(categoryId)
         await handleLoadCategories()
         setCatalogCategories([])
-        await handleLoadProducts()
+        if (activeTab === "products") await handleLoadProducts()
         toast.success("Category deactivated successfully.")
         return true
       } catch (err) {
         const message = getErrorMessage(err, "Failed to deactivate category")
         setError(message)
-        toast.error("Unable to deactivate category.")
+        toast.error(message)
         return false
       }
     })
@@ -2207,16 +2265,17 @@ export default function AdminDashboard() {
       await updateCategory(categoryId, { status: "active" })
       await handleLoadCategories()
       setCatalogCategories([])
-      await handleLoadProducts()
+      if (activeTab === "products") await handleLoadProducts()
       toast.success("Category activated successfully.")
     } catch (err) {
       const message = getErrorMessage(err, "Failed to restore category")
       setError(message)
-      toast.error("Unable to activate category.")
+      toast.error(message)
     }
   }
 
   const openNewIngredientForm = () => {
+    if (catalogSaveBusy.current) return
     setIngredientFormClosing(false)
     setEditingIngredient(null)
     setIngredientTextLocale("pt-PT")
@@ -2225,6 +2284,7 @@ export default function AdminDashboard() {
   }
 
   const openEditIngredientForm = (ingredient: AdminIngredient) => {
+    if (catalogSaveBusy.current) return
     setIngredientFormClosing(false)
     setEditingIngredient(ingredient)
     setIngredientTextLocale("pt-PT")
@@ -2240,6 +2300,7 @@ export default function AdminDashboard() {
   }
 
   const closeIngredientForm = () => {
+    if (catalogSaveBusy.current) return
     setIngredientFormClosing(true)
   }
 
@@ -2254,20 +2315,27 @@ export default function AdminDashboard() {
   const handleIngredientSubmit = async (event: FormEvent) => {
     event.preventDefault()
     if (!ingredientForm.name.trim()) { setIngredientTextLocale("pt-PT"); toast.warning(t("catalogTranslation.sourceRequired")); return }
+    if (catalogSaveBusy.current) return
+    catalogSaveBusy.current = true
+    setCatalogSaving(true)
     try {
       if (editingIngredient) {
         await updateIngredient(editingIngredient.ingredientId, ingredientForm)
       } else {
         await createIngredient(ingredientForm)
       }
+      catalogSaveBusy.current = false
       closeIngredientForm()
-      await handleLoadIngredients()
+      if (activeTab === "ingredients") await handleLoadIngredients()
       setCatalogIngredients([])
       toast.success(editingIngredient ? "Ingredient updated successfully." : "Ingredient created successfully.")
     } catch (err) {
       const message = getErrorMessage(err, "Failed to save ingredient")
       setError(message)
-      toast.error("Unable to save ingredient.")
+      toast.error(message)
+    } finally {
+      catalogSaveBusy.current = false
+      setCatalogSaving(false)
     }
   }
 
@@ -2281,14 +2349,14 @@ export default function AdminDashboard() {
     }, async () => {
       try {
         await deleteIngredient(ingredientId)
-        await handleLoadIngredients()
+        if (activeTab === "ingredients") await handleLoadIngredients()
         setCatalogIngredients([])
         toast.success("Ingredient deactivated successfully.")
         return true
       } catch (err) {
         const message = getErrorMessage(err, "Failed to deactivate ingredient")
         setError(message)
-        toast.error("Unable to deactivate ingredient.")
+        toast.error(message)
         return false
       }
     })
@@ -2297,13 +2365,13 @@ export default function AdminDashboard() {
   const handleRestoreIngredient = async (ingredientId: number) => {
     try {
       await updateIngredient(ingredientId, { status: "active" })
-      await handleLoadIngredients()
+      if (activeTab === "ingredients") await handleLoadIngredients()
       setCatalogIngredients([])
       toast.success("Ingredient activated successfully.")
     } catch (err) {
       const message = getErrorMessage(err, "Failed to restore ingredient")
       setError(message)
-      toast.error("Unable to activate ingredient.")
+      toast.error(message)
     }
   }
 
@@ -2325,7 +2393,7 @@ export default function AdminDashboard() {
         apply,
         () => setIngredientAvailability(ingredient.ingredientId, available),
       )
-      await handleLoadProducts()
+      if (activeTab === "products") await handleLoadProducts()
       toast.success(available ? "Ingrediente disponível." : "Ingrediente indisponível.")
     } catch (err) {
       const message = getErrorMessage(err, "Não foi possível alterar a disponibilidade do ingrediente")
@@ -2382,6 +2450,7 @@ export default function AdminDashboard() {
   }
 
   const openNewStaffForm = () => {
+    if (catalogSaveBusy.current) return
     setStaffFormClosing(false)
     setEditingStaff(null)
     setStaffForm({ name: "", email: "", password: "", role: "manager", status: "active" })
@@ -2389,6 +2458,7 @@ export default function AdminDashboard() {
   }
 
   const openEditStaffForm = (admin: CurrentAdmin) => {
+    if (catalogSaveBusy.current) return
     setStaffFormClosing(false)
     setEditingStaff(admin)
     setStaffForm({ name: admin.name, email: admin.email, password: "", role: admin.role, status: admin.status })
@@ -2396,6 +2466,7 @@ export default function AdminDashboard() {
   }
 
   const closeStaffForm = () => {
+    if (catalogSaveBusy.current) return
     setStaffFormClosing(true)
   }
 
@@ -2408,6 +2479,9 @@ export default function AdminDashboard() {
 
   const handleStaffSubmit = async (e: FormEvent) => {
     e.preventDefault()
+    if (catalogSaveBusy.current) return
+    catalogSaveBusy.current = true
+    setCatalogSaving(true)
     try {
       const payload = { ...staffForm }
       if (editingStaff) {
@@ -2417,13 +2491,17 @@ export default function AdminDashboard() {
         if (!payload.password) throw new Error("A palavra-passe é obrigatória para um novo administrador")
         await createStaffAdmin(payload as AdminUserPayload & { password: string })
       }
+      catalogSaveBusy.current = false
       closeStaffForm()
       await handleLoadStaff()
       toast.success(editingStaff ? "Staff admin updated successfully." : "Staff admin created successfully.")
     } catch (err) {
       const message = getErrorMessage(err, "Failed to save staff admin")
       setError(message)
-      toast.error("Unable to save staff admin.")
+      toast.error(message)
+    } finally {
+      catalogSaveBusy.current = false
+      setCatalogSaving(false)
     }
   }
 
@@ -2450,7 +2528,7 @@ export default function AdminDashboard() {
     } catch (err) {
       const message = getErrorMessage(err, "Não foi possível guardar as definições do site.")
       setError(message)
-      toast.error("Não foi possível guardar as definições do site.")
+      toast.error(message)
     } finally {
       setSiteThemeSaving(false)
     }
@@ -2472,7 +2550,7 @@ export default function AdminDashboard() {
       } catch (err) {
         const message = getErrorMessage(err, "Failed to deactivate staff admin")
         setError(message)
-        toast.error("Unable to deactivate staff admin.")
+        toast.error(message)
         return false
       }
     })
@@ -2498,7 +2576,7 @@ export default function AdminDashboard() {
       } catch (err) {
         const message = getErrorMessage(err, "Failed to reactivate staff admin")
         setError(message)
-        toast.error("Unable to reactivate staff admin.")
+        toast.error(message)
         return false
       }
     })
@@ -2581,21 +2659,18 @@ export default function AdminDashboard() {
       .filter((quantity): quantity is string => !!quantity)
     return [...new Set([...QUANTITY_PRESETS, ...customQuantityChips, ...selectedQuantities])]
   }, [customQuantityChips, formData.ingredients])
-  const existingProductMediaCount = editingProduct?.media?.length ?? 0
-  const productMediaPreviewItems = imagePreviews.map((src, index) => {
-    const fileIndex = Math.max(0, index - existingProductMediaCount)
-    const isPendingUpload = index >= existingProductMediaCount
-    return {
-      src,
-      name: isPendingUpload
-        ? imageFiles[fileIndex]?.name ?? "Nova imagem do produto"
-        : editingProduct?.media?.[index]?.originalFilename ?? "Imagem do produto",
-      status: isPendingUpload ? "Pronta para carregar" : "Multimédia existente",
-      mediaId: isPendingUpload ? null : editingProduct?.media?.[index]?.mediaId ?? null,
-      fileIndex,
-      isPendingUpload,
-    }
-  })
+  const productMediaPreviewItems = [
+    ...(editingProduct?.media ?? []).map(media => ({
+      src: getImageUrl(productMediaUrl(media, "card") ?? media.originalUrl),
+      name: media.originalFilename ?? "Imagem do produto",
+      status: media.isPrimary ? "Imagem principal" : "Multimédia existente",
+      mediaId: media.mediaId, fileIndex: -1, isPendingUpload: false,
+    })),
+    ...imagePreviews.map((src, fileIndex) => ({
+      src, name: imageFiles[fileIndex]?.name ?? "Nova imagem do produto",
+      status: "Pronta para carregar", mediaId: null, fileIndex, isPendingUpload: true,
+    })),
+  ]
   const hasProductMedia = productMediaPreviewItems.length > 0
   const productStepContinueBlocked = productFormStep === 2 && missingIngredientQuantityCount > 0
   const selectedIngredientCaloriesTotal = calorieMode === "auto"
@@ -2794,7 +2869,7 @@ export default function AdminDashboard() {
                   <h2 className="ad-section-title">Categories</h2>
                   <p className="ad-section-sub">Gira as categorias do menu para os produtos e para a navegação dos clientes.</p>
                 </div>
-                <button className="ad-btn ad-btn-primary" onClick={openNewCategoryForm}>+ Add category</button>
+                <button className="ad-btn ad-btn-primary" disabled={catalogSaving} onClick={openNewCategoryForm}>+ Add category</button>
               </div>
 
               {showCategoryForm && (
@@ -2816,7 +2891,8 @@ export default function AdminDashboard() {
                     <h3>{editingCategory ? "Editar categoria" : "Adicionar categoria"}</h3>
                     <p>Defina o nome e a descrição apresentados na organização do menu.</p>
                   </div>
-                  <form className="ad-form" onSubmit={handleCategorySubmit}>
+                  <form className="ad-form" onSubmit={handleCategorySubmit} aria-busy={catalogSaving}>
+                    <fieldset disabled={catalogSaving} className="ad-editor-fields">
                     <CatalogLanguageTabs locale={categoryTextLocale} onChange={setCategoryTextLocale} />
                     <div className="ad-form-row">
                       {editingCategory && (
@@ -2852,9 +2928,10 @@ export default function AdminDashboard() {
                       />
                     </div>
                     <div className="ad-form-actions">
-                      <button type="submit" className="ad-btn ad-btn-primary">{editingCategory ? "Guardar categoria" : "Criar categoria"}</button>
+                      <button type="submit" className="ad-btn ad-btn-primary">{catalogSaving ? "A guardar..." : editingCategory ? "Guardar categoria" : "Criar categoria"}</button>
                       <button type="button" className="ad-btn ad-btn-ghost" onClick={closeCategoryForm}>Cancelar</button>
                     </div>
+                  </fieldset>
                   </form>
                 </AdaptivePanel>
               )}
@@ -2965,7 +3042,7 @@ export default function AdminDashboard() {
                       : "Consulte os ingredientes e altere apenas a disponibilidade operacional."}
                   </p>
                 </div>
-                {canEditAdminCatalog && <button className="ad-btn ad-btn-primary" onClick={openNewIngredientForm}>Adicionar ingrediente</button>}
+                {canEditAdminCatalog && <button className="ad-btn ad-btn-primary" disabled={catalogSaving} onClick={openNewIngredientForm}>Adicionar ingrediente</button>}
               </div>
 
               {canEditAdminCatalog && showIngredientForm && (
@@ -2987,7 +3064,8 @@ export default function AdminDashboard() {
                     <h3>{editingIngredient ? "Editar ingrediente" : "Adicionar ingrediente"}</h3>
                     <p>Atualize a composição, as calorias e a disponibilidade operacional.</p>
                   </div>
-                  <form className="ad-form" onSubmit={handleIngredientSubmit}>
+                  <form className="ad-form" onSubmit={handleIngredientSubmit} aria-busy={catalogSaving}>
+                    <fieldset disabled={catalogSaving} className="ad-editor-fields">
                     <CatalogLanguageTabs locale={ingredientTextLocale} onChange={setIngredientTextLocale} />
                     <div className="ad-form-row">
                       <div className="ad-form-group">
@@ -3043,10 +3121,11 @@ export default function AdminDashboard() {
                     </div>
                     <div className="ad-form-actions">
                       <button type="submit" className="ad-btn ad-btn-primary">
-                        {editingIngredient ? "Guardar ingrediente" : "Criar ingrediente"}
+                        {catalogSaving ? "A guardar..." : editingIngredient ? "Guardar ingrediente" : "Criar ingrediente"}
                       </button>
                       <button type="button" className="ad-btn ad-btn-ghost" onClick={closeIngredientForm}>Cancelar</button>
                     </div>
+                  </fieldset>
                   </form>
                 </AdaptivePanel>
               )}
@@ -3256,149 +3335,159 @@ export default function AdminDashboard() {
                 {canEditAdminCatalog && <button className="ad-btn ad-btn-primary" onClick={openNewForm}>Adicionar produto</button>}
               </div>
 
-              {/* Filters */}
-              <div className="ad-product-toolbar">
-                <div className="ad-product-filter-row">
-                  <div className="ad-form-group">
-                    <label>Pesquisar por name</label>
-                    <input
-                      type="text"
-                      placeholder="Nome do produto..."
-                      value={filters.name}
-                      onChange={e => setFilters({ ...filters, name: e.target.value })}
-                    />
-                  </div>
-                  <div className="ad-form-group">
-                    <label>Categoria</label>
-                    <div className={`ad-filter-select ${categoryFilterOpen ? "open" : ""}`} ref={categoryFilterRef}>
-                      <button
-                        type="button"
-                        className="ad-filter-select-trigger"
-                        aria-haspopup="listbox"
-                        aria-expanded={categoryFilterOpen}
-                        onClick={() => setCategoryFilterOpen((current) => !current)}
-                      >
-                        <span>{selectedProductFilterCategory}</span>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3">
-                          <path d="m6 9 6 6 6-6" />
-                        </svg>
-                      </button>
-                      {categoryFilterOpen && (
-                        <div className="ad-filter-select-menu" role="listbox" aria-label="Filtrar produtos por categoria">
-                          <button
-                            type="button"
-                            role="option"
-                            aria-selected={filters.category === ""}
-                            className={filters.category === "" ? "selected" : ""}
-                            onClick={() => {
-                              setFilters({ ...filters, category: "" })
-                              setCategoryFilterOpen(false)
-                            }}
-                          >
-                            <span>Todas as categorias</span>
-                            {filters.category === "" && (
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
-                                <path d="m5 13 4 4L19 7" />
-                              </svg>
-                            )}
-                          </button>
-                          {activeCategories.map((cat) => {
-                            const selected = filters.category === cat.categoryId
-
-                            return (
-                              <button
-                                key={cat.categoryId}
-                                type="button"
-                                role="option"
-                                aria-selected={selected}
-                                className={selected ? "selected" : ""}
-                                onClick={() => {
-                                  setFilters({ ...filters, category: cat.categoryId })
-                                  setCategoryFilterOpen(false)
-                                }}
-                              >
-                                <span>{cat.categoryName}</span>
-                                {selected && (
-                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
-                                    <path d="m5 13 4 4L19 7" />
-                                  </svg>
-                                )}
-                              </button>
-                            )
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="ad-form-group">
-                    <label style={{ fontSize: "0.85rem" }}>Preço mínimo (€)</label>
-                    <input
-                      type="number" placeholder="0.00" step="0.01" min="0"
-                      value={filters.minPrice}
-                      onChange={e => setFilters({ ...filters, minPrice: e.target.value })}
-                      style={{ fontSize: "0.9rem" }}
-                    />
-                  </div>
-                  <div className="ad-form-group">
-                    <label style={{ fontSize: "0.85rem" }}>Preço máximo (€)</label>
-                    <input
-                      type="number" placeholder="999.99" step="0.01" min="0"
-                      value={filters.maxPrice}
-                      onChange={e => setFilters({ ...filters, maxPrice: e.target.value })}
-                      style={{ fontSize: "0.9rem" }}
-                    />
-                  </div>
-                  <label className="ad-product-filter-check">
-                    <input
-                      type="checkbox"
-                      checked={filters.featured}
-                      onChange={(event) => setFilters({ ...filters, featured: event.target.checked })}
-                    />
-                    <span>Em destaque</span>
+              <div className="ad-product-toolbar ad-product-toolbar-compact">
+                <div className="ad-product-search-row">
+                  <label className="ad-product-search">
+                    <Search size={18} aria-hidden="true" />
+                    <input type="search" aria-label="Pesquisar produtos" placeholder="Pesquisar produtos…"
+                      value={filters.name} onChange={e => setFilters({ ...filters, name: e.target.value })} />
                   </label>
-                  <label className="ad-product-filter-check">
-                    <input
-                      type="checkbox"
-                      checked={filters.glutenFree}
-                      onChange={(event) => setFilters({ ...filters, glutenFree: event.target.checked })}
-                    />
-                    <span>Sem glúten</span>
-                  </label>
-                  <label className="ad-product-filter-check">
-                    <input
-                      type="checkbox"
-                      checked={filters.containsAlcohol}
-                      onChange={(event) => setFilters({ ...filters, containsAlcohol: event.target.checked })}
-                    />
-                    <span>Álcool</span>
-                  </label>
-                </div>
-                <div className="ad-product-filter-actions">
-                  <button
-                    className="ad-btn ad-btn-ghost"
+                  <button type="button" className="ad-btn ad-btn-ghost ad-filter-toggle"
+                    aria-expanded={productFiltersOpen} aria-controls="admin-product-filters"
                     onClick={() => {
-                      setFilters({ ...EMPTY_PRODUCT_FILTERS })
+                      setProductFiltersOpen(current => !current)
                       setCategoryFilterOpen(false)
-                    }}
-                    style={{ fontSize: "0.9rem" }}
-                  >
-                    Limpar filtros
+                    }}>
+                    <SlidersHorizontal size={17} aria-hidden="true" />
+                    Filtros
+                    {[filters.category, filters.minPrice, filters.maxPrice, filters.featured, filters.glutenFree, filters.containsAlcohol].filter(Boolean).length > 0 && (
+                      <span className="ad-filter-count">{[filters.category, filters.minPrice, filters.maxPrice, filters.featured, filters.glutenFree, filters.containsAlcohol].filter(Boolean).length}</span>
+                    )}
                   </button>
+                </div>
+                <div id="admin-product-filters" hidden={!productFiltersOpen}>
+                  <div className="ad-product-filter-row">
+                    <div className="ad-form-group">
+                      <label>Categoria</label>
+                      <div className={`ad-filter-select ${categoryFilterOpen ? "open" : ""}`} ref={categoryFilterRef}>
+                        <button
+                          type="button"
+                          className="ad-filter-select-trigger"
+                          aria-haspopup="listbox"
+                          aria-expanded={categoryFilterOpen}
+                          onClick={() => setCategoryFilterOpen((current) => !current)}
+                        >
+                          <span>{selectedProductFilterCategory}</span>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3">
+                            <path d="m6 9 6 6 6-6" />
+                          </svg>
+                        </button>
+                        {categoryFilterOpen && (
+                          <div className="ad-filter-select-menu" role="listbox" aria-label="Filtrar produtos por categoria">
+                            <button
+                              type="button"
+                              role="option"
+                              aria-selected={filters.category === ""}
+                              className={filters.category === "" ? "selected" : ""}
+                              onClick={() => {
+                                setFilters({ ...filters, category: "" })
+                                setCategoryFilterOpen(false)
+                              }}
+                            >
+                              <span>Todas as categorias</span>
+                              {filters.category === "" && (
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+                                  <path d="m5 13 4 4L19 7" />
+                                </svg>
+                              )}
+                            </button>
+                            {activeCategories.map((cat) => {
+                              const selected = filters.category === cat.categoryId
+
+                              return (
+                                <button
+                                  key={cat.categoryId}
+                                  type="button"
+                                  role="option"
+                                  aria-selected={selected}
+                                  className={selected ? "selected" : ""}
+                                  onClick={() => {
+                                    setFilters({ ...filters, category: cat.categoryId })
+                                    setCategoryFilterOpen(false)
+                                  }}
+                                >
+                                  <span>{cat.categoryName}</span>
+                                  {selected && (
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+                                      <path d="m5 13 4 4L19 7" />
+                                    </svg>
+                                  )}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="ad-form-group">
+                      <label>Preço mínimo (€)</label>
+                      <input
+                        type="number" placeholder="0.00" step="0.01" min="0"
+                        value={filters.minPrice}
+                        onChange={e => setFilters({ ...filters, minPrice: e.target.value })}
+                      />
+                    </div>
+                    <div className="ad-form-group">
+                      <label>Preço máximo (€)</label>
+                      <input
+                        type="number" placeholder="999.99" step="0.01" min="0"
+                        value={filters.maxPrice}
+                        onChange={e => setFilters({ ...filters, maxPrice: e.target.value })}
+                      />
+                    </div>
+                    <label className="ad-product-filter-check">
+                      <input
+                        type="checkbox"
+                        checked={filters.featured}
+                        onChange={(event) => setFilters({ ...filters, featured: event.target.checked })}
+                      />
+                      <span>Em destaque</span>
+                    </label>
+                    <label className="ad-product-filter-check">
+                      <input
+                        type="checkbox"
+                        checked={filters.glutenFree}
+                        onChange={(event) => setFilters({ ...filters, glutenFree: event.target.checked })}
+                      />
+                      <span>Sem glúten</span>
+                    </label>
+                    <label className="ad-product-filter-check">
+                      <input
+                        type="checkbox"
+                        checked={filters.containsAlcohol}
+                        onChange={(event) => setFilters({ ...filters, containsAlcohol: event.target.checked })}
+                      />
+                      <span>Álcool</span>
+                    </label>
+                  </div>
+                  <div className="ad-product-filter-actions">
+                    <button
+                      className="ad-btn ad-btn-ghost"
+                      onClick={() => {
+                        setFilters({ ...EMPTY_PRODUCT_FILTERS })
+                        setCategoryFilterOpen(false)
+                      }}
+                      style={{ fontSize: "0.9rem" }}
+                    >
+                      Limpar filtros
+                    </button>
+                  </div>
                 </div>
               </div>
 
               {/* Product Form Modal */}
+              {productEditorLoading && <p role="status">A carregar editor de produto...</p>}
               {canEditAdminCatalog && showProductForm && (
                 <>
                   <div className="ad-modal-backdrop" />
-                  <div className="ad-modal ad-product-modal">
+                  <div className="ad-modal ad-product-modal" role="dialog" aria-modal="true" aria-labelledby="admin-product-editor-title">
                     <div className="ad-product-modal-header">
                       <div>
                         <p className="ad-product-modal-kicker">Produto do menu</p>
-                        <h3>{editingProduct ? "Editar produto" : "Criar produto"}</h3>
+                        <h3 id="admin-product-editor-title">{editingProduct ? "Editar produto" : "Criar produto"}</h3>
                         <span>Preencha os detalhes do produto, a informação nutricional e as imagens num fluxo simples.</span>
                       </div>
-                      <button type="button" className="ad-modal-close ad-product-close" onClick={closeForm} aria-label="Fechar editor de produto">
+                      <button type="button" className="ad-modal-close ad-product-close" disabled={productSaving || deletingProductMediaId !== null} onClick={closeForm} aria-label="Fechar editor de produto">
                         <X size={20} />
                       </button>
                       <nav className="ad-product-stepper-progress" aria-label="Progresso do formulário do produto">
@@ -3411,6 +3500,7 @@ export default function AdminDashboard() {
                               index < productFormStep ? "is-complete" : "",
                               index === productFormStep ? "is-current" : "",
                             ].filter(Boolean).join(" ")}
+                            disabled={productSaving || deletingProductMediaId !== null}
                             onClick={() => goToProductStep(index)}
                             aria-current={index === productFormStep ? "step" : undefined}
                           >
@@ -3426,6 +3516,7 @@ export default function AdminDashboard() {
                         onSubmit={handleProductSubmit}
                         className={`ad-product-editor ad-product-stepper-form ad-product-step-${productFormStep}`}
                       >
+                        <fieldset disabled={productSaving || deletingProductMediaId !== null} className="ad-editor-fields">
                         <aside className="ad-product-progress-rail" aria-label="Secções do editor de produto">
                           <div>
                             <span>Fluxo</span>
@@ -3640,7 +3731,7 @@ export default function AdminDashboard() {
 
                           {calorieMode === "manual" ? (
                             <label className="ad-step4-manual-input">
-                              <span>Total de calorias</span>
+                              <span>Total de calorias (opcional)</span>
                               <div className="ad-step4-kcal-input">
                                 <input
                                   type="number"
@@ -3651,7 +3742,7 @@ export default function AdminDashboard() {
                                     ...formData,
                                     totalCalories: nullableNumberFromInput(event.target.value),
                                   })}
-                                  placeholder="0"
+                                  placeholder="Desconhecido"
                                 />
                                 <strong>kcal</strong>
                               </div>
@@ -3922,11 +4013,11 @@ export default function AdminDashboard() {
                                       disabled={!item.isPendingUpload && deletingProductMediaId === item.mediaId}
                                       onClick={() => {
                                         if (item.isPendingUpload) {
-                                          removePendingProductImage(index, item.fileIndex)
+                                          removePendingProductImage(item.fileIndex, item.fileIndex)
                                           return
                                         }
                                         if (item.mediaId != null) {
-                                          void handleDeleteExistingProductMedia(item.mediaId, index)
+                                          void handleDeleteExistingProductMedia(item.mediaId)
                                         }
                                       }}
                                     >
@@ -3941,7 +4032,7 @@ export default function AdminDashboard() {
                                   {imageFiles.length > 0 && (
                                     <button type="button" className="ad-btn ad-btn-sm ad-btn-danger" onClick={() => {
                                       setImageFiles([])
-                                      setImagePreviews((editingProduct?.media ?? []).map((media) => getImageUrl(productMediaUrl(media, "card") ?? media.originalUrl)))
+                                      setImagePreviews([])
                                     }}>
                                       Clear selected
                                     </button>
@@ -3986,7 +4077,7 @@ export default function AdminDashboard() {
                                     className="ad-btn ad-btn-primary"
                                     onClick={() => void handleFinishProductEdit()}
                                   >
-                                    Finish
+                                    {productSaving ? "A guardar..." : "Guardar alterações"}
                                   </button>
                                 )}
                                 <button
@@ -3999,11 +4090,12 @@ export default function AdminDashboard() {
                               </div>
                             ) : (
                               <button type="submit" className="ad-btn ad-btn-primary">
-                                {editingProduct ? "Guardar alterações" : "Criar produto"}
+                                {productSaving ? "A guardar produto e imagens..." : editingProduct ? "Guardar alterações" : "Criar produto"}
                               </button>
                             )}
                           </div>
                         </div>
+                      </fieldset>
                       </form>
 
                     </div>
@@ -4234,7 +4326,7 @@ export default function AdminDashboard() {
             <div className="ad-content">
               <div className="ad-section-bar">
                 <h2 className="ad-section-title">Utilizadores admin</h2>
-                <button className="ad-btn ad-btn-primary" onClick={openNewStaffForm}>+ Adicionar admin</button>
+                <button className="ad-btn ad-btn-primary" disabled={catalogSaving} onClick={openNewStaffForm}>+ Adicionar admin</button>
               </div>
 
               {showStaffForm && (
@@ -4256,7 +4348,8 @@ export default function AdminDashboard() {
                     <h3>{editingStaff ? "Editar funcionário" : "Adicionar funcionário"}</h3>
                     <p>Atualize os dados de acesso, o cargo e o estado deste membro da equipa.</p>
                   </div>
-                  <form onSubmit={handleStaffSubmit} className="ad-form">
+                  <form onSubmit={handleStaffSubmit} className="ad-form" aria-busy={catalogSaving}>
+                    <fieldset disabled={catalogSaving} className="ad-editor-fields">
                     <div className="ad-form-row">
                       <div className="ad-form-group"><label>Nome</label><input value={staffForm.name} onChange={e => setStaffForm({ ...staffForm, name: e.target.value })} required /></div>
                       <div className="ad-form-group"><label>Email</label><input type="email" value={staffForm.email} onChange={e => setStaffForm({ ...staffForm, email: e.target.value })} required /></div>
@@ -4267,9 +4360,10 @@ export default function AdminDashboard() {
                       <div className="ad-form-group"><label>Estado</label><CustomSelect className="ad-select" value={staffForm.status} onChange={(nextValue) => setStaffForm({ ...staffForm, status: String(nextValue) as UserStatus })} options={[{ value: "active", label: "Ativo" }, { value: "suspended", label: "Suspenso" }]} /></div>
                     </div>
                     <div className="ad-form-actions">
-                      <button type="submit" className="ad-btn ad-btn-primary">{editingStaff ? "Guardar funcionário" : "Criar funcionário"}</button>
+                      <button type="submit" className="ad-btn ad-btn-primary">{catalogSaving ? "A guardar..." : editingStaff ? "Guardar funcionário" : "Criar funcionário"}</button>
                       <button type="button" className="ad-btn ad-btn-ghost" onClick={closeStaffForm}>Cancelar</button>
                     </div>
+                  </fieldset>
                   </form>
                 </AdaptivePanel>
               )}

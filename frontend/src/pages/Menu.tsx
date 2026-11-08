@@ -1,3 +1,4 @@
+import { restoreMenuPriceRange } from "../utils/menuFilters";
 import { resolvedLocale } from "../i18n";
 import { CakeSlice, Check, ChevronDown, CupSoda, Salad, Sandwich, Search, SlidersHorizontal, Soup, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -35,6 +36,7 @@ interface SavedMenuFilters {
   searchTerm: string;
   selectedCategory: string;
   priceRange: [number, number];
+  catalogMaxPrice?: number;
   sortBy: SortOption;
   specialFilter: SpecialFilter;
 }
@@ -69,9 +71,6 @@ function readSavedMenuFilters(): InitialMenuFilters {
       dietaryFilter?: string;
       drinkFilter?: string;
     };
-    const range = Array.isArray(parsed.priceRange) ? parsed.priceRange : defaultMenuFilters.priceRange;
-    const min = Number(range[0]);
-    const max = Number(range[1]);
     const legacySpecialFilter: SpecialFilter =
       legacyParsed.dietaryFilter === "gluten-free"
         ? "gluten-free"
@@ -82,10 +81,7 @@ function readSavedMenuFilters(): InitialMenuFilters {
     return {
       searchTerm: typeof parsed.searchTerm === "string" ? parsed.searchTerm : "",
       selectedCategory: typeof parsed.selectedCategory === "string" ? parsed.selectedCategory : "",
-      priceRange: [
-        Number.isFinite(min) ? Math.max(0, min) : 0,
-        Number.isFinite(max) ? Math.max(0, max) : defaultMenuFilters.priceRange[1],
-      ],
+      priceRange: restoreMenuPriceRange(parsed.priceRange, parsed.catalogMaxPrice),
       sortBy: isSortOption(parsed.sortBy) ? parsed.sortBy : "default",
       specialFilter: isSpecialFilter(parsed.specialFilter) ? parsed.specialFilter : legacySpecialFilter,
       hasSavedFilters: true,
@@ -282,12 +278,12 @@ function Menu() {
     try {
       window.sessionStorage.setItem(
         MENU_FILTERS_STORAGE_KEY,
-        JSON.stringify({ searchTerm, selectedCategory, priceRange, sortBy, specialFilter }),
+        JSON.stringify({ searchTerm, selectedCategory, priceRange, catalogMaxPrice: maxPrice, sortBy, specialFilter }),
       );
     } catch {
       // Os filtros continuam a funcionar nesta visita se o session storage não estiver disponível.
     }
-  }, [priceRange, searchTerm, selectedCategory, sortBy, specialFilter]);
+  }, [maxPrice, priceRange, searchTerm, selectedCategory, sortBy, specialFilter]);
 
   useEffect(() => {
     if (!sortMenuOpen) return;
