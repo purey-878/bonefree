@@ -32,6 +32,61 @@
         "title": "AddItemSchema",
         "type": "object"
       },
+      "AdminExtraResponse": {
+        "properties": {
+          "display_order": {
+            "title": "Display Order",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "is_available": {
+            "title": "Is Available",
+            "type": "boolean"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "price_delta": {
+            "title": "Price Delta",
+            "type": "number"
+          },
+          "translations": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/OptionTranslationText"
+            },
+            "propertyNames": {
+              "enum": [
+                "en-GB",
+                "de-DE"
+              ]
+            },
+            "title": "Translations",
+            "type": "object"
+          },
+          "type": {
+            "enum": [
+              "addon",
+              "replacement"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "price_delta",
+          "type",
+          "display_order",
+          "is_available"
+        ],
+        "title": "AdminExtraResponse",
+        "type": "object"
+      },
       "AdminLogin": {
         "description": "Request model for admin login.",
         "properties": {
@@ -124,6 +179,52 @@
           }
         },
         "title": "AdminOrderSummary",
+        "type": "object"
+      },
+      "AdminPortionResponse": {
+        "properties": {
+          "display_order": {
+            "title": "Display Order",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "is_available": {
+            "title": "Is Available",
+            "type": "boolean"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "price": {
+            "title": "Price",
+            "type": "number"
+          },
+          "translations": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/OptionTranslationText"
+            },
+            "propertyNames": {
+              "enum": [
+                "en-GB",
+                "de-DE"
+              ]
+            },
+            "title": "Translations",
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "price",
+          "display_order",
+          "is_available"
+        ],
+        "title": "AdminPortionResponse",
         "type": "object"
       },
       "AdminResponse": {
@@ -2106,6 +2207,136 @@
         "title": "EventsSettings",
         "type": "object"
       },
+      "ExtraInput": {
+        "additionalProperties": false,
+        "properties": {
+          "display_order": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Order"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "is_available": {
+            "default": true,
+            "title": "Is Available",
+            "type": "boolean"
+          },
+          "label": {
+            "maxLength": 150,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "price_delta": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,8}|(?=[\\d.]{1,11}0*$)\\d{0,8}\\.\\d{0,2}0*$)",
+                "type": "string"
+              }
+            ],
+            "title": "Price Delta"
+          },
+          "translations": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/OptionTranslationText"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "propertyNames": {
+              "enum": [
+                "en-GB",
+                "de-DE"
+              ]
+            },
+            "title": "Translations",
+            "type": "object"
+          },
+          "type": {
+            "default": "addon",
+            "enum": [
+              "addon",
+              "replacement"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "price_delta"
+        ],
+        "title": "ExtraInput",
+        "type": "object"
+      },
+      "ExtraResponse": {
+        "properties": {
+          "display_order": {
+            "title": "Display Order",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "is_available": {
+            "title": "Is Available",
+            "type": "boolean"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "price_delta": {
+            "title": "Price Delta",
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "addon",
+              "replacement"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "price_delta",
+          "type",
+          "display_order",
+          "is_available"
+        ],
+        "title": "ExtraResponse",
+        "type": "object"
+      },
       "ForgotPasswordRequest": {
         "properties": {
           "email": {
@@ -2984,6 +3215,25 @@
         "title": "MessageResponse",
         "type": "object"
       },
+      "OptionTranslationText": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 150,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "title": "OptionTranslationText",
+        "type": "object"
+      },
       "OrderCreateResponse": {
         "properties": {
           "can_cancel": {
@@ -3355,6 +3605,118 @@
         "title": "PopularProduct",
         "type": "object"
       },
+      "PortionInput": {
+        "additionalProperties": false,
+        "properties": {
+          "display_order": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Order"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "is_available": {
+            "default": true,
+            "title": "Is Available",
+            "type": "boolean"
+          },
+          "label": {
+            "maxLength": 150,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,8}|(?=[\\d.]{1,11}0*$)\\d{0,8}\\.\\d{0,2}0*$)",
+                "type": "string"
+              }
+            ],
+            "title": "Price"
+          },
+          "translations": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/OptionTranslationText"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "propertyNames": {
+              "enum": [
+                "en-GB",
+                "de-DE"
+              ]
+            },
+            "title": "Translations",
+            "type": "object"
+          }
+        },
+        "required": [
+          "label",
+          "price"
+        ],
+        "title": "PortionInput",
+        "type": "object"
+      },
+      "PortionResponse": {
+        "properties": {
+          "display_order": {
+            "title": "Display Order",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "is_available": {
+            "title": "Is Available",
+            "type": "boolean"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "price": {
+            "title": "Price",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "price",
+          "display_order",
+          "is_available"
+        ],
+        "title": "PortionResponse",
+        "type": "object"
+      },
       "ProductAdminPageResponse": {
         "properties": {
           "items": {
@@ -3441,6 +3803,24 @@
             "title": "Effective Available",
             "type": "boolean"
           },
+          "effective_starting_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective Starting Price"
+          },
+          "extras": {
+            "items": {
+              "$ref": "#/components/schemas/AdminExtraResponse"
+            },
+            "title": "Extras",
+            "type": "array"
+          },
           "featured": {
             "default": false,
             "title": "Featured",
@@ -3479,6 +3859,13 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "portions": {
+            "items": {
+              "$ref": "#/components/schemas/AdminPortionResponse"
+            },
+            "title": "Portions",
+            "type": "array"
           },
           "price": {
             "title": "Price",
@@ -3726,6 +4113,21 @@
             "title": "Discount Percentage",
             "type": "number"
           },
+          "extras": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ExtraInput"
+                },
+                "maxItems": 30,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extras"
+          },
           "featured": {
             "default": false,
             "title": "Featured",
@@ -3757,6 +4159,21 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "portions": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/PortionInput"
+                },
+                "maxItems": 30,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Portions"
           },
           "price": {
             "title": "Price",
@@ -4331,6 +4748,24 @@
             "title": "Discount Percent",
             "type": "number"
           },
+          "effective_starting_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective Starting Price"
+          },
+          "extras": {
+            "items": {
+              "$ref": "#/components/schemas/ExtraResponse"
+            },
+            "title": "Extras",
+            "type": "array"
+          },
           "gluten_free": {
             "default": false,
             "title": "Gluten Free",
@@ -4377,6 +4812,13 @@
               }
             ],
             "title": "Original Price"
+          },
+          "portions": {
+            "items": {
+              "$ref": "#/components/schemas/PortionResponse"
+            },
+            "title": "Portions",
+            "type": "array"
           },
           "price": {
             "anyOf": [
@@ -4982,6 +5424,21 @@
             ],
             "title": "Discount Percentage"
           },
+          "extras": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ExtraInput"
+                },
+                "maxItems": 30,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extras"
+          },
           "featured": {
             "anyOf": [
               {
@@ -5039,6 +5496,21 @@
               }
             ],
             "title": "Name"
+          },
+          "portions": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/PortionInput"
+                },
+                "maxItems": 30,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Portions"
           },
           "price": {
             "anyOf": [
