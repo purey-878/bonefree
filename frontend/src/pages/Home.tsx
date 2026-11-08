@@ -357,6 +357,12 @@ const HomePage = () => {
             ))}
           </PopularCarouselDots>
         )}
+        <div className="d-flex justify-content-center mt-4">
+          <PrimaryCta className="fw-semibold" to="/menu">
+            {t("home.openFullMenu")}
+            <ArrowRight size={18} aria-hidden="true" />
+          </PrimaryCta>
+        </div>
       </FavoritesSection>
 
       <ChefSpecialBanner aria-label={t("home.chefAria")}>
