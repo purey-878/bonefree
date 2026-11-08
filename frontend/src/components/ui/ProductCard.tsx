@@ -1,3 +1,4 @@
+import type { CatalogPortion, CatalogExtra } from "../../types/pricing";
 import { ArrowRight, Flame } from 'lucide-react'
 import type {
   ComponentPropsWithoutRef,
@@ -10,7 +11,7 @@ import { useTranslation } from 'react-i18next'
 import { resolvedLocale } from '../../i18n'
 import type { ProductMedia as ProductMediaItem } from '../../types/product'
 import { applyApiImageFallback, productImageFallback, resolveProductImageUrl } from '../../utils/imageFallback'
-import { formatEuro } from '../../utils/money'
+import { formatProductPrices, formatSizePrice } from '../../utils/pricing'
 import { primaryProductMediaUrl } from '../../utils/productMedia'
 import { AvailabilityBadge, Badge } from './Badge'
 
@@ -20,6 +21,9 @@ export type ProductCardProduct = {
   id: string | number
   media?: ProductMediaItem[]
   name: string
+  portions?: CatalogPortion[]
+  extras?: CatalogExtra[]
+  effectiveStartingPrice?: number | null
   price?: number | null
   totalCalories?: number | null
   tags?: string[]
@@ -45,11 +49,6 @@ const defaultImageFallback = productImageFallback
 
 function defaultResolveImageSrc(image: string | null | undefined) {
   return resolveProductImageUrl(image, defaultImageFallback)
-}
-
-function formatPrice(price: number | null | undefined, currencySymbol: string) {
-  void currencySymbol
-  return formatEuro(price)
 }
 
 function formatCalories(calories: number | null | undefined) {
@@ -318,6 +317,12 @@ const ProductDetailsButton = styled.a`
 `
 
 const ProductPrice = styled.span`
+  &.product-size-prices {
+    display: grid;
+    gap: 0.15rem;
+    font-size: 1rem;
+    line-height: 1.5;
+  }
   color: #b42318;
   font-size: 1.35rem;
   font-weight: 700;
@@ -361,7 +366,20 @@ const ProductCalories = styled.span`
 
 const PriceStack = styled.div`
   display: grid;
+  min-width: 0;
+  max-width: 100%;
   gap: 0.25rem;
+
+  .product-pricing-note {
+    color: var(--brand-muted);
+    font-size: 0.75rem;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
 `
 
 export function ProductCard({
@@ -375,6 +393,8 @@ export function ProductCard({
   ...props
 }: ProductCardProps) {
   const { t } = useTranslation('storefront')
+  void currencySymbol
+  const availableSizes = product.portions?.filter(option => option.isAvailable) ?? []
   const unavailable = product.available === false
   const baseUnavailable = Boolean(product.unavailableDueToUnavailableBase)
   const dimUnavailable = unavailable && !baseUnavailable
@@ -486,9 +506,17 @@ export function ProductCard({
           <ProductPriceRow>
             <PriceStack>
 
-              <ProductPrice>
-                {formatPrice(product.price, currencySymbol)}
+              <ProductPrice className={product.portions?.length ? 'product-size-prices' : undefined}>
+                {availableSizes.length ? <>
+                  {availableSizes.slice(0, 2).map((option, index) => (
+                    <span key={option.id ?? index}>{formatSizePrice(option)}</span>
+                  ))}
+                  {availableSizes.length > 2 && <span>+{availableSizes.length - 2}</span>}
+                </> : formatProductPrices(product)}
               </ProductPrice>
+              {!!product.extras?.some(option => option.isAvailable) && (
+                <small className="product-pricing-note">{t('pricing.extrasAvailable')}</small>
+              )}
             </PriceStack>
             {onSelect && (
               <ProductDetailsButton

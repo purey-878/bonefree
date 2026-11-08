@@ -18,7 +18,7 @@ import models  # noqa: F401 - register every model in Base.metadata.
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 BASELINE_REVISION = "20260822_0001"
-HEAD_REVISION = "20261103_0002"
+HEAD_REVISION = "20261108_0003"
 LEGACY_HEAD_REVISION = "b6d8f0a2c4e7"
 
 
@@ -83,8 +83,9 @@ class SchemaBaselineTests(unittest.TestCase):
             connection.close()
             engine.dispose()
 
-        self.assertEqual([revision.revision for revision in revisions], [HEAD_REVISION, BASELINE_REVISION])
-        self.assertEqual(revisions[0].down_revision, BASELINE_REVISION)
+        self.assertEqual([revision.revision for revision in revisions], [HEAD_REVISION, "20261103_0002", BASELINE_REVISION])
+        self.assertEqual(revisions[0].down_revision, "20261103_0002")
+        self.assertEqual(revisions[1].down_revision, BASELINE_REVISION)
         self.assertIsNone(revisions[-1].down_revision)
         baseline_source = Path(revisions[-1].path).read_text(encoding="utf-8")
         self.assertNotIn("Base.metadata", baseline_source)
@@ -173,8 +174,9 @@ class SchemaBaselineTests(unittest.TestCase):
                 db.flush()
                 product = Product(name="Cogumelos", product_description="Original description", category_id=category.id, admin_id=owner.id, price=12.5, status=EntityStatus.ACTIVE, total_calories=100)
                 db.add(product)
-                db.commit()
+                db.flush()
                 identifiers = (owner.id, category.id, ingredient.id, product.id)
+                db.commit()
             with patch.object(migrations, "engine", engine):
                 migrations.run_migrations()
                 migrations.run_migrations()
@@ -185,6 +187,44 @@ class SchemaBaselineTests(unittest.TestCase):
                 product = db.get(Product, identifiers[3])
                 self.assertEqual((product.name, product.product_description, float(product.price), float(product.total_calories)), ("Cogumelos", "Original description", 12.5, 100))
                 self.assertEqual(db.scalar(select(func.count()).select_from(ProductTranslation)), 0)
+        finally:
+            engine.dispose()
+
+    def test_pricing_migration_repeated_upgrade_and_feature_only_downgrade(self):
+        from sqlalchemy.orm import Session
+        from models import User, Category, Product, ProductPricingOption, ProductPricingOptionTranslation
+        from schemas.enums import UserRole, UserStatus, EntityStatus
+        self._alembic("upgrade", "head")
+        engine = create_engine(self.database_url)
+        try:
+            with Session(engine) as db:
+                owner = User(name="Owner", email="pricing@example.test", password="preserved", role=UserRole.OWNER, status=UserStatus.ACTIVE)
+                db.add(owner)
+                db.flush()
+                category = Category(category_name="Food", admin_id=owner.id, status=EntityStatus.ACTIVE)
+                db.add(category)
+                db.flush()
+                product = Product(name="Legacy", category_id=category.id, admin_id=owner.id, price=12.5, status=EntityStatus.ACTIVE)
+                product.pricing_options = [ProductPricingOption(label="3 peças", price=8.5, kind="portion", display_order=0, is_available=True,
+                    translations=[ProductPricingOptionTranslation(locale="en-GB", name="3 pieces")])]
+                db.add(product)
+                db.flush()
+                product_id = product.id
+                db.commit()
+            self._alembic("upgrade", "head")
+            with Session(engine) as db:
+                product = db.get(Product, product_id)
+                self.assertEqual(len(product.pricing_options), 1)
+                self.assertEqual(product.pricing_options[0].translations[0].name, "3 pieces")
+            self._alembic("downgrade", "20261103_0002")
+            with engine.connect() as connection:
+                self.assertEqual(connection.execute(text("SELECT name, price FROM product WHERE id = :id"), {"id": product_id}).one(), ("Legacy", 12.5))
+                self.assertNotIn("product_pricing_option", inspect(connection).get_table_names())
+                self.assertIn("product_customization_option", inspect(connection).get_table_names())
+            self._alembic("upgrade", "head")
+            self._assert_schema_matches_models(self.database_url)
+            with Session(engine) as db:
+                self.assertEqual(db.get(Product, product_id).pricing_options, [])
         finally:
             engine.dispose()
 

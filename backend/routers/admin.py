@@ -2,6 +2,9 @@
 Admin routes for product management and analytics.
 """
 
+from services.catalog_pricing import sync_pricing_options, pricing_responses, starting_price, has_available_portion, starting_price_expression
+
+
 import logging
 from decimal import Decimal
 from fastapi import APIRouter, BackgroundTasks, Depends, Request, status, Query, UploadFile, File
@@ -494,6 +497,7 @@ def _product_admin_response(
         field_name: getattr(product, field_name)
         for field_name in ProductAdminResponse.model_fields
         if field_name not in {
+            "portions", "extras", "effective_starting_price",
             "discount_percentage",
             "translations",
             "effective_available",
@@ -519,6 +523,10 @@ def _product_admin_response(
         product,
         {product.product_id} if unavailable_names else set(),
     )
+    data["portions"], data["extras"] = pricing_responses(product, admin=True)
+    price = starting_price(product)
+    data["effective_starting_price"] = float(price) if price is not None else None
+    data["effective_available"] = data["effective_available"] and has_available_portion(product)
     return ProductAdminResponse(**data)
 
 
@@ -1175,6 +1183,7 @@ def create_product(
     db.add(new_product)
     db.flush()
     _sync_product_ingredients(db, new_product.product_id, product.ingredients)
+    sync_pricing_options(db, new_product, product.portions, product.extras)
     update_translations(db, ProductTranslation, new_product.product_id, product.translations)
     db.commit()
     db.refresh(new_product)
@@ -1230,10 +1239,10 @@ def list_products(
         filters.append(Product.category_id == parse_category_id(category))
 
     if min_price is not None:
-        filters.append(Product.price >= min_price)
+        filters.append(starting_price_expression(discount_legacy=False) >= min_price)
 
     if max_price is not None:
-        filters.append(Product.price <= max_price)
+        filters.append(starting_price_expression(discount_legacy=False) <= max_price)
 
     if featured is not None:
         filters.append(Product.featured == (1 if featured else 0))
@@ -1420,7 +1429,7 @@ def update_product(
         select(Product).where(
             Product.product_id == parsed_product_id,
             Product.status == EntityStatus.ACTIVE,
-        ).limit(1)
+        ).with_for_update(of=Product).limit(1)
     )
 
     if not product:
@@ -1463,6 +1472,7 @@ def update_product(
     if product_update.ingredients is not None:
         _sync_product_ingredients(db, parsed_product_id, product_update.ingredients)
 
+    sync_pricing_options(db, product, product_update.portions, product_update.extras)
     update_translations(db, ProductTranslation, product.product_id, product_update.translations)
     db.commit()
     db.refresh(product)

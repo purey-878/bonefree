@@ -1,3 +1,5 @@
+import { clearMenuVisits } from '../utils/menuFeed';
+
 /** Bounded, session-memory cache. Never persists responses or failed requests. */
 export class RequestCache {
   private entries = new Map<string, { promise: Promise<unknown>; expires: number; pending: boolean; tags: string[] }>();
@@ -54,6 +56,7 @@ export function publicRequestKey(url: URL): string {
 
 export function invalidatePublicData(tag: string) {
   publicRequestCache.invalidate(tag);
+  if (tag === 'catalog') clearMenuVisits();
   if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('publicDataInvalidated', { detail: tag }));
   if (tag === 'theme' && typeof window !== 'undefined') window.dispatchEvent(new Event('siteThemeUpdated'));
 }

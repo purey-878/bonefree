@@ -1,3 +1,4 @@
+import type { CatalogPortion, CatalogExtra } from "./pricing";
 export type EntityStatus = 'active' | 'inactive';
 export type IngredientType = 'normal' | 'sauce' | 'extra' | 'drink' | 'base' | 'side';
 export type MediaVariantKind = 'thumb' | 'card' | 'detail';
@@ -26,6 +27,9 @@ export interface ProductMedia {
 }
 
 export interface Product {
+  portions?: CatalogPortion[];
+  extras?: CatalogExtra[];
+  effectiveStartingPrice?: number | null;
   id: number;
   idDisplay: string;
   categoryId?: number;

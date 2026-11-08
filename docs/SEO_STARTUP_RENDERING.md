@@ -74,3 +74,26 @@ There is no new Lighthouse score claim.
 
 No deployment, backend, database or production infrastructure change was made.
 Deploy the complete rebuilt `frontend/dist` using the existing hosting procedure.
+
+## Local development startup fix — 2026-11-08
+
+Reproduced localhost showing only the initial SEO heading, description and links.
+Chrome reported HTTP 504 `Outdated Optimize Dep` for React DOM, React Router,
+styled-components and other optimized dependencies; React never mounted.
+
+The build-only Vite server used for initial HTML rendering shared the normal
+Vite dependency cache with a running development server. Production builds could
+replace the optimizer metadata while the dev server still served module imports
+with the previous dependency hashes. Production-build-only browser checks did not
+exercise this simultaneous dev/build workflow.
+
+The renderer now uses a separate `prerender` cache directory inside Vite's resolved
+cache directory. The existing dev server reloads its configuration and rebuilds
+its own dependency metadata. Initial crawlable content and production rendering
+remain unchanged; no SEO content is removed or concealed.
+
+Validation: localhost React startup passed before and after a production build
+with the same dev server running, with zero failed HTTP responses or browser
+runtime errors. The dev optimizer metadata stayed byte-for-byte unchanged during
+the build, and the separate prerender cache was created. TypeScript, ESLint,
+111 Vitest tests in 28 files, production build and git diff --check passed.

@@ -18,7 +18,7 @@ body[data-site-theme]:not([data-site-theme="normal"]) :is(.menu-page, .auth-page
   transition: background 0.5s ease, color 0.5s ease;
 }
 
-body[data-site-theme]:not([data-site-theme="normal"]) :is(.menu-filter-bar, .menu-empty-state, .pd-info-panel, .menu-popular-card) {
+body[data-site-theme]:not([data-site-theme="normal"]) :is(.menu-sidebar, .menu-filter-bar, .menu-empty-state, .pd-info-panel, .menu-popular-card) {
   border-color: var(--glass-border) !important;
   background: var(--theme-surface, var(--glass-bg-strong)) !important;
   box-shadow: var(--shadow-glass) !important;
@@ -101,7 +101,7 @@ body[data-site-theme="presentation"] :is(.menu-page, .auth-page, .pd-page) {
   background: var(--theme-background) !important;
 }
 
-body[data-site-theme="presentation"] :is(.menu-filter-bar, .menu-empty-state, .menu-card-shell > article, .pd-image-frame, .pd-price-card, .pd-highlight-grid article, .pd-copy-card, .pd-spec-card, .pd-nutrition-card, .pd-empty-card, .pd-faq-list details) {
+body[data-site-theme="presentation"] :is(.menu-sidebar, .menu-filter-bar, .menu-empty-state, .menu-card-shell > article, .pd-image-frame, .pd-price-card, .pd-highlight-grid article, .pd-copy-card, .pd-spec-card, .pd-nutrition-card, .pd-empty-card, .pd-faq-list details) {
   border-color: #6f806f !important;
   border-width: 1.5px !important;
   background: #ffffff !important;

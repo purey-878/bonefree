@@ -1,3 +1,5 @@
+import { formatProductPrices } from "../utils/pricing"
+import ProductPricingDetails from "../components/ProductPricingDetails"
 import { ChevronDown, ChevronLeft, Flame, Leaf, TriangleAlert } from "lucide-react"
 import type { MouseEvent } from "react"
 import { useEffect, useMemo, useRef, useState } from "react"
@@ -17,7 +19,6 @@ import type {
   Product
 } from "../types/product"
 import { applyApiImageFallback, productImageFallback, resolveProductImageUrl } from "../utils/imageFallback"
-import { formatEuro } from "../utils/money"
 import { productMediaUrl } from "../utils/productMedia"
 import "./ProductDetail.css"
 
@@ -35,9 +36,7 @@ function getImage(img: string | null | undefined) {
   return resolveProductImageUrl(img, fallbackImage)
 }
 
-function formatPrice(price: number | null | undefined) {
-  return formatEuro(price)
-}
+
 
 function formatCalories(value: number | null | undefined) {
   if (value == null || !Number.isFinite(value)) return null
@@ -295,7 +294,7 @@ export const ProductDetail = () => {
             </div>
 
             <div className="pd-price-card">
-              <strong className="red">{formatPrice(product.price)}</strong>
+              <strong className="red">{formatProductPrices(product)}</strong>
               {productCalories && (
                 <span className="pd-calorie-line" title={t("productDetail.calories", { count: productCalories })}>
                   <Flame aria-hidden="true" />
@@ -304,6 +303,7 @@ export const ProductDetail = () => {
               )}
             </div>
 
+            <ProductPricingDetails portions={product.portions} extras={product.extras} />
             <p className="pd-desc">
               {product.description || t("productDetail.fallbackDescription")}
             </p>

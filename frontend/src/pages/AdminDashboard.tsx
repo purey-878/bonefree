@@ -1,3 +1,5 @@
+import PricingOptionsEditor from "../components/admin/PricingOptionsEditor"
+import { formatProductPrices, pricingOptionsInvalid } from "../utils/pricing"
 import { saveProductDraft } from "../services/productEditor"
 import CatalogLanguageTabs from "../components/admin/CatalogLanguageTabs"
 import { catalogText, editCatalogTranslation } from "../utils/catalogTranslations"
@@ -92,7 +94,6 @@ import { defaultCompanyDetails, defaultSocialMediaSettings } from "../utils/foot
 import { formatCategoryId, formatProductId } from "../utils/ids"
 import { applyApiImageFallback, resolveProductImageUrl } from "../utils/imageFallback"
 import { translateUserMessage } from "../utils/messages"
-import { formatEuro } from "../utils/money"
 import { persistOptimisticUpdate } from "../utils/optimisticUpdate"
 import { primaryProductMediaUrl, productMediaUrl } from "../utils/productMedia"
 import "./AdminDashboard.css"
@@ -183,7 +184,6 @@ const NAV_GROUPS: { label: string; tabs: TabType[] }[] = [
   { label: "Admin", tabs: ["staff", "settings"] },
 ]
 
-const EURO_FORMATTER = { format: formatEuro }
 const INGREDIENT_TYPES: IngredientType[] = ["normal", "sauce", "extra", "drink", "base", "side"]
 const INGREDIENT_TYPE_LABELS: Record<IngredientType, string> = {
   normal: "Ingredientes normais",
@@ -467,7 +467,7 @@ function SiteSettingsPanel({
                   )}
                   <div>
                     <strong>{selectedChefSpecial.name}</strong>
-                    <small>{EURO_FORMATTER.format(selectedChefSpecial.price)} | {selectedChefSpecial.effectiveAvailable ? "disponível" : "indisponível"}</small>
+                    <small>{formatProductPrices(selectedChefSpecial)} | {selectedChefSpecial.effectiveAvailable ? "disponível" : "indisponível"}</small>
                   </div>
                 </div>
               ) : (
@@ -1598,6 +1598,8 @@ export default function AdminDashboard() {
         name: "",
         productDescription: "",
         price: 0,
+        portions: [],
+        extras: [],
         available: true,
         categoryId: activeCategories[0]?.categoryId ?? 0,
         customizable: false,
@@ -1671,6 +1673,8 @@ export default function AdminDashboard() {
         name: product.name,
         productDescription: product.productDescription ?? "",
         price: product.price,
+        portions: product.portions ?? [],
+        extras: product.extras ?? [],
         available: product.available,
         categoryId: product.categoryId,
         customizable: product.customizable,
@@ -1752,7 +1756,8 @@ export default function AdminDashboard() {
     }
 
     if (step === 1) {
-      if (!Number.isFinite(formData.price) || formData.price <= 0) return "Introduza um preço superior a 0."
+      if (pricingOptionsInvalid(formData.portions, formData.extras)) return t("storefront:pricing.invalid")
+      if (!Number.isFinite(formData.price) || formData.price < 0 || (formData.price === 0 && !formData.portions?.length)) return "Introduza um preço superior a 0."
       if (
         !Number.isFinite(formData.discountPercentage) ||
         formData.discountPercentage < 0 ||
@@ -1849,7 +1854,10 @@ export default function AdminDashboard() {
           : formData.totalCalories ?? null,
       }, editingProduct)
       await saveProductDraft(editingProduct, payload, imageFiles,
-        product => setEditingProduct(product),
+        product => {
+          setEditingProduct(product)
+          setFormData(current => ({ ...current, portions: product.portions ?? [], extras: product.extras ?? [] }))
+        },
         (_file, media) => {
           setEditingProduct(current => current ? { ...current, media: [...current.media, media] } : current)
           setImageFiles(current => current.slice(1))
@@ -3289,7 +3297,7 @@ export default function AdminDashboard() {
                                 <small>{product.categoryDisplayId}</small>
                               </span>
                               <span className="ad-related-product-meta">
-                                <strong>{formatEuro(product.price)}</strong>
+                                <strong>{formatProductPrices(product)}</strong>
                                 <span className={`ad-pill ${product.status === "inactive" ? "ad-pill-gray" : "ad-pill-green"}`}>
                                   {product.status === "inactive" ? "inativo" : product.effectiveAvailable ? "disponível" : "indisponível"}
                                 </span>
@@ -3631,6 +3639,10 @@ export default function AdminDashboard() {
                               />
                             </label>
                           </div>
+                          <PricingOptionsEditor portions={formData.portions} extras={formData.extras}
+                            locale={productTextLocale} onLocaleChange={setProductTextLocale}
+                            onPortionsChange={portions => setFormData(current => ({ ...current, portions }))}
+                            onExtrasChange={extras => setFormData(current => ({ ...current, extras }))} />
                         </section>
 
                         <section className="ad-product-section" id="product-config">
@@ -4163,7 +4175,7 @@ export default function AdminDashboard() {
 
                           <div className="ad-admin-product-card-body">
                             <div className="ad-admin-product-card-stats">
-                              <div><strong>{formatEuro(p.price)}</strong><span>preço</span></div>
+                              <div><strong>{formatProductPrices(p)}</strong><span>preço</span></div>
                               <div><strong>{p.totalCalories == null ? "-" : formatCalories(p.totalCalories)}</strong><span>kcal</span></div>
 
                             </div>
@@ -4260,7 +4272,7 @@ export default function AdminDashboard() {
                                   )}
                                 </div>
                               </td>
-                              <td data-label="Preço">{formatEuro(p.price)}</td>
+                              <td data-label="Preço">{formatProductPrices(p)}</td>
                               <td data-label="Calories">{p.totalCalories == null ? "-" : `${formatCalories(p.totalCalories)} kcal`}</td>
                               <td data-label="Disponibilidade"><span className="ad-pill ad-pill-gray">{p.effectiveAvailable ? "Disponível" : "Indisponível"}</span></td>
 

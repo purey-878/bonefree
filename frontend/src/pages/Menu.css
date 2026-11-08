@@ -1118,3 +1118,81 @@
   }
 }
 
+
+.menu-category-anchor { display: none; }
+
+/* Preserve the desktop filter card; on narrow screens only categories stay pinned. */
+@media (min-width: 1121px) {
+  .menu-sidebar {
+    grid-column: 1;
+    position: sticky;
+    top: 84px;
+    z-index: 25;
+    display: grid;
+    gap: 0.9rem;
+    padding: 1rem;
+    border: 1px solid #c8d6c3;
+    border-radius: 17px;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 16px 44px rgba(23, 33, 29, 0.09);
+    backdrop-filter: blur(18px) saturate(140%);
+  }
+  .menu-sidebar .menu-filter-bar {
+    position: static;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+}
+@media (max-width: 1120px) {
+  .menu-sidebar { display: contents; }
+  .menu-category-anchor {
+    display: block;
+    height: 1px;
+    margin-bottom: -1px;
+    pointer-events: none;
+  }
+  .menu-shell > .menu-sidebar > .menu-category-list {
+    --category-gutter: 2rem;
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    margin: 0 calc(-1 * var(--category-gutter)) 1.25rem;
+    padding: 0.75rem var(--category-gutter);
+    border-bottom: 1px solid transparent;
+    background: transparent;
+    scroll-padding-inline: var(--category-gutter);
+  }
+  .menu-shell > .menu-sidebar > .menu-category-list.is-pinned {
+    background: rgba(248, 250, 246, 0.55);
+    background: color-mix(in srgb, var(--theme-surface, #f8faf6) 55%, transparent);
+    border-bottom-color: var(--glass-border, #dfe8dc);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+  }
+}
+@media (max-width: 820px) {
+  .menu-shell > .menu-sidebar > .menu-category-list {
+    --category-gutter: 1rem;
+  }
+}
+.menu-feed-status {
+  min-height: 5rem;
+  padding-block: 1rem;
+  text-align: center;
+  color: inherit;
+}
+.menu-feed-status button {
+  padding: 0.65rem 1rem;
+  border: 1px solid currentColor;
+  border-radius: 12px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+.menu-feed-status button:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 3px;
+}

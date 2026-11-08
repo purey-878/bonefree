@@ -2,14 +2,13 @@ import { restoreMenuPriceRange } from "../utils/menuFilters";
 import { resolvedLocale } from "../i18n";
 import { CakeSlice, Check, ChevronDown, CupSoda, Salad, Sandwich, Search, SlidersHorizontal, Soup, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useNavigationType, useSearchParams } from "react-router-dom";
 
 import { useTranslation } from "react-i18next";
 import Navbar from "../components/Navbar";
-import { Pagination, ProductCard, ProductCardSkeleton } from "../components/ui";
-import { productService } from "../services";
+import { ProductCard, ProductCardSkeleton } from "../components/ui";
+import { useMenuFeed } from "../hooks/useMenuFeed";
 import "../theme.css";
-import type { Product } from "../types/product";
 import { formatEuro } from "../utils/money";
 import "./Menu.css";
 
@@ -79,6 +78,7 @@ function readSavedMenuFilters(): InitialMenuFilters {
           : "all";
 
     return {
+      catalogMaxPrice: typeof parsed.catalogMaxPrice === "number" ? parsed.catalogMaxPrice : undefined,
       searchTerm: typeof parsed.searchTerm === "string" ? parsed.searchTerm : "",
       selectedCategory: typeof parsed.selectedCategory === "string" ? parsed.selectedCategory : "",
       priceRange: restoreMenuPriceRange(parsed.priceRange, parsed.catalogMaxPrice),
@@ -113,7 +113,8 @@ function clampPrice(value: number, maxPrice: number) {
 function Menu() {
   const { t } = useTranslation("storefront");
   const locale = resolvedLocale();
-  const localeRef = useRef(locale);
+  const navigationType = useNavigationType();
+  const [pageLocale, setPageLocale] = useState(locale);
   const [searchParams, setSearchParams] = useSearchParams();
   const [initialFilters] = useState(() => {
     const saved = readSavedMenuFilters();
@@ -124,6 +125,7 @@ function Menu() {
     const urlSort = searchParams.get("sort")?.replaceAll("_", "-");
     const urlSpecial = searchParams.get("special")?.replace("_", "-");
     return {
+      catalogMaxPrice: undefined,
       searchTerm: searchParams.get("q") ?? "",
       selectedCategory: searchParams.get("category") ?? "",
       priceRange: [Number.isFinite(minPrice) ? minPrice : 0, Number.isFinite(maxPrice) && maxPrice > 0 ? maxPrice : 1000] as [number, number],
@@ -132,33 +134,34 @@ function Menu() {
       hasSavedFilters: false,
     };
   });
-  const [categories, setCategories] = useState<CategoryCount[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-
-  const [page, setPage] = useState(() => Math.max(1, Number(searchParams.get("page")) || 1));
-  const [perPage, setPerPage] = useState(() => [10, 20, 50, 100].includes(Number(searchParams.get("per_page"))) ? Number(searchParams.get("per_page")) : 20);
-  const [total, setTotal] = useState(0);
-  const [catalogTotal, setCatalogTotal] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [startPage, setStartPage] = useState(() => Math.max(1, Math.floor(Number(searchParams.get("page")) || 1)));
+  const [perPage, setPerPage] = useState(() => [10, 16, 20, 50, 100].includes(Number(searchParams.get("per_page"))) ? Number(searchParams.get("per_page")) : 16);
   const [searchTerm, setSearchTerm] = useState(initialFilters.searchTerm);
   const [selectedCategory, setSelectedCategory] = useState<string>(initialFilters.selectedCategory);
   const [priceRange, setPriceRange] = useState<[number, number]>(initialFilters.priceRange);
-  const [maxPrice, setMaxPrice] = useState(1000);
+  const [maxPrice, setMaxPrice] = useState(initialFilters.catalogMaxPrice ?? 1000);
   const [sortBy, setSortBy] = useState<SortOption>(initialFilters.sortBy);
   const [specialFilter, setSpecialFilter] = useState<SpecialFilter>(initialFilters.specialFilter);
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const navigate = useNavigate();
   const sortMenuRef = useRef<HTMLDivElement | null>(null);
-  const requestIdRef = useRef(0);
+  const categoryAnchorRef = useRef<HTMLDivElement | null>(null);
+  const [categoriesPinned, setCategoriesPinned] = useState(false);
   const initialFilterEffectRef = useRef(true);
-  const hydratingUrlRef = useRef(false);
   const skipUrlWriteRef = useRef(false);
   const lastWrittenSearchRef = useRef(searchParams.toString());
   const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
+
+  useEffect(() => {
+    if (!categoryAnchorRef.current || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(([entry]) => {
+      setCategoriesPinned(!entry.isIntersecting && entry.boundingClientRect.top < 0);
+    });
+    observer.observe(categoryAnchorRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(searchTerm), 350);
@@ -166,61 +169,49 @@ function Menu() {
   }, [searchTerm]);
 
   useEffect(() => {
-    const requestId = ++requestIdRef.current;
-    const languageChanged = localeRef.current !== locale;
-    const requestedPage = languageChanged ? 1 : page;
-    const loadPage = async () => {
-      if (languageChanged) {
-        localeRef.current = locale;
-        if (page !== 1) { setPage(1); return; }
-      }
-      setLoading(true);
-      setErrorMessage(null);
-      await productService.getPage({
-        page: requestedPage,
-        locale,
-        perPage,
-        search: debouncedSearch.trim() || undefined,
-        categoryId: Number(selectedCategory) || undefined,
-        minPrice: priceRange[0] > 0 ? priceRange[0] : undefined,
-        maxPrice: priceRange[1] < maxPrice ? priceRange[1] : undefined,
-        special: specialFilter === "gluten-free" ? "gluten_free" : specialFilter,
-        sort: sortBy.replaceAll("-", "_") as "default" | "price_asc" | "price_desc" | "name_asc",
-      }).then((result) => {
-        if (requestId !== requestIdRef.current) return;
-        setProducts(result.items);
-        setTotal(result.total);
-        setCatalogTotal(result.facets.totalProducts);
-        setTotalPages(result.totalPages);
-        setCategories(sortMenuCategories(result.facets.categories.map((facet) => ({ name: facet.name, count: facet.count, id: facet.categoryId }))));
-        if (selectedCategory && !Number(selectedCategory)) {
-          const legacyCategory = result.facets.categories.find((facet) => facet.name === selectedCategory);
-          if (legacyCategory) setSelectedCategory(String(legacyCategory.categoryId));
-        }
-        const nextMaxPrice = Number(result.facets.maxPrice || 0);
-        setMaxPrice(nextMaxPrice);
-        if (initialFilterEffectRef.current) {
-          setPriceRange((current) => [clampPrice(current[0], nextMaxPrice), initialFilters.hasSavedFilters ? clampPrice(current[1], nextMaxPrice) : nextMaxPrice]);
-        }
-        if (result.totalPages === 0 && page !== 1) setPage(1);
-        else if (result.totalPages > 0 && page > result.totalPages) setPage(result.totalPages);
-      }).catch((error) => {
-        if (requestId === requestIdRef.current) setErrorMessage(error instanceof Error ? error.message : t("menu.loadError"));
-      }).finally(() => {
-        if (requestId !== requestIdRef.current) return;
-        initialFilterEffectRef.current = false;
-        setLoading(false);
+    if (pageLocale === locale) return;
+    // Locale changes restart at page one, including old bookmarked page URLs.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setStartPage(1);
+    setPageLocale(locale);
+  }, [locale, pageLocale]);
+
+  const { items: products, result, loading, error: errorMessage, hasMore, next: loadMore, sentinel: setSentinel } = useMenuFeed({
+    page: pageLocale === locale ? startPage : 1, perPage, locale,
+    search: debouncedSearch.trim() || undefined,
+    categoryId: Number(selectedCategory) || undefined,
+    minPrice: priceRange[0] > 0 ? priceRange[0] : undefined,
+    maxPrice: priceRange[1] < maxPrice ? priceRange[1] : undefined,
+    special: specialFilter === "gluten-free" ? "gluten_free" : specialFilter,
+    sort: sortBy.replaceAll("-", "_") as "default" | "price_asc" | "price_desc" | "name_asc",
+  }, navigationType === "POP");
+  const total = result?.total ?? 0;
+  const catalogTotal = result?.facets.totalProducts ?? 0;
+  const categories = sortMenuCategories(result?.facets.categories.map(facet => ({ name: facet.name, count: facet.count, id: facet.categoryId })) ?? []);
+
+  useEffect(() => {
+    if (!result) return;
+    const nextMaxPrice = Number(result.facets.maxPrice || 0);
+    // Facets are server-derived; avoid changing equivalent filter values.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMaxPrice(nextMaxPrice);
+    if (initialFilterEffectRef.current) {
+      initialFilterEffectRef.current = false;
+      setPriceRange(current => {
+        const next: [number, number] = [clampPrice(current[0], nextMaxPrice), clampPrice(current[1], nextMaxPrice)];
+        return current[0] === next[0] && current[1] === next[1] ? current : next;
       });
-    };
-    void loadPage();
-    return () => { if (requestIdRef.current === requestId) requestIdRef.current += 1; };
-  }, [debouncedSearch, initialFilters.hasSavedFilters, locale, maxPrice, page, perPage, priceRange, selectedCategory, sortBy, specialFilter, t]);
+    }
+    if (selectedCategory && !Number(selectedCategory)) {
+      const legacy = result.facets.categories.find(facet => facet.name === selectedCategory);
+      if (legacy) setSelectedCategory(String(legacy.categoryId));
+    }
+  }, [result, selectedCategory]);
 
   useEffect(() => {
     const currentSearch = searchParams.toString();
     if (currentSearch === lastWrittenSearchRef.current) return;
     lastWrittenSearchRef.current = currentSearch;
-    hydratingUrlRef.current = true;
     skipUrlWriteRef.current = true;
     const nextSearch = searchParams.get("q") ?? "";
     const nextSort = searchParams.get("sort")?.replaceAll("_", "-");
@@ -239,8 +230,8 @@ function Menu() {
     ]);
     setSortBy(isSortOption(nextSort) ? nextSort : "default");
     setSpecialFilter(isSpecialFilter(nextSpecial) ? nextSpecial : "all");
-    setPage(Math.max(1, Number(searchParams.get("page")) || 1));
-    setPerPage([10, 20, 50, 100].includes(nextPerPage) ? nextPerPage : 20);
+    setStartPage(Math.max(1, Math.floor(Number(searchParams.get("page")) || 1)));
+    setPerPage([10, 16, 20, 50, 100].includes(nextPerPage) ? nextPerPage : 16);
   }, [maxPrice, searchParams]);
 
   useEffect(() => {
@@ -255,24 +246,13 @@ function Menu() {
     if (maxPrice > 0 && priceRange[1] < maxPrice) next.set("max_price", String(priceRange[1]));
     if (specialFilter !== "all") next.set("special", specialFilter.replace("-", "_"));
     if (sortBy !== "default") next.set("sort", sortBy.replaceAll("-", "_"));
-    if (page !== 1) next.set("page", String(page));
-    if (perPage !== 20) next.set("per_page", String(perPage));
+    if (startPage !== 1) next.set("page", String(startPage));
+    if (perPage !== 16) next.set("per_page", String(perPage));
     if (next.toString() !== searchParams.toString()) {
       lastWrittenSearchRef.current = next.toString();
       setSearchParams(next, { replace: true });
     }
-  }, [debouncedSearch, maxPrice, page, perPage, priceRange, searchParams, selectedCategory, setSearchParams, sortBy, specialFilter]);
-
-  useEffect(() => {
-    if (initialFilterEffectRef.current) return;
-    if (hydratingUrlRef.current) {
-      hydratingUrlRef.current = false;
-      return;
-    }
-    // Reset pagination when URL-synchronized filters change.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPage(1);
-  }, [debouncedSearch, priceRange, selectedCategory, sortBy, specialFilter]);
+  }, [debouncedSearch, maxPrice, startPage, perPage, priceRange, searchParams, selectedCategory, setSearchParams, sortBy, specialFilter]);
 
   useEffect(() => {
     try {
@@ -321,11 +301,12 @@ function Menu() {
     setPriceRange([0, maxPrice]);
     setSortBy("default");
     setSpecialFilter("all");
-    setPage(1);
+    setStartPage(1);
   };
 
   const selectCategory = (category: string) => {
     setSelectedCategory(category);
+    setStartPage(1);
   };
 
   return (
@@ -351,21 +332,6 @@ function Menu() {
           <span className="menu-food-float menu-food-float-drink-3"><CupSoda /></span>
         </div>
 
-        {errorMessage && (
-          <div className="bonefree-toast error" role="alert">
-            <span className="bonefree-toast-icon" aria-hidden="true">!</span>
-            <span className="bonefree-toast-message">{errorMessage}</span>
-            <button
-              type="button"
-              onClick={() => setErrorMessage(null)}
-              aria-label={t("menu.close")}
-              className="toast-close"
-            >
-              <X size={15} strokeWidth={2.5} />
-            </button>
-          </div>
-        )}
-
         <header className="menu-page-hero">
           <div>
             <p className="menu-eyebrow">{t("menu.eyebrow")}</p>
@@ -387,6 +353,7 @@ function Menu() {
 
           </div>
 
+          <div className="menu-sidebar">
           <section className="menu-filter-bar" aria-label={t("menu.filtersLabel")}>
             <div className="menu-filter-top">
               <div className="menu-filter-group menu-filter-search">
@@ -400,12 +367,12 @@ function Menu() {
                     type="text"
                     placeholder={t("menu.searchPlaceholder")}
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(e) => { setSearchTerm(e.target.value); setStartPage(1); }}
                   />
                   {searchTerm && (
                     <button
                       type="button"
-                      onClick={() => setSearchTerm("")}
+                      onClick={() => { setSearchTerm(""); setStartPage(1); }}
                       aria-label={t("menu.clearSearch")}
                     >
                       <X size={16} />
@@ -442,7 +409,7 @@ function Menu() {
                       step={PRICE_STEP}
                       value={clampPrice(priceRange[1], maxPrice)}
                       onChange={(e) =>
-                        setPriceRange([priceRange[0], clampPrice(Number(e.target.value), maxPrice)])
+                        { setPriceRange([priceRange[0], clampPrice(Number(e.target.value), maxPrice)]); setStartPage(1); }
                       }
                       className="menu-price-slider"
                     />
@@ -456,21 +423,21 @@ function Menu() {
                     <button
                       type="button"
                       className={specialFilter === "all" ? "active" : ""}
-                      onClick={() => setSpecialFilter("all")}
+                      onClick={() => { setSpecialFilter("all"); setStartPage(1); }}
                     >
                       <span className="fw-bold">{t("menu.all")}</span>
                     </button>
                     <button
                       type="button"
                       className={specialFilter === "gluten-free" ? "active" : ""}
-                      onClick={() => setSpecialFilter("gluten-free")}
+                      onClick={() => { setSpecialFilter("gluten-free"); setStartPage(1); }}
                     >
                       <span className="fw-bold">{t("menu.glutenFree")}</span>
                     </button>
                     <button
                       type="button"
                       className={specialFilter === "alcohol" ? "active" : ""}
-                      onClick={() => setSpecialFilter("alcohol")}
+                      onClick={() => { setSpecialFilter("alcohol"); setStartPage(1); }}
                     >
                       <span className="fw-bold">{t("menu.alcohol")}</span>
                     </button>
@@ -505,6 +472,7 @@ function Menu() {
                             className={selected ? "selected fw-bold" : ""}
                             onClick={() => {
                               setSortBy(option);
+                              setStartPage(1);
                               setSortMenuOpen(false);
                             }}
                           >
@@ -528,9 +496,13 @@ function Menu() {
               </div>
             </div>
 
-            <div className="menu-category-list fw-semibold" aria-label={t("menu.categories")}>
+          </section>
+
+            <div className="menu-category-anchor" ref={categoryAnchorRef} aria-hidden="true" />
+            <div className={`menu-category-list fw-semibold${categoriesPinned ? " is-pinned" : ""}`} aria-label={t("menu.categories")}>
               <button
                 type="button"
+                aria-pressed={selectedCategory === ""}
                 className={selectedCategory === "" ? "active" : ""}
                 onClick={() => selectCategory("")}
               >
@@ -542,6 +514,7 @@ function Menu() {
                 <button
                   type="button"
                   key={cat.id}
+                  aria-pressed={selectedCategory === String(cat.id)}
                   className={selectedCategory === String(cat.id) ? "active f-bold" : ""}
                   onClick={() => selectCategory(String(cat.id))}
                 >
@@ -550,12 +523,12 @@ function Menu() {
                 </button>
               ))}
             </div>
-          </section>
 
+          </div>
           <div className="menu-content-column">
             <div className="menu-layout">
               <main className="menu-products-panel">
-                {loading ? (
+                {!result && !errorMessage ? (
                   <div className="products-grid">
                     {Array.from({ length: 6 }, (_, index) => (
                       <ProductCardSkeleton key={index} />
@@ -583,7 +556,7 @@ function Menu() {
                       </div>
                     ))}
                   </div>
-                ) : (
+                ) : !errorMessage && result ? (
                   <div className="menu-empty-state">
                     <span>{t("menu.noResults")}</span>
                     <h2>{t("menu.noResultsTitle")}</h2>
@@ -593,11 +566,19 @@ function Menu() {
                     </button>
                   </div>
 
-                )}
+                ) : null}
 
               </main>
             </div>
-            <Pagination page={page} perPage={perPage} total={total} totalPages={totalPages} onPageChange={setPage} onPerPageChange={(value) => { setPerPage(value); setPage(1); }} />
+            <div className="menu-feed-status" ref={setSentinel}>
+              <p role="status" aria-live="polite" aria-atomic="true">
+                {loading ? t("menu.loadingMore") : result && total > 0 ? t(hasMore ? "menu.loadedCount" : "menu.endOfMenu", { count: products.length, total }) : ""}
+              </p>
+              {errorMessage ? <div role="alert">
+                <p>{t("menu.loadError")}</p>
+                <button type="button" onClick={loadMore}>{t("menu.retry")}</button>
+              </div> : !loading && hasMore && result ? <button type="button" onClick={loadMore}>{t("menu.loadMore")}</button> : null}
+            </div>
           </div>
         </div>
 

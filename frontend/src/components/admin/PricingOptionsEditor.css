@@ -1,0 +1,21 @@
+.ad-pricing-editor { margin-top: 1.5rem; }
+.ad-pricing-group { margin-top: 1.25rem; }
+.ad-pricing-group h5 { color: var(--ad-heading); font-size: 1rem; }
+.ad-pricing-option { padding: 14px; margin-bottom: 12px; border: 1px solid var(--ad-border); border-radius: 10px; background: var(--ad-surface-soft); }
+.ad-pricing-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.ad-pricing-fields .ad-field { min-width: 0; }
+.ad-pricing-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; }
+.ad-pricing-order { display: flex; flex-wrap: wrap; gap: 6px; }
+.ad-pricing-order .ad-btn { min-height: 44px; min-width: 44px; }
+@media (max-width: 760px) {
+  .ad-pricing-fields { grid-template-columns: minmax(0, 1fr); }
+  .ad-pricing-fields input, .ad-pricing-fields select { width: 100%; min-height: 44px; }
+}
+.ad-size-price-preview {
+  margin: 12px 0 0;
+  color: var(--ad-heading);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}

@@ -1,3 +1,4 @@
+import type { CatalogPortion, CatalogExtra } from "./pricing";
 import type { CatalogTranslations } from '../utils/catalogTranslations';
 import type { ProductMedia } from './product';
 export type EntityStatus = 'active' | 'inactive';
@@ -37,6 +38,9 @@ export interface AdminProductIngredient {
 }
 
 export interface AdminProductPayload {
+  portions?: CatalogPortion[];
+  extras?: CatalogExtra[];
+  effectiveStartingPrice?: number | null;
   translations?: CatalogTranslations;
   productId?: number;
   name: string;

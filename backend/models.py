@@ -174,6 +174,10 @@ class Product(AppBaseModel):
         lazy="selectin",
         order_by=lambda: (ProductMedia.sort_order, ProductMedia.id),
     )
+    pricing_options: Mapped[List["ProductPricingOption"]] = relationship(
+        back_populates="product", cascade="all, delete-orphan", lazy="selectin",
+        order_by=lambda: (ProductPricingOption.display_order, ProductPricingOption.id),
+    )
     # Parent-side 0..N: a product may exist without any customer reviews.
     reviews: Mapped[List[ProductReview]] = relationship("ProductReview", back_populates="product")
 
@@ -675,3 +679,31 @@ class IngredientTranslation(Base):
     ingredient_id: Mapped[int] = mapped_column(ForeignKey("ingredient.id", ondelete="CASCADE"), primary_key=True)
     locale: Mapped[str] = mapped_column(String(5), primary_key=True)
     name: Mapped[str | None] = mapped_column(String(120))
+
+
+class ProductPricingOption(Base):
+    __tablename__ = "product_pricing_option"
+    __table_args__ = (
+        CheckConstraint("kind IN ('portion', 'addon', 'replacement')", name="ck_pricing_option_kind"),
+        CheckConstraint("price >= 0", name="ck_pricing_option_price"),
+        CheckConstraint("display_order >= 0", name="ck_pricing_option_order"),
+    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    product_id: Mapped[int] = mapped_column(ForeignKey("product.id", ondelete="CASCADE"), index=True)
+    label: Mapped[str] = mapped_column(String(150))
+    price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+    kind: Mapped[str] = mapped_column(String(16))
+    display_order: Mapped[int] = mapped_column(Integer, default=0)
+    is_available: Mapped[bool] = mapped_column(Boolean, default=True)
+    product: Mapped[Product] = relationship(back_populates="pricing_options")
+    translations: Mapped[List["ProductPricingOptionTranslation"]] = relationship(
+        cascade="all, delete-orphan", lazy="selectin",
+    )
+
+
+class ProductPricingOptionTranslation(Base):
+    __tablename__ = "product_pricing_option_translation"
+    __table_args__ = (CheckConstraint("locale IN ('en-GB', 'de-DE')", name="ck_pricing_option_translation_locale"),)
+    option_id: Mapped[int] = mapped_column(ForeignKey("product_pricing_option.id", ondelete="CASCADE"), primary_key=True)
+    locale: Mapped[str] = mapped_column(String(5), primary_key=True)
+    name: Mapped[str | None] = mapped_column(String(150))

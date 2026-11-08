@@ -1,3 +1,4 @@
+import { MenuFeed, readMenuVisit, saveMenuVisit } from '../utils/menuFeed';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { adminApiClient, publicApiClient } from '../api/clients';
 import { adminDeduplicatedFetch, publicCachedFetch, publicRequestCache } from '../api/requestCache';
@@ -39,4 +40,34 @@ describe('generated client and service caching integration', () => {
     expect((await getPublicSiteTheme()).themeId).toBe(name);
     expect(network).toHaveBeenCalledTimes(10);
   });
+  it('invalidates accumulated menu navigation snapshots after catalog publishing', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ items: [], page: 1, per_page: 16, total: 0, total_pages: 0, facets: { max_price: 0, total_products: 0, categories: [] } }), { headers: { 'Content-Type': 'application/json' } })));
+    const feed = new MenuFeed(page => productService.getPage({ page, perPage: 16, locale: 'pt-PT' }));
+    await feed.next(); saveMenuVisit('menu-before-edit', feed);
+    expect(readMenuVisit('menu-before-edit')).toBeDefined();
+    await updateProduct(1, { name: 'Updated dish' });
+    expect(readMenuVisit('menu-before-edit')).toBeUndefined();
+  });
+
+  it('invalidates filtered pages, facets and dish details after an options-only update', async () => {
+    const requests: Request[] = [];
+    let price = 9.5;
+    vi.stubGlobal('fetch', vi.fn(async (request: Request) => {
+      requests.push(request);
+      if (request.method === 'PUT') {
+        const body = await request.json();
+        expect(body.portions).toEqual([{ label: '3 pieces', price: 8.5, is_available: true }]);
+        expect(body.extras).toEqual([{ label: 'Sweet potato', price_delta: 1, type: 'replacement', is_available: true }]);
+        price = 8.5;
+      }
+      return new Response(JSON.stringify({ id: 1, price, facets: { max_price: price } }), { headers: { 'Content-Type': 'application/json' } });
+    }));
+    await productService.getPage({ locale: 'pt-PT', minPrice: 8 });
+    await productService.getById(1, 'en-GB');
+    await updateProduct(1, { portions: [{ label: '3 pieces', price: 8.5, isAvailable: true }], extras: [{ label: 'Sweet potato', priceDelta: 1, type: 'replacement', isAvailable: true }] });
+    expect((await productService.getPage({ locale: 'pt-PT', minPrice: 8 })).facets.maxPrice).toBe(8.5);
+    expect((await productService.getById(1, 'en-GB')).price).toBe(8.5);
+    expect(requests).toHaveLength(5);
+  });
+
 });

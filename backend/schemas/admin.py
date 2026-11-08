@@ -1,5 +1,8 @@
 """Admin schemas for API validation."""
 
+from schemas.pricing import PricingInputs, AdminPortionResponse, AdminExtraResponse
+
+
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 from typing import Optional, List
 from datetime import date, datetime
@@ -218,7 +221,7 @@ class ProductIngredientResponse(BaseModel):
     calories_per_gram: Optional[float] = None
 
 
-class ProductBase(BaseModel):
+class ProductBase(PricingInputs):
     """Base product schema for create/update."""
     translations: dict[TranslationLocale, ProductTranslationText | None] | None = None
     name: str
@@ -256,7 +259,7 @@ class ProductCreate(ProductBase):
     pass
 
 
-class ProductUpdate(BaseModel):
+class ProductUpdate(PricingInputs):
     """Schema for updating a product."""
     translations: dict[TranslationLocale, ProductTranslationText | None] | None = None
     name: Optional[str] = None
@@ -297,6 +300,9 @@ class ProductMediaUploadResponse(BaseModel):
 
 class ProductAdminResponse(BaseModel):
     """Response model for product in admin context."""
+    portions: list[AdminPortionResponse] = Field(default_factory=list)
+    extras: list[AdminExtraResponse] = Field(default_factory=list)
+    effective_starting_price: float | None = None
     translations: dict[TranslationLocale, ProductTranslationText] = Field(default_factory=dict)
     product_id: int
     product_display_id: str

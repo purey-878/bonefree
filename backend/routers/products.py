@@ -1,3 +1,4 @@
+from services.catalog_pricing import starting_price_expression
 
 import re
 from fastapi import APIRouter, Depends, Query
@@ -127,7 +128,7 @@ def list_products(
     display_name = localized_text(ProductTranslation, "product_id", Product.product_id, "name", Product.name, locale)
     display_description = localized_text(ProductTranslation, "product_id", Product.product_id, "description", Product.product_description, locale)
     category_name = localized_text(CategoryTranslation, "category_id", Category.category_id, "name", Category.category_name, locale)
-    discounted_price = Product.price * (1 - (func.coalesce(Product.discount_percentage, 0) / 100.0))
+    discounted_price = starting_price_expression()
     filters = [active_product_filter()]
     if search and search.strip():
         pattern = f"%{search.strip()}%"
@@ -162,9 +163,9 @@ def list_products(
         + func.coalesce(Product.sold, 0)
     )
     if sort == "price_asc":
-        ordering = (discounted_price.asc(), Product.product_id.asc())
+        ordering = (discounted_price.asc().nulls_last(), Product.product_id.asc())
     elif sort == "price_desc":
-        ordering = (discounted_price.desc(), Product.product_id.asc())
+        ordering = (discounted_price.desc().nulls_last(), Product.product_id.asc())
     elif sort == "name_asc":
         ordering = (display_name.asc(), Product.product_id.asc())
     elif sort == "popular":
@@ -184,6 +185,7 @@ def list_products(
     items = [
         ProductResponse.from_orm_custom(
             product,
+            locale=locale,
             unavailable_due_to_unavailable_base=product.product_id in unavailable_base_ids,
             unavailable_reason=product_unavailable_reason(product, unavailable_base_ids),
             ingredients=ingredient_lookup.get(product.product_id, []),
@@ -194,14 +196,14 @@ def list_products(
     items = localize_products(db, products, items, locale)
 
     facet_rows = db.execute(
-        select(Category.category_id, category_name, func.count(Product.product_id))
+        select(Category.category_id, category_name, func.count(Product.product_id), func.max(discounted_price))
         .join(Product, Product.category_id == Category.category_id)
         .where(active_product_filter())
         .group_by(Category.category_id, Category.category_name)
         .order_by(category_name.asc(), Category.category_id.asc())
     ).all()
     catalog_total = sum(int(row[2] or 0) for row in facet_rows)
-    catalog_max_price = db.scalar(select(func.max(discounted_price)).where(active_product_filter())) or 0
+    catalog_max_price = max((row[3] or 0 for row in facet_rows), default=0)
     facets = ProductCatalogFacets(
         total_products=catalog_total,
         max_price=float(catalog_max_price),
@@ -212,7 +214,7 @@ def list_products(
                 name=category_name,
                 count=int(count_value or 0),
             )
-            for category_id_value, category_name, count_value in facet_rows
+            for category_id_value, category_name, count_value, _max_price in facet_rows
         ],
     )
     return ProductPageResponse(
@@ -474,6 +476,7 @@ def get_product(product_id: str, db: Session = Depends(get_db), locale: CatalogL
     unavailable_base_ids = unavailable_base_product_ids(db, [product.product_id])
     response = ProductResponse.from_orm_custom(
         product,
+        locale=locale,
         unavailable_due_to_unavailable_base=product.product_id in unavailable_base_ids,
         unavailable_reason=product_unavailable_reason(product, unavailable_base_ids),
         ingredients=_product_ingredient_nutrition(db, product.product_id),

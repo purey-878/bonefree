@@ -22,6 +22,42 @@ export type AddItemSchema = {
 };
 
 /**
+ * AdminExtraResponse
+ */
+export type AdminExtraResponse = {
+    /**
+     * Display Order
+     */
+    display_order: number;
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Is Available
+     */
+    is_available: boolean;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Price Delta
+     */
+    price_delta: number;
+    /**
+     * Translations
+     */
+    translations?: {
+        [key: string]: OptionTranslationText;
+    };
+    /**
+     * Type
+     */
+    type: 'addon' | 'replacement';
+};
+
+/**
  * AdminLogin
  *
  * Request model for admin login.
@@ -88,6 +124,38 @@ export type AdminOrderSummary = {
      * Revenue
      */
     revenue?: number;
+};
+
+/**
+ * AdminPortionResponse
+ */
+export type AdminPortionResponse = {
+    /**
+     * Display Order
+     */
+    display_order: number;
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Is Available
+     */
+    is_available: boolean;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Price
+     */
+    price: number;
+    /**
+     * Translations
+     */
+    translations?: {
+        [key: string]: OptionTranslationText;
+    };
 };
 
 /**
@@ -1195,6 +1263,72 @@ export type EventsSettings = {
 };
 
 /**
+ * ExtraInput
+ */
+export type ExtraInput = {
+    /**
+     * Display Order
+     */
+    display_order?: number | null;
+    /**
+     * Id
+     */
+    id?: number | null;
+    /**
+     * Is Available
+     */
+    is_available?: boolean;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Price Delta
+     */
+    price_delta: number | string;
+    /**
+     * Translations
+     */
+    translations?: {
+        [key: string]: OptionTranslationText | null;
+    };
+    /**
+     * Type
+     */
+    type?: 'addon' | 'replacement';
+};
+
+/**
+ * ExtraResponse
+ */
+export type ExtraResponse = {
+    /**
+     * Display Order
+     */
+    display_order: number;
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Is Available
+     */
+    is_available: boolean;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Price Delta
+     */
+    price_delta: number;
+    /**
+     * Type
+     */
+    type: 'addon' | 'replacement';
+};
+
+/**
  * ForgotPasswordRequest
  */
 export type ForgotPasswordRequest = {
@@ -1649,6 +1783,16 @@ export type MessageResponse = {
 };
 
 /**
+ * OptionTranslationText
+ */
+export type OptionTranslationText = {
+    /**
+     * Name
+     */
+    name?: string | null;
+};
+
+/**
  * OrderCreateResponse
  */
 export type OrderCreateResponse = {
@@ -1860,6 +2004,64 @@ export type PopularProduct = {
 };
 
 /**
+ * PortionInput
+ */
+export type PortionInput = {
+    /**
+     * Display Order
+     */
+    display_order?: number | null;
+    /**
+     * Id
+     */
+    id?: number | null;
+    /**
+     * Is Available
+     */
+    is_available?: boolean;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Price
+     */
+    price: number | string;
+    /**
+     * Translations
+     */
+    translations?: {
+        [key: string]: OptionTranslationText | null;
+    };
+};
+
+/**
+ * PortionResponse
+ */
+export type PortionResponse = {
+    /**
+     * Display Order
+     */
+    display_order: number;
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Is Available
+     */
+    is_available: boolean;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Price
+     */
+    price: number;
+};
+
+/**
  * ProductAdminPageResponse
  */
 export type ProductAdminPageResponse = {
@@ -1924,6 +2126,14 @@ export type ProductAdminResponse = {
      */
     effective_available: boolean;
     /**
+     * Effective Starting Price
+     */
+    effective_starting_price?: number | null;
+    /**
+     * Extras
+     */
+    extras?: Array<AdminExtraResponse>;
+    /**
      * Featured
      */
     featured?: boolean;
@@ -1947,6 +2157,10 @@ export type ProductAdminResponse = {
      * Name
      */
     name: string;
+    /**
+     * Portions
+     */
+    portions?: Array<AdminPortionResponse>;
     /**
      * Price
      */
@@ -2099,6 +2313,10 @@ export type ProductCreate = {
      */
     discount_percentage?: number;
     /**
+     * Extras
+     */
+    extras?: Array<ExtraInput> | null;
+    /**
      * Featured
      */
     featured?: boolean;
@@ -2118,6 +2336,10 @@ export type ProductCreate = {
      * Name
      */
     name: string;
+    /**
+     * Portions
+     */
+    portions?: Array<PortionInput> | null;
     /**
      * Price
      */
@@ -2438,6 +2660,14 @@ export type ProductResponse = {
      */
     discount_percent?: number;
     /**
+     * Effective Starting Price
+     */
+    effective_starting_price?: number | null;
+    /**
+     * Extras
+     */
+    extras?: Array<ExtraResponse>;
+    /**
      * Gluten Free
      */
     gluten_free?: boolean;
@@ -2469,6 +2699,10 @@ export type ProductResponse = {
      * Original Price
      */
     original_price?: number | null;
+    /**
+     * Portions
+     */
+    portions?: Array<PortionResponse>;
     /**
      * Price
      */
@@ -2786,6 +3020,10 @@ export type ProductUpdate = {
      */
     discount_percentage?: number | null;
     /**
+     * Extras
+     */
+    extras?: Array<ExtraInput> | null;
+    /**
      * Featured
      */
     featured?: boolean | null;
@@ -2805,6 +3043,10 @@ export type ProductUpdate = {
      * Name
      */
     name?: string | null;
+    /**
+     * Portions
+     */
+    portions?: Array<PortionInput> | null;
     /**
      * Price
      */

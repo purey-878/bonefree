@@ -1,3 +1,4 @@
+import { formatProductPrices } from "../utils/pricing"
 import { ArrowRight, Sparkles } from "lucide-react";
 import type { PointerEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -13,7 +14,6 @@ import i18n, { resolvedLocale } from "../i18n";
 import { getPublicChefSpecial, productService } from "../services";
 import type { Product } from "../types/product";
 import { applyApiImageFallback, productImageFallback, resolveProductImageUrl } from "../utils/imageFallback";
-import { formatEuro } from "../utils/money";
 import { primaryProductMediaUrl } from "../utils/productMedia";
 
 type CategorySummary = {
@@ -272,7 +272,7 @@ const HomePage = () => {
                 />
                 <FeaturedMeta>
                   <span>{heroDish.category}</span>
-                  <strong>{formatEuro(heroDish.price)}</strong>
+                  <strong>{formatProductPrices(heroDish)}</strong>
                 </FeaturedMeta>
                 <FeaturedTitle>{heroDish.name}</FeaturedTitle>
                 <FeaturedText>{productDescription(heroDish)}</FeaturedText>
@@ -390,7 +390,7 @@ const HomePage = () => {
           </p>
           <ChefDetails>
 
-            {chefSpecial && <strong>{formatEuro(chefSpecial.price)}</strong>}
+            {chefSpecial && <strong>{formatProductPrices(chefSpecial)}</strong>}
             {chefSpecial && (
               <span>{chefSpecial.available ? t("home.available") : t("home.unavailable")}</span>
             )}

@@ -1,5 +1,9 @@
 """Product/Product schemas for API validation."""
 
+from schemas.pricing import PortionResponse, ExtraResponse
+from services.catalog_pricing import starting_price, has_available_portion, pricing_responses
+
+
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 
@@ -7,7 +11,7 @@ from schemas.enums import EntityStatus, IngredientType
 from schemas.media import ProductMediaResponse
 from schemas.pagination import PaginatedResponse
 from services.product_media import product_media_responses
-from services.product_pricing import discounted_product_price, product_discount_percent, product_tags
+from services.product_pricing import product_discount_percent, product_tags
 
 
 class ProductIngredientNutrition(BaseModel):
@@ -31,6 +35,9 @@ class ProductResponse(BaseModel):
     description: str | None
     media: list[ProductMediaResponse] = Field(default_factory=list)
     price: float | None
+    effective_starting_price: float | None = None
+    portions: list[PortionResponse] = Field(default_factory=list)
+    extras: list[ExtraResponse] = Field(default_factory=list)
     original_price: float | None = None
     discount_percent: float = 0
     sold: int = 0
@@ -55,9 +62,15 @@ class ProductResponse(BaseModel):
         unavailable_due_to_unavailable_base: bool = False,
         unavailable_reason: str | None = None,
         ingredients: list[ProductIngredientNutrition] | None = None,
+        locale: str = "pt-PT",
     ):
         """Custom ORM conversion for Product model."""
         available = bool(getattr(p, "available", False)) and not unavailable_due_to_unavailable_base
+        portions, extras = pricing_responses(p, locale)
+        price = starting_price(p)
+        if not has_available_portion(p):
+            available = False
+            unavailable_reason = unavailable_reason or "No portions are currently available."
         saved_calories = getattr(p, "total_calories", None)
         ingredient_calories = sum(
             item.calories
@@ -79,7 +92,10 @@ class ProductResponse(BaseModel):
             category=p.category.category_name if getattr(p, 'category', None) else p.category_id,
             description=p.product_description,
             media=product_media_responses(p),
-            price=float(discounted_product_price(p)) if p.price else None,
+            price=float(price) if price is not None else None,
+            effective_starting_price=float(price) if price is not None else None,
+            portions=portions,
+            extras=extras,
             original_price=float(p.price) if p.price else None,
             discount_percent=float(product_discount_percent(p)),
             sold=int(getattr(p, "sold", 0) or 0),

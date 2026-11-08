@@ -1,0 +1,8 @@
+.pd-pricing-options { margin-block: 1rem; }
+.pd-pricing-options h2 { font-size: 1rem; margin: 0 0 0.5rem; }
+.pd-pricing-options dl { margin: 0; }
+.pd-pricing-options dl > div { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; padding-block: 0.45rem; border-bottom: 1px solid var(--glass-border); }
+.pd-pricing-options dt { min-width: 0; font-weight: 500; overflow-wrap: anywhere; }
+.pd-pricing-options dd { margin: 0; flex-shrink: 0; font-weight: 700; }
+.pd-pricing-options small { display: block; color: var(--brand-muted); }
+.pd-pricing-options .is-unavailable { color: var(--brand-muted); }

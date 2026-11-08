@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
-import { lazy, Suspense, useEffect, useLayoutEffect } from 'react'
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef } from 'react'
 import { loadAdminTranslations } from './i18n/loadAdminTranslations'
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation, useNavigationType } from 'react-router-dom'
 import './App.css'
 import './siteThemes.css'
 import './theme.css'
@@ -80,10 +80,15 @@ function ProtectedAdminRoute({
 
 function App() {
   const location = useLocation()
+  const navigationType = useNavigationType()
+  const scrollPathRef = useRef<string | null>(null)
   const visibleLocation = location
   const hideFooter = location.pathname.startsWith("/admin/")
 
   useEffect(() => {
+    const path = visibleLocation.pathname + visibleLocation.hash
+    if (scrollPathRef.current === path) return
+    scrollPathRef.current = path
     if (visibleLocation.hash) {
       window.requestAnimationFrame(() => {
         document
@@ -93,10 +98,11 @@ function App() {
       return
     }
 
+    if (visibleLocation.pathname === "/menu" && navigationType === "POP") return
     window.scrollTo({ top: 0, left: 0, behavior: "auto" })
     // Query-string changes represent in-place state (filters, tabs and pagination),
     // so they must not throw the user back to the top of the current screen.
-  }, [visibleLocation.hash, visibleLocation.pathname])
+  }, [visibleLocation.hash, visibleLocation.pathname, navigationType])
 
   return (
     <>
