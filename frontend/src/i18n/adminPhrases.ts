@@ -11,6 +11,7 @@ const phrases = {
   catalogPriceHelp: ["Preços dos pratos", "Preços dos pratos", "Dish prices", "Gerichtpreise"],
   browseMenu: ["Ver menu", "Ver menu", "View menu", "Speisekarte ansehen"],
 
+  navReservations: ["Reservas", "Reservas", "Reservations", "Reservierungen"],
   navProducts: ["Produtos", "Produtos", "Products", "Produkte"],
   navIngredients: ["Ingredientes", "Ingredientes", "Ingredients", "Zutaten"],
   navCategories: ["Categorias", "Categorias", "Categories", "Kategorien"],

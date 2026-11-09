@@ -1,6 +1,6 @@
 export const SITE_URL = 'https://bonefree.pt';
 export const SITE_IMAGE = `${SITE_URL}/assets/images/bonefree-logo.png`;
-export const PUBLIC_PATHS = ['/', '/menu', '/about', '/events', '/contact', '/privacy'] as const;
+export const PUBLIC_PATHS = ['/', '/menu', '/about', '/events', '/contact', '/privacy', '/reservations'] as const;
 export type PublicPath = typeof PUBLIC_PATHS[number];
 type Locale = 'pt-PT' | 'en-GB' | 'de-DE';
 export type PageMetadata = { title: string; description: string; path?: string; noindex?: boolean };
@@ -12,6 +12,7 @@ const copy: Record<Locale, Record<PublicPath, [string, string]>> = {
     '/about': ['Sobre o restaurante | Bonefree', 'Conhece o Bonefree, restaurante e bar vegan na Costa da Caparica.'],
     '/events': ['Eventos | Bonefree', 'Descobre os eventos e as novidades do restaurante e bar Bonefree na Costa da Caparica.'],
     '/contact': ['Contactos e localização | Bonefree', 'Encontra o Bonefree na Costa da Caparica e fala com a nossa equipa.'],
+    '/reservations': ['Reservas | Restaurante Vegan na Costa da Caparica | BoneFree', 'Reserve a sua mesa no Bonefree, restaurante vegan na Costa da Caparica. Escolha data, horário e número de pessoas e guarde o seu passe de reserva.'],
     '/privacy': ['Privacidade e armazenamento | Bonefree', 'Saiba como este website utiliza o armazenamento do navegador e os serviços externos.'],
   },
   'en-GB': {
@@ -20,6 +21,7 @@ const copy: Record<Locale, Record<PublicPath, [string, string]>> = {
     '/about': ['About the restaurant | Bonefree', 'Meet Bonefree, a vegan restaurant and bar in Costa da Caparica.'],
     '/events': ['Events | Bonefree', 'Discover events and news from Bonefree restaurant and bar in Costa da Caparica.'],
     '/contact': ['Contact and location | Bonefree', 'Find Bonefree in Costa da Caparica and speak with our team.'],
+    '/reservations': ['Reserve a Table | Bonefree', 'Reserve a table at Bonefree, a vegan restaurant in Costa da Caparica. Choose your date, time and guests, then save your private reservation pass.'],
     '/privacy': ['Privacy and storage | Bonefree', 'How this website uses browser storage and external services.'],
   },
   'de-DE': {
@@ -28,6 +30,7 @@ const copy: Record<Locale, Record<PublicPath, [string, string]>> = {
     '/about': ['Über das Restaurant | Bonefree', 'Lernen Sie Bonefree kennen, ein veganes Restaurant mit Bar in Costa da Caparica.'],
     '/events': ['Veranstaltungen | Bonefree', 'Veranstaltungen und Neuigkeiten aus dem Restaurant und der Bar Bonefree in Costa da Caparica.'],
     '/contact': ['Kontakt und Standort | Bonefree', 'Finden Sie Bonefree in Costa da Caparica und sprechen Sie mit unserem Team.'],
+    '/reservations': ['Tisch reservieren | Bonefree', 'Reservieren Sie einen Tisch im veganen Restaurant Bonefree in Costa da Caparica. Wählen Sie Datum, Uhrzeit und Personenzahl und speichern Sie Ihren Pass.'],
     '/privacy': ['Datenschutz und Speicherung | Bonefree', 'Informationen zur Browserspeicherung und zu externen Diensten dieser Website.'],
   },
 };
@@ -64,6 +67,7 @@ export function metadataHtml(meta: PageMetadata) {
   return `<!--seo:start-->
 <title>${title}</title>
 <meta name="description" content="${description}" />
+<meta name="referrer" content="${meta.noindex ? 'no-referrer' : 'strict-origin-when-cross-origin'}" />
 <meta name="robots" content="${meta.noindex ? 'noindex, follow' : 'index, follow'}" />
 ${url ? `<link rel="canonical" href="${escapeHtml(url)}" />` : ''}
 <meta property="og:type" content="website" />
@@ -81,5 +85,5 @@ ${meta.noindex ? '' : `<script id="restaurant-schema" type="application/ld+json"
 }
 
 export function staticContent(meta: PageMetadata) {
-  return `<main><h1>${escapeHtml(meta.title)}</h1><p>${escapeHtml(meta.description)}</p><nav aria-label="Bonefree"><a href="/">Bonefree</a> · <a href="/menu">Menu</a> · <a href="/about">Sobre</a> · <a href="/events">Eventos</a> · <a href="/contact">Contactos</a> · <a href="/privacy">Privacidade</a></nav></main>`;
+  return `<main><h1>${escapeHtml(meta.title)}</h1><p>${escapeHtml(meta.description)}</p><nav aria-label="Bonefree"><a href="/">Bonefree</a> · <a href="/menu">Menu</a> · <a href="/reservations">Reservar mesa</a> · <a href="/about">Sobre</a> · <a href="/events">Eventos</a> · <a href="/contact">Contactos</a> · <a href="/privacy">Privacidade</a></nav></main>`;
 }

@@ -12,6 +12,7 @@
     "api:generate": "npm run api:export && openapi-ts",
     "api:check": "npm run api:generate && git diff --exit-code -- openapi/openapi.json src/api/generated",
     "test": "vitest run",
+    "test:reservations:browser": "node scripts/test-reservations-browser.mjs",
     "test:menu:browser": "node scripts/test-menu-browser.mjs",
     "seo:catalog": "node scripts/snapshot-public-catalog.mjs",
     "test:seo:catalog": "node --test scripts/snapshot-public-catalog.node-test.mjs",

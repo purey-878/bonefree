@@ -2,7 +2,7 @@ import { restoreMenuPriceRange } from "../utils/menuFilters";
 import { resolvedLocale } from "../i18n";
 import { CakeSlice, Check, ChevronDown, CupSoda, Salad, Sandwich, Search, SlidersHorizontal, Soup, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useNavigationType, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useNavigationType, useSearchParams } from "react-router-dom";
 
 import { useTranslation } from "react-i18next";
 import Navbar from "../components/Navbar";
@@ -337,6 +337,7 @@ function Menu() {
             <p className="menu-eyebrow">{t("menu.eyebrow")}</p>
             <h1><span className="menu-title-desktop">{t("menu.title")}</span><span className="menu-title-mobile">{t("menu.eyebrow")}</span></h1>
             <p className="menu-mobile-description">{t("menu.shortDescription")}</p>
+            <Link to="/reservations" className="menu-reservation-link">{t("home.reserveTable")}</Link>
           </div>
           <p>
             {t("menu.description")}

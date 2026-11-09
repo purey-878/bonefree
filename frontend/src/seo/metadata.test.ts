@@ -15,13 +15,18 @@ describe('restaurant metadata', () => {
     }
   });
   it('never indexes retired, private or unknown paths as restaurant pages', () => {
-    for (const path of ['/cart', '/checkout', '/orders/42', '/profile', '/login', '/register', '/admin/login', '/admin/dashboard', '/unknown', '/product/not-an-id']) {
+    for (const path of ['/cart', '/checkout', '/orders/42', '/profile', '/login', '/register', '/admin/login', '/admin/dashboard', '/reservations/confirmation', '/unknown', '/product/not-an-id']) {
       const meta = pageMetadata(path);
       expect(meta.noindex).toBe(true);
       expect(meta.path).toBeUndefined();
       expect(metadataHtml(meta)).not.toContain('rel="canonical"');
     }
     expect(pageMetadata('/product/42').path).toBe('/product/42');
+  });
+  it('indexes booking information but never private passes', () => {
+    expect(pageMetadata('/reservations').path).toBe('/reservations');
+    expect(PUBLIC_PATHS).not.toContain('/reservations/confirmation');
+    expect(metadataHtml(pageMetadata('/reservations/confirmation'))).toContain('no-referrer');
   });
   it('escapes catalog text in HTML attributes and static copy', () => {
     const meta = { title: '<script>"&', description: '<img src=x onerror=evil()>', path: '/menu' };

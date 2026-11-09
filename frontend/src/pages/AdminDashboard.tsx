@@ -6,7 +6,7 @@ import { catalogText, editCatalogTranslation } from "../utils/catalogTranslation
 import type { CatalogLocale, CatalogText } from "../utils/catalogTranslations"
 import { Menu, MoreHorizontal, Search, SlidersHorizontal, X } from "lucide-react"
 import type { FormEvent, MouseEvent, SyntheticEvent } from "react"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import AdminAccessDenied from "../components/AdminAccessDenied"
@@ -106,6 +106,8 @@ function handleAdminImageError(event: SyntheticEvent<HTMLImageElement>) {
   applyApiImageFallback(event.currentTarget)
 }
 
+const ReservationAdmin = lazy(() => import('../components/admin/ReservationAdmin'))
+
 type TabType = AdminDashboardTab
 type AdminTheme = "light" | "dark"
 type SiteSettingsTab = "promote" | "theme" | "company" | "social" | "events"
@@ -146,6 +148,7 @@ function getErrorMessage(error: unknown, fallback: string): string {
 }
 
 const NAV_ITEMS: { tab: TabType; label: string; icon: string }[] = [
+  { tab: "reservations", label: "Reservas", icon: "M4 5h16v16H4zM8 2v6M16 2v6M4 11h16" },
   { tab: "products", label: "Produtos", icon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" },
   { tab: "ingredients", label: "Ingredientes", icon: "M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48 2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48 2.83-2.83" },
   { tab: "categories", label: "Categorias", icon: "M4 6h16M4 12h16M4 18h7" },
@@ -179,7 +182,7 @@ function isHexColor(value: string) {
 
 const NAV_GROUPS: { label: string; tabs: TabType[] }[] = [
 
-  { label: "Menu", tabs: ["products", "ingredients", "categories"] },
+  { label: "Menu", tabs: ["products", "ingredients", "categories", "reservations"] },
 
   { label: "Admin", tabs: ["staff", "settings"] },
 ]
@@ -4312,6 +4315,7 @@ export default function AdminDashboard() {
               )}
             </div>
           )}
+          {activeTab === "reservations" && <Suspense fallback={<p>{t("common.loading", { defaultValue: "…" })}</p>}><ReservationAdmin owner={isOwner} /></Suspense>}
           {activeTab === "settings" && isOwner && (
             <SiteSettingsPanel
               value={siteTheme}

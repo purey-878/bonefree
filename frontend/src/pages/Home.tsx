@@ -357,11 +357,12 @@ const HomePage = () => {
             ))}
           </PopularCarouselDots>
         )}
-        <div className="d-flex justify-content-center mt-4">
+        <div className="d-flex flex-wrap gap-3 justify-content-center mt-4">
           <PrimaryCta className="fw-semibold" to="/menu">
             {t("home.openFullMenu")}
             <ArrowRight size={18} aria-hidden="true" />
           </PrimaryCta>
+          <PrimaryCta to="/reservations">{t("home.reserveTable")}</PrimaryCta>
         </div>
       </FavoritesSection>
 

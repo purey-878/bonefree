@@ -10,6 +10,7 @@ import LanguageSwitcher from "./LanguageSwitcher";
 const desktopLinks = [
   { path: "/", labelKey: "navigation.home" },
   { path: "/menu", labelKey: "navigation.menu" },
+  { path: "/reservations", labelKey: "navigation.reserveTable" },
   { path: "/about", labelKey: "navigation.about" },
   { path: "/events", labelKey: "navigation.events" },
   { path: "/contact", labelKey: "navigation.contact" },

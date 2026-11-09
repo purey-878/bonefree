@@ -16,6 +16,7 @@ export function applyPageMetadata(meta: PageMetadata) {
     if (!element) { element = document.createElement('meta'); element.setAttribute(attribute, key); document.head.append(element); }
     element.content = content;
   };
+  set('meta[name="referrer"]', 'name', 'referrer', meta.noindex ? 'no-referrer' : 'strict-origin-when-cross-origin');
   set('meta[name="description"]', 'name', 'description', meta.description);
   set('meta[name="robots"]', 'name', 'robots', meta.noindex ? 'noindex, follow' : 'index, follow');
   for (const prefix of ['og', 'twitter']) {
@@ -33,4 +34,10 @@ export function applyPageMetadata(meta: PageMetadata) {
     canonical?.remove();
     document.head.querySelector('meta[property="og:url"]')?.remove();
   }
+}
+
+/** Advertise booking only after the public API confirms that it is enabled. */
+export function applyReservationAction(enabled: boolean) {
+  const schema = document.head.querySelector<HTMLScriptElement>('#restaurant-schema');
+  if (schema) schema.textContent = JSON.stringify({ ...restaurantSchema, ...(enabled ? { potentialAction: { '@type': 'ReserveAction', target: `${SITE_URL}/reservations` } } : {}) });
 }

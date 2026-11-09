@@ -303,6 +303,7 @@ export const ProductDetail = () => {
               )}
             </div>
 
+            <Link className="pd-back-btn" to="/reservations">{t("home.reserveTable")}</Link>
             <ProductPricingDetails portions={product.portions} extras={product.extras} />
             <p className="pd-desc">
               {product.description || t("productDetail.fallbackDescription")}

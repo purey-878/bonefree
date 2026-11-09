@@ -14,10 +14,11 @@ import About from './pages/About'
 import Events from './pages/Events'
 import Contact from './pages/Contact'
 import Privacy from './pages/Privacy'
+import Reservations from './pages/Reservations'
 import ProductDetail from './pages/ProductDetail'
 import AdminLogin from './pages/AdminLogin'
 
-const pages = { '/': Home, '/menu': Menu, '/about': About, '/events': Events, '/contact': Contact, '/privacy': Privacy }
+const pages = { '/': Home, '/menu': Menu, '/about': About, '/events': Events, '/contact': Contact, '/privacy': Privacy, '/reservations': Reservations, '/reservations/confirmation': Reservations }
 
 export async function renderInitialPage(path: string) {
   await i18nReady

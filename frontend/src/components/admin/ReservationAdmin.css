@@ -1,0 +1,482 @@
+.reservation-admin {
+  color: var(--ad-text);
+  min-width: 0;
+  padding: clamp(1rem, 2.5vw, 2rem);
+  max-width: 1440px;
+  margin-inline: auto;
+}
+.ra-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.ra-header-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  flex-shrink: 0;
+  border: 1px solid color-mix(in srgb, var(--brand-main) 25%, var(--ad-border));
+  border-radius: 17px;
+  background: color-mix(in srgb, var(--brand-main) 12%, var(--ad-surface));
+  color: var(--ad-heading);
+}
+.ra-header h2 {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  letter-spacing: -0.035em;
+  margin: 0 0 0.3rem;
+  color: var(--ad-heading);
+}
+.ra-header p {
+  color: var(--ad-muted);
+  font-size: 0.875rem;
+  margin: 0;
+}
+.reservation-admin :is(input, select, textarea) {
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--ad-border);
+  border-radius: 12px;
+  background: var(--ad-surface);
+  color: var(--ad-text);
+  font: inherit;
+  font-size: 16px;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+.reservation-admin :is(input, select, textarea):focus {
+  border-color: var(--brand-main);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-main) 12%, transparent);
+}
+.reservation-admin label {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+  margin-bottom: 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+.reservation-admin button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--ad-border);
+  border-radius: 12px;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: var(--ad-surface);
+  color: var(--ad-text);
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
+}
+.reservation-admin button:hover:not(:disabled) {
+  background: var(--ad-surface-soft);
+  border-color: var(--ad-muted);
+}
+.reservation-admin button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.reservation-admin :is(button, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--brand-main);
+  outline-offset: 3px;
+}
+.ra-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  width: fit-content;
+  padding: 0.3rem;
+  border: 1px solid var(--ad-border);
+  border-radius: 15px;
+  background: var(--ad-surface-soft);
+  margin-bottom: 1.5rem;
+}
+.ra-tabs button {
+  background: transparent;
+  border-color: transparent;
+  min-height: 40px;
+}
+.ra-tabs [aria-selected="true"] {
+  background: var(--ad-surface);
+  color: var(--ad-heading);
+  border-color: var(--ad-border);
+  box-shadow: var(--ad-shadow);
+}
+.ra-toolbar {
+  padding: 1.25rem;
+  background: var(--ad-surface);
+  border: 1px solid var(--ad-border);
+  border-radius: 20px;
+  box-shadow: var(--ad-shadow);
+}
+.ra-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem;
+}
+.ra-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.ra-search > svg {
+  position: absolute;
+  inset-inline-start: 0.85rem;
+  pointer-events: none;
+  color: var(--ad-muted);
+}
+.reservation-admin .ra-search input {
+  padding-inline-start: 2.6rem;
+  background: var(--ad-surface-soft);
+  border-color: transparent;
+}
+.reservation-admin .ra-search input:focus {
+  border-color: var(--brand-main);
+}
+.ra-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-block: 0.5rem 0;
+}
+.ra-result-count {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1.5rem 0 1rem;
+  color: var(--ad-muted);
+  font-size: 0.85rem;
+}
+.ra-result-count strong {
+  border-radius: 8px;
+  padding: 0.2rem 0.55rem;
+  background: var(--ad-surface-soft);
+  color: var(--ad-heading);
+}
+.ra-bookings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+.ra-booking,
+.ra-settings > section,
+.ra-settings > form {
+  padding: clamp(1rem, 2vw, 1.5rem);
+  border: 1px solid var(--ad-border);
+  border-radius: 20px;
+  background: var(--ad-surface);
+  box-shadow: var(--ad-shadow);
+  min-width: 0;
+}
+.ra-booking header {
+  margin-bottom: 1rem;
+}
+.ra-booking-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.ra-booking-top > strong {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--ad-muted);
+}
+.ra-booking h3 {
+  font-size: 1.2rem;
+  margin: 1rem 0 0;
+  letter-spacing: -0.02em;
+  color: var(--ad-heading);
+}
+.ra-status {
+  font-size: 0.72rem;
+  border: 1px solid var(--ad-border);
+  border-radius: 30px;
+  padding: 0.3rem 0.6rem;
+  background: var(--ad-surface-soft);
+  color: var(--ad-muted);
+}
+.ra-booking[data-status="confirmed"] .ra-status {
+  color: var(--ad-heading);
+  border-color: color-mix(in srgb, var(--brand-main) 55%, var(--ad-border));
+  background: color-mix(in srgb, var(--brand-main) 15%, var(--ad-surface));
+}
+.ra-booking :is(dd, p, span),
+.ra-settings li {
+  overflow-wrap: anywhere;
+}
+.ra-visit {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.9rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--ad-border);
+  color: var(--ad-muted);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+.ra-visit span,
+.ra-offer {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.ra-offer {
+  font-size: 0.82rem;
+  color: var(--ad-muted);
+  padding-block: 0.35rem;
+}
+.ra-offer svg {
+  flex-shrink: 0;
+}
+.ra-booking details {
+  border-top: 1px solid var(--ad-border);
+  padding-top: 1rem;
+  font-size: 0.85rem;
+}
+.ra-booking summary {
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--ad-heading);
+}
+.ra-booking dl {
+  margin-block: 1rem 0;
+}
+.ra-booking dt {
+  font-size: 0.75rem;
+  color: var(--ad-muted);
+  font-weight: 400;
+}
+.ra-booking dd {
+  margin-block: 0.25rem 0.85rem;
+  white-space: pre-line;
+}
+.ra-empty {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: 0.75rem;
+  padding: 3rem 1.5rem;
+  border: 1px dashed var(--ad-border);
+  border-radius: 20px;
+  color: var(--ad-muted);
+}
+.ra-empty svg {
+  color: var(--brand-main);
+}
+.ra-empty h3 {
+  font-size: 1.1rem;
+  color: var(--ad-heading);
+  margin: 0;
+}
+.ra-empty p {
+  max-width: 360px;
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.7;
+}
+.ra-settings {
+  display: grid;
+  gap: 1.25rem;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.ra-settings h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+  color: var(--ad-heading);
+}
+.ra-settings h4 {
+  font-size: 1rem;
+  margin-top: 1.75rem;
+}
+.ra-settings p {
+  color: var(--ad-muted);
+  line-height: 1.7;
+  font-size: 0.85rem;
+}
+.ra-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 0.5rem 1rem;
+  margin-block: 1.25rem;
+}
+.reservation-admin .ra-check {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 36px;
+  font-size: 0.875rem;
+}
+.reservation-admin .ra-check input {
+  width: 20px;
+  height: 20px;
+  min-height: 20px;
+  padding: 0;
+  flex-shrink: 0;
+  accent-color: var(--brand-secondary);
+}
+.ra-weekday {
+  padding: 1rem 0 0.5rem;
+  border-top: 1px solid var(--ad-border);
+}
+.ra-window {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.ra-window label {
+  margin: 0;
+}
+.ra-windows {
+  margin-bottom: 1rem;
+}
+.reservation-admin button[type="submit"] {
+  margin-top: 0.75rem;
+  background: var(--ad-primary);
+  color: var(--ad-bg);
+  border-color: var(--ad-primary);
+  min-width: 120px;
+}
+.reservation-admin button[type="submit"]:hover {
+  background: var(--ad-heading);
+}
+.ra-warning {
+  padding: 1rem;
+  border: 1px solid
+    color-mix(in srgb, var(--brand-accent) 45%, var(--ad-border));
+  background: color-mix(in srgb, var(--brand-accent) 9%, var(--ad-surface));
+  border-radius: 12px;
+}
+.reservation-admin > [role="status"]:empty {
+  display: none;
+}
+.reservation-admin > [role="status"]:not(:empty) {
+  color: var(--ad-heading);
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--brand-main) 12%, var(--ad-surface));
+}
+.ra-settings ul {
+  list-style: none;
+  padding: 0;
+  margin-block: 1.25rem;
+}
+.ra-settings li {
+  padding: 0.75rem;
+  border: 1px solid var(--ad-border);
+  border-radius: 12px;
+  margin-bottom: 0.6rem;
+  font-size: 0.85rem;
+}
+.ra-settings li button {
+  margin: 0.25rem;
+}
+#reservation-promotion-form {
+  padding-top: 1rem;
+  border-top: 1px solid var(--ad-border);
+}
+#reservation-promotion-form > fieldset {
+  border: 1px solid var(--ad-border);
+  border-radius: 14px;
+  padding: 1rem;
+  margin-block: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+#reservation-promotion-form legend {
+  float: none;
+  width: auto;
+  font-size: 0.85rem;
+  padding-inline: 0.4rem;
+}
+@media (max-width: 760px) {
+  .ra-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ra-search-label {
+    grid-column: 1/-1;
+  }
+}
+@media (max-width: 480px) {
+  .ra-header {
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  .ra-header-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+  }
+  .ra-header p {
+    font-size: 0.8rem;
+  }
+  .ra-toolbar {
+    padding: 1rem;
+    border-radius: 16px;
+  }
+  .ra-filters {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .ra-actions > button {
+    flex: 1 1 auto;
+  }
+  .ra-window {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ra-window > button {
+    grid-column: 1/-1;
+  }
+  .ra-tabs {
+    width: 100%;
+  }
+  .ra-tabs button {
+    flex: 1;
+    padding-inline: 0.6rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reservation-admin :is(button, input, select, textarea) {
+    transition: none;
+  }
+}
+/* The shared public select reset uses !important; keep admin controls in their own theme. */
+.ad-shell .reservation-admin select:not([multiple]),
+.ad-shell
+  .reservation-admin
+  select:not([multiple]):is(:hover, :focus, :disabled),
+.ad-shell .reservation-admin select option {
+  background-color: var(--ad-surface) !important;
+  color: var(--ad-text) !important;
+}
+.ad-theme-dark .reservation-admin :is(input, select, textarea) {
+  color-scheme: dark;
+}
+.ad-theme-dark .reservation-admin select:not([multiple]) {
+  background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23d1d5db' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+}

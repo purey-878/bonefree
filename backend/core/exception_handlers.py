@@ -99,6 +99,14 @@ async def unexpected_exception_handler(
     request: Request,
     exc: Exception,
 ) -> JSONResponse:
+    if request.url.path.startswith(("/reservations", "/admin/reservations")):
+        # Database exception reprs can include customer data or token material.
+        # Keep private failures generic even when a developer enables APP_DEBUG.
+        return JSONResponse(
+            status_code=500,
+            content={"error": "internal_server_error", "message": "Internal server error."},
+            headers={"Cache-Control": "no-store, private", "Referrer-Policy": "no-referrer", "X-Robots-Tag": "noindex, nofollow"},
+        )
     details: dict[str, Any] | None = None
     if settings.debug:
         details = {

@@ -10,7 +10,7 @@ describe('content administration access', () => {
     }
   });
   it('keeps settings and administrator management owner-only', () => {
-    expect(adminTabsForRole('manager')).toEqual(['products', 'ingredients', 'categories']);
+    expect(adminTabsForRole('manager')).toEqual(['products', 'ingredients', 'categories', 'reservations']);
     expect(adminTabsForRole('owner')).toContain('settings');
     expect(adminTabsForRole('owner')).toContain('staff');
     expect(adminTabForRole('manager', 'settings')).toBe('products');

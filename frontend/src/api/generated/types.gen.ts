@@ -22,6 +22,73 @@ export type AddItemSchema = {
 };
 
 /**
+ * AdminBooking
+ */
+export type AdminBooking = {
+    /**
+     * Can Cancel
+     */
+    can_cancel: boolean;
+    /**
+     * Contact Provided
+     */
+    contact_provided: boolean;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Day
+     */
+    day: string;
+    /**
+     * Email
+     */
+    email: string | null;
+    /**
+     * Guests
+     */
+    guests: number;
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Phone
+     */
+    phone: string | null;
+    promotion?: Award | null;
+    /**
+     * Reference
+     */
+    reference: string;
+    /**
+     * Restaurant Address
+     */
+    restaurant_address: string;
+    /**
+     * Restaurant Name
+     */
+    restaurant_name: string;
+    /**
+     * Special Requests
+     */
+    special_requests: string | null;
+    /**
+     * Status
+     */
+    status: 'confirmed' | 'cancelled' | 'completed' | 'no_show';
+    /**
+     * Time
+     */
+    time: string;
+};
+
+/**
  * AdminExtraResponse
  */
 export type AdminExtraResponse = {
@@ -333,6 +400,20 @@ export type ApiErrorResponse = {
 };
 
 /**
+ * Availability
+ */
+export type Availability = {
+    /**
+     * Day
+     */
+    day: string;
+    /**
+     * Slots
+     */
+    slots: Array<Slot>;
+};
+
+/**
  * AvailabilitySuggestionResponse
  *
  * Availability state plus replacement and alternative dish suggestions.
@@ -379,6 +460,36 @@ export type AvailabilityUpdate = {
 };
 
 /**
+ * Award
+ */
+export type Award = {
+    /**
+     * Conditions
+     */
+    conditions?: string;
+    /**
+     * Description
+     */
+    description?: string;
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Percentage
+     */
+    percentage: string;
+    /**
+     * Scope
+     */
+    scope: string;
+    /**
+     * Title
+     */
+    title: string;
+};
+
+/**
  * Body_admin_management_upload_product_media
  */
 export type BodyAdminManagementUploadProductMedia = {
@@ -386,6 +497,183 @@ export type BodyAdminManagementUploadProductMedia = {
      * File
      */
     file: Blob | File;
+};
+
+/**
+ * BookingCreated
+ */
+export type BookingCreated = {
+    /**
+     * Can Cancel
+     */
+    can_cancel: boolean;
+    /**
+     * Confirmation Token
+     */
+    confirmation_token: string;
+    /**
+     * Contact Provided
+     */
+    contact_provided: boolean;
+    /**
+     * Day
+     */
+    day: string;
+    /**
+     * Guests
+     */
+    guests: number;
+    /**
+     * Name
+     */
+    name: string;
+    promotion?: Award | null;
+    /**
+     * Reference
+     */
+    reference: string;
+    /**
+     * Restaurant Address
+     */
+    restaurant_address: string;
+    /**
+     * Restaurant Name
+     */
+    restaurant_name: string;
+    /**
+     * Status
+     */
+    status: 'confirmed' | 'cancelled' | 'completed' | 'no_show';
+    /**
+     * Time
+     */
+    time: string;
+};
+
+/**
+ * BookingInput
+ */
+export type BookingInput = {
+    /**
+     * Day
+     */
+    day: string;
+    /**
+     * Email
+     */
+    email?: string | null;
+    /**
+     * Guests
+     */
+    guests: number;
+    /**
+     * Idempotency Key
+     */
+    idempotency_key: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Phone
+     */
+    phone?: string | null;
+    /**
+     * Special Requests
+     */
+    special_requests?: string | null;
+    /**
+     * Time
+     */
+    time: string;
+};
+
+/**
+ * BookingPage
+ */
+export type BookingPage = {
+    /**
+     * Items
+     */
+    items: Array<AdminBooking>;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Per Page
+     */
+    per_page: number;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Total Pages
+     */
+    total_pages: number;
+};
+
+/**
+ * BookingSettings
+ */
+export type BookingSettings = {
+    /**
+     * Enabled
+     */
+    enabled?: boolean;
+    /**
+     * Horizon Days
+     */
+    horizon_days?: number;
+    /**
+     * Interval Minutes
+     */
+    interval_minutes?: 15 | 30 | 60;
+    /**
+     * Max Guests
+     */
+    max_guests?: number;
+    /**
+     * Max Guests Per Slot
+     */
+    max_guests_per_slot?: number;
+    /**
+     * Max Reservations Per Slot
+     */
+    max_reservations_per_slot?: number;
+    /**
+     * Min Guests
+     */
+    min_guests?: number;
+    /**
+     * Minimum Notice Minutes
+     */
+    minimum_notice_minutes?: number;
+    /**
+     * Retention Days
+     */
+    retention_days?: number;
+    /**
+     * Weekly
+     */
+    weekly?: {
+        [key: string]: Array<BookingWindow>;
+    };
+};
+
+/**
+ * BookingWindow
+ */
+export type BookingWindow = {
+    /**
+     * End
+     */
+    end: string;
+    /**
+     * Start
+     */
+    start: string;
 };
 
 /**
@@ -1206,6 +1494,34 @@ export type DashboardSalesGraphs = {
 };
 
 /**
+ * DateException
+ */
+export type DateException = {
+    /**
+     * Closed
+     */
+    closed?: boolean;
+    /**
+     * Day
+     */
+    day: string;
+    /**
+     * Windows
+     */
+    windows?: Array<BookingWindow>;
+};
+
+/**
+ * DeleteResult
+ */
+export type DeleteResult = {
+    /**
+     * Deleted
+     */
+    deleted: number;
+};
+
+/**
  * EntityStatus
  */
 export type EntityStatus = 'active' | 'inactive';
@@ -1938,6 +2254,53 @@ export type OrderStatusUpdate = {
 };
 
 /**
+ * PassResponse
+ */
+export type PassResponse = {
+    /**
+     * Can Cancel
+     */
+    can_cancel: boolean;
+    /**
+     * Contact Provided
+     */
+    contact_provided: boolean;
+    /**
+     * Day
+     */
+    day: string;
+    /**
+     * Guests
+     */
+    guests: number;
+    /**
+     * Name
+     */
+    name: string;
+    promotion?: Award | null;
+    /**
+     * Reference
+     */
+    reference: string;
+    /**
+     * Restaurant Address
+     */
+    restaurant_address: string;
+    /**
+     * Restaurant Name
+     */
+    restaurant_name: string;
+    /**
+     * Status
+     */
+    status: 'confirmed' | 'cancelled' | 'completed' | 'no_show';
+    /**
+     * Time
+     */
+    time: string;
+};
+
+/**
  * PaymentMethod
  */
 export type PaymentMethod = 'card' | 'mbway' | 'counter';
@@ -2059,6 +2422,20 @@ export type PortionResponse = {
      * Price
      */
     price: number;
+};
+
+/**
+ * PrivateAccess
+ */
+export type PrivateAccess = {
+    /**
+     * Locale
+     */
+    locale?: 'pt-PT' | 'en-GB' | 'de-DE';
+    /**
+     * Token
+     */
+    token: string;
 };
 
 /**
@@ -3149,6 +3526,174 @@ export type ProfileOverviewResponse = {
 };
 
 /**
+ * PromotionAdmin
+ */
+export type PromotionAdmin = {
+    /**
+     * Automatic
+     */
+    automatic?: boolean;
+    /**
+     * Conditions
+     */
+    conditions?: string;
+    /**
+     * Description
+     */
+    description?: string;
+    /**
+     * Enabled
+     */
+    enabled?: boolean;
+    /**
+     * End Date
+     */
+    end_date: string;
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Percentage
+     */
+    percentage: string;
+    /**
+     * Scope
+     */
+    scope: string;
+    /**
+     * Start Date
+     */
+    start_date: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Translations
+     */
+    translations?: {
+        [key: string]: PromotionText;
+    };
+    /**
+     * Weekdays
+     */
+    weekdays?: Array<number>;
+    /**
+     * Windows
+     */
+    windows?: Array<BookingWindow>;
+};
+
+/**
+ * PromotionInput
+ */
+export type PromotionInput = {
+    /**
+     * Automatic
+     */
+    automatic?: boolean;
+    /**
+     * Conditions
+     */
+    conditions?: string;
+    /**
+     * Description
+     */
+    description?: string;
+    /**
+     * Enabled
+     */
+    enabled?: boolean;
+    /**
+     * End Date
+     */
+    end_date: string;
+    /**
+     * Percentage
+     */
+    percentage: number | string;
+    /**
+     * Scope
+     */
+    scope: string;
+    /**
+     * Start Date
+     */
+    start_date: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Translations
+     */
+    translations?: {
+        [key: string]: PromotionText;
+    };
+    /**
+     * Weekdays
+     */
+    weekdays?: Array<number>;
+    /**
+     * Windows
+     */
+    windows?: Array<BookingWindow>;
+};
+
+/**
+ * PromotionText
+ */
+export type PromotionText = {
+    /**
+     * Conditions
+     */
+    conditions?: string;
+    /**
+     * Description
+     */
+    description?: string;
+    /**
+     * Scope
+     */
+    scope: string;
+    /**
+     * Title
+     */
+    title: string;
+};
+
+/**
+ * PublicSettings
+ */
+export type PublicSettings = {
+    /**
+     * Enabled
+     */
+    enabled: boolean;
+    /**
+     * Last Date
+     */
+    last_date: string;
+    /**
+     * Max Guests
+     */
+    max_guests: number;
+    /**
+     * Min Guests
+     */
+    min_guests: number;
+    /**
+     * Timezone
+     */
+    timezone?: string;
+    /**
+     * Today
+     */
+    today: string;
+};
+
+/**
  * ResetPasswordRequest
  */
 export type ResetPasswordRequest = {
@@ -3275,6 +3820,17 @@ export type SalesPerformanceResponse = {
 };
 
 /**
+ * SettingsResult
+ */
+export type SettingsResult = {
+    /**
+     * Conflicting Bookings
+     */
+    conflicting_bookings?: number;
+    settings: BookingSettings;
+};
+
+/**
  * SiteThemeResponse
  */
 export type SiteThemeResponse = {
@@ -3335,6 +3891,21 @@ export type SiteThemeSettings = {
      */
     decoration_intensity?: number;
     theme_id?: ThemeId;
+};
+
+/**
+ * Slot
+ */
+export type Slot = {
+    /**
+     * Available
+     */
+    available: boolean;
+    promotion?: Award | null;
+    /**
+     * Time
+     */
+    time: string;
 };
 
 /**
@@ -3435,6 +4006,16 @@ export type StaffAdminUpdate = {
     password?: string | null;
     role?: UserRole | null;
     status?: UserStatus | null;
+};
+
+/**
+ * StatusUpdate
+ */
+export type StatusUpdate = {
+    /**
+     * Status
+     */
+    status: 'confirmed' | 'cancelled' | 'completed' | 'no_show';
 };
 
 /**
@@ -6219,6 +6800,647 @@ export type AdminManagementToggleProductStatusResponses = {
 };
 
 export type AdminManagementToggleProductStatusResponse = AdminManagementToggleProductStatusResponses[keyof AdminManagementToggleProductStatusResponses];
+
+export type ReservationsAdminListData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Per Page
+         */
+        per_page?: number;
+        /**
+         * Search
+         */
+        search?: string;
+        /**
+         * Day
+         */
+        day?: string | null;
+        /**
+         * Status
+         */
+        status?: string | null;
+        /**
+         * Upcoming
+         */
+        upcoming?: boolean;
+        /**
+         * Promotion Id
+         */
+        promotion_id?: number | null;
+    };
+    url: '/admin/reservations';
+};
+
+export type ReservationsAdminListErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type ReservationsAdminListError = ReservationsAdminListErrors[keyof ReservationsAdminListErrors];
+
+export type ReservationsAdminListResponses = {
+    /**
+     * Successful Response
+     */
+    200: BookingPage;
+};
+
+export type ReservationsAdminListResponse = ReservationsAdminListResponses[keyof ReservationsAdminListResponses];
+
+export type ReservationsListExceptionsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/admin/reservations/exceptions';
+};
+
+export type ReservationsListExceptionsErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type ReservationsListExceptionsError = ReservationsListExceptionsErrors[keyof ReservationsListExceptionsErrors];
+
+export type ReservationsListExceptionsResponses = {
+    /**
+     * Response Reservations List Exceptions
+     *
+     * Successful Response
+     */
+    200: Array<DateException>;
+};
+
+export type ReservationsListExceptionsResponse = ReservationsListExceptionsResponses[keyof ReservationsListExceptionsResponses];
+
+export type ReservationsSaveExceptionData = {
+    body: DateException;
+    path?: never;
+    query?: never;
+    url: '/admin/reservations/exceptions';
+};
+
+export type ReservationsSaveExceptionErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type ReservationsSaveExceptionError = ReservationsSaveExceptionErrors[keyof ReservationsSaveExceptionErrors];
+
+export type ReservationsSaveExceptionResponses = {
+    /**
+     * Successful Response
+     */
+    200: SettingsResult;
+};
+
+export type ReservationsSaveExceptionResponse = ReservationsSaveExceptionResponses[keyof ReservationsSaveExceptionResponses];
+
+export type ReservationsDeleteExceptionData = {
+    body?: never;
+    path: {
+        /**
+         * Day
+         */
+        day: string;
+    };
+    query?: never;
+    url: '/admin/reservations/exceptions/{day}';
+};
+
+export type ReservationsDeleteExceptionErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type ReservationsDeleteExceptionError = ReservationsDeleteExceptionErrors[keyof ReservationsDeleteExceptionErrors];
+
+export type ReservationsDeleteExceptionResponses = {
+    /**
+     * Successful Response
+     */
+    200: SettingsResult;
+};
+
+export type ReservationsDeleteExceptionResponse = ReservationsDeleteExceptionResponses[keyof ReservationsDeleteExceptionResponses];
+
+export type ReservationsListPromotionsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/admin/reservations/promotions';
+};
+
+export type ReservationsListPromotionsErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type ReservationsListPromotionsError = ReservationsListPromotionsErrors[keyof ReservationsListPromotionsErrors];
+
+export type ReservationsListPromotionsResponses = {
+    /**
+     * Response Reservations List Promotions
+     *
+     * Successful Response
+     */
+    200: Array<PromotionAdmin>;
+};
+
+export type ReservationsListPromotionsResponse = ReservationsListPromotionsResponses[keyof ReservationsListPromotionsResponses];
+
+export type ReservationsCreatePromotionData = {
+    body: PromotionInput;
+    path?: never;
+    query?: never;
+    url: '/admin/reservations/promotions';
+};
+
+export type ReservationsCreatePromotionErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type ReservationsCreatePromotionError = ReservationsCreatePromotionErrors[keyof ReservationsCreatePromotionErrors];
+
+export type ReservationsCreatePromotionResponses = {
+    /**
+     * Successful Response
+     */
+    201: PromotionAdmin;
+};
+
+export type ReservationsCreatePromotionResponse = ReservationsCreatePromotionResponses[keyof ReservationsCreatePromotionResponses];
+
+export type ReservationsUpdatePromotionData = {
+    body: PromotionInput;
+    path: {
+        /**
+         * Promotion Id
+         */
+        promotion_id: number;
+    };
+    query?: never;
+    url: '/admin/reservations/promotions/{promotion_id}';
+};
+
+export type ReservationsUpdatePromotionErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type ReservationsUpdatePromotionError = ReservationsUpdatePromotionErrors[keyof ReservationsUpdatePromotionErrors];
+
+export type ReservationsUpdatePromotionResponses = {
+    /**
+     * Successful Response
+     */
+    200: PromotionAdmin;
+};
+
+export type ReservationsUpdatePromotionResponse = ReservationsUpdatePromotionResponses[keyof ReservationsUpdatePromotionResponses];
+
+export type ReservationsPurgeExpiredData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/admin/reservations/retention';
+};
+
+export type ReservationsPurgeExpiredErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type ReservationsPurgeExpiredError = ReservationsPurgeExpiredErrors[keyof ReservationsPurgeExpiredErrors];
+
+export type ReservationsPurgeExpiredResponses = {
+    /**
+     * Successful Response
+     */
+    200: DeleteResult;
+};
+
+export type ReservationsPurgeExpiredResponse = ReservationsPurgeExpiredResponses[keyof ReservationsPurgeExpiredResponses];
+
+export type ReservationsAdminSettingsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/admin/reservations/settings';
+};
+
+export type ReservationsAdminSettingsErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type ReservationsAdminSettingsError = ReservationsAdminSettingsErrors[keyof ReservationsAdminSettingsErrors];
+
+export type ReservationsAdminSettingsResponses = {
+    /**
+     * Successful Response
+     */
+    200: SettingsResult;
+};
+
+export type ReservationsAdminSettingsResponse = ReservationsAdminSettingsResponses[keyof ReservationsAdminSettingsResponses];
+
+export type ReservationsUpdateSettingsData = {
+    body: BookingSettings;
+    path?: never;
+    query?: never;
+    url: '/admin/reservations/settings';
+};
+
+export type ReservationsUpdateSettingsErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type ReservationsUpdateSettingsError = ReservationsUpdateSettingsErrors[keyof ReservationsUpdateSettingsErrors];
+
+export type ReservationsUpdateSettingsResponses = {
+    /**
+     * Successful Response
+     */
+    200: SettingsResult;
+};
+
+export type ReservationsUpdateSettingsResponse = ReservationsUpdateSettingsResponses[keyof ReservationsUpdateSettingsResponses];
+
+export type ReservationsAdminDetailData = {
+    body?: never;
+    path: {
+        /**
+         * Reservation Id
+         */
+        reservation_id: number;
+    };
+    query?: never;
+    url: '/admin/reservations/{reservation_id}';
+};
+
+export type ReservationsAdminDetailErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type ReservationsAdminDetailError = ReservationsAdminDetailErrors[keyof ReservationsAdminDetailErrors];
+
+export type ReservationsAdminDetailResponses = {
+    /**
+     * Successful Response
+     */
+    200: AdminBooking;
+};
+
+export type ReservationsAdminDetailResponse = ReservationsAdminDetailResponses[keyof ReservationsAdminDetailResponses];
+
+export type ReservationsUpdateStatusData = {
+    body: StatusUpdate;
+    path: {
+        /**
+         * Reservation Id
+         */
+        reservation_id: number;
+    };
+    query?: never;
+    url: '/admin/reservations/{reservation_id}';
+};
+
+export type ReservationsUpdateStatusErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type ReservationsUpdateStatusError = ReservationsUpdateStatusErrors[keyof ReservationsUpdateStatusErrors];
+
+export type ReservationsUpdateStatusResponses = {
+    /**
+     * Successful Response
+     */
+    200: AdminBooking;
+};
+
+export type ReservationsUpdateStatusResponse = ReservationsUpdateStatusResponses[keyof ReservationsUpdateStatusResponses];
 
 export type ReviewsListAdminReviewsData = {
     body?: never;
@@ -9485,6 +10707,410 @@ export type AuthRegisterResponses = {
 };
 
 export type AuthRegisterResponse = AuthRegisterResponses[keyof AuthRegisterResponses];
+
+export type ReservationsCreateData = {
+    body: BookingInput;
+    path?: never;
+    query?: {
+        /**
+         * Locale
+         */
+        locale?: 'pt-PT' | 'en-GB' | 'de-DE';
+    };
+    url: '/reservations';
+};
+
+export type ReservationsCreateErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type ReservationsCreateError = ReservationsCreateErrors[keyof ReservationsCreateErrors];
+
+export type ReservationsCreateResponses = {
+    /**
+     * Successful Response
+     */
+    201: BookingCreated;
+};
+
+export type ReservationsCreateResponse = ReservationsCreateResponses[keyof ReservationsCreateResponses];
+
+export type ReservationsAvailabilityData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Day
+         */
+        day: string;
+        /**
+         * Guests
+         */
+        guests: number;
+        /**
+         * Locale
+         */
+        locale?: 'pt-PT' | 'en-GB' | 'de-DE';
+    };
+    url: '/reservations/availability';
+};
+
+export type ReservationsAvailabilityErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type ReservationsAvailabilityError = ReservationsAvailabilityErrors[keyof ReservationsAvailabilityErrors];
+
+export type ReservationsAvailabilityResponses = {
+    /**
+     * Successful Response
+     */
+    200: Availability;
+};
+
+export type ReservationsAvailabilityResponse = ReservationsAvailabilityResponses[keyof ReservationsAvailabilityResponses];
+
+export type ReservationsConfirmationData = {
+    body: PrivateAccess;
+    path?: never;
+    query?: never;
+    url: '/reservations/confirmation';
+};
+
+export type ReservationsConfirmationErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type ReservationsConfirmationError = ReservationsConfirmationErrors[keyof ReservationsConfirmationErrors];
+
+export type ReservationsConfirmationResponses = {
+    /**
+     * Successful Response
+     */
+    200: PassResponse;
+};
+
+export type ReservationsConfirmationResponse = ReservationsConfirmationResponses[keyof ReservationsConfirmationResponses];
+
+export type ReservationsCancelData = {
+    body: PrivateAccess;
+    path?: never;
+    query?: never;
+    url: '/reservations/confirmation/cancel';
+};
+
+export type ReservationsCancelErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type ReservationsCancelError = ReservationsCancelErrors[keyof ReservationsCancelErrors];
+
+export type ReservationsCancelResponses = {
+    /**
+     * Successful Response
+     */
+    200: PassResponse;
+};
+
+export type ReservationsCancelResponse = ReservationsCancelResponses[keyof ReservationsCancelResponses];
+
+export type ReservationsConfirmationPdfData = {
+    body: PrivateAccess;
+    path?: never;
+    query?: never;
+    url: '/reservations/confirmation/pdf';
+};
+
+export type ReservationsConfirmationPdfErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type ReservationsConfirmationPdfError = ReservationsConfirmationPdfErrors[keyof ReservationsConfirmationPdfErrors];
+
+export type ReservationsConfirmationPdfResponses = {
+    /**
+     * Private reservation pass PDF
+     */
+    200: Blob | File;
+};
+
+export type ReservationsConfirmationPdfResponse = ReservationsConfirmationPdfResponses[keyof ReservationsConfirmationPdfResponses];
+
+export type ReservationsAvailableDatesData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Start
+         */
+        start: string;
+        /**
+         * Guests
+         */
+        guests: number;
+        /**
+         * Days
+         */
+        days?: number;
+    };
+    url: '/reservations/dates';
+};
+
+export type ReservationsAvailableDatesErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type ReservationsAvailableDatesError = ReservationsAvailableDatesErrors[keyof ReservationsAvailableDatesErrors];
+
+export type ReservationsAvailableDatesResponses = {
+    /**
+     * Response Reservations Available Dates
+     *
+     * Successful Response
+     */
+    200: Array<string>;
+};
+
+export type ReservationsAvailableDatesResponse = ReservationsAvailableDatesResponses[keyof ReservationsAvailableDatesResponses];
+
+export type ReservationsPublicSettingsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/reservations/settings';
+};
+
+export type ReservationsPublicSettingsErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type ReservationsPublicSettingsError = ReservationsPublicSettingsErrors[keyof ReservationsPublicSettingsErrors];
+
+export type ReservationsPublicSettingsResponses = {
+    /**
+     * Successful Response
+     */
+    200: PublicSettings;
+};
+
+export type ReservationsPublicSettingsResponse = ReservationsPublicSettingsResponses[keyof ReservationsPublicSettingsResponses];
 
 export type ReviewsDeleteProductReviewData = {
     body?: never;

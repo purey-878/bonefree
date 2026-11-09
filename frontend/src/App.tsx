@@ -27,6 +27,7 @@ const Events = lazy(() => import('./pages/Events'))
 const Menu = lazy(() => import('./pages/Menu'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 const Privacy = lazy(() => import('./pages/Privacy'))
+const Reservations = lazy(() => import('./pages/Reservations'))
 const ProductDetail = lazy(() => import('./pages/ProductDetail'))
 
 // Keep the styled snapshot visible until a cold route's code/CSS is ready.
@@ -89,6 +90,10 @@ function App() {
     const path = visibleLocation.pathname + visibleLocation.hash
     if (scrollPathRef.current === path) return
     scrollPathRef.current = path
+    if (visibleLocation.pathname === "/reservations/confirmation") {
+      window.scrollTo({ top: 0, behavior: "instant" })
+      return
+    }
     if (visibleLocation.hash) {
       window.requestAnimationFrame(() => {
         document
@@ -123,6 +128,8 @@ function App() {
           <Route path="/about" element={<About />} />
           <Route path="/events" element={<Events />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/reservations" element={<Reservations />} />
+          <Route path="/reservations/confirmation" element={<Reservations />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="*" element={<NotFound />} />

@@ -707,3 +707,6 @@ class ProductPricingOptionTranslation(Base):
     option_id: Mapped[int] = mapped_column(ForeignKey("product_pricing_option.id", ondelete="CASCADE"), primary_key=True)
     locale: Mapped[str] = mapped_column(String(5), primary_key=True)
     name: Mapped[str | None] = mapped_column(String(150))
+
+# Register reservation tables in the shared Alembic metadata.
+from reservation_models import Reservation, ReservationException, ReservationPromotion, ReservationSettings  # noqa: E402,F401

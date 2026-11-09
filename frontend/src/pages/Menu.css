@@ -1196,3 +1196,4 @@
   outline: 2px solid var(--brand-primary);
   outline-offset: 3px;
 }
+.menu-reservation-link { display: inline-flex; margin-top: .75rem; color: var(--brand-secondary,#076050); font-weight: 700; text-underline-offset: 4px; }

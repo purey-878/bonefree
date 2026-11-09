@@ -71,3 +71,9 @@ The build emits route-specific HTML, minimal Restaurant JSON-LD, static error
 pages and a sitemap. Product details remain API-rendered and linked from cards.
 No backend endpoint or database schema was changed. No deployment runs as part of
 `npm run build`.
+
+## Reservations
+
+See [reservation architecture, verification and release instructions](../docs/RESERVATIONS.md).
+Booking starts disabled and requires backend migration `20261108_0004` before the frontend release.
+Use `npm run test:reservations:browser` only with the documented isolated local test API.

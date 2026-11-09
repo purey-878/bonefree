@@ -55,6 +55,7 @@ function restaurantPages(): Plugin {
             chunk.imports.forEach(collectCss);
           };
           const pageName = route === '/' ? 'Home'
+            : route.startsWith('/reservations') ? 'Reservations'
             : route.startsWith('/product/') ? 'ProductDetail'
             : route.startsWith('/admin/') ? 'AdminLogin'
             : route.slice(1, 2).toUpperCase() + route.slice(2);
@@ -71,6 +72,7 @@ function restaurantPages(): Plugin {
           else this.emitFile({ type: 'asset', fileName, source });
         };
         for (const path of PUBLIC_PATHS) await emitPage(path === '/' ? 'index.html' : `${path.slice(1)}/index.html`, pageMetadata(path), path);
+        await emitPage('reservation-confirmation.html', pageMetadata('/reservations/confirmation'), '/reservations/confirmation');
         await emitPage('admin.html', { ...pageMetadata('/admin/login'), title: 'Admin | Bonefree' }, '/admin/login');
         const { title, description } = pageMetadata('/menu');
         await emitPage('dish.html', { title, description }, '/product/0');

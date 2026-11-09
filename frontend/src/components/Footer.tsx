@@ -44,6 +44,7 @@ const Footer: React.FC = () => {
             <h5 className="fw-bold mb-3">{t("footer.links")}</h5>
             <ul className="list-unstyled">
               <li><Link to="/" className="text-light text-decoration-none footer-link">{t("navigation.home", { ns: "common" })}</Link></li>
+              <li><Link to="/reservations" className="text-light text-decoration-none footer-link">{t("navigation.reserveTable", { ns: "common" })}</Link></li>
               <li><Link to="/menu" className="text-light text-decoration-none footer-link">{t("navigation.menu", { ns: "common" })}</Link></li>
               <li><Link to="/about" className="text-light text-decoration-none footer-link">{t("navigation.about", { ns: "common" })}</Link></li>
               <li><Link to="/contact" className="text-light text-decoration-none footer-link">{t("navigation.contact", { ns: "common" })}</Link></li>
