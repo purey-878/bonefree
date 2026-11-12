@@ -1,3 +1,5 @@
+import { ArrowUpRight, Clock3, Leaf, Mail, MapPin, Phone, Sparkles, Sun, Waves } from "lucide-react"
+import "./Footer.css"
 import { brandLogo } from "../constants/brandLogo"
 import React, { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
@@ -22,74 +24,50 @@ const Footer: React.FC = () => {
       setSocialMedia(nextSocialMedia)
     })
 
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [])
 
-  const socialLinks = socialMedia.links.filter((link) => link.enabled)
+  const socialLinks = socialMedia.links.filter(link => link.enabled)
+  const exploreLinks = [
+    ["/", "navigation.home"], ["/menu", "navigation.menu"],
+    ["/about", "navigation.about"], ["/events", "navigation.events"],
+    ["/contact", "navigation.contact"], ["/meal-finder", "navigation.mealFinder"],
+  ] as const
 
   return (
-    <footer className="footer pt-5 pb-3 text-light opacity-100">
-      <div className="container">
-        <div className="row">
-          <div className="col-lg-3 col-md-6 mb-4">
-            <div className="footer-brand">
-              <img {...brandLogo} sizes="57px" alt={companyDetails.brandName} />
-            </div>
-            <p className="mt-3">{t("footer.description")}</p>
-          </div>
-
-          <div className="col-lg-3 col-md-6 mb-4">
-            <h2 className="h5 fw-bold mb-3">{t("footer.links")}</h2>
-            <ul className="list-unstyled">
-              <li><Link to="/" className="text-light text-decoration-none footer-link">{t("navigation.home", { ns: "common" })}</Link></li>
-              <li><Link to="/reservations" className="text-light text-decoration-none footer-link">{t("navigation.reserveTable", { ns: "common" })}</Link></li>
-              <li><Link to="/meal-finder" className="text-light text-decoration-none footer-link">{t("navigation.mealFinder", { ns: "common" })}</Link></li>
-              <li><Link to="/menu" className="text-light text-decoration-none footer-link">{t("navigation.menu", { ns: "common" })}</Link></li>
-              <li><Link to="/events" className="text-light text-decoration-none footer-link">{t("events.heroTitle")}</Link></li>
-              <li><Link to="/about" className="text-light text-decoration-none footer-link">{t("navigation.about", { ns: "common" })}</Link></li>
-              <li><Link to="/contact" className="text-light text-decoration-none footer-link">{t("navigation.contact", { ns: "common" })}</Link></li>
-              <li><Link to="/privacy" className="text-light text-decoration-none footer-link">{t("privacy.title")}</Link></li>
-            </ul>
-          </div>
-
-          <div className="col-lg-3 col-md-6 mb-4">
-            <h2 className="h5 fw-bold mb-3">{t("footer.contact")}</h2>
-            <p><i className="bi bi-geo-alt-fill me-2" />{companyDetails.address}</p>
-            <p><i className="bi bi-telephone-fill me-2" /><a className="text-light footer-link" href={`tel:${companyDetails.phone.replace(/[^+0-9]/g, "")}`}>{companyDetails.phone}</a></p>
-            <p style={{ whiteSpace: "pre-line" }}>{t("contact.hoursValue")}</p>
-            <p><i className="bi bi-envelope-fill me-2" /><a className="text-light footer-link" href={`mailto:${companyDetails.email}`}>{companyDetails.email}</a></p>
-          </div>
-
-          <div className="col-lg-3 col-md-6 mb-4">
-            <h2 className="h5 fw-bold mb-3">{t("footer.follow")}</h2>
-            <div className="footer-socials" aria-label={t("footer.socialLabel")}>
-              {socialLinks.map((link) => (
-                <a
-                  key={link.platform}
-                  href={link.href || "#"}
-                  className="footer-social-link"
-                  aria-label={link.label}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <path d={socialIconPaths[link.platform]} />
-                  </svg>
-                </a>
-              ))}
-            </div>
-          </div>
+    <footer className="footer bf-footer">
+      <div className="bf-footer-doodles" aria-hidden="true"><Sun /><Leaf /><Waves /></div>
+      <div className="bf-footer-inner">
+        <div className="bf-footer-intro">
+          <Link to="/" className="bf-footer-logo" aria-label={t("navigation.bonefreeHome", { ns: "common" })}><img {...brandLogo} sizes="88px" alt={companyDetails.brandName} /></Link>
+          <p>{t("footer.description")}</p>
+          <Link to="/reservations" className="bf-footer-reserve"><Sparkles size={18} aria-hidden="true" />{t("navigation.reserveTable", { ns: "common" })}<ArrowUpRight size={19} aria-hidden="true" /></Link>
         </div>
 
-        <hr className="border-light" />
-
-        <div className="row">
-          <div className="col text-center">
-            <p className="mb-0">&copy; {new Date().getFullYear()} {companyDetails.brandName}. {t("footer.rights")}</p>
-          </div>
+        <div className="bf-footer-grid">
+          <nav aria-labelledby="footer-explore-title">
+            <h2 id="footer-explore-title">{t("footer.links")}</h2>
+            <ul className="bf-footer-links">{exploreLinks.map(([path, label]) => <li key={path}><Link to={path}>{t(label, { ns: "common" })}<ArrowUpRight size={14} aria-hidden="true" /></Link></li>)}</ul>
+          </nav>
+          <section aria-labelledby="footer-contact-title">
+            <h2 id="footer-contact-title">{t("footer.contact")}</h2>
+            <address className="bf-footer-contact">
+              <Link to="/contact"><MapPin size={18} aria-hidden="true" /><span>{companyDetails.address}</span></Link>
+              <a href={`tel:${companyDetails.phone.replace(/[^+0-9]/g, "")}`}><Phone size={18} aria-hidden="true" /><span>{companyDetails.phone}</span></a>
+              <a href={`mailto:${companyDetails.email}`}><Mail size={18} aria-hidden="true" /><span>{companyDetails.email}</span></a>
+            </address>
+          </section>
+          <section aria-labelledby="footer-hours-title">
+            <h2 id="footer-hours-title"><Clock3 size={18} aria-hidden="true" />{t("contact.hours")}</h2>
+            <p className="bf-footer-hours">{t("contact.hoursValue")}</p>
+            <a className="bf-footer-community" href="https://chat.whatsapp.com/HHYqnv1aAByGWne4njshGs" target="_blank" rel="noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d={socialIconPaths.whatsapp} /></svg><span>{t("footer.community")}</span><ArrowUpRight size={16} aria-hidden="true" /></a>
+            {socialLinks.length > 0 && <div className="bf-footer-follow"><h3>{t("footer.follow")}</h3><div className="bf-footer-socials" aria-label={t("footer.socialLabel")}>
+              {socialLinks.map(link => <a key={link.platform} href={link.href || "#"} aria-label={link.label} target="_blank" rel="noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d={socialIconPaths[link.platform]} /></svg><span>{link.label}</span><ArrowUpRight size={14} aria-hidden="true" /></a>)}
+            </div></div>}
+          </section>
         </div>
+
+        <div className="bf-footer-bottom"><p>&copy; {new Date().getFullYear()} {companyDetails.brandName}. {t("footer.rights")}</p><Link to="/privacy">{t("privacy.title")}<ArrowUpRight size={14} aria-hidden="true" /></Link></div>
       </div>
     </footer>
   )
