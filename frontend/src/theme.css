@@ -389,6 +389,7 @@ color:rgb(0, 0, 0);
 }
 
 footer h5,
+footer h2.h5,
 footer .text-light,
 footer a.text-light {
   color: var(--brand-ink) !important;

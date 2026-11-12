@@ -10,6 +10,7 @@ import { ProductCard, ProductCardSkeleton } from "../components/ui";
 import { useMenuFeed } from "../hooks/useMenuFeed";
 import "../theme.css";
 import { formatEuro } from "../utils/money";
+import "../i18n/mealFinder"
 import "./Menu.css";
 
 interface CategoryCount {
@@ -339,9 +340,15 @@ function Menu() {
             <p className="menu-mobile-description">{t("menu.shortDescription")}</p>
             <Link to="/reservations" className="menu-reservation-link">{t("home.reserveTable")}</Link>
           </div>
-          <p>
-            {t("menu.description")}
-          </p>
+          <Link to="/meal-finder" className="menu-paulo-callout">
+            <svg className="menu-paulo-sparks" viewBox="0 0 86 78" fill="none" aria-hidden="true" focusable="false">
+              <path className="menu-paulo-spark-green" d="M18 48 30 8" stroke="currentColor" strokeWidth="6" strokeLinecap="round" />
+              <path d="M30 50 68 14" stroke="currentColor" strokeWidth="6" strokeLinecap="round" />
+              <path className="menu-paulo-spark-green" d="M36 64 76 56" stroke="currentColor" strokeWidth="6" strokeLinecap="round" />
+            </svg>
+            <span className="menu-paulo-prompt">{t("menu.finderPrompt")}</span>
+            <span className="menu-paulo-action">{t("menu.finderAction")} <span aria-hidden="true">↗</span></span>
+          </Link>
         </header>
 
         <div className="menu-shell">

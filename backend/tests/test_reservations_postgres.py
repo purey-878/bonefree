@@ -147,4 +147,4 @@ class ReservationPostgresTests(unittest.TestCase):
         self.migrate('upgrade','head');self.migrate('upgrade','head')
         with self.Session() as db:
             self.assertFalse(db.scalar(select(ReservationSettings.config))['enabled'])
-            self.assertEqual(db.scalar(text('SELECT version_num FROM alembic_version')),'20261108_0004')
+            self.assertEqual(db.scalar(text('SELECT version_num FROM alembic_version')),'20261110_0005')

@@ -1,12 +1,13 @@
+import { BUSINESS } from "../seo/business"
 import type { CompanyDetailsSettings, SocialMediaSettings, SocialPlatform } from "../types/siteSettings"
 
 export const defaultCompanyDetails: CompanyDetailsSettings = {
   brandName: "BONEFREE",
   description:
     "A BONEFREE é um restaurante e bar vegan na Costa da Caparica. Servimos pratos 100% vegetais, cocktails artesanais e um ambiente descontraído.",
-  address: "Bonefree, R. Eng. Henrique Mendia 28A, 2825-450 Costa da Caparica",
-  phone: "+351 968 107 703",
-  email: "carambolarubra@gmail.com",
+  address: BUSINESS.fullAddress,
+  phone: BUSINESS.phoneDisplay,
+  email: BUSINESS.email,
 }
 
 export const socialIconPaths: Record<SocialPlatform, string> = {
@@ -21,9 +22,9 @@ export const socialIconPaths: Record<SocialPlatform, string> = {
 
 export const defaultSocialMediaSettings: SocialMediaSettings = {
   links: [
-    { platform: "facebook", label: "Facebook", href: "#", enabled: true },
-    { platform: "instagram", label: "Instagram", href: "#", enabled: true },
-    { platform: "whatsapp", label: "WhatsApp", href: "#", enabled: true },
-    { platform: "youtube", label: "YouTube", href: "#", enabled: true },
+    { platform: "facebook", label: "Facebook", href: BUSINESS.sameAs[0], enabled: true },
+    { platform: "instagram", label: "Instagram", href: BUSINESS.sameAs[1], enabled: true },
+    { platform: "whatsapp", label: "WhatsApp", href: "#", enabled: false },
+    { platform: "youtube", label: "YouTube", href: "#", enabled: false },
   ],
 }

@@ -16,7 +16,8 @@
     "test:menu:browser": "node scripts/test-menu-browser.mjs",
     "seo:catalog": "node scripts/snapshot-public-catalog.mjs",
     "test:seo:catalog": "node --test scripts/snapshot-public-catalog.node-test.mjs",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:meal-finder:browser": "node scripts/test-meal-finder-browser.mjs"
   },
   "dependencies": {
     "@popperjs/core": "^2.11.8",

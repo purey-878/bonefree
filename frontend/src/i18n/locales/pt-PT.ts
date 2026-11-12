@@ -8,7 +8,8 @@ const ptPT = {
       english: "English",
       german: "Deutsch",
     },
-    navigation: { reserveTable: "Reservar mesa",
+    navigation: {
+      mealFinder: 'Descobre o teu prato', reserveTable: "Reservar mesa",
       home: "Início",
       menu: "Menu",
       about: "Sobre nós",
@@ -153,7 +154,7 @@ const ptPT = {
       loadError: "Não foi possível carregar o menu.",
       sort: { default: "Destaques", priceAsc: "Preço: do mais baixo ao mais alto", priceDesc: "Preço: do mais alto ao mais baixo", nameAsc: "Nome: A–Z" },
       close: "Fechar",
-      eyebrow: "O nosso menu", title: "Descubra os nossos pratos.", description: "Explore os nossos pratos vegetais, ingredientes e preços. Descubra os seus favoritos antes da visita.",
+      eyebrow: "O nosso menu", title: "Descubra os nossos pratos.", finderPrompt: "Não sabes o que escolher?", finderAction: "PERGUNTA AO PAULO!",
       shortDescription: "Pratos veganos, cheios de sabor.",
 
       showing: "A mostrar", filtersLabel: "Filtros do menu", searchLabel: "Pesquisar no menu", searchPlaceholder: "Pesquisar pratos...", clearSearch: "Limpar pesquisa",

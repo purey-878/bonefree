@@ -710,3 +710,6 @@ class ProductPricingOptionTranslation(Base):
 
 # Register reservation tables in the shared Alembic metadata.
 from reservation_models import Reservation, ReservationException, ReservationPromotion, ReservationSettings  # noqa: E402,F401
+
+# Separate feature tables share the application's declarative metadata.
+import meal_finder_models  # noqa: E402,F401

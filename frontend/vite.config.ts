@@ -55,6 +55,7 @@ function restaurantPages(): Plugin {
             chunk.imports.forEach(collectCss);
           };
           const pageName = route === '/' ? 'Home'
+            : route === '/meal-finder' ? 'MealFinder'
             : route.startsWith('/reservations') ? 'Reservations'
             : route.startsWith('/product/') ? 'ProductDetail'
             : route.startsWith('/admin/') ? 'AdminLogin'
@@ -87,4 +88,6 @@ function restaurantPages(): Plugin {
   };
 }
 
-export default defineConfig({ plugins: [react(), restaurantPages()] });
+// Preserve both backdrop-filter spellings during CSS minification. Without
+// explicit CSS targets Lightning CSS can retain only the prefixed declaration.
+export default defineConfig({ plugins: [react(), restaurantPages()], build: { cssTarget: ['chrome100', 'firefox100', 'safari15'] } });

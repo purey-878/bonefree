@@ -23,13 +23,13 @@ RewriteCond %{THE_REQUEST} \s/+(?:dish|admin|reservation-confirmation)\.html[\s?
 RewriteRule ^(?:dish|admin|reservation-confirmation)\.html$ - [R=404,L]
 
 # Use one canonical URL for each public route, including old .html variants.
-RewriteRule ^(menu|about|events|contact|privacy|reservations)(?:/index\.html|\.html|/)$ /$1 [R=301,L]
+RewriteRule ^(menu|about|events|contact|privacy|reservations|meal-finder)(?:/index\.html|\.html|/)$ /$1 [R=301,L]
 RewriteCond %{THE_REQUEST} \s/+index\.html[\s?] [NC]
 RewriteRule ^index\.html$ / [R=301,L]
 
 # Route-specific HTML before the directory/file checks avoids a trailing slash
 # redirect and supplies the right metadata to crawlers and social previews.
-RewriteRule ^(menu|about|events|contact|privacy|reservations)$ $1/index.html [END]
+RewriteRule ^(menu|about|events|contact|privacy|reservations|meal-finder)$ $1/index.html [END]
 RewriteRule ^reservations/confirmation/?$ reservation-confirmation.html [END]
 RewriteRule ^product/([1-9][0-9]*)/$ /product/$1 [R=301,L]
 RewriteRule ^product/[1-9][0-9]*$ dish.html [END]

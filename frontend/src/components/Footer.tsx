@@ -41,10 +41,11 @@ const Footer: React.FC = () => {
           </div>
 
           <div className="col-lg-3 col-md-6 mb-4">
-            <h5 className="fw-bold mb-3">{t("footer.links")}</h5>
+            <h2 className="h5 fw-bold mb-3">{t("footer.links")}</h2>
             <ul className="list-unstyled">
               <li><Link to="/" className="text-light text-decoration-none footer-link">{t("navigation.home", { ns: "common" })}</Link></li>
               <li><Link to="/reservations" className="text-light text-decoration-none footer-link">{t("navigation.reserveTable", { ns: "common" })}</Link></li>
+              <li><Link to="/meal-finder" className="text-light text-decoration-none footer-link">{t("navigation.mealFinder", { ns: "common" })}</Link></li>
               <li><Link to="/menu" className="text-light text-decoration-none footer-link">{t("navigation.menu", { ns: "common" })}</Link></li>
               <li><Link to="/about" className="text-light text-decoration-none footer-link">{t("navigation.about", { ns: "common" })}</Link></li>
               <li><Link to="/contact" className="text-light text-decoration-none footer-link">{t("navigation.contact", { ns: "common" })}</Link></li>
@@ -53,14 +54,14 @@ const Footer: React.FC = () => {
           </div>
 
           <div className="col-lg-3 col-md-6 mb-4">
-            <h5 className="fw-bold mb-3">{t("footer.contact")}</h5>
+            <h2 className="h5 fw-bold mb-3">{t("footer.contact")}</h2>
             <p><i className="bi bi-geo-alt-fill me-2" />{companyDetails.address}</p>
-            <p><i className="bi bi-telephone-fill me-2" />{companyDetails.phone}</p>
-            <p><i className="bi bi-envelope-fill me-2" />{companyDetails.email}</p>
+            <p><i className="bi bi-telephone-fill me-2" /><a className="text-light footer-link" href={`tel:${companyDetails.phone.replace(/[^+0-9]/g, "")}`}>{companyDetails.phone}</a></p>
+            <p><i className="bi bi-envelope-fill me-2" /><a className="text-light footer-link" href={`mailto:${companyDetails.email}`}>{companyDetails.email}</a></p>
           </div>
 
           <div className="col-lg-3 col-md-6 mb-4">
-            <h5 className="fw-bold mb-3">{t("footer.follow")}</h5>
+            <h2 className="h5 fw-bold mb-3">{t("footer.follow")}</h2>
             <div className="footer-socials" aria-label={t("footer.socialLabel")}>
               {socialLinks.map((link) => (
                 <a

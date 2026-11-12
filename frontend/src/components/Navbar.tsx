@@ -594,7 +594,7 @@ const Navbar = ({ renderStatic = false }: { renderStatic?: boolean }) => {
     </NavInner></TopNav>
     {drawerOpen && <><Backdrop aria-label={t("navigation.closeMenu")} onClick={closeDrawer} type="button" /><MobileDrawer aria-label={t("navigation.mobile")}>
       <DrawerHeader><Logo aria-label={t("navigation.bonefreeHome")} onClick={closeDrawer} to="/"><img {...brandLogo} sizes="43px" className="img-fluid img-25" alt="Bonefree" /></Logo><IconAction aria-label={t("navigation.closeMenu")} onClick={closeDrawer} type="button"><X size={22} /></IconAction></DrawerHeader>
-      <DrawerBody><DrawerNav>{desktopLinks.map(({ path, labelKey }) => <DrawerLink $active={isActive(path)} key={path} onClick={closeDrawer} to={path}>{t(labelKey)}</DrawerLink>)}</DrawerNav></DrawerBody>
+      <DrawerBody><DrawerNav>{desktopLinks.map(({ path, labelKey }) => <DrawerLink $active={isActive(path)} key={path} onClick={closeDrawer} to={path}>{t(labelKey)}</DrawerLink>)}<DrawerLink $active={isActive("/meal-finder")} onClick={closeDrawer} to="/meal-finder">{t("navigation.mealFinder")}</DrawerLink></DrawerNav></DrawerBody>
     </MobileDrawer></>}
   </>;
   // The build renderer places one navbar outside the animated route, matching

@@ -8,7 +8,8 @@ const deDE = {
       english: "English",
       german: "Deutsch",
     },
-    navigation: { reserveTable: "Tisch reservieren",
+    navigation: {
+      mealFinder: 'Finde dein Gericht', reserveTable: "Tisch reservieren",
       home: "Startseite",
       menu: "Speisekarte",
       about: "Über uns",
@@ -118,7 +119,7 @@ const deDE = {
       loadingMore: "Gerichte werden geladen…", loadedCount: "{{count}} von {{total}} Gerichten geladen", endOfMenu: "Alle {{count}} Gerichte geladen", loadMore: "Weitere Gerichte laden", retry: "Erneut versuchen",
       loadError: "Die Speisekarte konnte nicht geladen werden.",
       sort: { default: "Empfohlen", priceAsc: "Preis: aufsteigend", priceDesc: "Preis: absteigend", nameAsc: "Name: A–Z" }, close: "Schließen",
-      eyebrow: "Unsere Speisekarte", title: "Entdecken Sie unsere Gerichte.", description: "Entdecken Sie unsere pflanzlichen Gerichte, Zutaten und Preise. Finden Sie Ihre Favoriten vor Ihrem Besuch.",
+      eyebrow: "Unsere Speisekarte", title: "Entdecken Sie unsere Gerichte.", finderPrompt: "Keine Ahnung, was du nehmen sollst?", finderAction: "FRAG PAULO!",
       shortDescription: "Vegane Gerichte voller Geschmack.",
       showing: "Angezeigt", filtersLabel: "Filter der Speisekarte", searchLabel: "Speisekarte durchsuchen", searchPlaceholder: "Gerichte suchen...", clearSearch: "Suche löschen", maxPrice: "Höchstpreis", filter: "Filter", specialFilter: "Spezialfilter der Speisekarte", all: "Alle", glutenFree: "Glutenfrei", alcohol: "Alkohol", sortLabel: "Sortieren", sortMenu: "Speisekarte sortieren", reset: "Zurücksetzen", categories: "Kategorien", noResults: "Keine Ergebnisse", noResultsTitle: "Keine Gerichte gefunden", noResultsText: "Versuchen Sie eine andere Kategorie, einen anderen Suchbegriff oder Preisbereich.", resetFilters: "Filter zurücksetzen",
       dish: "Gericht", dishes: "Gerichte"

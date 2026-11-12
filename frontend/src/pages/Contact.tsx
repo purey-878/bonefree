@@ -1,3 +1,4 @@
+import { BUSINESS } from "../seo/business";
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Clock, Mail, MapPin, Phone, Route, UtensilsCrossed } from "lucide-react";
@@ -16,7 +17,7 @@ const contactCards = [
   },
   {
     titleKey: "contact.phone",
-    text: "+351 968 107 703",
+    text: BUSINESS.phoneDisplay,
     Icon: Phone,
   },
   {

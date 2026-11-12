@@ -370,6 +370,24 @@ export type AnalyticsSeriesResponse = {
 };
 
 /**
+ * Answers
+ */
+export type Answers = {
+    /**
+     * Course
+     */
+    course: 'starter' | 'tacos' | 'main';
+    /**
+     * Ingredient
+     */
+    ingredient: 'plant_protein' | 'legumes' | 'vegetables' | 'any';
+    /**
+     * Style
+     */
+    style: 'crispy' | 'creamy' | 'smoky' | 'any';
+};
+
+/**
  * ApiErrorResponse
  */
 export type ApiErrorResponse = {
@@ -1011,6 +1029,24 @@ export type CompanyDetailsSettings = {
 };
 
 /**
+ * Configuration
+ */
+export type Configuration = {
+    /**
+     * Enabled
+     */
+    enabled: boolean;
+    /**
+     * Questions
+     */
+    questions: Array<Question>;
+    /**
+     * Version
+     */
+    version: number;
+};
+
+/**
  * CounterPaymentResponse
  */
 export type CounterPaymentResponse = {
@@ -1645,6 +1681,16 @@ export type ExtraResponse = {
 };
 
 /**
+ * FinderSettings
+ */
+export type FinderSettings = {
+    /**
+     * Enabled
+     */
+    enabled: boolean;
+};
+
+/**
  * ForgotPasswordRequest
  */
 export type ForgotPasswordRequest = {
@@ -2024,6 +2070,17 @@ export type LoyaltyCouponSettingsOutput = {
 };
 
 /**
+ * Match
+ */
+export type Match = {
+    product: ProductResponse;
+    /**
+     * Reasons
+     */
+    reasons: Array<'course' | 'style' | 'ingredient'>;
+};
+
+/**
  * MediaVariantKind
  */
 export type MediaVariantKind = 'original' | 'thumb' | 'card' | 'detail';
@@ -2096,6 +2153,17 @@ export type MessageResponse = {
      * Message
      */
     message: string;
+};
+
+/**
+ * Option
+ */
+export type Option = {
+    /**
+     * Id
+     */
+    id: string;
+    label: Text;
 };
 
 /**
@@ -3694,6 +3762,55 @@ export type PublicSettings = {
 };
 
 /**
+ * Question
+ */
+export type Question = {
+    /**
+     * Id
+     */
+    id: 'course' | 'style' | 'ingredient';
+    label: Text;
+    /**
+     * Options
+     */
+    options: Array<Option>;
+};
+
+/**
+ * RecommendationRequest
+ */
+export type RecommendationRequest = {
+    answers: Answers;
+    /**
+     * Locale
+     */
+    locale?: 'pt-PT' | 'en-GB' | 'de-DE';
+    /**
+     * Restrictions
+     */
+    restrictions?: Array<'gluten_free'>;
+    /**
+     * Version
+     */
+    version: number;
+};
+
+/**
+ * RecommendationResult
+ */
+export type RecommendationResult = {
+    /**
+     * Alternatives
+     */
+    alternatives?: Array<Match>;
+    best?: Match | null;
+    /**
+     * Closest
+     */
+    closest?: boolean;
+};
+
+/**
  * ResetPasswordRequest
  */
 export type ResetPasswordRequest = {
@@ -4016,6 +4133,24 @@ export type StatusUpdate = {
      * Status
      */
     status: 'confirmed' | 'cancelled' | 'completed' | 'no_show';
+};
+
+/**
+ * Text
+ */
+export type Text = {
+    /**
+     * De
+     */
+    de: string;
+    /**
+     * En
+     */
+    en: string;
+    /**
+     * Pt
+     */
+    pt: string;
 };
 
 /**
@@ -5853,6 +5988,112 @@ export type AdminManagementReadCurrentAdminResponses = {
 };
 
 export type AdminManagementReadCurrentAdminResponse = AdminManagementReadCurrentAdminResponses[keyof AdminManagementReadCurrentAdminResponses];
+
+export type MealFinderAdminSettingsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/admin/meal-finder/settings';
+};
+
+export type MealFinderAdminSettingsErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Request body too large
+     */
+    413: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type MealFinderAdminSettingsError = MealFinderAdminSettingsErrors[keyof MealFinderAdminSettingsErrors];
+
+export type MealFinderAdminSettingsResponses = {
+    /**
+     * Successful Response
+     */
+    200: FinderSettings;
+};
+
+export type MealFinderAdminSettingsResponse = MealFinderAdminSettingsResponses[keyof MealFinderAdminSettingsResponses];
+
+export type MealFinderSaveSettingsData = {
+    body: FinderSettings;
+    path?: never;
+    query?: never;
+    url: '/admin/meal-finder/settings';
+};
+
+export type MealFinderSaveSettingsErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Request body too large
+     */
+    413: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type MealFinderSaveSettingsError = MealFinderSaveSettingsErrors[keyof MealFinderSaveSettingsErrors];
+
+export type MealFinderSaveSettingsResponses = {
+    /**
+     * Successful Response
+     */
+    200: FinderSettings;
+};
+
+export type MealFinderSaveSettingsResponse = MealFinderSaveSettingsResponses[keyof MealFinderSaveSettingsResponses];
 
 export type AdminManagementListOrdersData = {
     body?: never;
@@ -9729,6 +9970,120 @@ export type AuthGetMeResponses = {
 };
 
 export type AuthGetMeResponse = AuthGetMeResponses[keyof AuthGetMeResponses];
+
+export type MealFinderConfigData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/meal-finder/config';
+};
+
+export type MealFinderConfigErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Request body too large
+     */
+    413: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type MealFinderConfigError = MealFinderConfigErrors[keyof MealFinderConfigErrors];
+
+export type MealFinderConfigResponses = {
+    /**
+     * Successful Response
+     */
+    200: Configuration;
+};
+
+export type MealFinderConfigResponse = MealFinderConfigResponses[keyof MealFinderConfigResponses];
+
+export type MealFinderRecommendationsData = {
+    body: RecommendationRequest;
+    path?: never;
+    query?: never;
+    url: '/meal-finder/recommendations';
+};
+
+export type MealFinderRecommendationsErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Request body too large
+     */
+    413: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type MealFinderRecommendationsError = MealFinderRecommendationsErrors[keyof MealFinderRecommendationsErrors];
+
+export type MealFinderRecommendationsResponses = {
+    /**
+     * Successful Response
+     */
+    200: RecommendationResult;
+};
+
+export type MealFinderRecommendationsResponse = MealFinderRecommendationsResponses[keyof MealFinderRecommendationsResponses];
 
 export type AuthForgotPasswordData = {
     body: ForgotPasswordRequest;

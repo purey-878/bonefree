@@ -10,6 +10,7 @@ import Footer from './components/Footer'
 import Navbar from './components/Navbar'
 import Home from './pages/Home'
 import Menu from './pages/Menu'
+import MealFinder from './pages/MealFinder'
 import About from './pages/About'
 import Events from './pages/Events'
 import Contact from './pages/Contact'
@@ -18,7 +19,7 @@ import Reservations from './pages/Reservations'
 import ProductDetail from './pages/ProductDetail'
 import AdminLogin from './pages/AdminLogin'
 
-const pages = { '/': Home, '/menu': Menu, '/about': About, '/events': Events, '/contact': Contact, '/privacy': Privacy, '/reservations': Reservations, '/reservations/confirmation': Reservations }
+const pages = { '/meal-finder': MealFinder, '/': Home, '/menu': Menu, '/about': About, '/events': Events, '/contact': Contact, '/privacy': Privacy, '/reservations': Reservations, '/reservations/confirmation': Reservations }
 
 export async function renderInitialPage(path: string) {
   await i18nReady

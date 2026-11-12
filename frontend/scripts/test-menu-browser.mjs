@@ -88,6 +88,7 @@ try {
   assert(await count() === 48, 'Automatic loading pauses after three batches');
   await evaluate('window.scrollTo({top:2400,behavior:"instant"})'); await sleep(200);
   assert(await evaluate('Math.abs(document.querySelector(".menu-category-list").getBoundingClientRect().top)<2'), 'Mobile categories remain sticky flush to the viewport top');
+  await wait('document.querySelector(".menu-category-list").classList.contains("is-pinned")', 'category observer after scrolling');
   assert(await evaluate('(()=>{const row=document.querySelector(".menu-category-list");const r=row.getBoundingClientRect();return row.classList.contains("is-pinned") && Math.abs(r.left)<1 && Math.abs(r.right-innerWidth)<1 && getComputedStyle(row).backdropFilter.includes("blur")})()'), 'Pinned category glass background spans the full viewport');
   assert(await evaluate('document.documentElement.scrollWidth<=innerWidth'), '390px menu has no horizontal overflow');
   await send('Page.captureScreenshot', { format: 'png' }).then(result => fs.writeFileSync(path.join(output, 'mobile-sticky.png'), Buffer.from(result.data, 'base64')));
@@ -98,10 +99,12 @@ try {
   assert(await evaluate('!document.querySelector(".menu-feed-status button")'), 'Final page removes load control');
   assert(await evaluate('new Set([...document.querySelectorAll(".menu-product-card h3")].map(e=>e.textContent)).size===70'), 'All 70 products appear exactly once');
   await evaluate('window.scrollTo({top:2400,behavior:"instant"})'); await sleep(200);
+  await wait('Math.abs(scrollY - 2400) < 10', 'menu scroll before detail');
   const before = calls.filter(call => call.size === 16).length;
   await click('.menu-product-card a[href="/product/1"]'); await wait('!!document.querySelector(".pd-page")', 'product detail');
   assert(await evaluate('window.__menuObservers.size===0'), 'Menu observers are disconnected after leaving the route');
   await evaluate('history.back()'); await wait('document.querySelectorAll(".menu-product-card").length===70', 'restored menu'); await sleep(300);
+  await wait('Math.abs(scrollY - 2400) < 10', 'restored scroll position');
   assert(Math.abs(await evaluate('scrollY') - 2400) < 10, 'Back from dish restores loaded products and exact scroll position');
   assert(calls.filter(call => call.size === 16).length === before, 'Restoring menu does not refetch loaded pages');
   await input('Dish 0'); await sleep(400); await input('Dish 6');

@@ -228,6 +228,7 @@ const HomePage = () => {
               <SecondaryCta className="fw-semibold" to="/contact">
                 {t("home.findRestaurant")}
               </SecondaryCta>
+              <Link to="/meal-finder">{t("navigation.mealFinder", {ns: "common"})} ↗</Link>
             </HeroActions>
 
           </HeroCopy>

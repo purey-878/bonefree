@@ -1,4 +1,5 @@
 User-agent: *
+Content-Signal: search=yes, ai-train=no
 Allow: /
 # Allow crawling error responses and noindex administrator documents so that
 # search engines can see their actual status. Robots rules are not access control.

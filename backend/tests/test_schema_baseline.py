@@ -18,7 +18,7 @@ import models  # noqa: F401 - register every model in Base.metadata.
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 BASELINE_REVISION = "20260822_0001"
-HEAD_REVISION = "20261108_0004"
+HEAD_REVISION = "20261110_0005"
 LEGACY_HEAD_REVISION = "b6d8f0a2c4e7"
 
 
@@ -83,9 +83,9 @@ class SchemaBaselineTests(unittest.TestCase):
             connection.close()
             engine.dispose()
 
-        self.assertEqual([revision.revision for revision in revisions], [HEAD_REVISION, "20261108_0003", "20261103_0002", BASELINE_REVISION])
-        self.assertEqual(revisions[0].down_revision, "20261108_0003")
-        self.assertEqual(revisions[2].down_revision, BASELINE_REVISION)
+        self.assertEqual([revision.revision for revision in revisions], [HEAD_REVISION, "20261108_0004", "20261108_0003", "20261103_0002", BASELINE_REVISION])
+        self.assertEqual(revisions[0].down_revision, "20261108_0004")
+        self.assertEqual(revisions[-2].down_revision, BASELINE_REVISION)
         self.assertIsNone(revisions[-1].down_revision)
         baseline_source = Path(revisions[-1].path).read_text(encoding="utf-8")
         self.assertNotIn("Base.metadata", baseline_source)

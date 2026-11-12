@@ -21,7 +21,9 @@ from core.exception_handlers import (
 )
 from migrations import run_migrations
 from database import engine as database_engine
+from core.meal_finder_requests import MealFinderRequestMiddleware
 from core.reservation_privacy import ReservationPrivacyMiddleware
+from routers.meal_finder import router as meal_finder_router, admin_router as meal_finder_admin_router
 from routers.reservations import router as reservations_router, admin_router as admin_reservations_router
 from routers.admin import router as admin_router
 from routers.auth import router as auth_router
@@ -123,6 +125,7 @@ def create_app(
     application.mount("/assets", StaticFiles(directory=resolved_assets), name="assets")
     application.mount("/uploads", StaticFiles(directory=resolved_uploads), name="uploads")
 
+    application.add_middleware(MealFinderRequestMiddleware)
     application.add_middleware(ReservationPrivacyMiddleware)
     application.add_middleware(
         CORSMiddleware,
@@ -142,6 +145,8 @@ def create_app(
     def health_check() -> HealthResponse:
         return HealthResponse(status="healthy")
 
+    application.include_router(meal_finder_router)
+    application.include_router(meal_finder_admin_router)
     application.include_router(reservations_router)
     application.include_router(admin_reservations_router)
     application.include_router(auth_router)

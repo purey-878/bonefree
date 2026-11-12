@@ -1,4 +1,4 @@
-import { restaurantSchema, SITE_IMAGE, SITE_URL, type PageMetadata } from './metadata';
+import { structuredData, SITE_IMAGE, SITE_URL, type PageMetadata } from './metadata';
 
 export function applyPageMetadata(meta: PageMetadata) {
   document.title = meta.title;
@@ -8,8 +8,13 @@ export function applyPageMetadata(meta: PageMetadata) {
     schema = document.createElement('script');
     schema.id = 'restaurant-schema';
     schema.type = 'application/ld+json';
-    schema.textContent = JSON.stringify(restaurantSchema);
+    schema.textContent = JSON.stringify(structuredData(meta));
     document.head.append(schema);
+  }
+  if (!meta.noindex && schema) {
+    let bookingEnabled = false;
+    try { bookingEnabled = !!JSON.parse(schema.textContent || '{}')['@graph']?.find((node: { potentialAction?: unknown }) => node.potentialAction)?.potentialAction; } catch { /* Replace malformed metadata. */ }
+    schema.textContent = JSON.stringify(structuredData(meta, bookingEnabled));
   }
   const set = (selector: string, attribute: 'name' | 'property', key: string, content: string) => {
     let element = document.head.querySelector<HTMLMetaElement>(selector);
@@ -39,5 +44,13 @@ export function applyPageMetadata(meta: PageMetadata) {
 /** Advertise booking only after the public API confirms that it is enabled. */
 export function applyReservationAction(enabled: boolean) {
   const schema = document.head.querySelector<HTMLScriptElement>('#restaurant-schema');
-  if (schema) schema.textContent = JSON.stringify({ ...restaurantSchema, ...(enabled ? { potentialAction: { '@type': 'ReserveAction', target: `${SITE_URL}/reservations` } } : {}) });
+  if (!schema) return;
+  try {
+    const data = JSON.parse(schema.textContent || '{}');
+    const business = data['@graph']?.find((node: Record<string, unknown>) => node['@id'] === `${SITE_URL}/#restaurant`);
+    if (!business) return;
+    if (enabled) business.potentialAction = { '@type': 'ReserveAction', target: `${SITE_URL}/reservations` };
+    else delete business.potentialAction;
+    schema.textContent = JSON.stringify(data);
+  } catch { /* A subsequent metadata update rebuilds malformed structured data. */ }
 }

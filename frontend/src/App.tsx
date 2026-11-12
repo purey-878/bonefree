@@ -7,6 +7,7 @@ import './siteThemes.css'
 import './theme.css'
 
 import PageMetadata from './components/PageMetadata'
+import AgentTools from './components/AgentTools'
 import Footer from './components/Footer'
 import SiteThemeController from './components/SiteThemeController'
 
@@ -24,6 +25,7 @@ const AdminDashboard = lazy(async () => {
 const AdminLogin = lazy(() => import('./pages/AdminLogin'))
 const Contact = lazy(() => import('./pages/Contact'))
 const Events = lazy(() => import('./pages/Events'))
+const MealFinder = lazy(() => import('./pages/MealFinder'))
 const Menu = lazy(() => import('./pages/Menu'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 const Privacy = lazy(() => import('./pages/Privacy'))
@@ -56,7 +58,7 @@ function InitialRenderComplete() {
     // Neither the lazy fallback nor the committed page should replay the fade.
     continueInitialAnimation()
     document.getElementById('root')?.removeAttribute('data-initial-render')
-    document.querySelectorAll('style[data-initial-styles]').forEach(style => style.remove())
+    document.querySelectorAll('[data-initial-styles]').forEach(style => style.remove())
   }, [])
   return null
 }
@@ -113,6 +115,7 @@ function App() {
     <>
       <SiteThemeController />
       <PageMetadata />
+      <AgentTools />
 
       <Suspense fallback={initialRouteFallback}>
       <div className={`app-route-stage${visibleLocation.pathname === '/' ? ' app-route-stage--home' : ''}`} key={visibleLocation.pathname}>
@@ -124,6 +127,7 @@ function App() {
           <Route path="/admin/super" element={<ProtectedAdminRoute roles={["owner"]}><Navigate to="/admin/dashboard" replace /></ProtectedAdminRoute>} />
 
           <Route path="/menu" element={<Menu />} />
+          <Route path="/meal-finder" element={<MealFinder />} />
 
           <Route path="/about" element={<About />} />
           <Route path="/events" element={<Events />} />

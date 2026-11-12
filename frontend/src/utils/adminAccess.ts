@@ -1,7 +1,7 @@
 import type { AdminRole } from '../types/admin';
 
-export type AdminDashboardTab = 'products' | 'ingredients' | 'categories' | 'staff' | 'settings' | 'reservations';
-const CATALOG_TABS: readonly AdminDashboardTab[] = ['products', 'ingredients', 'categories', 'reservations'];
+export type AdminDashboardTab = 'products' | 'ingredients' | 'categories' | 'staff' | 'settings' | 'reservations' | 'meal-finder';
+const CATALOG_TABS: readonly AdminDashboardTab[] = ['products', 'ingredients', 'categories', 'reservations', 'meal-finder'];
 const OWNER_TABS: readonly AdminDashboardTab[] = [...CATALOG_TABS, 'staff', 'settings'];
 const NO_TABS: readonly AdminDashboardTab[] = [];
 
