@@ -9,7 +9,7 @@ export type PageMetadata = { title: string; description: string; path?: string; 
 const copy: Record<Locale, Record<PublicPath, [string, string]>> = {
   'pt-PT': {
     '/meal-finder': ['Descobre o Teu Prato Vegan | BoneFree Costa da Caparica', 'Responde a três perguntas e descobre pratos vegan ao teu gosto. Explora o menu e reserva mesa no BoneFree.'],
-    '/': ['Bonefree | Restaurante Vegan na Costa da Caparica', 'Descobre o Bonefree, restaurante vegan na Costa da Caparica. Pratos 100% vegetais, cocktails e um ambiente descontraído. Explora o nosso menu.'],
+    '/': ['Bonefree — Restaurante Vegano e Bar na Costa da Caparica', 'Uma experiência onde sabores, música e comunidade se encontram junto ao mar.'],
     '/menu': ['Menu vegan | Bonefree', 'Explora os pratos e bebidas do Bonefree: ingredientes, informação nutricional e opções vegan na Costa da Caparica.'],
     '/about': ['Sobre o restaurante | Bonefree', 'Conhece o Bonefree, restaurante e bar vegan na Costa da Caparica.'],
     '/events': ['Eventos | Bonefree', 'Descobre os eventos e as novidades do restaurante e bar Bonefree na Costa da Caparica.'],
@@ -19,7 +19,7 @@ const copy: Record<Locale, Record<PublicPath, [string, string]>> = {
   },
   'en-GB': {
     '/meal-finder': ['Find Your Vegan Meal | BoneFree Costa da Caparica', 'Answer three quick questions to discover vegan dishes picked for your taste. Explore the menu and reserve a table at BoneFree.'],
-    '/': ['Bonefree | Vegan Restaurant in Costa da Caparica', 'Discover Bonefree, a vegan restaurant in Costa da Caparica. Vegan dishes, cocktails and a relaxed atmosphere. Explore our menu.'],
+    '/': ['Bonefree — Vegan Restaurant and Bar in Costa da Caparica', 'An experience where flavours, music and community meet by the sea.'],
     '/menu': ['Vegan menu | Bonefree', 'Explore Bonefree dishes and drinks, ingredients, nutritional information and vegan options in Costa da Caparica.'],
     '/about': ['About the restaurant | Bonefree', 'Meet Bonefree, a vegan restaurant and bar in Costa da Caparica.'],
     '/events': ['Events | Bonefree', 'Discover events and news from Bonefree restaurant and bar in Costa da Caparica.'],
@@ -29,7 +29,7 @@ const copy: Record<Locale, Record<PublicPath, [string, string]>> = {
   },
   'de-DE': {
     '/meal-finder': ['Finde dein veganes Gericht | BoneFree Costa da Caparica', 'Finde mit drei kurzen Fragen vegane Gerichte nach deinem Geschmack. Entdecke die Speisekarte und reserviere einen Tisch bei BoneFree.'],
-    '/': ['Bonefree | Veganes Restaurant in Costa da Caparica', 'Entdecken Sie Bonefree, ein veganes Restaurant in Costa da Caparica. Vegane Gerichte, Cocktails und eine entspannte Atmosphäre.'],
+    '/': ['Bonefree — Veganes Restaurant und Bar in Costa da Caparica', 'Ein Erlebnis, bei dem Aromen, Musik und Gemeinschaft am Meer zusammenkommen.'],
     '/menu': ['Vegane Speisekarte | Bonefree', 'Entdecken Sie Gerichte, Getränke, Zutaten und Nährwertinformationen bei Bonefree in Costa da Caparica.'],
     '/about': ['Über das Restaurant | Bonefree', 'Lernen Sie Bonefree kennen, ein veganes Restaurant mit Bar in Costa da Caparica.'],
     '/events': ['Veranstaltungen | Bonefree', 'Veranstaltungen und Neuigkeiten aus dem Restaurant und der Bar Bonefree in Costa da Caparica.'],

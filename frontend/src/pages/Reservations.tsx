@@ -1,11 +1,10 @@
-import { ArrowRight, CalendarDays, ChevronDown, Clock3, Leaf, Minus, Plus } from 'lucide-react';
+import { ArrowRight, ChevronDown, Clock3, Leaf, Minus, Plus, Shell } from 'lucide-react';
 import { reservationPercent } from '../utils/reservationFormatting';
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Navbar from '../components/Navbar';
-import FloatingFoodIcons from '../components/FloatingFoodIcons';
 import ReservationPass from '../components/ReservationPass';
 import ReservationDatePicker from '../components/ReservationDatePicker';
 import { ApiError } from '../api/errors';
@@ -82,11 +81,9 @@ export default function Reservations() {
   };
   const selected = availabilityCurrent && !loading ? slots.find(slot => slot.time === time && slot.available) : undefined;
   return <><Navbar /><main className={`reservation-page${privatePage ? ' reservation-confirmation-page' : ''}`}>
-    {!privatePage && <FloatingFoodIcons className="reservation-food-background" />}
-    {privatePage ? pass ? <ReservationPass key={`${token}:${locale}`} pass={pass} token={token} onUpdate={next => setLoadedPass(current => current?.token === token && current.locale === locale ? { ...current, pass: next } : current)} /> : <section className="reservation-card"><h1>{t('title')}</h1><p role={error ? 'alert' : 'status'}>{error || (/^[a-f0-9]{64}$/.test(token) ? t('loading') : t('lost'))}</p>{error && <button onClick={() => { setError(''); setRefresh(value => value + 1); }}>{t('retry')}</button>}<Link to="/contact">{t('contact')}</Link></section> : <section className="reservation-card reservation-booking-card">
-      <img className="reservation-hero" src="/assets/images/index-hero-banner.webp" alt={t('venueImage')} width="2000" height="1333" fetchPriority="high" />
+    {privatePage ? pass ? <ReservationPass key={`${token}:${locale}`} pass={pass} token={token} onUpdate={next => setLoadedPass(current => current?.token === token && current.locale === locale ? { ...current, pass: next } : current)} /> : <section className="reservation-card"><h1>{t('title')}</h1><p role={error ? 'alert' : 'status'}>{error || (/^[a-f0-9]{64}$/.test(token) ? t('loading') : t('lost'))}</p>{error && <button onClick={() => { setError(''); setRefresh(value => value + 1); }}>{t('retry')}</button>}<Link to="/contact">{t('contact')}</Link></section> : <section className="reservation-card reservation-booking-card reservation-beach-layout">
+      <div className="reservation-beach-intro"><span className="reservation-beach-kicker"><Shell size={17} aria-hidden="true" />Bonefree · Costa da Caparica</span><h1>{t('title')}</h1><p>{t('intro')}</p></div>
       <div className="reservation-booking-content">
-      <header className="reservation-header"><span className="reservation-mark" aria-hidden="true"><CalendarDays size={25} strokeWidth={1.6} /></span><p className="reservation-kicker">Bonefree · Costa da Caparica</p><h1>{t('title')}</h1><p>{t('intro')}</p></header>
       {error && <p role="alert" className="reservation-warning">{error}</p>}
       {!settings ? <><p role="status">{error ? '' : t('loading')}</p>{error && <button onClick={() => setRefresh(value => value + 1)}>{t('retry')}</button>}</> : !settings.enabled ? <><p>{t('paused')}</p><Link to="/contact">{t('contact')}</Link></> : <form id="reservation-booking-form" onSubmit={event => { void submit(event); }}>
         <fieldset disabled={busy || !!attempt} className="reservation-fields"><legend className="visually-hidden">{t('title')}</legend>

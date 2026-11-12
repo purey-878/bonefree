@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 620" fill="none">
+  <defs>
+    <linearGradient id="sky" x1="800" y1="0" x2="800" y2="620" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#eee5d3"/>
+      <stop offset=".5" stop-color="#faf0da"/>
+      <stop offset="1" stop-color="#ead5af"/>
+    </linearGradient>
+    <radialGradient id="sunlight">
+      <stop stop-color="#fffaf0" stop-opacity=".9"/>
+      <stop offset="1" stop-color="#fffaf0" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="water" x1="1350" y1="80" x2="1350" y2="460" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ccdbd5" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#b9cec4" stop-opacity=".35"/>
+    </linearGradient>
+    <pattern id="grain" width="43" height="37" patternUnits="userSpaceOnUse">
+      <circle cx="6" cy="10" r=".7" fill="#a48353" opacity=".15"/>
+      <circle cx="28" cy="29" r=".6" fill="#a48353" opacity=".12"/>
+      <circle cx="36" cy="8" r=".8" fill="#fffdf5" opacity=".6"/>
+    </pattern>
+  </defs>
+  <path fill="url(#sky)" d="M0 0h1600v620H0z"/>
+  <ellipse cx="260" cy="100" rx="390" ry="230" fill="url(#sunlight)"/>
+  <circle cx="205" cy="105" r="34" fill="#e4c28a" opacity=".24"/>
+  <path d="M1010 115c180-50 335 15 590-30v355c-112-55-188-69-282-111-146-65-239-84-308-214Z" fill="url(#water)"/>
+  <path d="M1040 147c68 122 164 137 297 198 83 38 164 49 263 98" stroke="#fffaf0" stroke-width="16" opacity=".55"/>
+  <path d="M1063 140c65 115 173 144 300 198 80 34 139 43 237 91" stroke="#fbfcf5" stroke-width="3" opacity=".7"/>
+  <g stroke="#f9fbf3" stroke-width="2" stroke-linecap="round" opacity=".65">
+    <path d="M1250 165c32-6 59 7 91 1m58 40c25-4 43 5 69 0m31 82c33-5 58 6 88 1m-180-45c18-3 33 4 52 0"/>
+  </g>
+  <path d="M0 385c205-80 369-20 531 45 191 77 357 92 569 61 182-27 343-12 500 68v61H0Z" fill="#e9d4af"/>
+  <path d="M0 421c210-80 388-6 547 51 191 69 371 73 566 44" stroke="#f8ecd5" stroke-width="3" opacity=".8"/>
+  <path d="M0 543c217-52 356-15 535 20 219 43 444-60 647-33 158 21 291 60 418 57v33H0Z" fill="#ddc49a" opacity=".7"/>
+  <path d="M0 566c222-47 365-1 538 22" stroke="#efddbc" stroke-width="2" opacity=".8"/>
+  <path fill="url(#grain)" d="M0 0h1600v620H0z"/>
+  <g stroke="#ad8c5c" stroke-width="1.6" stroke-linecap="round" opacity=".28">
+    <path d="M117 476c-6-14 9-24 19-13l-9 16Zm10 2-1-17m1 17 6-13m-10 12-5-10"/>
+    <path d="M1460 549c0-16 9-25 13-40m-13 40c8-11 18-15 22-27m-22 27c-8-10-11-21-10-31"/>
+    <path d="m159 535 3-1m-80 23 3 1m1244-75 3 1m61 71 3-1"/>
+  </g>
+</svg>

@@ -1,5 +1,5 @@
 import { formatProductPrices } from "../utils/pricing"
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Leaf, Music2, Sparkles, Waves } from "lucide-react";
 import type { PointerEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -9,6 +9,8 @@ import styled from "styled-components";
 import Navbar from "../components/Navbar";
 import { ProductCard } from "../components/ui/ProductCard";
 import ProductLabel from "../components/ui/ProductLabel";
+import HomeUpcomingEvents from '../components/HomeUpcomingEvents';
+import HomeStory from '../components/HomeStory';
 import { ProductCardSkeleton, Skeleton } from "../components/ui/Skeleton";
 import { ASSETS } from "../constants/assets";
 import i18n, { resolvedLocale } from "../i18n";
@@ -209,8 +211,8 @@ const HomePage = () => {
 
   return (
     <HomeShell>
-      <HeroSection>
-        <HeroOverlay />
+      <HeroSection className="home-hero">
+        <HeroOverlay aria-hidden="true"><Leaf /><Waves /><Music2 /></HeroOverlay>
         <Navbar />
         <HeroContent>
 
@@ -226,10 +228,11 @@ const HomePage = () => {
                 {t("home.openMenu")}
                 <ArrowRight size={18} />
               </PrimaryCta>
-              <SecondaryCta className="fw-semibold" to="/contact">
-                {t("home.findRestaurant")}
+              <SecondaryCta className="fw-semibold" to="/reservations">
+                {t("home.reserveTable")}
               </SecondaryCta>
             </HeroActions>
+            <HeroEventsLink className="home-events-link" to="/#home-events"><Music2 size={18} aria-hidden="true" />{t('events.viewEvents')}<ArrowRight size={17} aria-hidden="true" /></HeroEventsLink>
 
           </HeroCopy>
 
@@ -300,6 +303,8 @@ const HomePage = () => {
           </FeaturedDishCard>
         </HeroContent>
       </HeroSection>
+
+      <HomeUpcomingEvents />
 
       <CategorySection aria-label={t("home.categories")}>
         <CategoryTrack>
@@ -404,6 +409,8 @@ const HomePage = () => {
         </ChefCopy>
       </ChefSpecialBanner>
 
+      <HomeStory />
+
     </HomeShell>
   );
 };
@@ -412,26 +419,23 @@ const HomeShell = styled.main`
   position: relative;
   min-height: 100vh;
   overflow: hidden;
-  background:
-    radial-gradient(circle at 10% 0%, rgba(253, 205, 67, 0.14), transparent 30rem),
-    radial-gradient(circle at 90% 18%, rgba(7, 96, 80, 0.1), transparent 28rem),
-    var(--background-body);
+  background: var(--background-body);
   color: var(--brand-ink);
 `;
 
 const HeroSection = styled.section`
   position: relative;
   z-index: 3;
-  min-height: 100vh;
+  border-radius: 0 0 48px 48px;
   overflow: hidden;
   background:
-    linear-gradient(90deg, rgba(5, 12, 10, 0.82), rgba(7, 17, 15, 0.58) 54%, rgba(7, 17, 15, 0.84)),
+    linear-gradient(90deg, rgba(7, 63, 52, .96), rgba(7, 63, 52, .8)),
     url(${ASSETS.images.hero.heroBanner}) center / cover no-repeat;
   background-attachment: fixed;
   background-position: center;
 
   @media (max-width: 767px) {
-    min-height: 100svh;
+    border-radius: 0 0 30px 30px;
     background-attachment: scroll;
   }
 `;
@@ -439,11 +443,12 @@ const HeroSection = styled.section`
 const HeroOverlay = styled.div`
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(circle at 76% 28%, rgba(253, 205, 67, 0.18), transparent 22rem),
-    radial-gradient(circle at 15% 80%, rgba(123, 175, 75, 0.12), transparent 20rem),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(7, 17, 15, 0.38));
+  background: radial-gradient(ellipse at 85% 15%, rgba(123, 175, 75, .18), transparent 65%);
   pointer-events: none;
+  svg { position: absolute; width: 125px; height: 125px; color: #9ac885; opacity: .14; stroke-width: 1; }
+  svg:nth-child(1) { left: -35px; bottom: 30px; width: 170px; height: 170px; transform: rotate(-20deg); }
+  svg:nth-child(2) { top: 100px; left: 46%; transform: rotate(12deg); }
+  svg:nth-child(3) { right: 20px; bottom: 35px; color: #fdcd43; }
 `;
 
 const HeroContent = styled.div`
@@ -453,11 +458,11 @@ const HeroContent = styled.div`
   grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.62fr);
   box-sizing: border-box;
   width: min(100%, 1280px);
-  min-height: 100vh;
+  min-height: 760px;
   align-items: center;
   gap: clamp(1.5rem, 4vw, 3rem);
   margin: 0 auto;
-  padding: clamp(5rem, 8vw, 7.5rem) 1.5rem clamp(3.5rem, 6vw, 5rem);
+  padding: 125px 1.5rem 80px;
 
   @media (max-width: 1000px) {
     grid-template-columns: 1fr;
@@ -465,10 +470,10 @@ const HeroContent = styled.div`
 
   @media (max-width: 767px) {
     display: flex;
-    min-height: 100svh;
+    min-height: 0;
     flex-direction: column;
     align-items: stretch;
-    padding: calc(68px + clamp(1rem, 3svh, 1.5rem)) 1.25rem clamp(1.5rem, 4svh, 2.5rem);
+    padding: 115px 1.25rem 65px;
   }
 `;
 
@@ -481,8 +486,8 @@ const HeroCopy = styled.div`
     display: flex;
     flex: 1;
     flex-direction: column;
-    justify-content: space-between;
-    gap: clamp(1rem, 2.5svh, 1.75rem);
+    justify-content: center;
+    gap: 22px;
   }
 `;
 
@@ -517,8 +522,10 @@ const HeroTitle = styled.h1`
   max-width: min(100%, 860px);
   margin: 0;
   color: #ffffff;
-  font-size: clamp(2.7rem, 7.4vw, 6.2rem);
-  line-height: 0.96;
+  font-size: clamp(2.7rem, 5.8vw, 5.3rem);
+  font-weight: 900;
+  letter-spacing: -.045em;
+  line-height: 1.04;
   overflow-wrap: break-word;
   text-wrap: balance;
 
@@ -532,7 +539,7 @@ const HeroText = styled.p`
   max-width: 590px;
   margin: 1.35rem 0 0;
   color: rgba(247, 250, 245, 0.82);
-  font-size: clamp(1.02rem, 2vw, 1.24rem);
+  font-size: 1.03rem;
   line-height: 1.65;
 
   @media (max-width: 767px) {
@@ -556,6 +563,22 @@ const HeroActions = styled.div`
   }
 `;
 
+const HeroEventsLink = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  width: fit-content;
+  padding: 12px 0;
+  margin-top: 20px;
+  color: #f7e2a2;
+  font-size: .83rem;
+  font-weight: 700;
+  text-decoration: none;
+  &:hover { color: #fdcd43; }
+  &:focus-visible { outline: 3px solid #fdcd43; outline-offset: 5px; }
+  @media (max-width: 767px) { margin-top: 0; }
+`;
+
 const PrimaryCta = styled(Link)`
   display: inline-flex;
   box-sizing: border-box;
@@ -566,9 +589,9 @@ const PrimaryCta = styled(Link)`
   gap: 0.55rem;
   padding: 0 1.15rem;
   border: 1px solid rgba(253, 205, 67, 0.42);
-  border-radius: var(--radius-sm);
-  background: var(--brand-gradient);
-  color: var(--white);
+  border-radius: 18px;
+  background: var(--brand-accent);
+  color: #21351d;
   font-weight: 900;
   text-decoration: none;
   text-align: center;
@@ -577,7 +600,7 @@ const PrimaryCta = styled(Link)`
   &:hover {
     transform: translateY(-1px);
     border-color: rgba(253, 205, 67, 0.62);
-    color: var(--white);
+    color: #21351d;
     text-decoration: none;
   }
 `;
@@ -591,7 +614,7 @@ const SecondaryCta = styled(Link)`
   justify-content: center;
   padding: 0 1.15rem;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: var(--radius-sm);
+  border-radius: 18px;
   background: rgba(255, 255, 255, 0.08);
   color: #ffffff;
   font-weight: 900;
@@ -621,14 +644,14 @@ const FeaturedDishCard = styled.aside`
   user-select: none;
   padding: 1rem;
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: 36px;
   background:
     radial-gradient(circle at 18% 10%, rgba(253, 205, 67, 0.22), transparent 15rem),
     radial-gradient(circle at 86% 42%, rgba(7, 96, 80, 0.22), transparent 14rem),
     radial-gradient(circle at 30% 92%, rgba(123, 175, 75, 0.18), transparent 13rem),
     linear-gradient(180deg, rgba(255, 255, 255, 0.19), rgba(255, 255, 255, 0.09)),
     rgba(7, 17, 15, 0.26);
-  box-shadow: 0 26px 80px rgba(0, 0, 0, 0.24);
+  box-shadow: 0 16px 45px rgba(0, 0, 0, .12);
   backdrop-filter: blur(24px) saturate(150%);
   -webkit-backdrop-filter: blur(24px) saturate(150%);
   transition: transform 180ms ease;
@@ -656,7 +679,7 @@ const FeaturedDishCard = styled.aside`
 const FeaturedImage = styled.img`
   width: 100%;
   height: 100%;
-  border-radius: var(--radius-sm);
+  border-radius: 26px;
   background:
     radial-gradient(circle at 28% 22%, rgba(253, 205, 67, 0.24), transparent 36%),
     radial-gradient(circle at 76% 72%, rgba(123, 175, 75, 0.2), transparent 42%),
@@ -742,10 +765,10 @@ const FeaturedEmpty = styled.p`
 const CategorySection = styled.section`
   position: relative;
   z-index: 4;
-  border-block: 1px solid rgba(7, 96, 80, 0.1);
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  width: min(1240px, calc(100% - 40px));
+  margin: 35px auto 0;
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--brand-main) 6%, var(--glass-bg-strong));
 `;
 
 const CategoryTrack = styled.div`
@@ -923,7 +946,7 @@ const ChefSpecialBanner = styled.section`
   margin: 0 auto clamp(4rem, 8vw, 6.5rem);
   overflow: hidden;
   border: 1px solid rgba(7, 96, 80, 0.14);
-  border-radius: var(--radius-md);
+  border-radius: 32px;
   background:
     radial-gradient(circle at 16% 12%, rgba(253, 205, 67, 0.22), transparent 18rem),
     linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(238, 247, 233, 0.92)),

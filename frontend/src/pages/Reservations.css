@@ -227,6 +227,65 @@
 @keyframes reservation-calendar-appear { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 @media (prefers-reduced-motion: reduce) { .reservation-calendar:popover-open { animation: none; } }
 
+/* Sand colours are local to the public booking page. */
+.reservation-page:not(.reservation-confirmation-page) {
+  --brand-main: #896437;
+  --brand-secondary: #634a2d;
+  --brand-accent: #e9c887;
+  --brand-ink: #463c2d;
+  --brand-muted: #786b57;
+  --glass-border: #dfceb0;
+  --theme-surface: #fffdf7;
+  --shadow-glass: 0 18px 55px rgba(112, 83, 42, .1);
+  background: #faf7ef;
+}
+.reservation-page:not(.reservation-confirmation-page)::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 60vh;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: 0 0 40px 40px;
+  background: #f2e6cf url('/assets/images/reservation-sand-background.svg') center / cover no-repeat;
+  mask-image: linear-gradient(#000 0 78%, transparent 100%);
+}
+.reservation-page:not(.reservation-confirmation-page)::after {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 60vh;
+  z-index: 0;
+  pointer-events: none;
+  background: url('/assets/images/reservation-beach-patterns.svg') 20px 85px / 360px 320px repeat;
+  opacity: .3;
+  mask-image: radial-gradient(ellipse 340px 100% at 50% 50%, transparent 65%, #000 100%);
+}
+/* A quiet sand palette with the booking form as the main focus. */
+.reservation-booking-card.reservation-beach-layout {
+  display: block;
+  max-width: 680px;
+  border: 1px solid transparent;
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(255, 253, 248, .62), rgba(250, 247, 239, .92));
+  box-shadow: none;
+}
+.reservation-beach-intro { padding: 34px 34px 0; }
+.reservation-beach-kicker { display: flex; align-items: center; gap: 8px; color: #786b57; font-size: .7rem; font-weight: 600; }
+.reservation-beach-kicker svg { flex-shrink: 0; }
+.reservation-beach-intro h1 { margin: 18px 0 12px; color: var(--brand-ink); font-size: clamp(2rem, 5vw, 2.8rem); font-weight: 900; line-height: 1.12; letter-spacing: -.035em; }
+.reservation-beach-intro > p { margin: 0; color: var(--brand-muted); font-size: .92rem; line-height: 1.7; }
+.reservation-beach-layout .reservation-booking-content { padding: 0 34px 34px; }
+.reservation-beach-layout .reservation-fields { margin-top: 25px; padding-top: 25px; border-top: 1px solid #e9e1d2; }
+@media (max-width: 760px) {
+  .reservation-page:not(.reservation-confirmation-page)::after { opacity: .12; mask-image: linear-gradient(#000, transparent); }
+}
+@media (max-width: 480px) {
+  .reservation-booking-card.reservation-beach-layout { border-radius: 24px; }
+  .reservation-beach-intro { padding: 26px 22px 0; }
+  .reservation-beach-layout .reservation-booking-content { padding: 0 22px 26px; }
+}
+
 .reservation-management { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 4px; padding-top: 12px; border-top: 1px solid var(--glass-border); }
 .reservation-management > a { font-size: .8rem; }
 .reservation-pass-cancellation { min-width: 0; text-align: center; }

@@ -1,508 +1,344 @@
-import { Heart, Leaf, MapPin, Sparkles, Users, UtensilsCrossed } from "lucide-react";
-import React from "react";
-import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
-import styled from "styled-components";
-import FloatingAboutIcons from "../components/FloatingAboutIcons";
-import Navbar from "../components/Navbar";
-
-const stats = [
-  { value: "30+", labelKey: "about.stats.dishes" },
-];
+import { ArrowUpRight, Heart, Leaf, MapPin, Sparkles, Users, UtensilsCrossed, Waves } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
+import styled from 'styled-components';
+import Navbar from '../components/Navbar';
 
 const values = [
-  {
-    titleKey: "about.values.localTitle", textKey: "about.values.localText",
-    Icon: MapPin,
-  },
-  {
-    titleKey: "about.values.plantTitle", textKey: "about.values.plantText",
-    Icon: Leaf,
-  },
-  {
-    titleKey: "about.values.shareTitle", textKey: "about.values.shareText",
-    Icon: Users,
-  },
-];
+  { name: 'plant', Icon: Leaf },
+  { name: 'share', Icon: Users },
+  { name: 'local', Icon: MapPin },
+  { name: 'care', Icon: Heart },
+] as const;
 
-const About: React.FC = () => {
-  const { t } = useTranslation("storefront");
-  return (
-    <AboutPage>
-      <FloatingAboutIcons />
-      <AboutHero>
-        <Navbar />
-        <HeroInner>
-          <HeroCopy>
-            <HeroKicker>
-              <Sparkles size={16} />
-              {t("about.kicker")}
-            </HeroKicker>
-            <h1>{t("about.heroTitle")}</h1>
-            <p>{t("about.heroDescription")}</p>
-            <HeroActions>
-              <Link to="/menu">
-                <UtensilsCrossed size={18} />
-                {t("about.openMenu")}
-              </Link>
-              <Link to="/contact">{t("about.findUs")}</Link>
-            </HeroActions>
-          </HeroCopy>
+export default function About() {
+  const { t } = useTranslation('storefront');
+  return <Page>
+    <Navbar />
+    <Hero>
+      <HeroDoodles aria-hidden="true"><Leaf /><Waves /><Sparkles /></HeroDoodles>
+      <HeroInner>
+        <HeroCopy>
+          <Kicker><Leaf size={17} aria-hidden="true" />{t('about.kicker')}</Kicker>
+          <h1>{t('about.heroTitle')}</h1>
+          <p>{t('about.heroDescription')}</p>
+          <Actions><Action to="/menu"><UtensilsCrossed size={18} aria-hidden="true" />{t('about.openMenu')}<ArrowUpRight size={18} aria-hidden="true" /></Action><TextLink to="/contact">{t('about.findUs')}<ArrowUpRight size={18} aria-hidden="true" /></TextLink></Actions>
+        </HeroCopy>
+        <HeroPhotos>
+          <MainPhoto><img src="/assets/images/about-us-photo-1.webp" alt={t('about.heroAlt')} fetchPriority="high" /><figcaption><MapPin size={15} aria-hidden="true" />{t('about.location')}</figcaption></MainPhoto>
+          <SmallPhoto><img src="/assets/images/about-image-2.jpg" alt={t('about.foodAlt')} /></SmallPhoto>
+          <VeganSeal><Leaf size={28} aria-hidden="true" /><span>{t('productDetail.vegan')}</span></VeganSeal>
+        </HeroPhotos>
+      </HeroInner>
+    </Hero>
 
-          <HeroPhoto>
-            <img src="/assets/images/about-us-photo-1.webp" alt={t("about.heroAlt")} />
+    <Content>
+      <Story aria-labelledby="about-story-title">
+        <StoryPhoto><img src="/assets/images/about-us-3.jpg" alt={t('about.roomAlt')} loading="lazy" /></StoryPhoto>
+        <StoryCopy><Kicker><Sparkles size={17} aria-hidden="true" />{t('about.storyLabel')}</Kicker><h2 id="about-story-title">{t('about.storyTitle')}</h2>{t('about.story').split('\n\n').map(paragraph => <p key={paragraph}>{paragraph}</p>)}</StoryCopy>
+      </Story>
 
-          </HeroPhoto>
-        </HeroInner>
-      </AboutHero>
+      <Mission aria-labelledby="about-mission-title">
+        <MissionCopy><Heart size={30} aria-hidden="true" /><Kicker>{t('about.mission')}</Kicker><h2 id="about-mission-title">{t('about.missionText')}</h2><Leaf className="mission-leaf" aria-hidden="true" /></MissionCopy>
+        <BarPhoto><img src="/assets/images/index-about-tap.webp" alt={t('about.barAlt')} loading="lazy" /></BarPhoto>
+      </Mission>
 
-      <AboutBento aria-label={t("about.sectionLabel")}>
-        <StoryTile>
-          <span>{t("about.storyLabel")}</span>
-          <h2>{t("about.storyTitle")}</h2>
-          <p>{t("about.story")}</p>
-        </StoryTile>
+      <Values aria-label={t('about.sectionLabel')}>
+        {values.map(({ name, Icon }) => <Value key={name}><IconCircle><Icon size={25} aria-hidden="true" /></IconCircle><h3>{t(`about.values.${name}Title`)}</h3><p>{t(`about.values.${name}Text`)}</p></Value>)}
+      </Values>
 
-        <ImageTile className="large">
-          <img src="/assets/images/about-image-2.jpg" alt={t("about.foodAlt")} />
-        </ImageTile>
+      <Facts aria-label={t('about.storyLabel')}>{['history', 'vegan', 'moments'].map(name => <div key={name}><h3>{t(`about.stats.${name}Title`)}</h3><p>{t(`about.stats.${name}Text`)}</p></div>)}</Facts>
 
-        {stats.map((stat) => (
-          <StatTile key={stat.labelKey}>
-            <strong>{stat.value}</strong>
-            <span>{t(stat.labelKey)}</span>
-          </StatTile>
-        ))}
+      <Visit><div><Kicker><MapPin size={17} aria-hidden="true" />{t('about.location')}</Kicker><h2>{t('about.ctaTitle')}</h2></div><Action to="/contact">{t('about.visit')}<ArrowUpRight size={20} aria-hidden="true" /></Action><VisitDoodle aria-hidden="true"><Waves /></VisitDoodle></Visit>
+    </Content>
+  </Page>;
+}
 
-        <ImageTile>
-          <img src="/assets/images/about-us-3.jpg" alt={t("about.roomAlt")} />
-        </ImageTile>
+const Page = styled.main`
+  overflow: clip;
+  background: var(--background-body);
+  color: var(--brand-ink);
 
-        <MissionTile>
-          <Heart size={26} />
-          <span>{t("about.mission")}</span>
-          <h2>{t("about.missionText")}</h2>
-        </MissionTile>
-
-        <ImageTile>
-          <img src="/assets/images/index-about-tap.jpeg" alt={t("about.barAlt")} />
-        </ImageTile>
-
-        {values.map(({ titleKey, textKey, Icon }) => (
-          <ValueTile key={titleKey}>
-            <IconWrap>
-              <Icon size={22} />
-            </IconWrap>
-            <div>
-              <span>{t(titleKey)}</span>
-              <p>{t(textKey)}</p>
-            </div>
-          </ValueTile>
-        ))}
-
-        <WideCta>
-          <div>
-            <span>{t("about.location")}</span>
-            <h2>{t("about.ctaTitle")}</h2>
-          </div>
-          <Link to="/contact">{t("about.visit")}</Link>
-        </WideCta>
-      </AboutBento>
-    </AboutPage>
-  );
-};
-
-const AboutPage = styled.main`
-  position: relative;
-  overflow-x: clip;
-  min-height: 100vh;
-  background: #edeade;
-  color: #1a1a14;
+  h1, h2, h3 { font-weight: var(--font-weight-heading, 900); letter-spacing: -.035em; }
+  h2 { margin: 18px 0; font-size: clamp(2rem, 3.6vw, 3.4rem); line-height: 1.12; }
+  p { line-height: 1.8; }
+  a:focus-visible { outline: 3px solid var(--brand-accent); outline-offset: 5px; }
 `;
 
-const AboutHero = styled.section`
+const Hero = styled.section`
   position: relative;
-  z-index: 1;
-  min-height: 84svh;
-  background: transparent;
-  color: #1a1a14;
+  isolation: isolate;
+  background: radial-gradient(ellipse at 85% 20%, rgba(123, 175, 75, .2), transparent 55%), #073f34;
+  color: #fff;
+  border-radius: 0 0 48px 48px;
+  @media (max-width: 640px) { border-radius: 0 0 30px 30px; }
 `;
 
 const HeroInner = styled.div`
+  position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.78fr);
-  width: min(100%, 1280px);
-  min-height: calc(84svh - 72px);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   align-items: center;
-  gap: 10px;
+  gap: clamp(40px, 7vw, 90px);
+  width: min(1240px, calc(100% - 64px));
   margin: 0 auto;
-  padding: 5rem 1.5rem 1rem;
-
-  @media (max-width: 900px) {
-    grid-template-columns: 1fr;
-    padding-top: 4rem;
-  }
-
-  @media (max-width: 640px) {
-    padding-inline: 1rem;
-  }
+  padding: 145px 0 100px;
+  @media (max-width: 850px) { grid-template-columns: 1fr; gap: 50px; padding: 120px 0 80px; }
+  @media (max-width: 640px) { width: calc(100% - 40px); padding-top: 105px; }
 `;
 
 const HeroCopy = styled.div`
-  display: grid;
-  align-content: end;
-  min-height: 520px;
-  border-radius: 14px;
-  background:
-    linear-gradient(rgba(26, 26, 20, 0.42), rgba(26, 26, 20, 0.86)),
-    url("/assets/images/about-us-background.webp") center / cover no-repeat;
-  padding: 2rem;
-  transform: translateY(-24px);
-
-  h1 {
-    max-width: 760px;
-    margin: 1rem 0 0;
-    color: #edeade;
-    font-size: 5.8rem;
-    line-height: 0.92;
-    letter-spacing: 0;
-  }
-
-  p {
-    max-width: 650px;
-    margin: 1.2rem 0 0;
-    color: rgba(237, 234, 222, 0.82);
-    font-size: 1.18rem;
-    line-height: 1.55;
-  }
-
-  @media (max-width: 900px) {
-    min-height: 460px;
-    transform: none;
-
-    h1 {
-      font-size: 4rem;
-    }
-  }
-
-  @media (max-width: 540px) {
-    min-height: 430px;
-    padding: 1.2rem;
-
-    h1 {
-      font-size: 3rem;
-    }
-  }
+  h1 { margin: 25px 0; max-width: 650px; font-size: clamp(3.1rem, 5.4vw, 5.3rem); line-height: 1.04; color: #fff; text-wrap: balance; }
+  p { margin: 0; max-width: 530px; color: #e2eee0; font-size: 1rem; }
+  @media (max-width: 640px) { h1 { font-size: clamp(2.65rem, 10.8vw, 4rem); } p { font-size: .94rem; } }
 `;
 
-const HeroKicker = styled.span`
+const Kicker = styled.span`
   display: inline-flex;
-  width: fit-content;
-  min-height: 38px;
   align-items: center;
-  gap: 0.5rem;
-  border-radius: 999px;
-  background: #7baf4b;
-  color: #1a1a14;
-  padding: 0 0.85rem;
-  font-size: 0.78rem;
-  font-weight: 900;
-  letter-spacing: 0;
-  text-transform: uppercase;
+  gap: 9px;
+  font-size: .78rem;
+  font-weight: 700;
+  line-height: 1.4;
+  svg { flex-shrink: 0; }
 `;
 
-const HeroActions = styled.div`
+const Actions = styled.div`
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
-  gap: 0.8rem;
-  margin-top: 1.8rem;
-
-  a {
-    display: inline-flex;
-    min-height: 50px;
-    align-items: center;
-    justify-content: center;
-    gap: 0.55rem;
-    border-radius: 999px;
-    background: #7baf4b;
-    color: #1a1a14;
-    padding: 0 1.1rem;
-    font-weight: 900;
-    text-decoration: none;
-  }
-
-  a + a {
-    background: #edeade;
-  }
+  gap: 22px;
+  margin-top: 32px;
 `;
 
-const HeroPhoto = styled.figure`
+const Action = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  max-width: 100%;
+  min-height: 50px;
+  padding: 14px 23px;
+  border-radius: 18px;
+  background: var(--brand-accent);
+  color: #21351d;
+  font-weight: 800;
+  font-size: .88rem;
+  text-decoration: none;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+  svg { flex-shrink: 0; }
+  &:hover { color: #21351d; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0, 0, 0, .12); }
+  @media (prefers-reduced-motion: reduce) { transition: none; }
+`;
+
+const TextLink = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 0;
+  color: #fff;
+  font-size: .88rem;
+  font-weight: 700;
+  text-decoration: none;
+  &:hover { color: var(--brand-accent); }
+`;
+
+const HeroPhotos = styled.div`
   position: relative;
-  min-height: 520px;
+  padding: 0 15px 32px 30px;
+  @media (max-width: 850px) { width: min(100%, 600px); justify-self: center; }
+  @media (max-width: 640px) { padding: 0 5px 30px 15px; }
+`;
+
+const MainPhoto = styled.figure`
+  position: relative;
+  height: clamp(350px, 35vw, 470px);
   margin: 0;
   overflow: hidden;
-  border-radius: 14px;
-  background: #f5f2e8;
-  transform: translateY(-24px);
-
-  img {
-    display: block;
-    width: 100%;
-    height: 100%;
-    min-height: inherit;
-    object-fit: cover;
-  }
-
-  @media (max-width: 900px) {
-    min-height: 360px;
-    transform: none;
-  }
+  border-radius: 38px 38px 100px 38px;
+  transform: rotate(2deg);
+  background: #335c49;
+  border: 5px solid rgba(255, 255, 255, .15);
+  img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  figcaption { position: absolute; bottom: 20px; right: 30px; display: flex; align-items: center; gap: 7px; padding: 9px 13px; border-radius: 12px; background: rgba(7, 40, 29, .85); color: #fff; font-size: .66rem; }
+  @media (max-width: 640px) { height: 330px; border-radius: 30px 30px 70px 30px; transform: rotate(1deg); figcaption { right: 18px; bottom: 18px; } }
 `;
 
-const AboutBento = styled.section`
-  position: relative;
-  z-index: 1;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  grid-auto-rows: minmax(180px, auto);
-  width: min(100%, 1280px);
-  gap: 10px;
-  margin: 0 auto;
-  padding: 1.5rem 1.5rem 5rem;
-
-  @media (max-width: 1000px) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  @media (max-width: 640px) {
-    grid-template-columns: 1fr;
-    padding-inline: 1rem;
-  }
-`;
-
-const StoryTile = styled.article`
-  grid-column: span 2;
-  display: grid;
-  align-content: end;
-  min-height: 370px;
-  border-radius: 14px;
-  background: #f5f2e8;
-  padding: 1.5rem;
-
-  span {
-    color: #7baf4b;
-    font-size: 0.78rem;
-    font-weight: 900;
-    letter-spacing: 0;
-    text-transform: uppercase;
-  }
-
-  h2 {
-    max-width: 640px;
-    margin: 0.6rem 0 0;
-    color: #1a1a14;
-    font-size: 3.8rem;
-    line-height: 0.95;
-    letter-spacing: 0;
-  }
-
-  p {
-    max-width: 720px;
-    margin: 1rem 0 0;
-    color: rgba(26, 26, 20, 0.72);
-    font-size: 1.05rem;
-    line-height: 1.55;
-  }
-
-  @media (max-width: 640px) {
-    grid-column: auto;
-    min-height: 320px;
-
-    h2 {
-      font-size: 2.7rem;
-    }
-  }
-`;
-
-const ImageTile = styled.article`
-  min-height: 180px;
+const SmallPhoto = styled.figure`
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 43%;
+  height: 165px;
+  margin: 0;
+  border: 6px solid var(--brand-accent);
+  border-radius: 26px;
+  transform: rotate(-7deg);
   overflow: hidden;
-  border-radius: 14px;
-  background: #1a1a14;
-
-  &.large {
-    grid-column: span 2;
-    grid-row: span 2;
-  }
-
-  img {
-    display: block;
-    width: 100%;
-    height: 100%;
-    min-height: inherit;
-    object-fit: cover;
-  }
-
-  @media (max-width: 640px) {
-    &.large {
-      grid-column: auto;
-      grid-row: auto;
-      min-height: 320px;
-    }
-  }
+  box-shadow: 0 12px 25px rgba(0, 0, 0, .18);
+  img { width: 100%; height: 100%; object-fit: cover; }
+  @media (max-width: 640px) { height: 125px; border-width: 4px; border-radius: 22px; }
 `;
 
-const StatTile = styled.article`
-  display: grid;
-  align-content: space-between;
-  border-radius: 14px;
-  background: #7baf4b;
-  color: #1a1a14;
-  padding: 1rem;
-
-  strong {
-    font-size: 4.2rem;
-    line-height: 0.9;
-    letter-spacing: 0;
-  }
-
-  span {
-    font-size: 0.78rem;
-    font-weight: 900;
-    letter-spacing: 0;
-    text-transform: uppercase;
-  }
-`;
-
-const MissionTile = styled.article`
-  grid-column: span 2;
-  display: grid;
-  align-content: end;
-  gap: 0.8rem;
-  border-radius: 14px;
-  background: #1a1a14;
-  color: #edeade;
-  padding: 1.5rem;
-
-  svg {
-    color: #7baf4b;
-  }
-
-  span {
-    color: #7baf4b;
-    font-size: 0.78rem;
-    font-weight: 900;
-    letter-spacing: 0;
-    text-transform: uppercase;
-  }
-
-  h2 {
-    max-width: 760px;
-    margin: 0;
-    color: #edeade;
-    font-size: 3rem;
-    line-height: 0.98;
-    letter-spacing: 0;
-  }
-
-  @media (max-width: 640px) {
-    grid-column: auto;
-
-    h2 {
-      font-size: 2.3rem;
-    }
-  }
-`;
-
-const ValueTile = styled.article`
-  display: grid;
-  align-content: space-between;
-  min-height: 230px;
-  border-radius: 14px;
-  background: #f5f2e8;
-  padding: 1rem;
-
-  span {
-    display: block;
-    color: #1a1a14;
-    font-size: 0.78rem;
-    font-weight: 900;
-    letter-spacing: 0;
-    text-transform: uppercase;
-  }
-
-  p {
-    margin: 0.55rem 0 0;
-    color: rgba(26, 26, 20, 0.7);
-    line-height: 1.45;
-  }
-`;
-
-const IconWrap = styled.div`
-  display: grid;
-  width: 48px;
-  height: 48px;
-  place-items: center;
-  border-radius: 999px;
-  background: #7baf4b;
-  color: #1a1a14;
-`;
-
-const WideCta = styled.article`
-  grid-column: span 4;
+const VeganSeal = styled.div`
+  position: absolute;
+  top: -24px;
+  right: -4px;
   display: flex;
-  min-height: 180px;
-  align-items: end;
-  justify-content: space-between;
-  gap: 1rem;
-  border-radius: 14px;
-  background: #1a1a14;
-  color: #edeade;
-  padding: 1.5rem;
-
-  span {
-    color: #7baf4b;
-    font-size: 0.78rem;
-    font-weight: 900;
-    letter-spacing: 0;
-    text-transform: uppercase;
-  }
-
-  h2 {
-    margin: 0.5rem 0 0;
-    color: #edeade;
-    font-size: 3.6rem;
-    line-height: 0.95;
-    letter-spacing: 0;
-  }
-
-  a {
-    display: inline-flex;
-    min-height: 50px;
-    align-items: center;
-    justify-content: center;
-    border-radius: 999px;
-    background: #7baf4b;
-    color: #1a1a14;
-    padding: 0 1.1rem;
-    font-weight: 900;
-    text-decoration: none;
-    white-space: nowrap;
-  }
-
-  @media (max-width: 1000px) {
-    grid-column: span 2;
-  }
-
-  @media (max-width: 640px) {
-    grid-column: auto;
-    flex-direction: column;
-    align-items: flex-start;
-
-    h2 {
-      font-size: 2.6rem;
-    }
-  }
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 106px;
+  height: 106px;
+  padding: 14px;
+  border-radius: 50%;
+  background: var(--brand-accent);
+  color: #21351d;
+  text-align: center;
+  font-size: .72rem;
+  font-weight: 800;
+  transform: rotate(9deg);
+  @media (max-width: 640px) { width: 90px; height: 90px; right: 0; font-size: .65rem; }
 `;
 
-export default About;
+const HeroDoodles = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+  svg { position: absolute; width: 100px; height: 100px; color: var(--brand-main); opacity: .16; stroke-width: 1; }
+  svg:nth-child(1) { left: -25px; bottom: 25px; transform: rotate(-25deg); width: 180px; height: 180px; }
+  svg:nth-child(2) { top: 90px; left: 45%; transform: rotate(12deg); }
+  svg:nth-child(3) { right: 15px; bottom: 40px; }
+`;
+
+const Content = styled.div`
+  width: min(1200px, calc(100% - 64px));
+  margin: 0 auto;
+  padding: 95px 0 80px;
+  @media (max-width: 640px) { width: calc(100% - 40px); padding: 60px 0; }
+`;
+
+const Story = styled.section`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(35px, 7vw, 90px);
+  align-items: center;
+  margin-bottom: 85px;
+  @media (max-width: 750px) { grid-template-columns: 1fr; gap: 38px; margin-bottom: 55px; }
+`;
+
+const StoryPhoto = styled.figure`
+  position: relative;
+  margin: 0;
+  isolation: isolate;
+  &::before { content: ''; position: absolute; inset: 12px -10px -12px 10px; border-radius: 30px; background: color-mix(in srgb, var(--brand-accent) 65%, var(--glass-bg-strong)); transform: rotate(-3deg); z-index: -1; }
+  img { display: block; width: 100%; height: 390px; object-fit: cover; border-radius: 30px; }
+  @media (max-width: 640px) { img { height: 290px; border-radius: 25px; } }
+`;
+
+const StoryCopy = styled.div`
+  > span { color: var(--brand-secondary); }
+  h2 { max-width: 540px; }
+  p { margin: 0; color: var(--brand-muted); font-size: .98rem; }
+  p + p { margin-top: 18px; }
+`;
+
+const Mission = styled.section`
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr);
+  gap: 22px;
+  margin-bottom: 28px;
+  @media (max-width: 750px) { grid-template-columns: 1fr; }
+`;
+
+const MissionCopy = styled.div`
+  position: relative;
+  overflow: hidden;
+  padding: clamp(30px, 4.5vw, 58px);
+  border-radius: 30px;
+  background: color-mix(in srgb, var(--brand-main) 14%, var(--glass-bg-strong));
+  color: var(--brand-ink);
+  > svg:first-child { display: block; margin-bottom: 23px; color: var(--brand-secondary); }
+  > span { color: var(--brand-secondary); }
+  h2 { position: relative; z-index: 1; font-size: clamp(2rem, 3.3vw, 3rem); max-width: 560px; margin-bottom: 0; }
+  .mission-leaf { position: absolute; right: -20px; bottom: -25px; width: 175px; height: 175px; color: var(--brand-main); opacity: .14; transform: rotate(-25deg); stroke-width: 1; }
+`;
+
+const BarPhoto = styled.figure`
+  min-height: 340px;
+  position: relative;
+  margin: 0;
+  border-radius: 30px;
+  overflow: hidden;
+  img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  @media (max-width: 750px) { min-height: 280px; }
+`;
+
+const Values = styled.section`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+  margin-bottom: 70px;
+  @media (max-width: 750px) { grid-template-columns: 1fr; gap: 16px; margin-bottom: 45px; }
+`;
+
+const Value = styled.article`
+  padding: 30px;
+  border: 1px solid var(--glass-border);
+  border-radius: 26px;
+  background: var(--glass-bg-strong);
+  h3 { color: var(--brand-ink); font-size: 1.2rem; margin: 24px 0 13px; }
+  p { margin: 0; color: var(--brand-muted); font-size: .9rem; }
+`;
+
+const IconCircle = styled.div`
+  display: grid;
+  place-items: center;
+  width: 53px;
+  height: 53px;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--brand-accent) 35%, var(--glass-bg-strong));
+  color: var(--brand-secondary);
+`;
+
+const Visit = styled.section`
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 30px;
+  padding: clamp(28px, 4.5vw, 55px);
+  border-radius: 32px;
+  background: #073f34;
+  color: #fff;
+  h2 { max-width: 650px; color: #fff; font-size: clamp(2rem, 3.2vw, 3rem); margin-bottom: 0; }
+  > a { flex-shrink: 0; }
+  @media (max-width: 750px) { flex-direction: column; align-items: flex-start; }
+`;
+
+const VisitDoodle = styled.div`
+  position: absolute;
+  right: 20px;
+  bottom: -50px;
+  z-index: -1;
+  color: var(--brand-main);
+  opacity: .15;
+  transform: rotate(-10deg);
+  svg { width: 250px; height: 250px; stroke-width: 1; }
+`;
+
+const Facts = styled.section`
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 25px;
+  padding: 0 0 55px;
+  h3 { margin: 0 0 10px; font-size: 1.25rem; }
+  p { margin: 0; color: var(--brand-muted); font-size: .9rem; }
+  @media (max-width: 640px) { grid-template-columns: 1fr; }
+`;

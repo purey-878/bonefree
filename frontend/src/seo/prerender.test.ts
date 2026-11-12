@@ -40,7 +40,7 @@ describe('styled initial pages', () => {
   it('keeps the homepage hero and avoids introducing a separate text-only SEO view', async () => {
     const { html, styles } = await render('/')
     expect(html).toContain('Abrir menu')
-    expect(html).toContain('Pratos vegetais')
+    expect(html).toContain('Uma nova forma de desfrutar comida vegana')
     expect(html).not.toContain('<nav aria-label="Bonefree">')
     expect(styles).toContain('hero-banner')
   })

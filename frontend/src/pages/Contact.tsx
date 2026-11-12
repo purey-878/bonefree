@@ -1,378 +1,253 @@
-import { BUSINESS } from "../seo/business";
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import { Clock, Mail, MapPin, Phone, Route, UtensilsCrossed } from "lucide-react";
-import styled from "styled-components";
-import Navbar from "../components/Navbar";
-import { useTranslation } from "react-i18next";
+import { useState } from 'react';
+import { ArrowUpRight, Clock3, Mail, MapPin, Phone, Route, Sun, Sunrise, Waves } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import styled from 'styled-components';
+import Navbar from '../components/Navbar';
+import { BUSINESS } from '../seo/business';
 
-const mapsUrl =
-  "https://www.google.com/maps/dir//R.+Eng.+Henrique+M%C3%AAndia+28A,+2825-450+Costa+da+Caparica/@38.6849967,-9.2862047,15z/data=!4m8!4m7!1m0!1m5!1m1!1s0xd1ecbd167fb7389:0x4bfb3119d6e98f29!2m2!1d-9.2333178!2d38.6382045?entry=ttu";
+const mapsUrl = 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(BUSINESS.fullAddress);
+const mapEmbedUrl = 'https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d49878.87222597991!2d-9.2476054!3d38.615999!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xd1ecbd167fb7389%3A0x4bfb3119d6e98f29!2sBone%20Free!5e0!3m2!1sen!2spt!4v1780922610537!5m2!1sen!2spt';
 
-const contactCards = [
-  {
-    titleKey: "contact.address",
-    text: "R. Eng. Henrique Mendia 28A, 2825-450 Costa da Caparica",
-    Icon: MapPin,
-  },
-  {
-    titleKey: "contact.phone",
-    text: BUSINESS.phoneDisplay,
-    Icon: Phone,
-  },
-  {
-    titleKey: "contact.email",
-    text: "carambolarubra@gmail.com",
-    Icon: Mail,
-  },
-  {
-    titleKey: "contact.hours",
-    textKey: "contact.hoursValue",
-    Icon: Clock,
-  },
-];
-
-const Contact: React.FC = () => {
-  const { t } = useTranslation("storefront");
+export default function Contact() {
+  const { t } = useTranslation('storefront');
   const [mapEnabled, setMapEnabled] = useState(false);
-  return (
-    <ContactPage>
-      <ContactHero>
-       
-        <HeroGrid>
-        
-          <HeroCopy>
-              <Navbar />
-            <h1>{t("contact.heroTitle")}</h1>
-            <p>{t("contact.heroDescription")}</p>
-            <HeroActions>
-              <a href={mapsUrl} target="_blank" rel="noopener noreferrer">
-                <Route size={18} />
-                {t("contact.directions")}
-              </a>
-              <Link to="/menu">
-                <UtensilsCrossed size={18} />
-                {t("contact.viewMenu")}
-              </Link>
-            </HeroActions>
-          </HeroCopy>
+  return <Page>
+    <Navbar />
+    <Hero className="contact-hero">
+      <Doodles aria-hidden="true"><Sun /><Waves /><Sunrise /></Doodles>
+      <HeroInner>
+        <HeroCopy><Kicker><Sun size={20} aria-hidden="true" />{t('contact.location')}</Kicker><h1>{t('contact.heroTitle')}</h1><p>{t('contact.heroDescription')}</p><HeroActions><Action href={mapsUrl} target="_blank" rel="noopener noreferrer"><Route size={19} aria-hidden="true" />{t('contact.directions')}<ArrowUpRight size={18} aria-hidden="true" /></Action><HeroLink to="/reservations">{t('home.reserveTable')}<ArrowUpRight size={18} aria-hidden="true" /></HeroLink></HeroActions></HeroCopy>
+        <HeroPhoto><img src="/assets/images/contact-us-image.jpg" alt={t('contact.restaurantAlt')} fetchPriority="high" /><figcaption><MapPin size={16} aria-hidden="true" />Costa da Caparica</figcaption><SunSeal aria-hidden="true"><Sun size={51} strokeWidth={1.6} /></SunSeal></HeroPhoto>
+      </HeroInner>
+    </Hero>
 
-         
-        </HeroGrid>
-      </ContactHero>
+    <Content>
+      <Details aria-label={t('contact.detailsLabel')}>
+        <DetailCard><CardIcon><MapPin size={25} aria-hidden="true" /></CardIcon><h2>{t('contact.address')}</h2><a className="contact-value" href={mapsUrl} target="_blank" rel="noopener noreferrer"><span>{BUSINESS.address.streetAddress}</span><span>{BUSINESS.address.postalCode} {BUSINESS.address.addressLocality}</span><ArrowUpRight size={19} aria-hidden="true" /></a></DetailCard>
+        <DetailCard><CardIcon><Clock3 size={25} aria-hidden="true" /></CardIcon><h2>{t('contact.hours')}</h2><p className="contact-value">{t('contact.hoursValue')}</p></DetailCard>
+        <DetailCard><CardIcon><Phone size={25} aria-hidden="true" /></CardIcon><h2>{t('contact.phone')}</h2><a className="contact-value" href={`tel:${BUSINESS.telephone}`}>{BUSINESS.phoneDisplay}<ArrowUpRight size={19} aria-hidden="true" /></a></DetailCard>
+        <DetailCard><CardIcon><Mail size={25} aria-hidden="true" /></CardIcon><h2>{t('contact.email')}</h2><a className="contact-value contact-email" href={`mailto:${BUSINESS.email}`}>{BUSINESS.email}<ArrowUpRight size={19} aria-hidden="true" /></a></DetailCard>
+      </Details>
 
-      <ContactBento aria-label={t("contact.detailsLabel")}>
-        <FeatureTile>
-          <img src="/assets/images/banner-menu.jpeg" alt={t("contact.tableAlt")} />
-          <div>
-            <span>{t("contact.hungry")}</span>
-            <h2>{t("contact.featureTitle")}</h2>
-          </div>
-        </FeatureTile>
+      <MapSection aria-labelledby="contact-directions-title">
+        <DirectionsCopy><Kicker><MapPin size={18} aria-hidden="true" />{t('contact.location')}</Kicker><h2 id="contact-directions-title">{t('contact.directions')}</h2><address><strong>{BUSINESS.name}</strong><span>{BUSINESS.address.streetAddress}</span><span>{BUSINESS.address.postalCode} {BUSINESS.address.addressLocality}</span></address><Action href={mapsUrl} target="_blank" rel="noopener noreferrer">{t('contact.openMaps')}<ArrowUpRight size={18} aria-hidden="true" /></Action><Sun className="directions-sun" aria-hidden="true" /></DirectionsCopy>
+        <MapFrame className="contact-map">
+          {mapEnabled ? <iframe src={mapEmbedUrl} title={t('contact.mapTitle')} width="100%" height="100%" allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" /> : <MapPlaceholder><MapIcon aria-hidden="true"><MapPin size={39} /><Sun size={23} /></MapIcon><h3>{t('contact.mapTitle')}</h3><p>{t('privacy.mapNotice')}</p><LoadMap type="button" onClick={() => setMapEnabled(true)}>{t('privacy.loadMap')}<ArrowUpRight size={18} aria-hidden="true" /></LoadMap></MapPlaceholder>}
+        </MapFrame>
+      </MapSection>
 
-        {contactCards.map(({ titleKey, text, textKey, Icon }) => (
-          <ContactCard key={titleKey}>
-            <IconWrap>
-              <Icon size={22} />
-            </IconWrap>
-            <div>
-              <span>{t(titleKey)}</span>
-              <strong>{textKey ? t(textKey) : text}</strong>
-            </div>
-          </ContactCard>
-        ))}
+      <Visit><VisitCopy><Kicker><Sunrise size={19} aria-hidden="true" />{t('contact.hungry')}</Kicker><h2>{t('contact.featureTitle')}</h2><Link to="/reservations">{t('home.reserveTable')}<ArrowUpRight size={19} aria-hidden="true" /></Link><Sun aria-hidden="true" className="visit-sun" /></VisitCopy><img src="/assets/images/banner-menu.jpeg" alt={t('contact.tableAlt')} loading="lazy" /></Visit>
+    </Content>
+  </Page>;
+}
 
-        <DirectionsTile>
-          <MapPin size={26} />
-          <span>{t("contact.location")}</span>
-          <h2>R. Eng. Henrique Mendia 28A</h2>
-          <a href={mapsUrl} target="_blank" rel="noopener noreferrer">
-            {t("contact.openMaps")}
-          </a>
-        </DirectionsTile>
-
-        <MapTile>
-          {mapEnabled ? <iframe
-            src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d49878.87222597991!2d-9.2476054!3d38.615999!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xd1ecbd167fb7389%3A0x4bfb3119d6e98f29!2sBone%20Free!5e0!3m2!1sen!2spt!4v1780922610537!5m2!1sen!2spt"
-            width="100%"
-            height="100%"
-            style={{ border: 0 }}
-            allowFullScreen
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-            title={t("contact.mapTitle")}
-          /> : <MapPlaceholder>
-            <MapPin size={28} aria-hidden="true" />
-            <p>{t("privacy.mapNotice")}</p>
-            <button type="button" onClick={() => setMapEnabled(true)}>{t("privacy.loadMap")}</button>
-          </MapPlaceholder>}
-        </MapTile>
-      </ContactBento>
-    </ContactPage>
-  );
-};
-
-const ContactPage = styled.main`
-  min-height: 100vh;
-  background:
-    radial-gradient(circle at 12% 12%, rgba(123, 175, 75, 0.2), transparent 22rem),
-    #edeade;
-  color: #1a1a14;
+const Page = styled.main`
+  --contact-ink: #44351d;
+  --contact-muted: #74664e;
+  --contact-gold: #f7ce54;
+  overflow: clip;
+  background: linear-gradient(180deg, #fffdf6, #fff8e8);
+  color: var(--contact-ink);
+  h1, h2, h3 { font-weight: var(--font-weight-heading, 900); letter-spacing: -.035em; }
+  h2 { font-size: clamp(2rem, 3.5vw, 3.2rem); line-height: 1.12; }
+  a:focus-visible, button:focus-visible { outline: 3px solid #9b6515; outline-offset: 5px; }
 `;
-
-const ContactHero = styled.section`
-  min-height: 50vh;
-  background:
-    linear-gradient(90deg, rgba(26, 26, 20, 0.78), rgba(26, 26, 20, 0.34)),
-    url("/assets/images/contact-us-image.jpg") center / cover no-repeat;
+const Hero = styled.section`
+  position: relative;
+  isolation: isolate;
+  border-radius: 0 0 48px 48px;
+  background: linear-gradient(180deg, rgba(91, 58, 13, .32), transparent 145px), radial-gradient(ellipse at 80% 5%, #fff0b5, transparent 60%), linear-gradient(135deg, #f9d25e, #ffdc81);
+  @media (max-width: 640px) { border-radius: 0 0 30px 30px; }
 `;
-
-const HeroGrid = styled.div`
+const HeroInner = styled.div`
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.72fr);
-  width: min(100%, 1280px);
-  min-height: 50vh;
-  align-items: end;
-  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(35px, 6vw, 80px);
+  align-items: center;
+  width: min(1240px, calc(100% - 64px));
   margin: 0 auto;
-  padding: clamp(4rem, 8vw, 7rem) 1.5rem 1.5rem;
-
-  @media (max-width: 900px) {
-    grid-template-columns: 1fr;
-  }
+  padding: 135px 0 85px;
+  @media (max-width: 850px) { grid-template-columns: 1fr; gap: 48px; padding: 110px 0 65px; }
+  @media (max-width: 640px) { width: calc(100% - 40px); }
 `;
-
 const HeroCopy = styled.div`
-  max-width: 800px;
-  color: #fff;
-
-  h1 {
-    margin: 0.8rem 0 0;
-    color: #fff;
-    font-size: clamp(3.2rem, 8vw, 7.5rem);
-    line-height: 0.9;
-  }
-
-  p {
-    max-width: 620px;
-    margin: 1.2rem 0 0;
-    color: rgba(255, 255, 255, 0.82);
-    font-size: clamp(1.05rem, 2vw, 1.3rem);
-    line-height: 1.6;
-  }
+  h1 { color: var(--contact-ink); margin: 22px 0; font-size: clamp(3rem, 5.4vw, 5.2rem); line-height: 1.04; text-wrap: balance; }
+  p { color: #64512d; max-width: 510px; line-height: 1.8; font-size: 1rem; margin: 0; }
+  @media (max-width: 640px) { h1 { font-size: clamp(2.5rem, 10.6vw, 3.9rem); } p { font-size: .94rem; } }
 `;
-
-const HeroActions = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.8rem;
-  margin-top: 1.8rem;
-
-  a {
-    display: inline-flex;
-    min-height: 50px;
-    align-items: center;
-    justify-content: center;
-    gap: 0.55rem;
-    border-radius: 999px;
-    background: #7baf4b;
-    color: #1a1a14;
-    padding: 0 1.1rem;
-    font-weight: 900;
-    text-decoration: none;
-  }
-
-  a + a {
-    background: #f5f2e8;
-  }
+const Kicker = styled.span`display: inline-flex; align-items: center; gap: 9px; font-size: .78rem; font-weight: 700; line-height: 1.5; svg { flex-shrink: 0; }`;
+const HeroActions = styled.div`display: flex; align-items: center; flex-wrap: wrap; gap: 22px; margin-top: 30px;`;
+const Action = styled.a`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  max-width: 100%;
+  padding: 15px 22px;
+  border-radius: 18px;
+  background: var(--contact-ink);
+  color: #fff9e8;
+  font-size: .86rem;
+  font-weight: 800;
+  text-decoration: none;
+  svg { flex-shrink: 0; }
+  &:hover { color: #fff9e8; background: #614a25; transform: translateY(-2px); }
 `;
-
-const ContactBento = styled.section`
+const HeroLink = styled(Link)`display: inline-flex; align-items: center; gap: 9px; padding-block: 12px; color: var(--contact-ink); font-weight: 700; font-size: .86rem; text-decoration: none; &:hover { color: var(--contact-ink); text-decoration: underline; }`;
+const HeroPhoto = styled.figure`
+  position: relative;
+  margin: 0 10px;
+  height: 370px;
+  transform: rotate(2deg);
+  > img { width: 100%; height: 100%; object-fit: cover; border-radius: 35px 35px 90px 35px; border: 5px solid #fff5d5; }
+  figcaption { position: absolute; bottom: 25px; left: 25px; display: flex; align-items: center; gap: 9px; padding: 11px 15px; border-radius: 14px; background: #fff9e8; color: var(--contact-ink); font-size: .72rem; }
+  @media (max-width: 640px) { height: 280px; margin-inline: 0; transform: rotate(1deg); }
+`;
+const SunSeal = styled.div`
+  position: absolute;
+  top: -25px;
+  right: -15px;
+  display: grid;
+  place-items: center;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: #fff8df;
+  color: #b77815;
+  box-shadow: 0 7px 20px rgba(125, 82, 17, .1);
+  transform: rotate(-10deg);
+  @media (max-width: 640px) { width: 84px; height: 84px; right: 0; }
+`;
+const Doodles = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+  svg { position: absolute; color: #a77112; opacity: .12; stroke-width: 1; width: 130px; height: 130px; }
+  svg:nth-child(1) { left: -65px; bottom: -70px; width: 260px; height: 260px; }
+  svg:nth-child(2) { top: 85px; left: 44%; transform: rotate(15deg); }
+  svg:nth-child(3) { right: -10px; bottom: 20px; }
+`;
+const Content = styled.div`
+  width: min(1200px, calc(100% - 64px));
+  margin: 0 auto;
+  padding: 65px 0 75px;
+  @media (max-width: 640px) { width: calc(100% - 40px); padding: 45px 0 55px; }
+`;
+const Details = styled.section`
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  grid-auto-rows: minmax(170px, auto);
-  width: min(100%, 1280px);
-  gap: 10px;
-  margin: 0 auto;
-  padding: 1.5rem 1.5rem clamp(3rem, 6vw, 5rem);
-
-  @media (max-width: 1000px) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  @media (max-width: 640px) {
-    grid-template-columns: 1fr;
-    padding-inline: 1rem;
-  }
+  gap: 20px;
+  margin-bottom: 65px;
+  @media (max-width: 1000px) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (max-width: 550px) { grid-template-columns: 1fr; gap: 16px; margin-bottom: 45px; }
 `;
-
-const FeatureTile = styled.article`
+const DetailCard = styled.article`
   position: relative;
-  grid-column: span 2;
-  grid-row: span 2;
-  min-height: 350px;
-  overflow: hidden;
-  border-radius: 14px;
-  background: #1a1a14;
-  color: #fff;
-
-  img {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    opacity: 0.74;
-  }
-
-  div {
-    position: relative;
-    z-index: 1;
-    display: grid;
-    min-height: 100%;
-    align-content: end;
-    padding: clamp(1.2rem, 3vw, 2rem);
-    background: linear-gradient(180deg, transparent, rgba(26, 26, 20, 0.72));
-  }
-
-  span {
-    color: #d7f0b4;
-    font-size: 0.78rem;
-    font-weight: 900;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  h2 {
-    max-width: 540px;
-    margin: 0.45rem 0 0;
-    color: #fff;
-    font-size: clamp(2rem, 5vw, 4rem);
-    line-height: 0.95;
-  }
-
-  @media (max-width: 640px) {
-    grid-column: auto;
-  }
+  min-width: 0;
+  padding: 27px;
+  border: 1px solid #eadfbd;
+  border-radius: 27px;
+  background: #fffefa;
+  h2 { font-size: .84rem; margin: 23px 0 14px; color: var(--contact-muted); letter-spacing: 0; font-weight: 600; }
+  .contact-value { white-space: pre-line; display: block; margin: 0; color: var(--contact-ink); font-size: 1.02rem; line-height: 1.65; font-weight: 700; text-decoration: none; overflow-wrap: anywhere; }
+  .contact-value span { display: block; }
+  .contact-value span + span { font-size: .83rem; font-weight: 400; margin-top: 4px; }
+  a.contact-value:hover { color: #976014; text-decoration: underline; text-underline-offset: 4px; }
+  .contact-value > svg { display: block; margin-top: 15px; color: #976014; }
+  .contact-email { font-size: .91rem; }
+  &:first-child { background: #fff4d0; }
 `;
-
-const ContactCard = styled.article`
+const CardIcon = styled.div`display: grid; place-items: center; width: 53px; height: 53px; border-radius: 18px; background: #ffedb4; color: #94651b;`;
+const MapSection = styled.section`
   display: grid;
-  align-content: space-between;
-  gap: 1rem;
+  grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
+  gap: 24px;
+  margin-bottom: 65px;
+  @media (max-width: 800px) { grid-template-columns: 1fr; }
+  @media (max-width: 640px) { margin-bottom: 45px; }
+`;
+const DirectionsCopy = styled.div`
+  position: relative;
+  isolation: isolate;
   overflow: hidden;
-  border-radius: 14px;
-  background: #f5f2e8;
-  padding: 1rem;
-
-  span {
-    display: block;
-    color: rgba(26, 26, 20, 0.58);
-    font-size: 0.74rem;
-    font-weight: 900;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  strong {
-    display: block;
-    margin-top: 0.4rem;
-    color: #1a1a14;
-    font-size: clamp(1rem, 1.8vw, 1.35rem);
-    line-height: 1.2;
-  }
+  padding: clamp(28px, 4vw, 48px);
+  border-radius: 30px;
+  background: #fff0be;
+  h2 { margin: 24px 0; color: var(--contact-ink); }
+  address { font-style: normal; line-height: 1.85; color: var(--contact-muted); font-size: .92rem; margin: 0 0 28px; }
+  address strong, address span { display: block; }
+  address strong { color: var(--contact-ink); font-size: 1.1rem; margin-bottom: 6px; }
+  .directions-sun { position: absolute; z-index: -1; right: -65px; bottom: -75px; width: 260px; height: 260px; color: #d49b31; opacity: .13; stroke-width: 1; }
 `;
-
-const IconWrap = styled.div`
-  display: grid;
-  width: 48px;
-  height: 48px;
-  place-items: center;
-  border-radius: 999px;
-  background: #7baf4b;
-  color: #1a1a14;
-`;
-
-const DirectionsTile = styled.article`
-  display: grid;
-  align-content: end;
-  gap: 0.6rem;
+const MapFrame = styled.div`
+  min-width: 0;
+  min-height: 430px;
+  border: 1px solid #eadfbd;
+  border-radius: 30px;
   overflow: hidden;
-  border-radius: 14px;
-  background: #1a1a14;
-  color: #edeade;
-  padding: 1.2rem;
-
-  svg {
-    color: #7baf4b;
-  }
-
-  span {
-    color: #7baf4b;
-    font-size: 0.78rem;
-    font-weight: 900;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  h2 {
-    margin: 0;
-    color: #edeade;
-    font-size: clamp(1.5rem, 3vw, 2.4rem);
-    line-height: 1;
-  }
-
-
-  a {
-    width: fit-content;
-    border-radius: 999px;
-    background: #7baf4b;
-    color: #1a1a14;
-    padding: 0.72rem 0.9rem;
-    font-weight: 900;
-    text-decoration: none;
-  }
+  background: #fffdf5;
+  iframe { display: block; min-height: 430px; height: 100%; border: 0; }
+  @media (max-width: 640px) { min-height: 380px; iframe { min-height: 380px; } }
 `;
-
 const MapPlaceholder = styled.div`
-  display: grid;
-  min-height: 420px;
-  place-content: center;
-  justify-items: center;
-  gap: 1rem;
-  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  height: 100%;
+  min-height: inherit;
+  padding: 35px 28px;
   text-align: center;
-
-  button {
-    min-height: 44px;
-    padding: 0.65rem 1rem;
-    border: 1px solid var(--brand-secondary);
-    border-radius: var(--radius-sm);
-    background: var(--brand-secondary);
-    color: #ffffff;
-    cursor: pointer;
-  }
+  h3 { color: var(--contact-ink); font-size: 1.3rem; line-height: 1.4; margin: 26px 0 13px; }
+  p { color: var(--contact-muted); font-size: .85rem; max-width: 370px; line-height: 1.8; margin: 0 0 26px; }
 `;
-
-const MapTile = styled.article`
-  grid-column: span 3;
-  min-height: 420px;
+const MapIcon = styled.div`
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+  border-radius: 28px;
+  background: #ffedb4;
+  color: #94651b;
+  transform: rotate(-7deg);
+  > svg + svg { position: absolute; top: -11px; right: -14px; width: 37px; height: 37px; padding: 6px; border-radius: 50%; background: #fffaf0; }
+`;
+const LoadMap = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 14px 21px;
+  border: 0;
+  border-radius: 17px;
+  background: var(--contact-ink);
+  color: #fff9e8;
+  font-size: .86rem;
+  font-weight: 700;
+  cursor: pointer;
+  &:hover { background: #614a25; }
+`;
+const Visit = styled.section`
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr);
   overflow: hidden;
-  border-radius: 14px;
-  background: #f5f2e8;
-
-  iframe {
-    display: block;
-    min-height: inherit;
-  }
-
-  @media (max-width: 1000px) {
-    grid-column: span 2;
-  }
-
-  @media (max-width: 640px) {
-    grid-column: auto;
-  }
+  border-radius: 32px;
+  background: #f9d25e;
+  > img { display: block; width: 100%; height: 100%; min-height: 320px; object-fit: cover; }
+  @media (max-width: 750px) { grid-template-columns: 1fr; > img { height: 260px; min-height: 0; } }
 `;
-
-export default Contact;
+const VisitCopy = styled.div`
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: clamp(28px, 4.5vw, 55px);
+  h2 { color: var(--contact-ink); font-size: clamp(2rem, 3.2vw, 3rem); margin: 20px 0 28px; }
+  > a { display: inline-flex; align-items: center; gap: 16px; padding: 15px 22px; border-radius: 18px; background: var(--contact-ink); color: #fff9e8; text-decoration: none; font-size: .86rem; font-weight: 800; }
+  > a:hover { background: #614a25; }
+  .visit-sun { position: absolute; z-index: -1; right: -55px; bottom: -80px; width: 260px; height: 260px; color: #a77112; opacity: .12; stroke-width: 1; }
+`;
