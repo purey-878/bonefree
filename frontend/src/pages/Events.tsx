@@ -1,37 +1,22 @@
 import WeekendEvents from '../components/WeekendEvents';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { usePublicEvents } from '../hooks/usePublicEvents';
 import { ArrowDown, ArrowUpRight, CalendarDays, Clock3, MapPin, Music2, Shell, Sun, Waves } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import Navbar from '../components/Navbar';
 import ProductLabel from '../components/ui/ProductLabel';
-import { getPublicEventsSettings } from '../services/siteSettingsService';
-import type { EventItemSettings } from '../types/siteSettings';
 import { resolvedLocale } from '../i18n';
-import { publicEventDate, upcomingPublicEvents } from '../utils/publicEvents';
+import { publicEventDate } from '../utils/publicEvents';
 import { applyApiImageFallback, resolveProductImageUrl } from '../utils/imageFallback';
 
 export default function Events() {
   const { t } = useTranslation('storefront');
   const locale = resolvedLocale();
-  const [savedEvents, setSavedEvents] = useState<EventItemSettings[]>([]);
-  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
-  const [attempt, setAttempt] = useState(0);
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    let active = true;
-    getPublicEventsSettings().then(settings => {
-      if (active) { setSavedEvents(settings.events); setStatus('ready'); }
-    }).catch(() => { if (active) setStatus('error'); });
-    return () => { active = false; };
-  }, [attempt]);
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), 60_000);
-    return () => window.clearInterval(timer);
-  }, []);
-  const events = upcomingPublicEvents(savedEvents, now);
-
+  const { events: upcomingEvents, status, retry } = usePublicEvents();
+  const [visibleCount, setVisibleCount] = useState(2);
+  const events = upcomingEvents.slice(0, visibleCount);
   return <Page>
     <Navbar />
     <Hero className="events-hero">
@@ -46,7 +31,7 @@ export default function Events() {
       <WeekendEvents />
       <Schedule id="event-list" aria-labelledby="event-list-title">
         <SectionHeading><div><Kicker><CalendarDays size={18} aria-hidden="true" />{t('events.follow')}</Kicker><h2 id="event-list-title">{t('events.upcoming')}</h2></div><p>{t('events.localTime')}</p></SectionHeading>
-        {status === 'loading' ? <State className="event-state" role="status"><CalendarDays size={32} aria-hidden="true" /><p>{t('events.loading')}</p></State> : status === 'error' ? <State className="event-state" role="alert"><Music2 size={32} aria-hidden="true" /><p>{t('events.loadError')}</p><Retry type="button" onClick={() => { setStatus('loading'); setAttempt(value => value + 1); }}>{t('actions.retry', {ns: 'common'})}</Retry></State> : events.length ? <EventList>{events.map((event, index) => {
+        {status === 'loading' ? <State className="event-state" role="status"><CalendarDays size={32} aria-hidden="true" /><p>{t('events.loading')}</p></State> : status === 'error' ? <State className="event-state" role="alert"><Music2 size={32} aria-hidden="true" /><p>{t('events.loadError')}</p><Retry type="button" onClick={retry}>{t('actions.retry', {ns: 'common'})}</Retry></State> : events.length ? <EventList>{events.map((event, index) => {
           const date = publicEventDate(event.date, locale);
           return <EventCard className="event-card" $featured={index === 0} key={event.id} aria-labelledby={`event-title-${event.id}`}>
             <EventImage><img src={resolveProductImageUrl(event.imageUrl, '/assets/images/about-us-3.jpg')} alt={event.title} loading="lazy" onError={e => applyApiImageFallback(e.currentTarget, '/assets/images/about-us-3.jpg')} /><DateBadge dateTime={event.date}><strong>{date.day}</strong><span>{date.month}</span></DateBadge></EventImage>
@@ -64,13 +49,14 @@ export default function Events() {
             </EventCopy>
           </EventCard>;
         })}</EventList> : <State className="event-empty"><IconTile><Music2 size={32} aria-hidden="true" /></IconTile><h3>{t('events.emptyTitle')}</h3><p>{t('events.emptyText')}</p><Action to="/menu">{t('home.openMenu')}<ArrowUpRight size={18} aria-hidden="true" /></Action></State>}
+    {status === 'ready' && upcomingEvents.length > visibleCount && <MoreButton type="button" onClick={() => setVisibleCount(count => count + 2)}>{t('events.showMore', { count: upcomingEvents.length - visibleCount })}<ArrowUpRight size={18} aria-hidden="true" /></MoreButton>}
       </Schedule>
 
       <Atmosphere aria-label={t('events.ctaTitle')}>
         {[
           {src: '/assets/images/about-us-photo-1.webp', alt: 'events.galleryAlt1'},
           {src: '/assets/images/about-image-2.jpg', alt: 'events.galleryAlt2'},
-          {src: '/assets/images/about-img-2.webp', alt: 'events.galleryAlt3'},
+          {src: '/assets/images/about-img-1.webp', alt: 'events.galleryAlt3'},
         ].map(photo => <figure key={photo.src}><img src={photo.src} alt={t(photo.alt)} loading="lazy" /></figure>)}
       </Atmosphere>
       <Visit><div><Kicker><MapPin size={17} aria-hidden="true" />{t('events.location')}</Kicker><h2>{t('events.ctaTitle')}</h2></div><Action to="/contact">{t('events.findRestaurant')}<ArrowUpRight size={20} aria-hidden="true" /></Action><Waves className="visit-waves" aria-hidden="true" /></Visit>
@@ -328,4 +314,22 @@ const Visit = styled.section`
   > a { flex-shrink: 0; }
   .visit-waves { position: absolute; z-index: -1; right: 20px; bottom: -50px; width: 250px; height: 250px; color: var(--brand-main); opacity: .15; stroke-width: 1; transform: rotate(-10deg); }
   @media (max-width: 750px) { flex-direction: column; align-items: flex-start; }
+`;
+
+const MoreButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 48px;
+  margin: 28px auto 0;
+  padding: 12px 22px;
+  border: 1px solid var(--glass-border);
+  border-radius: 16px 16px 16px 5px;
+  background: var(--brand-accent);
+  color: var(--brand-ink);
+  font: inherit;
+  font-size: .88rem;
+  font-weight: 600;
+  &:focus-visible { outline: 3px solid var(--brand-secondary); outline-offset: 4px; }
 `;

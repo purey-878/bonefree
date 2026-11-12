@@ -419,7 +419,7 @@ const HomeShell = styled.main`
   position: relative;
   min-height: 100vh;
   overflow: hidden;
-  background: var(--background-body);
+  background: #faf8f0;
   color: var(--brand-ink);
 `;
 
@@ -429,7 +429,7 @@ const HeroSection = styled.section`
   border-radius: 0 0 48px 48px;
   overflow: hidden;
   background:
-    linear-gradient(90deg, rgba(7, 63, 52, .96), rgba(7, 63, 52, .8)),
+    linear-gradient(90deg, rgba(31, 37, 30, .9), rgba(46, 43, 32, .58)),
     url(${ASSETS.images.hero.heroBanner}) center / cover no-repeat;
   background-attachment: fixed;
   background-position: center;
@@ -443,9 +443,9 @@ const HeroSection = styled.section`
 const HeroOverlay = styled.div`
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at 85% 15%, rgba(123, 175, 75, .18), transparent 65%);
+  background: radial-gradient(ellipse at 85% 15%, rgba(240, 213, 157, .09), transparent 65%);
   pointer-events: none;
-  svg { position: absolute; width: 125px; height: 125px; color: #9ac885; opacity: .14; stroke-width: 1; }
+  svg { position: absolute; width: 125px; height: 125px; color: #e5dfbc; opacity: .12; stroke-width: 1; }
   svg:nth-child(1) { left: -35px; bottom: 30px; width: 170px; height: 170px; transform: rotate(-20deg); }
   svg:nth-child(2) { top: 100px; left: 46%; transform: rotate(12deg); }
   svg:nth-child(3) { right: 20px; bottom: 35px; color: #fdcd43; }
@@ -647,8 +647,8 @@ const FeaturedDishCard = styled.aside`
   border-radius: 36px;
   background:
     radial-gradient(circle at 18% 10%, rgba(253, 205, 67, 0.22), transparent 15rem),
-    radial-gradient(circle at 86% 42%, rgba(7, 96, 80, 0.22), transparent 14rem),
-    radial-gradient(circle at 30% 92%, rgba(123, 175, 75, 0.18), transparent 13rem),
+    radial-gradient(circle at 86% 42%, rgba(226, 210, 173, 0.12), transparent 14rem),
+    radial-gradient(circle at 30% 92%, rgba(226, 210, 173, 0.08), transparent 13rem),
     linear-gradient(180deg, rgba(255, 255, 255, 0.19), rgba(255, 255, 255, 0.09)),
     rgba(7, 17, 15, 0.26);
   box-shadow: 0 16px 45px rgba(0, 0, 0, .12);
@@ -682,7 +682,7 @@ const FeaturedImage = styled.img`
   border-radius: 26px;
   background:
     radial-gradient(circle at 28% 22%, rgba(253, 205, 67, 0.24), transparent 36%),
-    radial-gradient(circle at 76% 72%, rgba(123, 175, 75, 0.2), transparent 42%),
+    radial-gradient(circle at 76% 72%, rgba(232, 218, 176, 0.12), transparent 42%),
     rgba(255, 255, 255, 0.04);
   object-fit: contain;
   padding: 1rem;
@@ -949,7 +949,7 @@ const ChefSpecialBanner = styled.section`
   border-radius: 32px;
   background:
     radial-gradient(circle at 16% 12%, rgba(253, 205, 67, 0.22), transparent 18rem),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(238, 247, 233, 0.92)),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(249, 245, 231, 0.92)),
     #ffffff;
   box-shadow: 0 22px 58px rgba(23, 33, 29, 0.12);
 
@@ -966,7 +966,7 @@ const ChefImageWrap = styled.div`
   padding: clamp(1.25rem, 4vw, 2.4rem);
   background:
     radial-gradient(circle at center, rgba(253, 205, 67, 0.16), transparent 56%),
-    linear-gradient(180deg, #f8faf6, #eef4ec);
+    linear-gradient(180deg, #faf8f0, #f2eddf);
 
   @media (max-width: 860px) {
     min-height: 280px;

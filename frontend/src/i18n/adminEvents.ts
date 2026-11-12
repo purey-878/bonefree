@@ -1,0 +1,43 @@
+import i18n from '.';
+const copy = {
+  'pt-PT': {
+    title: 'Gerir eventos', help: 'Publique eventos na página inicial e em Eventos. São mostrados dois de cada vez, por data. Os eventos terminados deixam de aparecer automaticamente.',
+    add: 'Adicionar evento', publish: 'Publicar eventos', saving: 'A publicar…', saved: 'Eventos publicados.', failed: 'Não foi possível publicar os eventos. Tente novamente.', invalid: 'Complete os eventos visíveis antes de publicar.',
+    visible: 'No website', expired: 'Terminado', hidden: 'Oculto', incomplete: 'Por completar', untitled: 'Novo evento', total: '{{count}} eventos',
+    emptyTitle: 'O próximo encontro começa aqui.', emptyText: 'Adicione um evento, escolha a data e publique. Pode preparar vários eventos de uma só vez.',
+    eventTitle: 'Nome do evento', kicker: 'Etiqueta (opcional)', description: 'Descrição', date: 'Data de início', start: 'Começa às', end: 'Termina às',
+    timezone: 'Horários da Costa da Caparica (Europe/Lisbon). Se o fim for igual ou anterior ao início, o evento termina no dia seguinte.',
+    image: 'Imagem do evento', imageHelp: 'Cole uma ligação de imagem ou use uma imagem do website. Sem imagem, mostramos o restaurante.', preview: 'Pré-visualização da imagem',
+    enabled: 'Mostrar no website', enabledHelp: 'Os eventos ocultos e terminados ficam guardados aqui e não aparecem aos visitantes.',
+    remove: 'Remover evento', removeTitle: 'Remover este evento?', removeText: 'A remoção será aplicada ao publicar os eventos.', cancel: 'Cancelar', duplicate: 'Duplicar evento',
+    publicLink: 'Ver página de eventos', publishHelp: 'As alterações só aparecem no website depois de publicar os eventos.',
+    validation: { title: 'Introduza o nome do evento.', date: 'Escolha uma data válida.', time: 'Preencha as horas de início e fim.', image: 'Use uma ligação http(s) ou um caminho que comece por /.', length: 'Reduza os textos aos limites indicados.' },
+  },
+  'en-GB': {
+    title: 'Manage events', help: 'Publish events on Home and Events. Visitors see two at a time, ordered by date. Finished events disappear automatically.',
+    add: 'Add event', publish: 'Publish events', saving: 'Publishing…', saved: 'Events published.', failed: 'Could not publish events. Please try again.', invalid: 'Complete visible events before publishing.',
+    visible: 'On the website', expired: 'Finished', hidden: 'Hidden', incomplete: 'Incomplete', untitled: 'New event', total: '{{count}} events',
+    emptyTitle: 'Your next gathering starts here.', emptyText: 'Add an event, choose a date and publish. You can prepare several events at once.',
+    eventTitle: 'Event name', kicker: 'Label (optional)', description: 'Description', date: 'Start date', start: 'Starts at', end: 'Ends at',
+    timezone: 'Costa da Caparica time (Europe/Lisbon). If the end is at or before the start time, the event ends the following day.',
+    image: 'Event image', imageHelp: 'Paste an image link or use a website image. Without an image, we show the restaurant.', preview: 'Image preview',
+    enabled: 'Show on the website', enabledHelp: 'Hidden and finished events stay here and are not shown to visitors.',
+    remove: 'Remove event', removeTitle: 'Remove this event?', removeText: 'The removal takes effect when you publish events.', cancel: 'Cancel', duplicate: 'Duplicate event',
+    publicLink: 'View events page', publishHelp: 'Changes appear on the website only after you publish events.',
+    validation: { title: 'Enter the event name.', date: 'Choose a valid date.', time: 'Enter the start and end times.', image: 'Use an http(s) link or a path starting with /.', length: 'Shorten the text to the indicated limits.' },
+  },
+  'de-DE': {
+    title: 'Veranstaltungen verwalten', help: 'Veröffentliche Events auf Startseite und Veranstaltungsseite. Besucher sehen jeweils zwei Events nach Datum. Beendete Events verschwinden automatisch.',
+    add: 'Event hinzufügen', publish: 'Events veröffentlichen', saving: 'Wird veröffentlicht…', saved: 'Events veröffentlicht.', failed: 'Events konnten nicht veröffentlicht werden. Bitte erneut versuchen.', invalid: 'Vervollständige sichtbare Events vor dem Veröffentlichen.',
+    visible: 'Auf der Website', expired: 'Beendet', hidden: 'Ausgeblendet', incomplete: 'Unvollständig', untitled: 'Neues Event', total: '{{count}} Events',
+    emptyTitle: 'Das nächste Treffen beginnt hier.', emptyText: 'Füge ein Event hinzu, wähle das Datum und veröffentliche es. Du kannst mehrere Events gleichzeitig vorbereiten.',
+    eventTitle: 'Name des Events', kicker: 'Label (optional)', description: 'Beschreibung', date: 'Startdatum', start: 'Beginn', end: 'Ende',
+    timezone: 'Ortszeit Costa da Caparica (Europe/Lisbon). Liegt die Endzeit vor oder auf der Startzeit, endet das Event am nächsten Tag.',
+    image: 'Eventbild', imageHelp: 'Füge einen Bildlink oder ein Website-Bild ein. Ohne Bild zeigen wir das Restaurant.', preview: 'Bildvorschau',
+    enabled: 'Auf der Website anzeigen', enabledHelp: 'Ausgeblendete und beendete Events bleiben hier gespeichert und werden Besuchern nicht angezeigt.',
+    remove: 'Event entfernen', removeTitle: 'Dieses Event entfernen?', removeText: 'Das Entfernen wird beim Veröffentlichen wirksam.', cancel: 'Abbrechen', duplicate: 'Event duplizieren',
+    publicLink: 'Veranstaltungsseite öffnen', publishHelp: 'Änderungen erscheinen erst nach dem Veröffentlichen auf der Website.',
+    validation: { title: 'Gib den Namen des Events ein.', date: 'Wähle ein gültiges Datum.', time: 'Gib Start- und Endzeit ein.', image: 'Verwende einen http(s)-Link oder einen Pfad, der mit / beginnt.', length: 'Kürze die Texte auf die angegebenen Grenzen.' },
+  },
+};
+for (const [locale, strings] of Object.entries(copy)) i18n.addResourceBundle(locale, 'adminEvents', strings);

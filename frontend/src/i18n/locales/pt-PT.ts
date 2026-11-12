@@ -131,7 +131,7 @@ const ptPT = {
         shareTitle: "Ambiente", shareText: "Um espaço descontraído para partilhar e desfrutar.",
       },
     },
-    events: { weeklyText: "DJs, copos na mão e o pôr do sol como cenário. Todas as sextas e sábados, das 19h às 23h, junta-te à festa no Bonefree.", weeklyTitle: "SUNSET DJ PARTIES", weeklyKicker: "Todos os Fins de Semana",
+    events: { showMore: "Mostrar mais eventos ({{count}} por ver)", weeklyText: "DJs, copos na mão e o pôr do sol como cenário. Todas as sextas e sábados, das 19h às 23h, junta-te à festa no Bonefree.", weeklyTitle: "SUNSET DJ PARTIES", weeklyKicker: "Todos os Fins de Semana",
       viewEvents: "Ver próximos eventos",
       upcoming: "Próximos eventos",
       dateLabel: "Data",
@@ -166,7 +166,7 @@ const ptPT = {
     menu: {
       loadingMore: "A carregar pratos…", loadedCount: "{{count}} de {{total}} pratos carregados", endOfMenu: "Todos os {{count}} pratos carregados", loadMore: "Ver mais pratos", retry: "Tentar novamente",
       loadError: "Não foi possível carregar o menu.",
-      sort: { default: "Destaques", priceAsc: "Preço: do mais baixo ao mais alto", priceDesc: "Preço: do mais alto ao mais baixo", nameAsc: "Nome: A–Z" },
+      sort: { caloriesAsc: "Calorias: menos para mais", caloriesDesc: "Calorias: mais para menos", default: "Destaques", priceAsc: "Preço: do mais baixo ao mais alto", priceDesc: "Preço: do mais alto ao mais baixo", nameAsc: "Nome: A–Z" },
       close: "Fechar",
       eyebrow: "O nosso menu", title: "O Nosso Menu", finderPrompt: "Não sabes o que escolher?", finderAction: "PERGUNTA AO PAULO!",
       shortDescription: "Uma cozinha vegana com sabores para descobrir.",

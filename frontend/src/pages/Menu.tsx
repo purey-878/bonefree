@@ -19,7 +19,7 @@ interface CategoryCount {
   count: number;
 }
 
-type SortOption = "default" | "price-asc" | "price-desc" | "name-asc";
+type SortOption = "default" | "price-asc" | "price-desc" | "name-asc" | "calories-asc" | "calories-desc";
 type SpecialFilter = "all" | "gluten-free" | "alcohol";
 
 const sortLabelKeys: Record<SortOption, string> = {
@@ -27,6 +27,8 @@ const sortLabelKeys: Record<SortOption, string> = {
   "price-asc": "menu.sort.priceAsc",
   "price-desc": "menu.sort.priceDesc",
   "name-asc": "menu.sort.nameAsc",
+  "calories-asc": "menu.sort.caloriesAsc",
+  "calories-desc": "menu.sort.caloriesDesc",
 };
 
 const MENU_FILTERS_STORAGE_KEY = "bonefree-menu-filters";
@@ -184,7 +186,7 @@ function Menu() {
     minPrice: priceRange[0] > 0 ? priceRange[0] : undefined,
     maxPrice: priceRange[1] < maxPrice ? priceRange[1] : undefined,
     special: specialFilter === "gluten-free" ? "gluten_free" : specialFilter,
-    sort: sortBy.replaceAll("-", "_") as "default" | "price_asc" | "price_desc" | "name_asc",
+    sort: sortBy.replaceAll("-", "_") as "default" | "price_asc" | "price_desc" | "name_asc" | "calories_asc" | "calories_desc",
   }, navigationType === "POP");
   const total = result?.total ?? 0;
   const catalogTotal = result?.facets.totalProducts ?? 0;
@@ -341,10 +343,14 @@ function Menu() {
             <Link to="/reservations" className="menu-reservation-link">{t("home.reserveTable")}</Link>
           </div>
           <Link to="/meal-finder" className="menu-paulo-callout">
-            <svg className="menu-paulo-sparks" viewBox="0 0 86 78" fill="none" aria-hidden="true" focusable="false">
-              <path className="menu-paulo-spark-green" d="M18 48 30 8" stroke="currentColor" strokeWidth="6" strokeLinecap="round" />
-              <path d="M30 50 68 14" stroke="currentColor" strokeWidth="6" strokeLinecap="round" />
-              <path className="menu-paulo-spark-green" d="M36 64 76 56" stroke="currentColor" strokeWidth="6" strokeLinecap="round" />
+            <svg className="menu-paulo-character" viewBox="0 0 80 80" fill="none" aria-hidden="true" focusable="false">
+              <path d="M43 20C42 10 49 5 59 7C58 17 51 22 43 20Z" fill="#7baf4b" stroke="#164c39" strokeWidth="2.5" strokeLinejoin="round" />
+              <path d="M39 22C34 13 28 13 24 14" stroke="#164c39" strokeWidth="3" strokeLinecap="round" />
+              <path d="M66 44C66 60 54 70 38 69L23 75L25 64C15 59 11 51 12 41C13 26 25 19 41 20C57 21 67 30 66 44Z" fill="#fff8df" stroke="#164c39" strokeWidth="3" strokeLinejoin="round" />
+              <path d="M29 39V43M48 39V43" stroke="#164c39" strokeWidth="4" strokeLinecap="round" />
+              <path d="M30 51C35 58 44 58 49 50" stroke="#164c39" strokeWidth="3" strokeLinecap="round" />
+              <circle cx="23" cy="48" r="4" fill="#e7aa7b" opacity=".65" /><circle cx="55" cy="48" r="4" fill="#e7aa7b" opacity=".65" />
+              <path d="M70 19V27M66 23H74" stroke="#164c39" strokeWidth="2.5" strokeLinecap="round" />
             </svg>
             <span className="menu-paulo-prompt">{t("menu.finderPrompt")}</span>
             <span className="menu-paulo-action">{t("menu.finderAction")} <span aria-hidden="true">↗</span></span>

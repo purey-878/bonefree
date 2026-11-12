@@ -89,7 +89,9 @@ export async function updateAdminSocialMediaSettings(payload: SocialMediaSetting
   })));
 }
 export async function updateAdminEventsSettings(payload: EventsSettings): Promise<EventsSettings> {
-  return toDomain(await apiData(siteSettingsUpdateAdminEvents({
+  const saved = toDomain<EventsSettings>(await apiData(siteSettingsUpdateAdminEvents({
     body: toDto<EventsDto>(payload), client: adminApiClient, throwOnError: true,
   })));
+  try { localStorage.setItem('bonefree_events_updated', String(Date.now())); } catch { /* Publishing works without browser storage. */ }
+  return saved;
 }

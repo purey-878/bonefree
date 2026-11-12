@@ -1,5 +1,5 @@
 import type { CatalogPortion, CatalogExtra } from "../../types/pricing";
-import { ArrowRight, Flame } from 'lucide-react'
+import { ArrowUpRight, Flame, ZoomIn } from 'lucide-react'
 import type {
   ComponentPropsWithoutRef,
   MouseEvent,
@@ -60,8 +60,8 @@ function formatCalories(calories: number | null | undefined) {
 }
 
 const ProductCardShell = styled.article<{ $tone: 'dark' | 'light'; $dimUnavailable: boolean; $clickable: boolean }>`
-  --product-card-radius: 30px;
-  --product-card-media-radius: 24px;
+  --product-card-radius: 30px 30px 24px 24px;
+  --product-card-media-radius: 23px 23px 48px 23px;
   position: relative;
   display: flex;
   min-height: 100%;
@@ -69,13 +69,12 @@ const ProductCardShell = styled.article<{ $tone: 'dark' | 'light'; $dimUnavailab
   gap: 0.9rem;
   overflow: hidden;
   padding: 0.85rem;
-  border: none;
+  border: 1px solid var(--glass-border);
   border-radius: var(--product-card-radius);
   background: var(--glass-bg-strong);
   box-shadow: var(--shadow-glass), inset 0 1px 0 rgba(255, 255, 255, 0.12);
   color: var(--brand-ink);
-  backdrop-filter: blur(22px) saturate(150%);
-  -webkit-backdrop-filter: blur(22px) saturate(150%);
+
   will-change: transform, box-shadow;
   transition:
     box-shadow 320ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -100,14 +99,19 @@ const ProductCardShell = styled.article<{ $tone: 'dark' | 'light'; $dimUnavailab
   }
 
   &:hover {
-    box-shadow:
-      0 26px 74px rgba(0, 0, 0, 0.28),
-      inset 0 1px 0 rgba(255, 255, 255, 0.16);
-    transform: translateY(-3px);
+    box-shadow: 0 12px 30px rgba(23, 33, 29, .14);
+    transform: translateY(-4px);
   }
 
   &:hover img {
     transform: translateZ(0) scale(1.025);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    &:hover { transform: none; }
+    img { transition: none; }
+    &:hover img { transform: none; }
   }
 
   ${({ $dimUnavailable }) =>
@@ -124,17 +128,16 @@ const ProductCardShell = styled.article<{ $tone: 'dark' | 'light'; $dimUnavailab
   ${({ $tone }) =>
     $tone === 'light' &&
     css`
-      --product-card-title: #17211d;
-      --product-card-description: #67756d;
-      --product-card-media-bg:
-        radial-gradient(circle at 50% 12%, rgba(253, 205, 67, 0.14), transparent 42%),
-        linear-gradient(180deg, #f8faf6, #eef4ec);
+      --product-card-title: #173f31;
+      --product-card-description: #667367;
+      --product-card-media-bg: radial-gradient(ellipse at 45% 45%, #f8f5df, #eaf0df);
 
-      background: #ffffff;
-      box-shadow: 0 16px 40px rgba(23, 33, 29, 0.1);
-      color: #17211d;
-      backdrop-filter: none;
-      -webkit-backdrop-filter: none;
+      background: rgba(255, 254, 248, .78);
+      border-color: #dce4d4;
+      box-shadow: 0 5px 0 #e4e9dc, 0 10px 24px rgba(23, 33, 29, .05);
+      color: #173f31;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
 
       &::before {
         background: linear-gradient(180deg, rgba(253, 205, 67, 0.06), transparent 35%);
@@ -142,13 +145,15 @@ const ProductCardShell = styled.article<{ $tone: 'dark' | 'light'; $dimUnavailab
       }
 
       &:hover {
-        box-shadow: 0 20px 48px rgba(23, 33, 29, 0.13);
+        box-shadow: 0 7px 0 #dbe3d0, 0 16px 28px rgba(23, 33, 29, .09);
       }
 
       .product-card-category {
-        background: #f7efd1;
-        border-color: #ead078;
-        color: #6b560a;
+        background: #edf2e4;
+        border: 0;
+        border-radius: 8px 8px 8px 2px;
+        color: #365b39;
+        padding: .35rem .55rem;
       }
 
       .product-card-availability.in {
@@ -183,6 +188,20 @@ const mediaStyles = css`
     rgba(8, 17, 15, 0.54)
   );
   color: inherit;
+  isolation: isolate;
+
+  &::before {
+    content: '';
+    position: absolute;
+    width: 78%;
+    aspect-ratio: 1;
+    left: 11%;
+    top: 12%;
+    border: 1px dashed rgba(93, 126, 64, .22);
+    border-radius: 46% 54% 63% 37% / 55% 44% 56% 45%;
+    transform: rotate(-15deg);
+    pointer-events: none;
+  }
 
   .product-card-image-tags {
     position: absolute;
@@ -206,9 +225,29 @@ const ProductMediaButton = styled.button`
   &:hover img {
     transform: translateZ(0) scale(1.025);
   }
+  &:focus-visible { outline: 3px solid var(--brand-secondary); outline-offset: -3px; }
 `
 
+const ImageHint = styled.span`
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 2;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid #dce4d4;
+  border-radius: 12px;
+  background: #fffef8;
+  color: #17211d;
+  transform: rotate(-6deg);
+  pointer-events: none;
+`;
+
 const ProductImage = styled.img`
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 100%;
   object-fit: contain;
@@ -225,6 +264,7 @@ const ProductBody = styled.div`
   flex: 1;
   flex-direction: column;
   gap: 0.95rem;
+  padding: .2rem .35rem .35rem;
 `
 
 const ProductTop = styled.div`
@@ -242,8 +282,11 @@ const ProductMeta = styled.div`
 const ProductTitle = styled.h3`
   margin: 0;
   color: var(--product-card-title, var(--white));
-  font-size: 1.06rem;
-  line-height: 1.22;
+  font-size: 1.22rem;
+  line-height: 1.2;
+  font-weight: 900;
+  letter-spacing: -.025em;
+  overflow-wrap: anywhere;
 `
 
 const ProductTitleButton = styled.button`
@@ -279,6 +322,8 @@ const ProductFooter = styled.div`
   display: grid;
   gap: 0.75rem;
   margin-top: auto;
+  padding-top: .9rem;
+  border-top: 1px dashed var(--glass-border, #dce4d4);
 `
 
 const ProductPriceRow = styled.div`
@@ -297,22 +342,23 @@ const ProductDetailsButton = styled.a`
   gap: 0.4rem;
   padding: 0.55rem 0.8rem;
   border: 0;
-  border-radius: var(--product-card-radius);
+  border-radius: 14px 14px 14px 5px;
   background: transparent;
-  color: var(--product-card-description, var(--brand-muted));
+  color: #5c6b58;
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   text-decoration: none;
 
   &:hover {
-    color: var(--product-card-description, var(--brand-muted));
+    background: transparent;
     text-decoration: underline;
     text-underline-offset: 3px;
+    color: #5c6b58;
   }
 
   &:focus-visible {
-    outline: 2px solid #076050;
+    outline: 2px solid var(--brand-main);
     outline-offset: 2px;
   }
 `
@@ -324,10 +370,15 @@ const ProductPrice = styled.span`
     font-size: 1rem;
     line-height: 1.5;
   }
-  color: #b42318;
-  font-size: 1.35rem;
-  font-weight: 700;
-  line-height: 1;
+  display: inline-block;
+  padding: .6rem .7rem;
+  border-radius: 12px 12px 4px 12px;
+  background: #f8edbc;
+  color: #334b26;
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.2;
+  transform: rotate(-2deg);
 `
 
 const ProductCalories = styled.span`
@@ -439,6 +490,7 @@ export function ProductCard({
             onError={handleImageError}
             src={imageSrc}
           />
+          <ImageHint aria-hidden="true"><ZoomIn size={17} /></ImageHint>
         </ProductMediaButton>
       <ProductBody className="product-card-body">
         <ProductTop>
@@ -502,7 +554,7 @@ export function ProductCard({
                 }}
               >
                 {t('productCard.viewDetails')}
-                <ArrowRight size={16} aria-hidden="true" />
+                <ArrowUpRight size={17} aria-hidden="true" />
               </ProductDetailsButton>
             )}
           </ProductPriceRow>

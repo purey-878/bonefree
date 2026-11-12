@@ -111,7 +111,7 @@ const enGB = {
       stats: { momentsText: "Shared around the table.", momentsTitle: "Thousands of moments", veganText: "A choice for flavour and the future.", veganTitle: "100% Vegan", historyText: "Growing with our community.", historyTitle: "5 years of history", dishes: "plant-based dishes", },
       values: { careText: "From the kitchen to your table, everything is done with care.", careTitle: "Care in Every Detail", localTitle: "Community", localText: "A place where people, food and good energy come together.", plantTitle: "Delicious Food", plantText: "100% vegan dishes, fresh and full of flavour.", shareTitle: "Atmosphere", shareText: "A relaxed space to share and enjoy." },
     },
-    events: { weeklyText: "DJs, drinks in hand and the sunset as your backdrop. Every Friday and Saturday, from 19:00 to 23:00, join the party at Bonefree.", weeklyTitle: "SUNSET DJ PARTIES", weeklyKicker: "Every Weekend",
+    events: { showMore: "Show more events ({{count}} remaining)", weeklyText: "DJs, drinks in hand and the sunset as your backdrop. Every Friday and Saturday, from 19:00 to 23:00, join the party at Bonefree.", weeklyTitle: "SUNSET DJ PARTIES", weeklyKicker: "Every Weekend",
       viewEvents: "See upcoming events",
       upcoming: "Upcoming events",
       dateLabel: "Date",
@@ -132,7 +132,7 @@ const enGB = {
     menu: {
       loadingMore: "Loading dishes…", loadedCount: "{{count}} of {{total}} dishes loaded", endOfMenu: "All {{count}} dishes loaded", loadMore: "Load more dishes", retry: "Try again",
       loadError: "We couldn't load the menu.",
-      sort: { default: "Featured", priceAsc: "Price: low to high", priceDesc: "Price: high to low", nameAsc: "Name: A–Z" }, close: "Close",
+      sort: { caloriesAsc: "Calories: low to high", caloriesDesc: "Calories: high to low", default: "Featured", priceAsc: "Price: low to high", priceDesc: "Price: high to low", nameAsc: "Name: A–Z" }, close: "Close",
       eyebrow: "Our menu", title: "Our Menu", finderPrompt: "Don’t know what to get?", finderAction: "ASK PAULO!",
       shortDescription: "Vegan cooking with flavours to discover.",
       showing: "Showing", filtersLabel: "Menu filters", searchLabel: "Search the menu", searchPlaceholder: "Search dishes...", clearSearch: "Clear search", maxPrice: "Maximum price", filter: "Filter", specialFilter: "Special menu filter", all: "All", glutenFree: "Gluten-free", alcohol: "Alcohol", sortLabel: "Sort", sortMenu: "Sort menu", reset: "Reset", categories: "Categories", noResults: "No results", noResultsTitle: "No dishes found", noResultsText: "Try another category, search term or price range.", resetFilters: "Reset filters",

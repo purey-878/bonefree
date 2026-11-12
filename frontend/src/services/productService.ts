@@ -18,7 +18,7 @@ export interface ProductListOptions extends PageRequest {
   minPrice?: number;
   maxPrice?: number;
   special?: 'all' | 'gluten_free' | 'alcohol';
-  sort?: 'default' | 'price_asc' | 'price_desc' | 'name_asc';
+  sort?: 'default' | 'price_asc' | 'price_desc' | 'name_asc' | 'calories_asc' | 'calories_desc';
   productIds?: number[];
 }
 

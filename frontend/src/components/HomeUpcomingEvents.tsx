@@ -1,42 +1,31 @@
 import WeekendEvents from './WeekendEvents';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { usePublicEvents } from '../hooks/usePublicEvents';
 import { ArrowUpRight, CalendarDays, Clock3, Music2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import ProductLabel from './ui/ProductLabel';
-import { getPublicEventsSettings } from '../services/siteSettingsService';
-import type { EventItemSettings } from '../types/siteSettings';
-import { publicEventDate, upcomingPublicEvents } from '../utils/publicEvents';
+import { publicEventDate } from '../utils/publicEvents';
 import { resolvedLocale } from '../i18n';
 import { applyApiImageFallback, resolveProductImageUrl } from '../utils/imageFallback';
 
 export default function HomeUpcomingEvents() {
   const { t } = useTranslation('storefront');
-  const [savedEvents, setSavedEvents] = useState<EventItemSettings[]>([]);
-  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
-  const [attempt, setAttempt] = useState(0);
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    let active = true;
-    getPublicEventsSettings().then(settings => { if (active) { setSavedEvents(settings.events); setStatus('ready'); } }).catch(() => { if (active) setStatus('error'); });
-    return () => { active = false; };
-  }, [attempt]);
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), 60_000);
-    return () => window.clearInterval(timer);
-  }, []);
-  const events = upcomingPublicEvents(savedEvents, now).slice(0, 2);
+  const { events: upcomingEvents, status, retry } = usePublicEvents();
+  const [visibleCount, setVisibleCount] = useState(2);
+  const events = upcomingEvents.slice(0, visibleCount);
   return <Section id="home-events" className="home-upcoming" aria-labelledby="home-events-title">
     <Heading><div><span><Music2 size={18} aria-hidden="true" />{t('events.location')}</span><h2 id="home-events-title">{t('events.upcoming')}</h2></div><Link to="/events">{t('events.viewEvents')}<ArrowUpRight size={19} aria-hidden="true" /></Link></Heading>
     <WeekendEvents />
-    {status === 'loading' ? <State className="home-event-state" role="status"><CalendarDays size={28} aria-hidden="true" /><p>{t('events.loading')}</p></State> : status === 'error' ? <State className="home-event-state" role="alert"><p>{t('events.loadError')}</p><button type="button" onClick={() => { setStatus('loading'); setAttempt(value => value + 1); }}>{t('actions.retry', {ns: 'common'})}</button></State> : events.length ? <Grid $single={events.length === 1}>{events.map((event, index) => {
+    {status === 'loading' ? <State className="home-event-state" role="status"><CalendarDays size={28} aria-hidden="true" /><p>{t('events.loading')}</p></State> : status === 'error' ? <State className="home-event-state" role="alert"><p>{t('events.loadError')}</p><button type="button" onClick={retry}>{t('actions.retry', {ns: 'common'})}</button></State> : events.length ? <Grid $single={events.length === 1}>{events.map((event, index) => {
       const date = publicEventDate(event.date, resolvedLocale());
       return <Card className="home-event-card" key={event.id}>
         <Photo><img src={resolveProductImageUrl(event.imageUrl, '/assets/images/about-us-3.jpg')} alt={event.title} loading="lazy" onError={e => applyApiImageFallback(e.currentTarget, '/assets/images/about-us-3.jpg')} /><time dateTime={event.date}><strong>{date.day}</strong><span>{date.month}</span></time>{index === 0 && <div className="next-label"><ProductLabel>{t('events.next')}</ProductLabel></div>}</Photo>
         <Copy><span className="event-kicker">{event.kicker}</span><h3>{event.title}</h3><p>{event.description}</p><time dateTime={event.date} className="event-date"><CalendarDays size={16} aria-hidden="true" />{date.full}</time><span className="event-time"><Clock3 size={16} aria-hidden="true" />{event.startTime}–{event.endTime}{event.endTime <= event.startTime && ` · ${t('events.nextDay')}`}</span><div className="event-actions"><Link to="/events">{t('events.viewEvents')}<ArrowUpRight size={18} aria-hidden="true" /></Link><Link to="/reservations">{t('home.reserveTable')}</Link></div></Copy>
       </Card>;
     })}</Grid> : <Empty className="home-event-empty"><img src="/assets/images/about-us-3.jpg" alt={t('events.galleryAlt1')} loading="lazy" /><div><Music2 size={28} aria-hidden="true" /><h3>{t('events.emptyTitle')}</h3><p>{t('events.emptyText')}</p><Link to="/events">{t('events.heroTitle')}<ArrowUpRight size={18} aria-hidden="true" /></Link></div></Empty>}
+    {status === 'ready' && upcomingEvents.length > visibleCount && <MoreButton type="button" onClick={() => setVisibleCount(count => count + 2)}>{t('events.showMore', { count: upcomingEvents.length - visibleCount })}<ArrowUpRight size={18} aria-hidden="true" /></MoreButton>}
   </Section>;
 }
 
@@ -107,4 +96,22 @@ const Empty = styled.div`
   p { color: var(--brand-muted); font-size: .9rem; line-height: 1.8; margin-bottom: 25px; }
   a { display: inline-flex; align-items: center; gap: 15px; color: var(--brand-secondary); font-size: .85rem; font-weight: 700; text-decoration: none; }
   @media (max-width: 640px) { grid-template-columns: 1fr; > img { height: 210px; min-height: 0; } }
+`;
+
+const MoreButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 48px;
+  margin: 28px auto 0;
+  padding: 12px 22px;
+  border: 1px solid var(--glass-border);
+  border-radius: 16px 16px 16px 5px;
+  background: var(--brand-accent);
+  color: var(--brand-ink);
+  font: inherit;
+  font-size: .88rem;
+  font-weight: 600;
+  &:focus-visible { outline: 3px solid var(--brand-secondary); outline-offset: 4px; }
 `;

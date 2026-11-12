@@ -1,5 +1,5 @@
 import { brandLogo } from "../constants/brandLogo"
-import { X } from "lucide-react";
+import { Sparkles, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
@@ -10,10 +10,10 @@ import LanguageSwitcher from "./LanguageSwitcher";
 const desktopLinks = [
   { path: "/", labelKey: "navigation.home" },
   { path: "/menu", labelKey: "navigation.menu" },
-  { path: "/reservations", labelKey: "navigation.reserveTable" },
   { path: "/about", labelKey: "navigation.about" },
   { path: "/events", labelKey: "navigation.events" },
   { path: "/contact", labelKey: "navigation.contact" },
+  { path: "/reservations", labelKey: "navigation.reserveTable" },
 ];
 
 const drawerIn = keyframes`
@@ -220,6 +220,38 @@ const PillLink = styled(Link) <{ $active: boolean }>`
     min-height: 36px;
     padding-inline: 0.55rem;
     font-size: 0.82rem;
+  }
+`;
+
+const ReservationLink = styled(PillLink)`
+  gap: .5rem;
+  min-height: 42px;
+  border-radius: 18px 18px 18px 6px;
+  background: var(--brand-accent, #fdcd43);
+  border: 1px solid rgba(96, 74, 13, .14);
+  color: #263c22;
+  box-shadow: 0 3px 0 #cda82e;
+  transform: rotate(-2deg);
+
+  svg { flex-shrink: 0; transition: transform 180ms ease; }
+
+  &:hover {
+    background: color-mix(in srgb, var(--brand-accent, #fdcd43) 85%, white);
+    border-color: rgba(96, 74, 13, .14);
+    color: #263c22;
+    transform: rotate(1deg) translateY(-2px);
+    box-shadow: 0 5px 0 #cda82e;
+  }
+  &:hover svg { transform: rotate(12deg); }
+  &:active { transform: rotate(0deg) translateY(2px); box-shadow: 0 1px 0 #cda82e; }
+  &:focus-visible { outline: 3px solid var(--brand-main); outline-offset: 4px; }
+
+  @media (max-width: 1279px) { display: none; }
+  @media (prefers-reduced-motion: reduce) {
+    &, svg { transition: none; }
+    &:hover { transform: rotate(-2deg); }
+    &:hover svg { transform: none; }
+    &:active { transform: rotate(-2deg); }
   }
 `;
 
@@ -493,6 +525,12 @@ const DrawerLink = styled(Link) <{ $active: boolean }>`
     background: #f7f8f5;
     color: #17211d;
   }
+
+  &[href="/reservations"] {
+    margin-top: .5rem;
+    background: var(--brand-accent, #fdcd43);
+    color: #263c22;
+  }
 `;
 
 const Navbar = ({ renderStatic = false }: { renderStatic?: boolean }) => {
@@ -503,7 +541,7 @@ const Navbar = ({ renderStatic = false }: { renderStatic?: boolean }) => {
   const headerRef = useRef<HTMLElement | null>(null);
   const closeDrawer = () => setDrawerOpen(false);
   const isActive = (path: string) => path === "/" ? location.pathname === "/" : path === "/menu" ? /^\/(menu|product)(\/|$)/.test(location.pathname) : location.pathname.startsWith(path);
-  const glassDarkNav = ["/", "/contact", "/about"].includes(location.pathname);
+  const glassDarkNav = ["/", "/contact", "/about", "/events"].includes(location.pathname);
   useEffect(() => {
     let previousY = Math.max(0, window.scrollY);
     let previousTime = performance.now();
@@ -575,8 +613,8 @@ const Navbar = ({ renderStatic = false }: { renderStatic?: boolean }) => {
     <TopNav ref={headerRef} $glassDark={glassDarkNav} $hidden={navHidden} inert={navHidden}><NavInner>
       <MobileLeft><IconAction aria-label={t("navigation.openMenu")} aria-expanded={drawerOpen} onClick={() => setDrawerOpen(true)} type="button"><BurgerIcon aria-hidden="true"><span /></BurgerIcon></IconAction></MobileLeft>
       <Logo className="logo-bonefree" aria-label={t("navigation.bonefreeHome")} onClick={closeDrawer} to="/"><img {...brandLogo} sizes="43px" className="img-fluid img-25" alt="Bonefree" /></Logo>
-      <CenterNav aria-label={t("navigation.main")}>{desktopLinks.map(({ path, labelKey }) => <PillLink $active={isActive(path)} key={path} to={path}>{t(labelKey)}</PillLink>)}</CenterNav>
-      <NavActions><LanguageSwitcher /></NavActions>
+      <CenterNav aria-label={t("navigation.main")}>{desktopLinks.filter(link => link.path !== "/reservations").map(({ path, labelKey }) => <PillLink $active={isActive(path)} key={path} to={path}>{t(labelKey)}</PillLink>)}</CenterNav>
+      <NavActions><LanguageSwitcher /><ReservationLink $active={isActive("/reservations")} aria-current={isActive("/reservations") ? "page" : undefined} to="/reservations"><Sparkles size={16} aria-hidden="true" />{t("navigation.reserveTable")}</ReservationLink></NavActions>
       <MobileRight><LanguageSwitcher className="language-switcher-mobile-nav" /></MobileRight>
     </NavInner></TopNav>
     {drawerOpen && <><Backdrop aria-label={t("navigation.closeMenu")} onClick={closeDrawer} type="button" /><MobileDrawer aria-label={t("navigation.mobile")}>

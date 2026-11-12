@@ -20858,7 +20858,7 @@
             "required": false,
             "schema": {
               "default": "default",
-              "pattern": "^(default|popular|price_asc|price_desc|name_asc)$",
+              "pattern": "^(default|popular|price_asc|price_desc|name_asc|calories_asc|calories_desc)$",
               "title": "Sort",
               "type": "string"
             }

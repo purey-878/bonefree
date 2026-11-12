@@ -1,3 +1,5 @@
+import EventsEditor from "../components/admin/EventsEditor"
+import { eventImageFallback, eventsHaveIssues } from "../utils/eventEditor"
 import PricingOptionsEditor from "../components/admin/PricingOptionsEditor"
 import { formatProductPrices, pricingOptionsInvalid } from "../utils/pricing"
 import { saveProductDraft } from "../services/productEditor"
@@ -17,7 +19,7 @@ import { Pagination } from "../components/ui"
 import ConfirmDialog from "../components/ui/ConfirmDialog"
 import CustomSelect from "../components/ui/CustomSelect"
 import { useToast } from "../components/ui/toastContext"
-import { resolvedLocale } from "../i18n"
+import i18n, { resolvedLocale } from "../i18n"
 import {
   createCategory,
   createIngredient,
@@ -76,7 +78,6 @@ import type { Page } from "../types/pagination"
 import type {
   ChefSpecialSettings,
   CompanyDetailsSettings,
-  EventItemSettings,
   EventsSettings,
   SiteThemeResponse,
   SocialLinkSettings,
@@ -292,6 +293,7 @@ function SiteSettingsPanel({
   onCompanyDetailsChange,
   onSocialMediaChange,
   onEventsSettingsChange,
+  onSaveEvents,
   onSave,
 }: {
   value: SiteThemeResponse
@@ -308,8 +310,10 @@ function SiteSettingsPanel({
   onCompanyDetailsChange: (value: CompanyDetailsSettings) => void
   onSocialMediaChange: (value: SocialMediaSettings) => void
   onEventsSettingsChange: (value: EventsSettings) => void
+  onSaveEvents: () => void
   onSave: () => void
 }) {
+  const { t: eventText } = useTranslation("adminEvents")
   const [activeSettingsTab, setActiveSettingsTab] = useState<SiteSettingsTab>("promote")
   const colors = value.config.colors
   const selectedPreset = themePresetById(value.themeId)
@@ -327,14 +331,6 @@ function SiteSettingsPanel({
     onSocialMediaChange({
       links: socialLinks.map((link) => (
         link.platform === platform ? { ...link, ...changes } : link
-      )),
-    })
-  }
-
-  const updateEventSetting = (eventId: string, changes: Partial<EventItemSettings>) => {
-    onEventsSettingsChange({
-      events: eventsSettings.events.map((eventItem) => (
-        eventItem.id === eventId ? { ...eventItem, ...changes } : eventItem
       )),
     })
   }
@@ -416,8 +412,8 @@ function SiteSettingsPanel({
             {activeSettingsTab === "theme" && (
               <button className="ad-btn ad-btn-ghost" disabled={saving || loading} onClick={() => onChange(defaultSiteThemeResponse)}>Repor tema</button>
             )}
-            <button className="ad-btn ad-btn-primary" disabled={saving || loading} onClick={onSave}>
-              {saving ? "A guardar..." : "Publicar definições"}
+            <button className="ad-btn ad-btn-primary" disabled={saving || loading} type={activeSettingsTab === "events" ? "submit" : "button"} form={activeSettingsTab === "events" ? "admin-events-form" : undefined} onClick={activeSettingsTab === "events" ? undefined : onSave}>
+              {activeSettingsTab === "events" ? eventText(saving ? "saving" : "publish") : saving ? "A guardar..." : "Publicar definições"}
             </button>
           </div>
         </div>
@@ -690,81 +686,7 @@ function SiteSettingsPanel({
         )}
 
         {activeSettingsTab === "events" && (
-          <section className="ad-card ad-events-settings">
-            <h3 className="ad-card-title">Gerir eventos</h3>
-            <p className="ad-settings-note">Edite as datas e horários dos próximos eventos apresentados na página pública de Eventos.</p>
-            <div className="ad-event-settings-grid">
-              {eventsSettings.events.map((eventItem) => (
-                <article key={eventItem.id} className="ad-event-settings-card">
-                  <img src={eventItem.imageUrl} alt={eventItem.title} onError={handleAdminImageError} />
-                  <div className="ad-event-settings-body">
-                    <label className="ad-checkbox-row">
-                      <input
-                        type="checkbox"
-                        checked={eventItem.enabled}
-                        onChange={(event) => updateEventSetting(eventItem.id, { enabled: event.target.checked })}
-                      />
-                      <span>Mostrar evento</span>
-                    </label>
-                    <div className="ad-form-group">
-                      <label htmlFor={`event-title-${eventItem.id}`}>Título do evento</label>
-                      <input
-                        id={`event-title-${eventItem.id}`}
-                        value={eventItem.title}
-                        onChange={(event) => updateEventSetting(eventItem.id, { title: event.target.value })}
-                      />
-                    </div>
-                    <div className="ad-form-group">
-                      <label htmlFor={`event-kicker-${eventItem.id}`}>Rótulo</label>
-                      <input
-                        id={`event-kicker-${eventItem.id}`}
-                        value={eventItem.kicker}
-                        onChange={(event) => updateEventSetting(eventItem.id, { kicker: event.target.value })}
-                      />
-                    </div>
-                    <div className="ad-form-group ad-form-group-wide">
-                      <label htmlFor={`event-description-${eventItem.id}`}>Descrição</label>
-                      <textarea
-                        id={`event-description-${eventItem.id}`}
-                        rows={3}
-                        value={eventItem.description}
-                        onChange={(event) => updateEventSetting(eventItem.id, { description: event.target.value })}
-                      />
-                    </div>
-                    <div className="ad-event-date-row">
-                      <div className="ad-form-group">
-                        <label htmlFor={`event-date-${eventItem.id}`}>Data</label>
-                        <input
-                          id={`event-date-${eventItem.id}`}
-                          type="date"
-                          value={eventItem.date}
-                          onChange={(event) => updateEventSetting(eventItem.id, { date: event.target.value })}
-                        />
-                      </div>
-                      <div className="ad-form-group">
-                        <label htmlFor={`event-start-${eventItem.id}`}>Início</label>
-                        <input
-                          id={`event-start-${eventItem.id}`}
-                          type="time"
-                          value={eventItem.startTime}
-                          onChange={(event) => updateEventSetting(eventItem.id, { startTime: event.target.value })}
-                        />
-                      </div>
-                      <div className="ad-form-group">
-                        <label htmlFor={`event-end-${eventItem.id}`}>Fim</label>
-                        <input
-                          id={`event-end-${eventItem.id}`}
-                          type="time"
-                          value={eventItem.endTime}
-                          onChange={(event) => updateEventSetting(eventItem.id, { endTime: event.target.value })}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
+          <EventsEditor value={eventsSettings} onChange={onEventsSettingsChange} onSave={onSaveEvents} saving={saving} loading={loading} />
         )}
 
       </div>
@@ -2518,21 +2440,37 @@ export default function AdminDashboard() {
     }
   }
 
+  const handleSaveEvents = async () => {
+    if (siteThemeSaving) return
+    if (eventsHaveIssues(eventsSettings)) {
+      toast.error(i18n.t("invalid", { ns: "adminEvents" }))
+      return
+    }
+    setSiteThemeSaving(true)
+    try {
+      const saved = await updateAdminEventsSettings({ events: eventsSettings.events.map(event => ({ ...event, imageUrl: event.imageUrl.trim() || eventImageFallback })) })
+      setEventsSettings(saved)
+      setSiteThemeSaved(true)
+      window.setTimeout(() => setSiteThemeSaved(false), 2200)
+      toast.success(i18n.t("saved", { ns: "adminEvents" }))
+    } catch (err) {
+      toast.error(getErrorMessage(err, i18n.t("failed", { ns: "adminEvents" })))
+    } finally { setSiteThemeSaving(false) }
+  }
+
   const handleSaveSiteTheme = async () => {
     try {
       setSiteThemeSaving(true)
-      const [savedTheme, savedChefSpecial, savedCompanyDetails, savedSocialMedia, savedEventsSettings] = await Promise.all([
+      const [savedTheme, savedChefSpecial, savedCompanyDetails, savedSocialMedia] = await Promise.all([
         updateAdminSiteTheme(siteTheme),
         updateAdminChefSpecial(chefSpecial),
         updateAdminCompanyDetails(companyDetails),
         updateAdminSocialMediaSettings(socialMedia),
-        updateAdminEventsSettings(eventsSettings),
       ])
       setSiteTheme(savedTheme)
       setChefSpecial(savedChefSpecial)
       setCompanyDetails(savedCompanyDetails)
       setSocialMedia(savedSocialMedia)
-      setEventsSettings(savedEventsSettings)
       localStorage.setItem("bonefree_site_theme", JSON.stringify(savedTheme))
       window.dispatchEvent(new Event("siteThemeUpdated"))
       setSiteThemeSaved(true)
@@ -4337,6 +4275,7 @@ export default function AdminDashboard() {
               onCompanyDetailsChange={setCompanyDetails}
               onSocialMediaChange={setSocialMedia}
               onEventsSettingsChange={setEventsSettings}
+              onSaveEvents={handleSaveEvents}
               onSave={handleSaveSiteTheme}
             />
           )}

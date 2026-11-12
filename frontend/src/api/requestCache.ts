@@ -38,7 +38,7 @@ let adminIdentity: string | null = null;
 function publicPolicy(url: URL): { ttl: number; tag: string } | undefined {
   if (url.pathname.includes('/admin/')) return;
   const settings = url.pathname.match(/\/site-settings\/(theme|chef-special|company-details|social-media|events)$/)?.[1];
-  if (settings) return { ttl: settings === 'theme' ? 60_000 : 300_000, tag: settings };
+  if (settings) return { ttl: settings === 'events' ? 15_000 : settings === 'theme' ? 60_000 : 300_000, tag: settings };
   if (/\/products(?:\/\d+)?\/?$/.test(url.pathname)) return { ttl: 30_000, tag: 'catalog' };
 }
 

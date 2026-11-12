@@ -111,7 +111,7 @@ const deDE = {
       stats: { momentsText: "Gemeinsam am Tisch erlebt.", momentsTitle: "Tausende Momente", veganText: "Eine Entscheidung für Geschmack und Zukunft.", veganTitle: "100 % vegan", historyText: "Wir wachsen mit unserer Gemeinschaft.", historyTitle: "5 Jahre Geschichte", dishes: "pflanzliche Gerichte", },
       values: { careText: "Von der Küche bis zum Tisch wird alles mit Sorgfalt gemacht.", careTitle: "Sorgfalt in jedem Detail", localTitle: "Gemeinschaft", localText: "Ein Ort, an dem Menschen, Essen und gute Energie zusammenkommen.", plantTitle: "Leckeres Essen", plantText: "100 % vegane Gerichte, frisch und voller Geschmack.", shareTitle: "Atmosphäre", shareText: "Ein entspannter Ort zum Teilen und Genießen." },
     },
-    events: { weeklyText: "DJs, Drinks in der Hand und der Sonnenuntergang als Kulisse. Jeden Freitag und Samstag von 19:00 bis 23:00 feiern wir gemeinsam im Bonefree.", weeklyTitle: "SUNSET DJ PARTIES", weeklyKicker: "Jedes Wochenende",
+    events: { showMore: "Weitere Veranstaltungen (noch {{count}})", weeklyText: "DJs, Drinks in der Hand und der Sonnenuntergang als Kulisse. Jeden Freitag und Samstag von 19:00 bis 23:00 feiern wir gemeinsam im Bonefree.", weeklyTitle: "SUNSET DJ PARTIES", weeklyKicker: "Jedes Wochenende",
       viewEvents: "Kommende Events ansehen",
       upcoming: "Kommende Events",
       dateLabel: "Datum",
@@ -132,7 +132,7 @@ const deDE = {
     menu: {
       loadingMore: "Gerichte werden geladen…", loadedCount: "{{count}} von {{total}} Gerichten geladen", endOfMenu: "Alle {{count}} Gerichte geladen", loadMore: "Weitere Gerichte laden", retry: "Erneut versuchen",
       loadError: "Die Speisekarte konnte nicht geladen werden.",
-      sort: { default: "Empfohlen", priceAsc: "Preis: aufsteigend", priceDesc: "Preis: absteigend", nameAsc: "Name: A–Z" }, close: "Schließen",
+      sort: { caloriesAsc: "Kalorien: aufsteigend", caloriesDesc: "Kalorien: absteigend", default: "Empfohlen", priceAsc: "Preis: aufsteigend", priceDesc: "Preis: absteigend", nameAsc: "Name: A–Z" }, close: "Schließen",
       eyebrow: "Unsere Speisekarte", title: "Unsere Speisekarte", finderPrompt: "Keine Ahnung, was du nehmen sollst?", finderAction: "FRAG PAULO!",
       shortDescription: "Vegane Küche mit Aromen zum Entdecken.",
       showing: "Angezeigt", filtersLabel: "Filter der Speisekarte", searchLabel: "Speisekarte durchsuchen", searchPlaceholder: "Gerichte suchen...", clearSearch: "Suche löschen", maxPrice: "Höchstpreis", filter: "Filter", specialFilter: "Spezialfilter der Speisekarte", all: "Alle", glutenFree: "Glutenfrei", alcohol: "Alkohol", sortLabel: "Sortieren", sortMenu: "Speisekarte sortieren", reset: "Zurücksetzen", categories: "Kategorien", noResults: "Keine Ergebnisse", noResultsTitle: "Keine Gerichte gefunden", noResultsText: "Versuchen Sie eine andere Kategorie, einen anderen Suchbegriff oder Preisbereich.", resetFilters: "Filter zurücksetzen",

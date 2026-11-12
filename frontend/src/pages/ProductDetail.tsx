@@ -1,7 +1,7 @@
 import { formatProductPrices } from "../utils/pricing"
 import ProductPricingDetails from "../components/ProductPricingDetails"
 import ProductImageLightbox from "../components/ProductImageLightbox"
-import { ChevronDown, ChevronLeft, Flame, Leaf, TriangleAlert } from "lucide-react"
+import { ArrowUpRight, ChevronDown, ChevronLeft, Flame, Leaf, Sparkles, TriangleAlert, Waves, ZoomIn } from "lucide-react"
 import type { MouseEvent } from "react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
@@ -9,6 +9,7 @@ import { Link, useNavigate, useParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { isApiErrorWithStatus } from "../api/errors"
 import Navbar from "../components/Navbar"
+import ProductLabel from "../components/ui/ProductLabel"
 import ResourceNotFound from "../components/ResourceNotFound"
 import { AvailabilityBadge, Badge, ProductCard, Skeleton } from "../components/ui"
 import i18n, { resolvedLocale } from "../i18n"
@@ -219,6 +220,7 @@ export const ProductDetail = () => {
   return (
     <div className="pd-page">
       <Navbar />
+      <div className="pd-doodles" aria-hidden="true"><Leaf /><Waves /><Sparkles /></div>
 
       <main className="pd-shell">
         <nav className="pd-breadcrumb" aria-label={t("productDetail.breadcrumb")}>
@@ -235,8 +237,8 @@ export const ProductDetail = () => {
           <strong>{product.name}</strong>
         </nav>
 
-        <section className="pd-hero ">
-          <div className="pd-gallery ">
+        <section className="pd-hero" aria-labelledby="pd-product-title">
+          <div className="pd-gallery">
             <div
               ref={imageFrameRef}
               className="pd-image-frame product-detail-image-zoom"
@@ -253,12 +255,15 @@ export const ProductDetail = () => {
                   applyApiImageFallback(event.currentTarget, fallbackImage)
                 }}
               />
+                <span className="pd-zoom-hint" aria-hidden="true"><ZoomIn size={20} /></span>
               </button>
-              <div className="pd-gallery-topline ">
+              <div className="pd-gallery-topline">
                 <Badge variant="accent" size="sm">{product.category}</Badge>
                 <span><Leaf size={15} /> {t("productDetail.vegan")}</span>
               </div>
             </div>
+
+            {(product.tags ?? []).filter(tag => tag && tag.toLowerCase() !== 'highlight').length > 0 && <div className="pd-product-labels">{(product.tags ?? []).filter(tag => tag && tag.toLowerCase() !== 'highlight').slice(0, 3).map(tag => <ProductLabel key={tag}>{tag}</ProductLabel>)}</div>}
 
             {galleryImages.length > 1 && <div className="pd-thumbnails" aria-label={t("productDetail.gallery")}>
               {galleryImages.map((image, index) => (
@@ -266,7 +271,8 @@ export const ProductDetail = () => {
 
                   key={`${image.src}-${index}`}
                   type="button"
-                  className={activeImageIndex === index ? "active p-1" : "p-2"}
+                  className={activeImageIndex === index ? "active" : undefined}
+                  aria-pressed={activeImageIndex === index}
                   onClick={() => setActiveImageIndex(index)}
                   aria-label={t("productDetail.showImage", { label: image.label })}
                 >
@@ -293,12 +299,16 @@ export const ProductDetail = () => {
 
             <div className="pd-title-row">
               <div>
-                <h1>{product.name}</h1>
+                <h1 id="pd-product-title">{product.name}</h1>
               </div>
             </div>
 
+            <p className="pd-desc">
+              {product.description || t("productDetail.fallbackDescription")}
+            </p>
+
             <div className="pd-price-card">
-              <strong className="red">{formatProductPrices(product)}</strong>
+              <strong>{formatProductPrices(product)}</strong>
               {productCalories && (
                 <span className="pd-calorie-line" title={t("productDetail.calories", { count: productCalories })}>
                   <Flame aria-hidden="true" />
@@ -307,11 +317,9 @@ export const ProductDetail = () => {
               )}
             </div>
 
-            <Link className="pd-back-btn" to="/reservations">{t("home.reserveTable")}</Link>
             <ProductPricingDetails portions={product.portions} extras={product.extras} />
-            <p className="pd-desc">
-              {product.description || t("productDetail.fallbackDescription")}
-            </p>
+            <div className="pd-actions"><Link className="pd-reserve-btn" to="/reservations">{t("home.reserveTable")}<ArrowUpRight size={19} aria-hidden="true" /></Link><Link className="pd-menu-link" to="/menu">{t("productDetail.backMenu")}<ArrowUpRight size={17} aria-hidden="true" /></Link></div>
+
 
             {inactiveNonBaseIngredients.length > 0 && (
               <div className="pd-ingredient-alert" role="status">
@@ -325,6 +333,11 @@ export const ProductDetail = () => {
               </div>
             )}
 
+
+          </aside>
+        </section>
+
+        <div className="pd-detail-grid">
             <section className="pd-ingredients" aria-labelledby="pd-ingredients-title">
               <h2 id="pd-ingredients-title">{t("productDetail.ingredientsUsed")}</h2>
               {ingredientBreakdown.length > 0 ? (
@@ -377,8 +390,7 @@ export const ProductDetail = () => {
                 )}
               </article>
             </details>
-          </aside>
-        </section>
+        </div>
 
         <section className="pd-section pd-faq" id="faq">
           <div className="pd-faq-list">

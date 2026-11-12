@@ -1,3 +1,4 @@
+from services.catalog_nutrition import calorie_total_expression
 from services.catalog_pricing import starting_price_expression
 
 import re
@@ -119,7 +120,7 @@ def list_products(
     min_price: float | None = Query(None, ge=0),
     max_price: float | None = Query(None, ge=0),
     special: str = Query("all", pattern="^(all|gluten_free|alcohol)$"),
-    sort: str = Query("default", pattern="^(default|popular|price_asc|price_desc|name_asc)$"),
+    sort: str = Query("default", pattern="^(default|popular|price_asc|price_desc|name_asc|calories_asc|calories_desc)$"),
     product_ids: list[int] | None = Query(None),
     db: Session = Depends(get_db),
     locale: CatalogLocale = "pt-PT",
@@ -166,6 +167,9 @@ def list_products(
         ordering = (discounted_price.asc().nulls_last(), Product.product_id.asc())
     elif sort == "price_desc":
         ordering = (discounted_price.desc().nulls_last(), Product.product_id.asc())
+    elif sort in {"calories_asc", "calories_desc"}:
+        calories = calorie_total_expression()
+        ordering = (calories.is_(None).asc(), calories.asc() if sort == "calories_asc" else calories.desc(), Product.product_id.asc())
     elif sort == "name_asc":
         ordering = (display_name.asc(), Product.product_id.asc())
     elif sort == "popular":

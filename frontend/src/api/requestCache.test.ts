@@ -91,15 +91,15 @@ describe('public API sharing and freshness', () => {
     expect(network).toHaveBeenCalledTimes(7);
   });
 
-  it('uses 30-second catalog, 60-second theme and 5-minute other settings freshness', async () => {
+  it('refreshes events frequently while retaining catalog, theme and other settings freshness', async () => {
     vi.useFakeTimers();
     const network = vi.fn(async () => json());
     vi.stubGlobal('fetch', network);
-    const all = () => Promise.all([get('/products/1'), get('/site-settings/theme'), get('/site-settings/events')]);
+    const all = () => Promise.all([get('/products/1'), get('/site-settings/theme'), get('/site-settings/events'), get('/site-settings/company-details')]);
     await all();
-    vi.advanceTimersByTime(30_000); await all(); expect(network).toHaveBeenCalledTimes(4);
     vi.advanceTimersByTime(30_000); await all(); expect(network).toHaveBeenCalledTimes(6);
-    vi.advanceTimersByTime(240_000); await all(); expect(network).toHaveBeenCalledTimes(9);
+    vi.advanceTimersByTime(30_000); await all(); expect(network).toHaveBeenCalledTimes(9);
+    vi.advanceTimersByTime(240_000); await all(); expect(network).toHaveBeenCalledTimes(13);
   });
 
   it('retries HTTP errors and never caches unknown or authenticated public routes', async () => {
