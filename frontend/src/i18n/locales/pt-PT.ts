@@ -163,7 +163,7 @@ const ptPT = {
       noResults: "Sem resultados", noResultsTitle: "Nenhum prato encontrado", noResultsText: "Experimente outra categoria, termo de pesquisa ou intervalo de preço.", resetFilters: "Repor filtros",
       dish: "pratos", dishes: "prato"
     },
-    productCard: { viewDetails: "Ver detalhes",
+    productCard: { enlargeImage: "Ampliar imagem de {{name}}", viewDetails: "Ver detalhes",
       view: "Ver {{name}}", calories: "{{count}} quilocalorias", fallbackDescription: "Um prato cuidadosamente criado com ingredientes de qualidade.",
 
       available: "Disponível", currentlyUnavailable: "Atualmente indisponível",

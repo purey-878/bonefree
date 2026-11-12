@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, ArrowRight, Check, ChefHat, Clock3, Flame, Leaf, RotateCcw, Salad, Sandwich, ShieldCheck, Soup, Sparkles, UtensilsCrossed, Wheat } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ChefHat, Clock3, createLucideIcon, Flame, Leaf, RotateCcw, Salad, ShieldCheck, Soup, Sparkles, UtensilsCrossed, Wheat } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import { ProductCard } from '../components/ui/ProductCard';
 import { toDomain } from '../api/mappers';
@@ -12,7 +12,13 @@ import '../i18n/mealFinder';
 import { mealFinderService } from '../services/mealFinderService';
 import './MealFinder.css';
 
-const optionIcons: Record<string, typeof Leaf> = {starter: Salad, tacos: Sandwich, main: UtensilsCrossed, crispy: Flame, creamy: Soup, smoky: Flame, any: Sparkles, plant_protein: Leaf, legumes: Wheat, vegetables: Salad};
+const Taco = createLucideIcon('Taco', [
+ ['path', { d: 'M3 19a9 9 0 0 1 18 0Z', key: 'shell' }],
+ ['path', { d: 'M4 15c-3-2-1-5 1-5-1-3 3-5 5-3 1-3 5-3 6 0 3-1 6 2 4 5l1 3', key: 'filling' }],
+ ['path', { d: 'M7.5 15.5h.01M12 13.5h.01M16.5 15.5h.01', key: 'texture' }],
+]);
+
+const optionIcons: Record<string, typeof Leaf> = {starter: Salad, tacos: Taco, main: UtensilsCrossed, crispy: Flame, creamy: Soup, smoky: Flame, any: Sparkles, plant_protein: Leaf, legumes: Wheat, vegetables: Salad};
 
 export type QuizState = { version: number; step: number; answers: Partial<Answers>; gluten: boolean };
 function localizedText(text: Text, locale: string) { return text[locale === 'de-DE' ? 'de' : locale === 'en-GB' ? 'en' : 'pt']; }

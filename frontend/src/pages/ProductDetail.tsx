@@ -1,5 +1,6 @@
 import { formatProductPrices } from "../utils/pricing"
 import ProductPricingDetails from "../components/ProductPricingDetails"
+import ProductImageLightbox from "../components/ProductImageLightbox"
 import { ChevronDown, ChevronLeft, Flame, Leaf, TriangleAlert } from "lucide-react"
 import type { MouseEvent } from "react"
 import { useEffect, useMemo, useRef, useState } from "react"
@@ -88,6 +89,7 @@ export const ProductDetail = () => {
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([])
   const [recentProducts, setRecentProducts] = useState<Product[]>([])
   const [activeImageIndex, setActiveImageIndex] = useState(0)
+  const [previewOpen, setPreviewOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -242,14 +244,16 @@ export const ProductDetail = () => {
               onMouseMove={handleImageZoomMove}
               onMouseLeave={resetImageZoom}
             >
+              <button type="button" className="pd-image-open" aria-haspopup="dialog" aria-label={t('productCard.enlargeImage', { name: product.name })} onClick={() => { resetImageZoom(); setPreviewOpen(true) }}>
               <img
                 src={activeImage?.src ?? fallbackImage}
                 alt={activeImage?.alt ?? product.name}
-                className="pd-image p-4"
+                className="pd-image"
                 onError={event => {
                   applyApiImageFallback(event.currentTarget, fallbackImage)
                 }}
               />
+              </button>
               <div className="pd-gallery-topline ">
                 <Badge variant="accent" size="sm">{product.category}</Badge>
                 <span><Leaf size={15} /> {t("productDetail.vegan")}</span>
@@ -410,6 +414,7 @@ export const ProductDetail = () => {
           </section>
         )}
       </main>
+      {previewOpen && <ProductImageLightbox src={activeImage?.src ?? fallbackImage} alt={activeImage?.alt ?? product.name} onClose={() => setPreviewOpen(false)} />}
     </div>
   )
 }

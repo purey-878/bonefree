@@ -124,7 +124,7 @@ const enGB = {
       showing: "Showing", filtersLabel: "Menu filters", searchLabel: "Search the menu", searchPlaceholder: "Search dishes...", clearSearch: "Clear search", maxPrice: "Maximum price", filter: "Filter", specialFilter: "Special menu filter", all: "All", glutenFree: "Gluten-free", alcohol: "Alcohol", sortLabel: "Sort", sortMenu: "Sort menu", reset: "Reset", categories: "Categories", noResults: "No results", noResultsTitle: "No dishes found", noResultsText: "Try another category, search term or price range.", resetFilters: "Reset filters",
       dish: "dishes", dishes: "dishes",
     },
-    productCard: { viewDetails: "View details", view: "View {{name}}", calories: "{{count}} kilocalories", fallbackDescription: "A carefully crafted dish made with quality ingredients.", available: "Available", currentlyUnavailable: "Currently unavailable", },
+    productCard: { enlargeImage: "Enlarge image of {{name}}", viewDetails: "View details", view: "View {{name}}", calories: "{{count}} kilocalories", fallbackDescription: "A carefully crafted dish made with quality ingredients.", available: "Available", currentlyUnavailable: "Currently unavailable", },
 
     productDetail: {
       caloriesLabel: "Calories",

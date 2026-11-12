@@ -88,24 +88,11 @@ const TopNav = styled.header<{ $glassDark?: boolean; $hidden: boolean }>`
       ? "#ffffff"
       : "#111c18"};
 
-  /* Opaque fallback keeps links readable when backdrop blur is unavailable. */
-  background: ${({ $glassDark }) => $glassDark
-    ? "rgba(16, 25, 21, 0.94)"
-    : "rgba(248, 250, 246, 0.94)"};
-  border-bottom: 1px solid ${({ $glassDark }) => $glassDark
-    ? "rgba(255,255,255,0.16)"
-    : "rgba(255,255,255,0.55)"};
-  box-shadow: ${({ $glassDark }) => $glassDark
-    ? "0 4px 18px rgba(0,0,0,0.12)"
-    : "0 4px 18px rgba(23,33,29,0.04)"};
-
-  @supports ((backdrop-filter: blur(16px)) or (-webkit-backdrop-filter: blur(16px))) {
-    background: ${({ $glassDark }) => $glassDark
-      ? "rgba(16, 25, 21, 0.26)"
-      : "rgba(248, 250, 246, 0.64)"};
-    backdrop-filter: blur(16px) saturate(140%);
-    -webkit-backdrop-filter: blur(16px) saturate(140%);
-  }
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 
   @media (max-width:767px){
     height:68px;

@@ -88,10 +88,34 @@ try{
  assert(await evaluate('document.querySelector(".mf-best").textContent.includes("Chickpeas Tikka Masala")'),'Creamy main with legumes selects Tikka Masala rather than always cheeseburger');
  assert(await evaluate('document.querySelectorAll(".mf-grid article").length===2'),'At most two alternatives; no extras sections');
  assert(await evaluate('!location.search&&!location.hash'),'Answers stay outside URL');
+ await evaluate('document.querySelector(".mf-best .product-card-media").focus()');
+ await click('.mf-best .product-card-media');
+ await wait('!!document.querySelector(".product-image-lightbox[open]")','card lightbox');
+ assert(await evaluate('location.pathname==="/meal-finder" && document.body.style.overflow==="hidden"'),'Photo opens a modal without navigating and locks background scrolling');
+ assert(await evaluate('document.activeElement?.classList.contains("product-image-lightbox-close")'),'Lightbox focuses its close button');
+ await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
+ await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
+ assert(await evaluate('document.querySelector(".product-image-lightbox").contains(document.activeElement) || document.activeElement===document.body'),'Modal keeps keyboard focus away from background controls');
+ await click('.product-image-lightbox img');
+ assert(await evaluate('!!document.querySelector(".product-image-lightbox[open]")'),'Clicking the photo keeps it open');
+ await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
+ await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
+ await wait('!document.querySelector(".product-image-lightbox")','Escape closes lightbox');
+ await wait('document.activeElement?.classList.contains("product-card-media") && document.body.style.overflow!=="hidden"','focus and scrolling restored');
+ assert(await evaluate('document.activeElement?.classList.contains("product-card-media") && document.body.style.overflow!=="hidden"'),'Closing restores focus and scrolling');
+ await click('.mf-best .product-card-media');await click('.product-image-lightbox-close');
+ assert(await evaluate('!document.querySelector(".product-image-lightbox")'),'Close button dismisses the image');
+ await click('.mf-best .product-card-media');
+ await send('Input.dispatchMouseEvent',{type:'mousePressed',x:2,y:2,button:'left',clickCount:1});
+ await send('Input.dispatchMouseEvent',{type:'mouseReleased',x:2,y:2,button:'left',clickCount:1});
+ await wait('!document.querySelector(".product-image-lightbox")','backdrop closes lightbox');
  assert(await evaluate('document.querySelector(".mf-conversion a").pathname==="/reservations"'),'Existing reservation route stays accessible');
  for(const width of [320,390,768,1440]){
   await send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});await sleep(150);
   assert(await evaluate('document.documentElement.scrollWidth<=innerWidth'),`${width}px has no horizontal overflow`);
+  await click('.mf-best .product-card-media');
+  assert(await evaluate('(()=>{const b=document.querySelector(".product-image-lightbox").getBoundingClientRect();return b.left>=0&&b.right<=innerWidth&&b.top>=0&&b.bottom<=innerHeight})()'),`${width}px lightbox fits the screen`);
+  await click('.product-image-lightbox-close');
   await capture(`results-${width}.png`);
  }
  await click('.language-switcher-trigger');await click('.language-switcher-menu button:last-child');
@@ -101,6 +125,10 @@ try{
  await wait('document.querySelector("h1")?.textContent.includes("Find your") && !!document.querySelector(".mf-best article")','English results');
  await click('.mf-best .mf-match > a');await wait('location.pathname.startsWith("/product/")','product details');
  assert(true,'Actual product detail links open');
+ await wait('!!document.querySelector(".pd-image-open")','product image');
+ await click('.pd-image-open');await wait('!!document.querySelector(".product-image-lightbox[open]")','detail lightbox');
+ assert(await evaluate('document.querySelector(".product-image-lightbox img").alt===document.querySelector("h1").textContent'),'Detail page opens the selected product image');
+ await click('.product-image-lightbox-close');
  await evaluate('history.back()');await wait('!!document.querySelector(".mf-best article")','return');
  assert(await evaluate('document.querySelector(".mf-best").textContent.includes("Tikka")'),'Back from product retains fixed quiz answers');
  async function newQuiz(course,style,ingredient){

@@ -6,6 +6,9 @@ import type {
   SyntheticEvent,
 } from 'react'
 import styled, { css } from 'styled-components'
+import { useState } from 'react'
+import ProductImageLightbox from '../ProductImageLightbox'
+import ProductLabel from './ProductLabel'
 
 import { useTranslation } from 'react-i18next'
 import { resolvedLocale } from '../../i18n'
@@ -167,7 +170,7 @@ const mediaStyles = css`
   position: relative;
   display: block;
   width: 100%;
-  height: 210px;
+  height: clamp(240px, 24vw, 260px);
   overflow: hidden;
   border: 0;
   border-radius: var(--product-card-media-radius);
@@ -183,24 +186,22 @@ const mediaStyles = css`
 
   .product-card-image-tags {
     position: absolute;
-    top: 0.75rem;
-    left: 0.75rem;
+    top: 1rem;
+    left: 0;
     z-index: 2;
     display: flex;
-    max-width: calc(100% - 1.5rem);
-    flex-wrap: wrap;
-    gap: 0.35rem;
+    max-width: calc(100% - 1rem);
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+    filter: drop-shadow(0 3px 5px rgba(23, 33, 29, .15));
     pointer-events: none;
   }
 `
 
-const ProductMedia = styled.div`
-  ${mediaStyles}
-`
-
 const ProductMediaButton = styled.button`
   ${mediaStyles}
-  cursor: pointer;
+  cursor: zoom-in;
 
   &:hover img {
     transform: translateZ(0) scale(1.025);
@@ -211,7 +212,7 @@ const ProductImage = styled.img`
   width: 100%;
   height: 100%;
   object-fit: contain;
-  padding: 1rem;
+  padding: .5rem;
   transform: translateZ(0) scale(1);
   will-change: transform;
   transition: transform 680ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -329,21 +330,6 @@ const ProductPrice = styled.span`
   line-height: 1;
 `
 
-const ProductTag = styled.span`
-  display: inline-flex;
-  min-height: 1.45rem;
-  align-items: center;
-  border: 1px solid rgba(123, 175, 75, 0.34);
-  border-radius: 999px;
-  background: #eef7e9;
-  color: #276c37;
-  font-size: 0.68rem;
-  font-weight: 700;
-  line-height: 1;
-  padding: 0 0.48rem;
-  text-transform: uppercase;
-`
-
 const ProductCalories = styled.span`
   display: inline-flex;
   min-height: 1.55rem;
@@ -393,6 +379,7 @@ export function ProductCard({
   ...props
 }: ProductCardProps) {
   const { t } = useTranslation('storefront')
+  const [previewOpen, setPreviewOpen] = useState(false)
   void currencySymbol
   const availableSizes = product.portions?.filter(option => option.isAvailable) ?? []
   const unavailable = product.available === false
@@ -419,7 +406,7 @@ export function ProductCard({
     applyApiImageFallback(event.currentTarget, imageFallback)
   }
 
-  return (
+  return (<>
     <ProductCardShell
       $tone={tone}
       $dimUnavailable={dimUnavailable}
@@ -428,16 +415,20 @@ export function ProductCard({
       {...props}
       onClick={onSelect ? handleSelect : props.onClick}
     >
-      {onSelect ? (
         <ProductMediaButton
-          aria-label={t('productCard.view', { name: product.name })}
-          onClick={handleSelectClick}
+          aria-label={t('productCard.enlargeImage', { name: product.name })}
+          aria-haspopup="dialog"
+          onClick={event => {
+            event.stopPropagation()
+            setPreviewOpen(true)
+          }}
+          className="product-card-media"
           type="button"
         >
           {hasImageTags && (
             <div className="product-card-image-tags">
               {displayTags.map((tag) => (
-                <ProductTag key={tag}>{tag}</ProductTag>
+                <ProductLabel key={tag}>{tag}</ProductLabel>
               ))}
             </div>
           )}
@@ -449,25 +440,6 @@ export function ProductCard({
             src={imageSrc}
           />
         </ProductMediaButton>
-      ) : (
-        <ProductMedia>
-          {hasImageTags && (
-            <div className="product-card-image-tags">
-              {displayTags.map((tag) => (
-                <ProductTag key={tag}>{tag}</ProductTag>
-              ))}
-            </div>
-          )}
-          <ProductImage
-            alt={product.name}
-            decoding="async"
-            loading="lazy"
-            onError={handleImageError}
-            src={imageSrc}
-          />
-        </ProductMedia>
-      )}
-
       <ProductBody className="product-card-body">
         <ProductTop>
           <ProductMeta>
@@ -538,5 +510,6 @@ export function ProductCard({
         </ProductFooter>
       </ProductBody>
     </ProductCardShell>
-  )
+    {previewOpen && <ProductImageLightbox src={resolveImageSrc(primaryProductMediaUrl(product.media, 'detail'))} alt={product.name} onClose={() => setPreviewOpen(false)} />}
+  </>)
 }

@@ -8,6 +8,7 @@ import styled from "styled-components";
 
 import Navbar from "../components/Navbar";
 import { ProductCard } from "../components/ui/ProductCard";
+import ProductLabel from "../components/ui/ProductLabel";
 import { ProductCardSkeleton, Skeleton } from "../components/ui/Skeleton";
 import { ASSETS } from "../constants/assets";
 import i18n, { resolvedLocale } from "../i18n";
@@ -228,7 +229,6 @@ const HomePage = () => {
               <SecondaryCta className="fw-semibold" to="/contact">
                 {t("home.findRestaurant")}
               </SecondaryCta>
-              <Link to="/meal-finder">{t("navigation.mealFinder", {ns: "common"})} ↗</Link>
             </HeroActions>
 
           </HeroCopy>
@@ -381,7 +381,7 @@ const HomePage = () => {
         </ChefImageWrap>
         <ChefCopy>
           <ChefHeader>
-            <SectionKicker>{t("home.todaySpecial")}</SectionKicker>
+            <ProductLabel>{t("home.todaySpecial")}</ProductLabel>
             {chefSpecial && <ChefCategory>{chefSpecial.category}</ChefCategory>}
           </ChefHeader>
           <h2>{chefSpecial?.name ?? t("home.plantSpecial")}</h2>

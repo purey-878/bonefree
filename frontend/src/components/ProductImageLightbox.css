@@ -1,0 +1,43 @@
+.product-image-lightbox {
+  width: min(1000px, 96vw);
+  max-width: 96vw;
+  max-height: 96dvh;
+  margin: auto;
+  padding: 52px 12px 12px;
+  border: 0;
+  background: transparent;
+  overflow: auto;
+}
+
+.product-image-lightbox::backdrop {
+  background: rgba(8, 17, 15, .88);
+}
+
+.product-image-lightbox img {
+  display: block;
+  width: 100%;
+  height: min(760px, calc(96dvh - 76px));
+  object-fit: contain;
+  background: #fff;
+  border-radius: 18px;
+}
+
+.product-image-lightbox-close {
+  position: absolute;
+  top: 4px;
+  right: 12px;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid #fff;
+  border-radius: 50%;
+  background: #17211d;
+  color: #fff;
+  cursor: pointer;
+}
+
+.product-image-lightbox-close:focus-visible {
+  outline: 3px solid #fdcd43;
+  outline-offset: 3px;
+}
