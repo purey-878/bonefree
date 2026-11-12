@@ -3,7 +3,7 @@ import { PUBLIC_PATHS } from '../seo/metadata';
 import { AGENT_TOOLS } from './tools';
 
 type ToolResult = { content: { type: 'text'; text: string }[] };
-export type BrowserTool = { name: string; description: string; inputSchema: unknown; annotations: unknown; execute: (input: unknown) => Promise<ToolResult> };
+export type BrowserTool = { name: string; description: string; inputSchema: unknown; annotations: unknown; execute: (input: unknown, options?: { signal: AbortSignal }) => Promise<ToolResult> };
 export type ModelContext = { registerTool: (tool: BrowserTool, options?: { signal: AbortSignal }) => unknown; unregisterTool?: (name: string) => void };
 
 export function registerAgentTools(context?: ModelContext) {
@@ -16,7 +16,7 @@ export function registerAgentTools(context?: ModelContext) {
     return input as Record<string, unknown>;
   };
   for (const definition of AGENT_TOOLS) {
-    const tool: BrowserTool = { ...definition, execute: async input => {
+    const tool: BrowserTool = { ...definition, execute: async (input, options) => {
       const args = object(input);
       if (definition.name === 'get_restaurant_info') {
         if (Object.keys(args).length) throw new Error('This tool takes no arguments.');
@@ -24,7 +24,7 @@ export function registerAgentTools(context?: ModelContext) {
       }
       if (Object.keys(args).length !== 1 || typeof args.page !== 'string' || !PUBLIC_PATHS.some(path => path === args.page)) throw new Error('Choose a supported public page.');
       const path = args.page === '/' ? '/index.md' : `${args.page}.md`;
-      const response = await fetch(path, { signal: controller.signal, credentials: 'omit', headers: { Accept: 'text/markdown' } });
+      const response = await fetch(path, { signal: options?.signal ? AbortSignal.any([controller.signal, options.signal]) : controller.signal, credentials: 'omit', headers: { Accept: 'text/markdown' } });
       if (!response.ok || !response.headers.get('content-type')?.startsWith('text/markdown')) throw new Error('Public Markdown is unavailable.');
       return result(await response.text());
     } };

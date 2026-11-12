@@ -97,7 +97,7 @@ ${url ? `<meta property="og:url" content="${escapeHtml(url)}" />` : ''}
 <meta name="twitter:title" content="${title}" />
 <meta name="twitter:description" content="${description}" />
 <meta name="twitter:image" content="${SITE_IMAGE}" />
-${meta.noindex ? '' : `<script id="restaurant-schema" type="application/ld+json">${JSON.stringify(structuredData(meta))}</script>`}
+${meta.noindex ? '' : `<script id="restaurant-schema" type="application/ld+json">${JSON.stringify(structuredData(meta)).replace(/</g, '\\u003c')}</script>`}
 <!--seo:end-->`;
 }
 

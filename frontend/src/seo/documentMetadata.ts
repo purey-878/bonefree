@@ -1,4 +1,4 @@
-import { structuredData, SITE_IMAGE, SITE_URL, type PageMetadata } from './metadata';
+import { structuredData, PUBLIC_PATHS, SITE_IMAGE, SITE_URL, type PageMetadata } from './metadata';
 
 export function applyPageMetadata(meta: PageMetadata) {
   document.title = meta.title;
@@ -30,6 +30,11 @@ export function applyPageMetadata(meta: PageMetadata) {
       set(`meta[${attribute}="${prefix}:${key}"]`, attribute, `${prefix}:${key}`, value);
     }
   }
+  let alternate = document.head.querySelector<HTMLLinkElement>('link[rel="alternate"][type="text/markdown"]');
+  if (PUBLIC_PATHS.some(path => path === meta.path)) {
+    if (!alternate) { alternate = document.createElement('link'); alternate.rel = 'alternate'; alternate.type = 'text/markdown'; document.head.append(alternate); }
+    alternate.href = `${SITE_URL}${meta.path === '/' ? '/index' : meta.path}.md`;
+  } else alternate?.remove();
   let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
   if (meta.path) {
     if (!canonical) { canonical = document.createElement('link'); canonical.rel = 'canonical'; document.head.append(canonical); }

@@ -12,7 +12,7 @@ const server = http.createServer((req, res) => {
   let file = path.join(root, decodeURIComponent(url.pathname));
   if (fs.existsSync(file) && fs.statSync(file).isDirectory()) file = path.join(file, 'index.html');
   if (!fs.existsSync(file)) file = path.join(root, url.pathname.startsWith('/product/') ? 'dish.html' : url.pathname.startsWith('/admin/') ? 'admin.html' : 'index.html');
-  res.setHeader('Content-Type', ({ '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.woff2': 'font/woff2', '.avif': 'image/avif', '.webp': 'image/webp' })[path.extname(file)] || 'application/octet-stream');
+  res.setHeader('Content-Type', ({ '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.md': 'text/markdown', '.json': 'application/json', '.svg': 'image/svg+xml', '.woff2': 'font/woff2', '.avif': 'image/avif', '.webp': 'image/webp' })[path.extname(file)] || 'application/octet-stream');
   res.end(fs.readFileSync(file));
 });
 await new Promise(resolve => server.listen(19011, '127.0.0.1', resolve));
@@ -71,12 +71,21 @@ try {
   const input = value => evaluate(`(()=>{const e=document.getElementById('menu-search');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(e,${JSON.stringify(value)});e.dispatchEvent(new Event('input',{bubbles:true}));})()`);
   const click = selector => evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`);
   await send('Page.enable'); await send('Runtime.enable'); await send('Fetch.enable', { patterns: [{ urlPattern: 'https://api.bonefree.pt/*', requestStage: 'Request' }] });
+  // Supported-API test double only: production never installs a WebMCP polyfill.
+  await send('Page.addScriptToEvaluateOnNewDocument', { source: `window.__agentTools=new Map();Object.defineProperty(document,'modelContext',{configurable:true,value:{registerTool(tool,options){window.__agentTools.set(tool.name,tool);options?.signal.addEventListener('abort',()=>window.__agentTools.delete(tool.name),{once:true});},unregisterTool(name){window.__agentTools.delete(name);}}});` });
   await send('Page.addScriptToEvaluateOnNewDocument', { source: "localStorage.setItem('bonefree_locale','en-GB');sessionStorage.clear();history.scrollRestoration='manual';window.__menuObservers=new Set();const NativeObserver=IntersectionObserver;window.IntersectionObserver=class extends NativeObserver{observe(e){if(e.classList.contains('menu-feed-status'))window.__menuObservers.add(this);super.observe(e)}disconnect(){window.__menuObservers.delete(this);super.disconnect()}};" });
   await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   await send('Page.navigate', { url: 'http://127.0.0.1:19011/menu' });
   await wait('document.querySelectorAll(".menu-product-card").length===16', 'initial batch');
   await sleep(600);
   assert(calls.length === 1 && calls[0].size === 16, 'Initial rendering requests exactly one 16-product page');
+  await wait('window.__agentTools.size===2', 'public browser tools');
+  assert(await evaluate('!document.querySelector("[data-initial-styles]")'), 'External initial styles are removed after the client page commits');
+  assert(await evaluate('window.__agentTools.size===2'), 'WebMCP registers two read-only tools on the public route');
+  assert(await evaluate('(async()=>JSON.parse((await window.__agentTools.get("get_restaurant_info").execute({})).content[0].text).telephone==="+351968107702")()'), 'Browser restaurant tool returns verified contact details');
+  assert(await evaluate('(async()=>(await window.__agentTools.get("get_public_page").execute({page:"/menu"})).content[0].text.startsWith("# "))()'), 'Browser page tool reads the actual Markdown file');
+  assert(await evaluate('(async()=>{try{await window.__agentTools.get("get_public_page").execute({page:"/admin/dashboard"});return false}catch{return true}})()'), 'Browser tools reject private pages');
+
   assert(await evaluate('getComputedStyle(document.querySelector(".menu-category-list")).backgroundColor === "rgba(0, 0, 0, 0)" && getComputedStyle(document.querySelector(".menu-category-list")).backdropFilter === "none"'), 'Category row is transparent before scrolling');
   assert(await evaluate('document.querySelector(".menu-product-card").innerText.includes("€16.00")'), 'Explicit size prices preserved');
   failPage = 2; await bottom(); await wait('!!document.querySelector(".menu-feed-status [role=alert]")', 'page error');
@@ -103,6 +112,9 @@ try {
   const before = calls.filter(call => call.size === 16).length;
   await click('.menu-product-card a[href="/product/1"]'); await wait('!!document.querySelector(".pd-page")', 'product detail');
   assert(await evaluate('window.__menuObservers.size===0'), 'Menu observers are disconnected after leaving the route');
+  await wait(`!document.querySelector('link[rel="alternate"][type="text/markdown"]')`, 'product alternate removed');
+  assert(await evaluate('JSON.parse(document.getElementById("restaurant-schema").textContent)["@graph"][2].url==="https://bonefree.pt"+location.pathname'), 'Client navigation updates WebPage schema without advertising missing product Markdown');
+
   await evaluate('history.back()'); await wait('document.querySelectorAll(".menu-product-card").length===70', 'restored menu'); await sleep(300);
   await wait('Math.abs(scrollY - 2400) < 10', 'restored scroll position');
   assert(Math.abs(await evaluate('scrollY') - 2400) < 10, 'Back from dish restores loaded products and exact scroll position');
@@ -134,6 +146,9 @@ try {
   assert(await evaluate('document.documentElement.scrollWidth<=innerWidth'), 'Desktop menu has no horizontal overflow');
   assert(await evaluate('getComputedStyle(document.querySelector(".menu-sidebar")).position==="sticky"'), 'Desktop filter sidebar remains sticky');
   await send('Page.captureScreenshot', { format: 'png' }).then(result => fs.writeFileSync(path.join(output, 'desktop.png'), Buffer.from(result.data, 'base64')));
+  await evaluate("history.pushState({},'', '/admin/login');dispatchEvent(new PopStateEvent('popstate'))");
+  await wait(`document.querySelector('meta[name="robots"]')?.content.includes("noindex") && window.__agentTools?.size===0`, 'private route cleanup');
+  assert(await evaluate('window.__agentTools.size===0 && !document.getElementById("restaurant-schema")'), 'Private routes remove public browser tools and structured data');
   assert(errors.length === 0, 'No browser runtime exceptions');
   fs.writeFileSync(path.join(output, 'results.json'), JSON.stringify({ passes, calls, errors }, null, 2));
   console.log(JSON.stringify({ passes, calls, output }, null, 2));

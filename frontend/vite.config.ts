@@ -1,4 +1,6 @@
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+import { agentManifest, llmsText, markdownFile, pageMarkdown, serverCard } from './src/agents/documents';
 import { catalogSnapshotPaths } from './src/seo/catalogSnapshot';
 import { createServer, defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
@@ -65,8 +67,13 @@ function restaurantPages(): Plugin {
           }
           const links = [...css].filter(file => !shell.includes(`href="/${file}"`)).map(file => `<link rel="stylesheet" href="/${file}">`).join('');
           const pageShell = route === '/' ? shell : shell.replace(/<!--home-priority:start-->[\s\S]*?<!--home-priority:end-->/, '');
+          const cssSource = [...rendered.styles.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/g)].map(match => match[1]).join('\n');
+          if (!cssSource) throw new Error(`Missing initial stylesheet for ${route}`);
+          const initialCss = `initial-pages/${fileName.replace(/\.html$/, '').replaceAll('/', '-')}.${createHash('sha256').update(cssSource).digest('hex').slice(0, 12)}.css`;
+          this.emitFile({ type: 'asset', fileName: initialCss, source: cssSource });
+          const initialStyleLink = `<link rel="stylesheet" data-initial-styles href="/${initialCss}">`;
           const source = pageShell.replace(/<!--seo:start-->[\s\S]*?<!--seo:end-->/, metadataHtml(meta))
-            .replace('</head>', `${links}${rendered.styles}</head>`)
+            .replace('</head>', `${links}${initialStyleLink}</head>`)
             .replace('<div id="root">', '<div id="root" data-initial-render>')
             .replace(/<!--initial-html:start-->[\s\S]*?<!--initial-html:end-->/, () => `<!--initial-html:start-->${rendered.html}<!--initial-html:end-->`);
           if (fileName === 'index.html') index.source = source;
@@ -80,6 +87,10 @@ function restaurantPages(): Plugin {
       } finally { await renderer.close(); }
       // These error documents stay static: they must not mount a successful SPA.
       for (const status of [404, 410]) this.emitFile({ type: 'asset', fileName: `${status}.html`, source: `<!doctype html><html lang="pt-PT"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, follow"><title>${status} | Bonefree</title></head><body><main><h1>${status === 410 ? 'Esta página já não está disponível.' : 'Página não encontrada.'}</h1><p><a href="/menu">Explorar o menu</a> · <a href="/">Bonefree</a></p></main></body></html>` });
+      for (const path of PUBLIC_PATHS) this.emitFile({ type: 'asset', fileName: markdownFile(path), source: pageMarkdown(path) });
+      this.emitFile({ type: 'asset', fileName: 'llms.txt', source: llmsText() });
+      this.emitFile({ type: 'asset', fileName: 'agent-manifest.json', source: JSON.stringify(agentManifest()) });
+      for (const fileName of ['.well-known/mcp/server-card.json', '.well-known/mcp.json']) this.emitFile({ type: 'asset', fileName, source: JSON.stringify(serverCard()) });
       const snapshotFile = process.env.BONEFREE_CATALOG_SNAPSHOT;
       const productPaths = snapshotFile ? catalogSnapshotPaths(JSON.parse(await readFile(snapshotFile, 'utf8'))) : [];
       if (!snapshotFile) this.warn('Product discovery: sitemap includes static pages only. Set BONEFREE_CATALOG_SNAPSHOT to a verified public catalog snapshot for all product URLs.');

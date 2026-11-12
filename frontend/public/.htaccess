@@ -27,6 +27,23 @@ RewriteRule ^(menu|about|events|contact|privacy|reservations|meal-finder)(?:/ind
 RewriteCond %{THE_REQUEST} \s/+index\.html[\s?] [NC]
 RewriteRule ^index\.html$ / [R=301,L]
 
+# Agent representations are explicit public routes, never a catch-all.
+# PHP is required for MIME negotiation and the read-only MCP transport.
+RewriteCond %{THE_REQUEST} \s/+agent\.php[\s?] [NC]
+RewriteRule ^agent\.php$ - [R=404,L]
+RewriteRule ^mcp/$ /mcp [R=301,L]
+RewriteRule ^mcp$ agent.php?representation=mcp [END]
+RewriteRule ^index\.md$ agent.php?representation=markdown&page=/&force=1 [END]
+RewriteRule ^(menu|about|events|contact|privacy|reservations|meal-finder)\.md$ agent.php?representation=markdown&page=/$1&force=1 [END]
+# The bridge parses Accept quality weights (including q=0) and preserves HTML
+# when it is preferred. HEAD uses the same headers without returning a body.
+RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$
+RewriteCond %{HTTP_ACCEPT} text/markdown [NC]
+RewriteRule ^$ agent.php?representation=markdown&page=/ [END]
+RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$
+RewriteCond %{HTTP_ACCEPT} text/markdown [NC]
+RewriteRule ^(menu|about|events|contact|privacy|reservations|meal-finder)$ agent.php?representation=markdown&page=/$1 [END]
+
 # Route-specific HTML before the directory/file checks avoids a trailing slash
 # redirect and supplies the right metadata to crawlers and social previews.
 RewriteRule ^(menu|about|events|contact|privacy|reservations|meal-finder)$ $1/index.html [END]
@@ -48,4 +65,18 @@ RewriteRule ^ - [R=404,L]
     Header always set Referrer-Policy "no-referrer"
     Header always set X-Robots-Tag "noindex, nofollow"
   </Files>
+</IfModule>
+
+# Static discovery files must retain their actual media types.
+<IfModule mod_mime.c>
+  AddType text/plain .txt
+  AddType text/markdown .md
+  AddType application/json .json
+</IfModule>
+<IfModule mod_headers.c>
+  Header always set Content-Signal "search=yes, ai-train=no"
+  Header always merge Link "<https://bonefree.pt/llms.txt>; rel=\"describedby\"; type=\"text/plain\""
+  <FilesMatch "\.html$">
+    Header always merge Vary "Accept"
+  </FilesMatch>
 </IfModule>
