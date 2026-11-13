@@ -111,7 +111,7 @@ const enGB = {
       stats: { momentsText: "Shared around the table.", momentsTitle: "Thousands of moments", veganText: "A choice for flavour and the future.", veganTitle: "100% Vegan", historyText: "Growing with our community.", historyTitle: "5 years of history", dishes: "plant-based dishes", },
       values: { careText: "From the kitchen to your table, everything is done with care.", careTitle: "Care in Every Detail", localTitle: "Community", localText: "A place where people, food and good energy come together.", plantTitle: "Delicious Food", plantText: "100% vegan dishes, fresh and full of flavour.", shareTitle: "Atmosphere", shareText: "A relaxed space to share and enjoy." },
     },
-    events: { showMore: "Show more events ({{count}} remaining)", weeklyText: "DJs, drinks in hand and the sunset as your backdrop. Every Friday and Saturday, from 19:00 to 23:00, join the party at Bonefree.", weeklyTitle: "SUNSET DJ PARTIES", weeklyKicker: "Every Weekend",
+    events: { showMore: "Show more events ({{count}} remaining)",
       viewEvents: "See upcoming events",
       upcoming: "Upcoming events",
       dateLabel: "Date",

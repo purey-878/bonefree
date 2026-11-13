@@ -1,4 +1,3 @@
-import WeekendEvents from './WeekendEvents';
 import { useState } from 'react';
 import { usePublicEvents } from '../hooks/usePublicEvents';
 import { ArrowUpRight, CalendarDays, Clock3, Music2 } from 'lucide-react';
@@ -15,16 +14,16 @@ export default function HomeUpcomingEvents() {
   const { events: upcomingEvents, status, retry } = usePublicEvents();
   const [visibleCount, setVisibleCount] = useState(2);
   const events = upcomingEvents.slice(0, visibleCount);
+  if (status === 'ready' && upcomingEvents.length === 0) return null;
   return <Section id="home-events" className="home-upcoming" aria-labelledby="home-events-title">
     <Heading><div><span><Music2 size={18} aria-hidden="true" />{t('events.location')}</span><h2 id="home-events-title">{t('events.upcoming')}</h2></div><Link to="/events">{t('events.viewEvents')}<ArrowUpRight size={19} aria-hidden="true" /></Link></Heading>
-    <WeekendEvents />
     {status === 'loading' ? <State className="home-event-state" role="status"><CalendarDays size={28} aria-hidden="true" /><p>{t('events.loading')}</p></State> : status === 'error' ? <State className="home-event-state" role="alert"><p>{t('events.loadError')}</p><button type="button" onClick={retry}>{t('actions.retry', {ns: 'common'})}</button></State> : events.length ? <Grid $single={events.length === 1}>{events.map((event, index) => {
       const date = publicEventDate(event.date, resolvedLocale());
       return <Card className="home-event-card" key={event.id}>
         <Photo><img src={resolveProductImageUrl(event.imageUrl, '/assets/images/about-us-3.jpg')} alt={event.title} loading="lazy" onError={e => applyApiImageFallback(e.currentTarget, '/assets/images/about-us-3.jpg')} /><time dateTime={event.date}><strong>{date.day}</strong><span>{date.month}</span></time>{index === 0 && <div className="next-label"><ProductLabel>{t('events.next')}</ProductLabel></div>}</Photo>
         <Copy><span className="event-kicker">{event.kicker}</span><h3>{event.title}</h3><p>{event.description}</p><time dateTime={event.date} className="event-date"><CalendarDays size={16} aria-hidden="true" />{date.full}</time><span className="event-time"><Clock3 size={16} aria-hidden="true" />{event.startTime}–{event.endTime}{event.endTime <= event.startTime && ` · ${t('events.nextDay')}`}</span><div className="event-actions"><Link to="/events">{t('events.viewEvents')}<ArrowUpRight size={18} aria-hidden="true" /></Link><Link to="/reservations">{t('home.reserveTable')}</Link></div></Copy>
       </Card>;
-    })}</Grid> : <Empty className="home-event-empty"><img src="/assets/images/about-us-3.jpg" alt={t('events.galleryAlt1')} loading="lazy" /><div><Music2 size={28} aria-hidden="true" /><h3>{t('events.emptyTitle')}</h3><p>{t('events.emptyText')}</p><Link to="/events">{t('events.heroTitle')}<ArrowUpRight size={18} aria-hidden="true" /></Link></div></Empty>}
+    })}</Grid> : null}
     {status === 'ready' && upcomingEvents.length > visibleCount && <MoreButton type="button" onClick={() => setVisibleCount(count => count + 2)}>{t('events.showMore', { count: upcomingEvents.length - visibleCount })}<ArrowUpRight size={18} aria-hidden="true" /></MoreButton>}
   </Section>;
 }
@@ -87,15 +86,6 @@ const State = styled.div`
   display: flex; align-items: center; justify-content: center; flex-direction: column; min-height: 230px; padding: 30px; border: 1px solid var(--glass-border); border-radius: 28px; background: var(--glass-bg-strong); text-align: center; color: var(--brand-muted);
   p { margin: 20px 0; }
   button { padding: 12px 20px; border: 0; border-radius: 15px; background: var(--brand-accent); color: #21351d; font-weight: 700; cursor: pointer; }
-`;
-const Empty = styled.div`
-  display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: 0; overflow: hidden; border-radius: 30px; background: color-mix(in srgb, var(--brand-main) 10%, var(--glass-bg-strong));
-  > img { width: 100%; height: 100%; min-height: 300px; object-fit: cover; }
-  > div { padding: clamp(28px, 4vw, 50px); }
-  h3 { color: var(--brand-ink); font-size: clamp(1.7rem, 3vw, 2.6rem); font-weight: 900; line-height: 1.15; margin: 22px 0 18px; letter-spacing: -.03em; }
-  p { color: var(--brand-muted); font-size: .9rem; line-height: 1.8; margin-bottom: 25px; }
-  a { display: inline-flex; align-items: center; gap: 15px; color: var(--brand-secondary); font-size: .85rem; font-weight: 700; text-decoration: none; }
-  @media (max-width: 640px) { grid-template-columns: 1fr; > img { height: 210px; min-height: 0; } }
 `;
 
 const MoreButton = styled.button`

@@ -232,7 +232,7 @@ const HomePage = () => {
                 {t("home.reserveTable")}
               </SecondaryCta>
             </HeroActions>
-            <HeroEventsLink className="home-events-link" to="/#home-events"><Music2 size={18} aria-hidden="true" />{t('events.viewEvents')}<ArrowRight size={17} aria-hidden="true" /></HeroEventsLink>
+            <HeroEventsLink className="home-events-link" to="/events"><Music2 size={18} aria-hidden="true" />{t('events.viewEvents')}<ArrowRight size={17} aria-hidden="true" /></HeroEventsLink>
 
           </HeroCopy>
 

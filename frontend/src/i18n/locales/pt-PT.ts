@@ -131,7 +131,7 @@ const ptPT = {
         shareTitle: "Ambiente", shareText: "Um espaço descontraído para partilhar e desfrutar.",
       },
     },
-    events: { showMore: "Mostrar mais eventos ({{count}} por ver)", weeklyText: "DJs, copos na mão e o pôr do sol como cenário. Todas as sextas e sábados, das 19h às 23h, junta-te à festa no Bonefree.", weeklyTitle: "SUNSET DJ PARTIES", weeklyKicker: "Todos os Fins de Semana",
+    events: { showMore: "Mostrar mais eventos ({{count}} por ver)",
       viewEvents: "Ver próximos eventos",
       upcoming: "Próximos eventos",
       dateLabel: "Data",

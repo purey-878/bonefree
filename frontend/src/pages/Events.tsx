@@ -1,4 +1,3 @@
-import WeekendEvents from '../components/WeekendEvents';
 import { useState } from 'react';
 import { usePublicEvents } from '../hooks/usePublicEvents';
 import { ArrowDown, ArrowUpRight, CalendarDays, Clock3, MapPin, Music2, Shell, Sun, Waves } from 'lucide-react';
@@ -28,7 +27,6 @@ export default function Events() {
     </Hero>
 
     <Content>
-      <WeekendEvents />
       <Schedule id="event-list" aria-labelledby="event-list-title">
         <SectionHeading><div><Kicker><CalendarDays size={18} aria-hidden="true" />{t('events.follow')}</Kicker><h2 id="event-list-title">{t('events.upcoming')}</h2></div><p>{t('events.localTime')}</p></SectionHeading>
         {status === 'loading' ? <State className="event-state" role="status"><CalendarDays size={32} aria-hidden="true" /><p>{t('events.loading')}</p></State> : status === 'error' ? <State className="event-state" role="alert"><Music2 size={32} aria-hidden="true" /><p>{t('events.loadError')}</p><Retry type="button" onClick={retry}>{t('actions.retry', {ns: 'common'})}</Retry></State> : events.length ? <EventList>{events.map((event, index) => {

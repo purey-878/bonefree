@@ -111,7 +111,7 @@ const deDE = {
       stats: { momentsText: "Gemeinsam am Tisch erlebt.", momentsTitle: "Tausende Momente", veganText: "Eine Entscheidung für Geschmack und Zukunft.", veganTitle: "100 % vegan", historyText: "Wir wachsen mit unserer Gemeinschaft.", historyTitle: "5 Jahre Geschichte", dishes: "pflanzliche Gerichte", },
       values: { careText: "Von der Küche bis zum Tisch wird alles mit Sorgfalt gemacht.", careTitle: "Sorgfalt in jedem Detail", localTitle: "Gemeinschaft", localText: "Ein Ort, an dem Menschen, Essen und gute Energie zusammenkommen.", plantTitle: "Leckeres Essen", plantText: "100 % vegane Gerichte, frisch und voller Geschmack.", shareTitle: "Atmosphäre", shareText: "Ein entspannter Ort zum Teilen und Genießen." },
     },
-    events: { showMore: "Weitere Veranstaltungen (noch {{count}})", weeklyText: "DJs, Drinks in der Hand und der Sonnenuntergang als Kulisse. Jeden Freitag und Samstag von 19:00 bis 23:00 feiern wir gemeinsam im Bonefree.", weeklyTitle: "SUNSET DJ PARTIES", weeklyKicker: "Jedes Wochenende",
+    events: { showMore: "Weitere Veranstaltungen (noch {{count}})",
       viewEvents: "Kommende Events ansehen",
       upcoming: "Kommende Events",
       dateLabel: "Datum",
