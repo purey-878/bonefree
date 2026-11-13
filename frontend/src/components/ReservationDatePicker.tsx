@@ -1,5 +1,5 @@
 import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useId, useLayoutEffect, useRef, useState } from 'react';
+import { useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { resolvedLocale } from '../i18n';
@@ -10,11 +10,22 @@ function dateValue(date: Date) {
 function parseDate(value: string) { return new Date(`${value}T12:00:00`); }
 function monthValue(value: string) { return `${value.slice(0, 7)}-01`; }
 
+const nativePickerQuery = '(max-width: 767px), (pointer: coarse)';
+function subscribeToPickerMode(notify: () => void) {
+  const query = window.matchMedia(nativePickerQuery);
+  query.addEventListener('change', notify);
+  return () => query.removeEventListener('change', notify);
+}
+function useNativePicker() {
+  return useSyncExternalStore(subscribeToPickerMode, () => window.matchMedia(nativePickerQuery).matches, () => false);
+}
+
 export default function ReservationDatePicker({ value, min, max, onChange }: {
   value: string; min: string; max: string; onChange: (value: string) => void;
 }) {
   const { t } = useTranslation('reservations');
   const locale = resolvedLocale();
+  const nativePicker = useNativePicker();
   const id = useId();
   const popup = useRef<HTMLDivElement>(null);
   const field = useRef<HTMLDivElement>(null);
@@ -33,7 +44,7 @@ export default function ReservationDatePicker({ value, min, max, onChange }: {
   });
 
   useLayoutEffect(() => {
-    if (!open) return;
+    if (!open || nativePicker) return;
     const place = () => {
       const anchor = field.current?.getBoundingClientRect();
       const panel = popup.current;
@@ -49,7 +60,7 @@ export default function ReservationDatePicker({ value, min, max, onChange }: {
     window.addEventListener('resize', place);
     window.addEventListener('scroll', place, true);
     return () => { window.removeEventListener('resize', place); window.removeEventListener('scroll', place, true); };
-  }, [open]);
+  }, [open, nativePicker]);
   useLayoutEffect(() => {
     if (open) popup.current?.querySelector<HTMLButtonElement>(`[data-date="${focusDay}"]`)?.focus({ preventScroll: true });
   }, [open, focusDay, month]);
@@ -80,13 +91,13 @@ export default function ReservationDatePicker({ value, min, max, onChange }: {
     setFocusDay(bounded); setMonth(monthValue(bounded));
   };
 
-  return <div className="reservation-date-picker" ref={field}>
+  return <div className={`reservation-date-picker${nativePicker ? ' is-native' : ''}`} ref={field}>
     <input ref={input} id="reservation-day" type="date" name="day" required min={min} max={max} value={value}
-      aria-haspopup="dialog" aria-expanded={open} aria-controls={id}
+      aria-haspopup={nativePicker ? undefined : 'dialog'} aria-expanded={nativePicker ? undefined : open} aria-controls={nativePicker ? undefined : id}
       onChange={event => onChange(event.target.value)}
-      onClick={event => { event.preventDefault(); prepareCalendar(); popup.current?.showPopover(); }}
-      onKeyDown={event => { if (event.key === 'ArrowDown' && event.altKey) { event.preventDefault(); prepareCalendar(); popup.current?.showPopover(); } }} />
-    <button type="button" className="reservation-date-toggle" popoverTarget={id} aria-label={t('chooseDate')} aria-expanded={open} onClick={prepareCalendar}>
+      onClick={nativePicker ? undefined : event => { event.preventDefault(); prepareCalendar(); popup.current?.showPopover(); }}
+      onKeyDown={nativePicker ? undefined : event => { if (event.key === 'ArrowDown' && event.altKey) { event.preventDefault(); prepareCalendar(); popup.current?.showPopover(); } }} />
+    {!nativePicker && <><button type="button" className="reservation-date-toggle" popoverTarget={id} aria-label={t('chooseDate')} aria-expanded={open} onClick={prepareCalendar}>
       <CalendarDays size={20} aria-hidden="true" />
     </button>
     <div id={id} ref={popup} popover="auto" role="dialog" aria-label={t('chooseDate')} className="reservation-calendar"
@@ -106,6 +117,6 @@ export default function ReservationDatePicker({ value, min, max, onChange }: {
           className={monthValue(day) !== month ? 'is-outside-month' : undefined}
           onKeyDown={event => navigateDay(event, day)} onClick={() => selectDay(day)}>{parseDate(day).getDate()}</button>)}</div>)}
       </div>
-    </div>
+    </div></>}
   </div>;
 }

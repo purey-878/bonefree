@@ -148,6 +148,7 @@ const Logo = styled(Link)`
     grid-column: 2;
     justify-self: center;
     font-size: 1.35rem;
+    img { height: 48px; }
   }
 
   @media (min-width: 768px) and (max-width: 1279px) {
@@ -424,6 +425,8 @@ const Backdrop = styled.button`
   background: rgba(17, 24, 39, 0.28);
   animation: ${backdropIn} 180ms ease both;
 
+  @media (prefers-reduced-motion: reduce) { animation: none; }
+
   @media (max-width: 767px) {
     inset-block-start: 68px;
   }
@@ -447,10 +450,12 @@ const MobileDrawer = styled.aside`
   transform: translateX(-50%);
   animation: ${drawerIn} 220ms ease;
 
+  @media (prefers-reduced-motion: reduce) { animation: none; }
+
   @media (max-width: 767px) {
     top: 68px;
     width: calc(100vw - 1rem);
-    max-height: calc(100dvh - 76px);
+    max-height: calc(100dvh - 76px - env(safe-area-inset-bottom, 0px));
   }
 `;
 
@@ -465,13 +470,14 @@ const DrawerHeader = styled.div`
 
   ${Logo} {
     grid-column: auto;
+    img { height: 42px; }
     justify-self: auto;
     font-size: 1.18rem;
   }
 
   ${IconAction} {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     border-color: rgba(23, 33, 29, 0.12);
     border-radius: 10px;
     background: #ffffff;
@@ -487,7 +493,7 @@ const DrawerBody = styled.div`
   flex-direction: column;
   gap: 1rem;
   overflow-y: auto;
-  padding: 0.9rem;
+  padding: 0.9rem 0.9rem calc(.9rem + env(safe-area-inset-bottom, 0px));
 `;
 
 const DrawerNav = styled.nav`
@@ -539,6 +545,9 @@ const Navbar = ({ renderStatic = false }: { renderStatic?: boolean }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [navHidden, setNavHidden] = useState(false);
   const headerRef = useRef<HTMLElement | null>(null);
+  const drawerRef = useRef<HTMLElement | null>(null);
+  const menuTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const closeTriggerRef = useRef<HTMLButtonElement | null>(null);
   const closeDrawer = () => setDrawerOpen(false);
   const isActive = (path: string) => path === "/" ? location.pathname === "/" : path === "/menu" ? /^\/(menu|product)(\/|$)/.test(location.pathname) : location.pathname.startsWith(path);
   const glassDarkNav = ["/", "/contact", "/about", "/events"].includes(location.pathname);
@@ -603,22 +612,44 @@ const Navbar = ({ renderStatic = false }: { renderStatic?: boolean }) => {
 
   useEffect(() => {
     if (!drawerOpen) return;
-    const previous = document.body.style.overflow;
+    const menuTrigger = menuTriggerRef.current;
+    const previousOverflow = document.body.style.overflow;
+    const root = document.getElementById("root");
+    const wasInert = root?.inert ?? false;
     document.body.style.overflow = "hidden";
-    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") closeDrawer(); };
-    document.addEventListener("keydown", closeOnEscape);
-    return () => { document.body.style.overflow = previous; document.removeEventListener("keydown", closeOnEscape); };
+    if (root) root.inert = true;
+    closeTriggerRef.current?.focus({ preventScroll: true });
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") { event.preventDefault(); closeDrawer(); return; }
+      if (event.key !== "Tab") return;
+      const controls = drawerRef.current?.querySelectorAll<HTMLElement>('a[href], button:not(:disabled), [tabindex="0"]');
+      const first = controls?.[0];
+      const last = controls?.[controls.length - 1];
+      if (!first || !last) return;
+      if (event.shiftKey && (document.activeElement === first || !drawerRef.current?.contains(document.activeElement))) {
+        event.preventDefault(); last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !drawerRef.current?.contains(document.activeElement))) {
+        event.preventDefault(); first.focus();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      if (root) root.inert = wasInert;
+      document.removeEventListener("keydown", handleKeyDown);
+      if (menuTrigger?.isConnected) menuTrigger.focus({ preventScroll: true });
+    };
   }, [drawerOpen]);
   const navigation = <>
-    <TopNav ref={headerRef} $glassDark={glassDarkNav} $hidden={navHidden} inert={navHidden}><NavInner>
-      <MobileLeft><IconAction aria-label={t("navigation.openMenu")} aria-expanded={drawerOpen} onClick={() => setDrawerOpen(true)} type="button"><BurgerIcon aria-hidden="true"><span /></BurgerIcon></IconAction></MobileLeft>
+    <TopNav ref={headerRef} $glassDark={glassDarkNav} $hidden={navHidden} inert={navHidden || drawerOpen}><NavInner>
+      <MobileLeft><IconAction ref={menuTriggerRef} aria-controls="mobile-navigation" aria-label={t("navigation.openMenu")} aria-expanded={drawerOpen} onClick={() => setDrawerOpen(true)} type="button"><BurgerIcon aria-hidden="true"><span /></BurgerIcon></IconAction></MobileLeft>
       <Logo className="logo-bonefree" aria-label={t("navigation.bonefreeHome")} onClick={closeDrawer} to="/"><img {...brandLogo} sizes="43px" className="img-fluid img-25" alt="Bonefree" /></Logo>
       <CenterNav aria-label={t("navigation.main")}>{desktopLinks.filter(link => link.path !== "/reservations").map(({ path, labelKey }) => <PillLink $active={isActive(path)} key={path} to={path}>{t(labelKey)}</PillLink>)}</CenterNav>
       <NavActions><LanguageSwitcher /><ReservationLink $active={isActive("/reservations")} aria-current={isActive("/reservations") ? "page" : undefined} to="/reservations"><Sparkles size={16} aria-hidden="true" />{t("navigation.reserveTable")}</ReservationLink></NavActions>
       <MobileRight><LanguageSwitcher className="language-switcher-mobile-nav" /></MobileRight>
     </NavInner></TopNav>
-    {drawerOpen && <><Backdrop aria-label={t("navigation.closeMenu")} onClick={closeDrawer} type="button" /><MobileDrawer aria-label={t("navigation.mobile")}>
-      <DrawerHeader><Logo aria-label={t("navigation.bonefreeHome")} onClick={closeDrawer} to="/"><img {...brandLogo} sizes="43px" className="img-fluid img-25" alt="Bonefree" /></Logo><IconAction aria-label={t("navigation.closeMenu")} onClick={closeDrawer} type="button"><X size={22} /></IconAction></DrawerHeader>
+    {drawerOpen && <><Backdrop tabIndex={-1} aria-hidden="true" aria-label={t("navigation.closeMenu")} onClick={closeDrawer} type="button" /><MobileDrawer ref={drawerRef} id="mobile-navigation" role="dialog" aria-modal="true" aria-label={t("navigation.mobile")}>
+      <DrawerHeader><Logo aria-label={t("navigation.bonefreeHome")} onClick={closeDrawer} to="/"><img {...brandLogo} sizes="43px" className="img-fluid img-25" alt="Bonefree" /></Logo><IconAction ref={closeTriggerRef} aria-label={t("navigation.closeMenu")} onClick={closeDrawer} type="button"><X size={22} /></IconAction></DrawerHeader>
       <DrawerBody><DrawerNav>{desktopLinks.map(({ path, labelKey }) => <DrawerLink $active={isActive(path)} key={path} onClick={closeDrawer} to={path}>{t(labelKey)}</DrawerLink>)}<DrawerLink $active={isActive("/meal-finder")} onClick={closeDrawer} to="/meal-finder">{t("navigation.mealFinder")}</DrawerLink></DrawerNav></DrawerBody>
     </MobileDrawer></>}
   </>;

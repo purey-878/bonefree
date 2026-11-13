@@ -163,7 +163,7 @@ const ptPT = {
       home: "Voltar ao início", menu: "Ver o menu", artworkLabel: "Página não encontrada", artworkAria: "Erro 404: página não encontrada", note: "Nada servido por aqui",
     },
 
-    menu: {
+    menu: { reserveTable: "Reservar mesa",
       loadingMore: "A carregar pratos…", loadedCount: "{{count}} de {{total}} pratos carregados", endOfMenu: "Todos os {{count}} pratos carregados", loadMore: "Ver mais pratos", retry: "Tentar novamente",
       loadError: "Não foi possível carregar o menu.",
       sort: { caloriesAsc: "Calorias: menos para mais", caloriesDesc: "Calorias: mais para menos", default: "Destaques", priceAsc: "Preço: do mais baixo ao mais alto", priceDesc: "Preço: do mais alto ao mais baixo", nameAsc: "Nome: A–Z" },

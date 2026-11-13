@@ -129,7 +129,7 @@ const enGB = {
  heroTitle: "Find BONEFREE by the coast.", heroDescription: "An experience where flavours, music and community meet by the sea.", directions: "Get directions", viewMenu: "View menu", detailsLabel: "BONEFREE contact details", tableAlt: "Plant-based table at BONEFREE", hungry: "Come in hungry", featureTitle: "Food, cocktails, music, coast.", address: "Address", phone: "Phone", email: "Email", hours: "Opening hours", hoursValue: "Monday: Closed\nTuesday to Sunday: 12:00–22:00 (Kitchen)\nBar open until midnight", location: "Bonefree, Costa da Caparica", openMaps: "Open in Google Maps", mapTitle: "BONEFREE location" },
     notFound: { documentTitle: "Page not found | Bonefree", eyebrow: "Error 404", title: "This dish isn't on the menu.", description: "It looks as though this page has left the kitchen. Check the address or return to exploring Bonefree's flavours.", home: "Back to home", menu: "View the menu", artworkLabel: "Page not found", artworkAria: "Error 404: page not found", note: "Nothing served here" },
 
-    menu: {
+    menu: { reserveTable: "Book a table",
       loadingMore: "Loading dishes…", loadedCount: "{{count}} of {{total}} dishes loaded", endOfMenu: "All {{count}} dishes loaded", loadMore: "Load more dishes", retry: "Try again",
       loadError: "We couldn't load the menu.",
       sort: { caloriesAsc: "Calories: low to high", caloriesDesc: "Calories: high to low", default: "Featured", priceAsc: "Price: low to high", priceDesc: "Price: high to low", nameAsc: "Name: A–Z" }, close: "Close",

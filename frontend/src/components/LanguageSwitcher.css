@@ -8,7 +8,7 @@
 .language-switcher-trigger {
   display: inline-flex;
   flex: 0 0 auto;
-  min-height: 42px;
+  min-height: 44px;
   align-items: center;
   gap: 0.45rem;
   border: 1px solid transparent;
@@ -112,7 +112,7 @@
 
 .language-switcher-menu button {
   display: grid;
-  min-height: 42px;
+  min-height: 44px;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.65rem;
@@ -200,6 +200,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .language-switcher-trigger,
   .language-switcher-trigger > svg:last-child:not(.language-flag),
   .language-switcher-trigger > .language-flag,
   .language-switcher-trigger > span,

@@ -129,7 +129,7 @@ const deDE = {
  heroTitle: "Finden Sie BONEFREE an der Küste.", heroDescription: "Ein Erlebnis, bei dem Aromen, Musik und Gemeinschaft am Meer zusammenkommen.", directions: "Route anzeigen", viewMenu: "Speisekarte ansehen", detailsLabel: "Kontaktdaten von BONEFREE", tableAlt: "Pflanzlich gedeckter Tisch bei BONEFREE", hungry: "Kommen Sie hungrig herein", featureTitle: "Essen, Cocktails, Musik, Küste.", address: "Adresse", phone: "Telefon", email: "E-Mail", hours: "Öffnungszeiten", hoursValue: "Montag: Geschlossen\nDienstag bis Sonntag: 12:00–22:00 (Küche)\nBar bis Mitternacht geöffnet", location: "Bonefree, Costa da Caparica", openMaps: "In Google Maps öffnen", mapTitle: "Standort von BONEFREE" },
     notFound: { documentTitle: "Seite nicht gefunden | Bonefree", eyebrow: "Fehler 404", title: "Dieses Gericht steht nicht auf der Karte.", description: "Diese Seite hat offenbar die Küche verlassen. Prüfen Sie die Adresse oder entdecken Sie weiter die Aromen von Bonefree.", home: "Zur Startseite", menu: "Speisekarte ansehen", artworkLabel: "Seite nicht gefunden", artworkAria: "Fehler 404: Seite nicht gefunden", note: "Hier wird nichts serviert" },
 
-    menu: {
+    menu: { reserveTable: "Tisch reservieren",
       loadingMore: "Gerichte werden geladen…", loadedCount: "{{count}} von {{total}} Gerichten geladen", endOfMenu: "Alle {{count}} Gerichte geladen", loadMore: "Weitere Gerichte laden", retry: "Erneut versuchen",
       loadError: "Die Speisekarte konnte nicht geladen werden.",
       sort: { caloriesAsc: "Kalorien: aufsteigend", caloriesDesc: "Kalorien: absteigend", default: "Empfohlen", priceAsc: "Preis: aufsteigend", priceDesc: "Preis: absteigend", nameAsc: "Name: A–Z" }, close: "Schließen",

@@ -769,12 +769,13 @@
 
 .products-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(255px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(255px, 100%), 1fr));
   gap: 1.1rem;
   align-items: stretch;
 }
 
 .menu-card-shell {
+  min-width: 0;
   opacity: 0;
   animation: menu-card-in 620ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
   will-change: opacity, transform;
@@ -994,8 +995,13 @@
   }
 
   .products-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
+}
+
+@media (max-width: 374px) {
+  .menu-shell { padding-inline: .75rem; row-gap: .75rem; }
+  .products-grid { gap: .85rem; }
 }
 
 @media (max-width: 767px) {
@@ -1161,6 +1167,12 @@
     border-bottom: 1px solid transparent;
     background: transparent;
     scroll-padding-inline: var(--category-gutter);
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .menu-category-list.has-more {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 12px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 12px), transparent);
   }
   .menu-shell > .menu-sidebar > .menu-category-list.is-pinned {
     background: rgba(248, 250, 246, 0.55);
@@ -1193,7 +1205,26 @@
   outline: 2px solid var(--brand-primary);
   outline-offset: 3px;
 }
-.menu-reservation-link { display: inline-flex; margin-top: .75rem; color: var(--brand-secondary,#076050); font-weight: 700; text-underline-offset: 4px; }
+.menu-reservation-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 44px;
+  margin-top: .75rem;
+  padding: 10px 17px;
+  border: 1px solid transparent;
+  border-radius: 15px 15px 15px 5px;
+  background: var(--brand-secondary, #076050);
+  color: #fff;
+  font-size: .88rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: box-shadow 160ms ease, transform 160ms ease;
+}
+.menu-reservation-link:hover { color: #fff; box-shadow: 0 3px 0 rgba(7, 96, 80, .18); }
+.menu-reservation-link:active { transform: translateY(1px); }
+.menu-reservation-link:focus-visible { outline: 3px solid var(--brand-main); outline-offset: 4px; }
 
 .menu-paulo-callout {
   position: relative;
@@ -1267,7 +1298,11 @@
 .menu-paulo-callout:focus-visible { outline: 3px solid var(--brand-main, #659d42); outline-offset: 8px; }
 @media (max-width: 767px) {
   .menu-page-hero { gap: 1.25rem; }
-  .menu-paulo-callout { width: fit-content; max-width: calc(100% - 0.6rem); padding: 1.1rem 1.25rem; }
+  .menu-paulo-callout { width: fit-content; max-width: calc(100% - 0.6rem); padding: .7rem 1.25rem; gap: .35rem; }
+  .menu-paulo-prompt { font-size: 1rem; }
+  .menu-paulo-action { font-size: clamp(1.5rem, 5.8vw, 1.8rem); }
+  .menu-paulo-character { width: 58px; height: 58px; top: -47px; }
+  .menu-food-float { opacity: .09; }
 }
 @media (prefers-reduced-motion: reduce) {
   .menu-paulo-callout, .menu-paulo-action > span, .menu-paulo-character { animation: none; transition: none; }
@@ -1286,4 +1321,18 @@
 .menu-category-list button:focus-visible {
   outline: 2px solid var(--brand-main);
   outline-offset: 3px;
+}
+
+@media (max-width: 767px) {
+  .menu-filter-bar input, .menu-filter-bar select { font-size: 1rem; }
+  .menu-segmented-filter button, .menu-sort-trigger, .menu-sort-dropdown button { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .menu-sort-dropdown { animation: none; }
+  .menu-reservation-link { transition: none; }
+  .menu-reservation-link:active { transform: none; }
+}
+
+@media (max-width: 374px) {
+  .menu-shell > .menu-sidebar > .menu-category-list { --category-gutter: .75rem; }
 }

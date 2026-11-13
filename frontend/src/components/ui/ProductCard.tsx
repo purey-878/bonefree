@@ -2,7 +2,6 @@ import type { CatalogPortion, CatalogExtra } from "../../types/pricing";
 import { ArrowUpRight, Flame, ZoomIn } from 'lucide-react'
 import type {
   ComponentPropsWithoutRef,
-  MouseEvent,
   SyntheticEvent,
 } from 'react'
 import styled, { css } from 'styled-components'
@@ -63,7 +62,10 @@ const ProductCardShell = styled.article<{ $tone: 'dark' | 'light'; $dimUnavailab
   --product-card-radius: 30px 30px 24px 24px;
   --product-card-media-radius: 23px 23px 48px 23px;
   position: relative;
+  isolation: isolate;
   display: flex;
+  min-width: 0;
+  max-width: 100%;
   min-height: 100%;
   flex-direction: column;
   gap: 0.9rem;
@@ -189,6 +191,12 @@ const mediaStyles = css`
   );
   color: inherit;
   isolation: isolate;
+  z-index: 2;
+
+  @media (max-width: 767px) {
+    height: clamp(170px, 56vw, 216px);
+    min-width: 0;
+  }
 
   &::before {
     content: '';
@@ -258,9 +266,8 @@ const ProductImage = styled.img`
 `
 
 const ProductBody = styled.div`
-  position: relative;
-  z-index: 1;
   display: flex;
+  min-width: 0;
   flex: 1;
   flex-direction: column;
   gap: 0.95rem;
@@ -269,6 +276,7 @@ const ProductBody = styled.div`
 
 const ProductTop = styled.div`
   display: grid;
+  min-width: 0;
   gap: 0.72rem;
 `
 
@@ -284,26 +292,9 @@ const ProductTitle = styled.h3`
   color: var(--product-card-title, var(--white));
   font-size: 1.22rem;
   line-height: 1.2;
-  font-weight: 900;
+  font-weight: 600;
   letter-spacing: -.025em;
   overflow-wrap: anywhere;
-`
-
-const ProductTitleButton = styled.button`
-  display: inline;
-  width: fit-content;
-  max-width: 100%;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-
-  &:hover {
-    color: var(--brand-secondary);
-  }
 `
 
 const ProductDescription = styled.p`
@@ -336,6 +327,8 @@ const ProductPriceRow = styled.div`
 
 const ProductDetailsButton = styled.a`
   display: inline-flex;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   min-height: 44px;
   align-items: center;
   justify-content: center;
@@ -344,12 +337,20 @@ const ProductDetailsButton = styled.a`
   border: 0;
   border-radius: 14px 14px 14px 5px;
   background: transparent;
-  color: #5c6b58;
+  color: var(--product-card-title, var(--brand-ink));
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   text-decoration: none;
 
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: var(--product-card-radius);
+  }
+  &:active { text-decoration: underline; text-underline-offset: 3px; }
   &:hover {
     background: transparent;
     text-decoration: underline;
@@ -358,12 +359,16 @@ const ProductDetailsButton = styled.a`
   }
 
   &:focus-visible {
-    outline: 2px solid var(--brand-main);
-    outline-offset: 2px;
+    outline: none;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    &::after { outline: 3px solid var(--brand-main); outline-offset: -3px; }
   }
 `
 
 const ProductPrice = styled.span`
+  max-width: 100%;
+  overflow-wrap: anywhere;
   &.product-size-prices {
     display: grid;
     gap: 0.15rem;
@@ -448,11 +453,6 @@ export function ProductCard({
     onSelect?.(product)
   }
 
-  const handleSelectClick = (event: MouseEvent<HTMLButtonElement>) => {
-    event.stopPropagation()
-    handleSelect()
-  }
-
   const handleImageError = (event: SyntheticEvent<HTMLImageElement>) => {
     applyApiImageFallback(event.currentTarget, imageFallback)
   }
@@ -464,7 +464,6 @@ export function ProductCard({
       $clickable={Boolean(onSelect)}
       className={className}
       {...props}
-      onClick={onSelect ? handleSelect : props.onClick}
     >
         <ProductMediaButton
           aria-label={t('productCard.enlargeImage', { name: product.name })}
@@ -510,15 +509,7 @@ export function ProductCard({
             )}
           </ProductMeta>
 
-          <ProductTitle>
-            {onSelect ? (
-              <ProductTitleButton className="fw-bold" onClick={handleSelectClick} type="button">
-                {product.name}
-              </ProductTitleButton>
-            ) : (
-              product.name
-            )}
-          </ProductTitle>
+          <ProductTitle>{product.name}</ProductTitle>
 
           <ProductDescription>
             {product.description ||

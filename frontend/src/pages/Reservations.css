@@ -140,6 +140,18 @@
 .reservation-guests > label { margin-bottom: .5rem; }
 .reservation-guest-stepper { display: flex; align-items: center; height: 46px; padding: 4px 7px; border: 1.5px solid var(--booking-line); border-radius: 16px; background: var(--theme-surface, #fff); }
 .reservation-guest-stepper input { appearance: textfield; -moz-appearance: textfield; border: 0; border-radius: 6px; background: transparent; text-align: center; padding: 0; min-height: 32px; height: 32px; font-weight: 700; }
+.reservation-visit-fields > * { min-width: 0; }
+.reservation-booking-card .reservation-guest-stepper input {
+  flex: 1 1 0;
+  width: 0;
+  min-width: 0;
+  min-height: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: center;
+}
 .reservation-guest-stepper input::-webkit-inner-spin-button, .reservation-guest-stepper input::-webkit-outer-spin-button { appearance: none; margin: 0; }
 .reservation-page .reservation-guest-stepper button { flex: 0 0 32px; min-height: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; background: color-mix(in srgb, var(--brand-main) 14%, var(--theme-surface, #fff)); color: var(--brand-main); }
 .reservation-page .reservation-guest-stepper button:hover:not(:disabled) { background: color-mix(in srgb, var(--brand-main) 25%, var(--theme-surface, #fff)); }
@@ -192,7 +204,18 @@
   border-color: color-mix(in srgb, var(--brand-main) 38%, var(--glass-border));
   background: color-mix(in srgb, var(--brand-main) 4%, var(--theme-surface, #fff));
 }
-.reservation-date-picker input::-webkit-calendar-picker-indicator { display: none; }
+.reservation-date-picker:not(.is-native) input::-webkit-calendar-picker-indicator { display: none; }
+.reservation-booking-card .reservation-date-picker.is-native input[type=date] {
+  appearance: auto;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding-inline: .85rem;
+  min-height: 54px;
+  border-radius: 16px;
+}
+.reservation-date-picker.is-native input::-webkit-date-and-time-value { text-align: start; }
 .reservation-page .reservation-date-toggle { position: absolute; top: 7px; right: 9px; width: 32px; height: 32px; min-height: 32px; padding: 0; border: 0; border-radius: 50%; color: var(--brand-main); background: transparent; }
 .reservation-page .reservation-date-toggle:hover:not(:disabled) { background: color-mix(in srgb, var(--brand-main) 12%, transparent); }
 .reservation-calendar {
@@ -284,6 +307,17 @@
   .reservation-booking-card.reservation-beach-layout { border-radius: 24px; }
   .reservation-beach-intro { padding: 26px 22px 0; }
   .reservation-beach-layout .reservation-booking-content { padding: 0 22px 26px; }
+}
+
+@media (max-width: 600px) {
+  .reservation-booking-card .reservation-visit-fields {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+  .reservation-visit-fields .reservation-date-picker { margin-bottom: 0; }
+  .reservation-guest-stepper { height: 54px; padding: 4px; gap: .5rem; }
+  .reservation-page .reservation-guest-stepper button { flex-basis: 44px; height: 44px; min-height: 44px; }
 }
 
 .reservation-management { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 4px; padding-top: 12px; border-top: 1px solid var(--glass-border); }

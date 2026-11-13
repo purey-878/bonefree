@@ -10,6 +10,7 @@ export function useMenuFeed(options: ProductListOptions, restore: boolean) {
     const params = JSON.parse(key) as ProductListOptions;
     return new MenuFeed(page => productService.getPage({ ...params, page }), params.page ?? 1);
   }, [key]);
+  const initialFeed = useRef(feed);
   const state = useSyncExternalStore(feed.subscribe, feed.snapshot, feed.snapshot);
   const [sentinel, setSentinel] = useState<HTMLDivElement | null>(null);
   useLayoutEffect(() => {
@@ -23,11 +24,11 @@ export function useMenuFeed(options: ProductListOptions, restore: boolean) {
   useEffect(() => {
     feed.resume();
     if (!feed.state.result) void feed.next();
-    // App's route scroll effect has finished before this animation frame.
+    // Restore a visit once; changing a category must not jump back to the hero.
     const restoredY = feed.scrollY;
-    const frame = requestAnimationFrame(() => {
+    const frame = feed === initialFeed.current ? requestAnimationFrame(() => {
       window.scrollTo({ top: restoredY, behavior: 'instant' });
-    });
+    }) : null;
     const track = () => { feed.scrollY = window.scrollY; };
     const invalidate = (event: Event) => {
       if ((event as CustomEvent).detail !== 'catalog') return;
@@ -36,7 +37,7 @@ export function useMenuFeed(options: ProductListOptions, restore: boolean) {
     window.addEventListener('scroll', track, { passive: true });
     window.addEventListener('publicDataInvalidated', invalidate);
     return () => {
-      cancelAnimationFrame(frame);
+      if (frame !== null) cancelAnimationFrame(frame);
       window.removeEventListener('scroll', track);
       window.removeEventListener('publicDataInvalidated', invalidate);
       feed.dispose();

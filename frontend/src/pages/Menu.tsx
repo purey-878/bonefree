@@ -1,12 +1,14 @@
 import { restoreMenuPriceRange } from "../utils/menuFilters";
 import { resolvedLocale } from "../i18n";
-import { CakeSlice, Check, ChevronDown, CupSoda, Salad, Sandwich, Search, SlidersHorizontal, Soup, X } from "lucide-react";
+import { CalendarDays, CakeSlice, Check, ChevronDown, CupSoda, MessageCircle, Salad, Sandwich, Search, SlidersHorizontal, Soup, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useNavigationType, useSearchParams } from "react-router-dom";
 
 import { useTranslation } from "react-i18next";
 import Navbar from "../components/Navbar";
 import { ProductCard, ProductCardSkeleton } from "../components/ui";
+import type { ProductPage } from "../services/productService";
+import { useCategoryScroll } from "../hooks/useCategoryScroll";
 import { useMenuFeed } from "../hooks/useMenuFeed";
 import "../theme.css";
 import { formatEuro } from "../utils/money";
@@ -142,6 +144,7 @@ function Menu() {
   const [searchTerm, setSearchTerm] = useState(initialFilters.searchTerm);
   const [selectedCategory, setSelectedCategory] = useState<string>(initialFilters.selectedCategory);
   const [priceRange, setPriceRange] = useState<[number, number]>(initialFilters.priceRange);
+  const [catalogFacets, setCatalogFacets] = useState<ProductPage["facets"]>();
   const [maxPrice, setMaxPrice] = useState(initialFilters.catalogMaxPrice ?? 1000);
   const [sortBy, setSortBy] = useState<SortOption>(initialFilters.sortBy);
   const [specialFilter, setSpecialFilter] = useState<SpecialFilter>(initialFilters.specialFilter);
@@ -151,6 +154,7 @@ function Menu() {
   const navigate = useNavigate();
   const sortMenuRef = useRef<HTMLDivElement | null>(null);
   const categoryAnchorRef = useRef<HTMLDivElement | null>(null);
+  const categoryListRef = useRef<HTMLDivElement | null>(null);
   const [categoriesPinned, setCategoriesPinned] = useState(false);
   const initialFilterEffectRef = useRef(true);
   const skipUrlWriteRef = useRef(false);
@@ -189,14 +193,18 @@ function Menu() {
     sort: sortBy.replaceAll("-", "_") as "default" | "price_asc" | "price_desc" | "name_asc" | "calories_asc" | "calories_desc",
   }, navigationType === "POP");
   const total = result?.total ?? 0;
-  const catalogTotal = result?.facets.totalProducts ?? 0;
-  const categories = sortMenuCategories(result?.facets.categories.map(facet => ({ name: facet.name, count: facet.count, id: facet.categoryId })) ?? []);
+  const facets = result?.facets ?? catalogFacets;
+  const catalogTotal = facets?.totalProducts ?? 0;
+  const categories = sortMenuCategories(facets?.categories.map(facet => ({ name: facet.name, count: facet.count, id: facet.categoryId })) ?? []);
+  const hasMoreCategories = useCategoryScroll(categoryListRef, selectedCategory, JSON.stringify(categories));
 
   useEffect(() => {
     if (!result) return;
     const nextMaxPrice = Number(result.facets.maxPrice || 0);
-    // Facets are server-derived; avoid changing equivalent filter values.
+    // Keep the category rail stable while a different filter request loads.
     // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCatalogFacets(result.facets);
+    // Facets are server-derived; avoid changing equivalent filter values.
     setMaxPrice(nextMaxPrice);
     if (initialFilterEffectRef.current) {
       initialFilterEffectRef.current = false;
@@ -340,7 +348,7 @@ function Menu() {
             <p className="menu-eyebrow">{t("menu.eyebrow")}</p>
             <h1><span className="menu-title-desktop">{t("menu.title")}</span><span className="menu-title-mobile">{t("menu.eyebrow")}</span></h1>
             <p className="menu-mobile-description">{t("menu.shortDescription")}</p>
-            <Link to="/reservations" className="menu-reservation-link">{t("home.reserveTable")}</Link>
+            <Link to="/reservations" className="menu-reservation-link"><CalendarDays size={18} aria-hidden="true" />{t("menu.reserveTable")}</Link>
           </div>
           <Link to="/meal-finder" className="menu-paulo-callout">
             <svg className="menu-paulo-character" viewBox="0 0 80 80" fill="none" aria-hidden="true" focusable="false">
@@ -353,7 +361,7 @@ function Menu() {
               <path d="M70 19V27M66 23H74" stroke="#164c39" strokeWidth="2.5" strokeLinecap="round" />
             </svg>
             <span className="menu-paulo-prompt">{t("menu.finderPrompt")}</span>
-            <span className="menu-paulo-action">{t("menu.finderAction")} <span aria-hidden="true">↗</span></span>
+            <span className="menu-paulo-action">{t("menu.finderAction")} <span aria-hidden="true"><MessageCircle size="1em" /></span></span>
           </Link>
         </header>
 
@@ -513,7 +521,7 @@ function Menu() {
           </section>
 
             <div className="menu-category-anchor" ref={categoryAnchorRef} aria-hidden="true" />
-            <div className={`menu-category-list fw-semibold${categoriesPinned ? " is-pinned" : ""}`} aria-label={t("menu.categories")}>
+            <div ref={categoryListRef} className={`menu-category-list fw-semibold${categoriesPinned ? " is-pinned" : ""}${hasMoreCategories ? " has-more" : ""}`} role="group" aria-label={t("menu.categories")}>
               <button
                 type="button"
                 aria-pressed={selectedCategory === ""}
