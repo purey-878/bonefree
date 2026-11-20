@@ -1,3 +1,5 @@
+import { ReservationPromotionBadge } from './ReservationPromotionNotice';
+import { useReservationPromotion } from '../hooks/useReservationPromotion';
 import { ArrowUpRight, Clock3, Leaf, Mail, MapPin, Phone, Sparkles, Sun, Waves } from "lucide-react"
 import "./Footer.css"
 import { brandLogo } from "../constants/brandLogo"
@@ -9,6 +11,7 @@ import { useTranslation } from "react-i18next"
 
 const Footer: React.FC = () => {
   const { t } = useTranslation(["storefront", "common"])
+  const promotion = useReservationPromotion();
   const [companyDetails, setCompanyDetails] = useState(defaultCompanyDetails)
   const [socialMedia, setSocialMedia] = useState(defaultSocialMediaSettings)
 
@@ -41,7 +44,7 @@ const Footer: React.FC = () => {
         <div className="bf-footer-intro">
           <Link to="/" className="bf-footer-logo" aria-label={t("navigation.bonefreeHome", { ns: "common" })}><img {...brandLogo} sizes="88px" alt={companyDetails.brandName} /></Link>
           <p>{t("footer.description")}</p>
-          <Link to="/reservations" className="bf-footer-reserve"><Sparkles size={18} aria-hidden="true" />{t("navigation.reserveTable", { ns: "common" })}<ArrowUpRight size={19} aria-hidden="true" /></Link>
+          <Link to={promotion ? `/reservations?date=${promotion.next_date}` : "/reservations"} className="bf-footer-reserve reservation-reserve-button"><Sparkles size={18} aria-hidden="true" />{t("navigation.reserveTable", { ns: "common" })}<ReservationPromotionBadge promotion={promotion} compact /><ArrowUpRight size={19} aria-hidden="true" /></Link>
         </div>
 
         <div className="bf-footer-grid">

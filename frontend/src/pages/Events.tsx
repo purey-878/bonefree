@@ -8,7 +8,8 @@ import Navbar from '../components/Navbar';
 import ProductLabel from '../components/ui/ProductLabel';
 import { resolvedLocale } from '../i18n';
 import { publicEventDate } from '../utils/publicEvents';
-import { applyApiImageFallback, resolveProductImageUrl } from '../utils/imageFallback';
+import EventPhoto from '../components/EventPhoto';
+import EventLinks from '../components/EventLinks';
 
 export default function Events() {
   const { t } = useTranslation('storefront');
@@ -32,7 +33,7 @@ export default function Events() {
         {status === 'loading' ? <State className="event-state" role="status"><CalendarDays size={32} aria-hidden="true" /><p>{t('events.loading')}</p></State> : status === 'error' ? <State className="event-state" role="alert"><Music2 size={32} aria-hidden="true" /><p>{t('events.loadError')}</p><Retry type="button" onClick={retry}>{t('actions.retry', {ns: 'common'})}</Retry></State> : events.length ? <EventList>{events.map((event, index) => {
           const date = publicEventDate(event.date, locale);
           return <EventCard className="event-card" $featured={index === 0} key={event.id} aria-labelledby={`event-title-${event.id}`}>
-            <EventImage><img src={resolveProductImageUrl(event.imageUrl, '/assets/images/about-us-3.jpg')} alt={event.title} loading="lazy" onError={e => applyApiImageFallback(e.currentTarget, '/assets/images/about-us-3.jpg')} /><DateBadge dateTime={event.date}><strong>{date.day}</strong><span>{date.month}</span></DateBadge></EventImage>
+            <EventImage><EventPhoto event={event} /></EventImage>
             <EventCopy>
               {index === 0 && <ProductLabel>{t('events.next')}</ProductLabel>}
               {event.kicker && <Kicker className="event-kicker">{event.kicker}</Kicker>}
@@ -43,6 +44,7 @@ export default function Events() {
                 <div><dt><Clock3 size={19} aria-hidden="true" />{t('events.timeLabel')}</dt><dd>{event.startTime}–{event.endTime}{event.endTime <= event.startTime && <small> · {t('events.nextDay')}</small>}</dd></div>
                 <div><dt><MapPin size={19} aria-hidden="true" />{t('events.locationLabel')}</dt><dd>BONEFREE · {t('events.location')}<span>R. Eng. Henrique Mendia 28A</span></dd></div>
               </EventFacts>
+              <EventLinks event={event} />
               <CardActions><Action to="/reservations">{t('home.reserveTable')}<ArrowUpRight size={18} aria-hidden="true" /></Action><Directions to="/contact">{t('events.findRestaurant')}<ArrowUpRight size={17} aria-hidden="true" /></Directions></CardActions>
             </EventCopy>
           </EventCard>;
@@ -190,32 +192,7 @@ const EventCard = styled.article<{ $featured: boolean }>`
 `;
 const EventImage = styled.div`
   position: relative;
-  min-height: 420px;
-  padding: 20px;
-  background: color-mix(in srgb, var(--brand-main) 10%, var(--glass-bg-strong));
-  > img { display: block; width: 100%; height: 100%; max-height: 620px; object-fit: contain; border-radius: 22px; }
-  @media (max-width: 750px) { min-height: 0; > img { height: 340px; } }
-  @media (max-width: 380px) { padding: 14px; > img { height: 290px; } }
-`;
-const DateBadge = styled.time`
-  position: absolute;
-  top: 25px;
-  left: 25px;
-  display: flex;
-  align-items: center;
-  flex-direction: column;
-  justify-content: center;
-  gap: 5px;
-  width: 78px;
-  min-height: 86px;
-  padding: 10px;
-  border-radius: 19px;
-  background: var(--brand-accent);
-  color: var(--brand-ink);
-  transform: rotate(-5deg);
-  box-shadow: 0 6px 15px rgba(23,33,29,.12);
-  strong { font-size: 2rem; line-height: 1; font-weight: 900; }
-  span { font-size: .7rem; font-weight: 800; text-transform: uppercase; }
+  min-width: 0;
 `;
 const EventCopy = styled.div`
   display: flex;

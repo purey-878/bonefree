@@ -1,6 +1,8 @@
+import { ReservationPromotionBadge } from '../components/ReservationPromotionNotice';
+import { useReservationPromotion } from '../hooks/useReservationPromotion';
 import { restoreMenuPriceRange } from "../utils/menuFilters";
 import { resolvedLocale } from "../i18n";
-import { CalendarDays, CakeSlice, Check, ChevronDown, CupSoda, MessageCircle, Salad, Sandwich, Search, SlidersHorizontal, Soup, X } from "lucide-react";
+import { CalendarDays, CakeSlice, Check, ChevronDown, CupSoda, MessageCircle, Salad, Sandwich, Search, SlidersHorizontal, Soup, Sparkles, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useNavigationType, useSearchParams } from "react-router-dom";
 
@@ -118,6 +120,7 @@ function clampPrice(value: number, maxPrice: number) {
 function Menu() {
   const { t } = useTranslation("storefront");
   const locale = resolvedLocale();
+  const promotion = useReservationPromotion();
   const navigationType = useNavigationType();
   const [pageLocale, setPageLocale] = useState(locale);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -324,7 +327,7 @@ function Menu() {
     <>
       <Navbar />
 
-      <section className="menu-page mt-5 ">
+      <section className="menu-page">
 
         <div className="menu-floating-food-bg" aria-hidden="true">
           <span className="menu-food-float menu-food-float-salad"><Salad /></span>
@@ -332,23 +335,14 @@ function Menu() {
           <span className="menu-food-float menu-food-float-sandwich"><Sandwich /></span>
           <span className="menu-food-float menu-food-float-drink"><CupSoda /></span>
           <span className="menu-food-float menu-food-float-cake"><CakeSlice /></span>
-          <span className="menu-food-float menu-food-float-salad-2"><Salad /></span>
-          <span className="menu-food-float menu-food-float-soup-2"><Soup /></span>
-          <span className="menu-food-float menu-food-float-sandwich-2"><Sandwich /></span>
-          <span className="menu-food-float menu-food-float-drink-2"><CupSoda /></span>
-          <span className="menu-food-float menu-food-float-cake-2"><CakeSlice /></span>
-          <span className="menu-food-float menu-food-float-salad-3"><Salad /></span>
-          <span className="menu-food-float menu-food-float-soup-3"><Soup /></span>
-          <span className="menu-food-float menu-food-float-sandwich-3"><Sandwich /></span>
-          <span className="menu-food-float menu-food-float-drink-3"><CupSoda /></span>
         </div>
 
         <header className="menu-page-hero">
           <div>
-            <p className="menu-eyebrow">{t("menu.eyebrow")}</p>
+            <p className="menu-eyebrow"><Sparkles size={14} aria-hidden="true" />{t("menu.eyebrow")}</p>
             <h1><span className="menu-title-desktop">{t("menu.title")}</span><span className="menu-title-mobile">{t("menu.eyebrow")}</span></h1>
             <p className="menu-mobile-description">{t("menu.shortDescription")}</p>
-            <Link to="/reservations" className="menu-reservation-link"><CalendarDays size={18} aria-hidden="true" />{t("menu.reserveTable")}</Link>
+            <Link to={promotion ? `/reservations?date=${promotion.next_date}` : "/reservations"} className="menu-reservation-link reservation-reserve-button"><CalendarDays size={18} aria-hidden="true" />{t("menu.reserveTable")}<ReservationPromotionBadge promotion={promotion} compact /></Link>
           </div>
           <Link to="/meal-finder" className="menu-paulo-callout">
             <svg className="menu-paulo-character" viewBox="0 0 80 80" fill="none" aria-hidden="true" focusable="false">
@@ -559,13 +553,10 @@ function Menu() {
                   </div>
                 ) : filteredProducts.length > 0 ? (
                   <div className="products-grid">
-                    {filteredProducts.map((product, index) => (
+                    {filteredProducts.map((product) => (
                       <div
                         key={product.id}
                         className="menu-card-shell"
-                        style={{
-                          animationDelay: `${Math.min(index, 9) * 55}ms`,
-                        }}
                       >
                         <ProductCard
                           className="menu-product-card"
@@ -580,6 +571,7 @@ function Menu() {
                   </div>
                 ) : !errorMessage && result ? (
                   <div className="menu-empty-state">
+                    <Salad size={28} aria-hidden="true" />
                     <span>{t("menu.noResults")}</span>
                     <h2>{t("menu.noResultsTitle")}</h2>
                     <p>{t("menu.noResultsText")}</p>

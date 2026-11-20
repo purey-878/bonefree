@@ -1,5 +1,6 @@
-import { ArrowRight, ChevronDown, Clock3, Leaf, Minus, Plus, Shell } from 'lucide-react';
-import { reservationPercent } from '../utils/reservationFormatting';
+import ReservationPromotionNotice, { ReservationPromotionSelection } from '../components/ReservationPromotionNotice';
+import { useReservationPromotion } from '../hooks/useReservationPromotion';
+import { ArrowRight, ChevronDown, Clock3, Minus, Plus, Shell } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -21,6 +22,8 @@ export default function Reservations() {
   const location = useLocation();
   const navigate = useNavigate();
   const privatePage = location.pathname.endsWith('/confirmation');
+  const promotion = useReservationPromotion(!privatePage);
+  const requestedDate = new URLSearchParams(location.search).get('date') ?? '';
   const token = new URLSearchParams(location.hash.slice(1)).get('token') ?? '';
   const [settings, setSettings] = useState<PublicSettings | null>(null);
   const [loadedPass, setLoadedPass] = useState<{ token: string; locale: string; pass: PassResponse } | null>(null);
@@ -62,6 +65,18 @@ export default function Reservations() {
     reservationService.availability(day, guests, locale, controller.signal).then(result => { if (!controller.signal.aborted) { setAvailability({ day, guests, locale, slots: result.slots }); setError(''); } }).catch(() => { if (!controller.signal.aborted) { setAvailability(current => current ? { ...current, day: '' } : null); setError(t('error')); } }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
   }, [attempt, day, guests, locale, privatePage, refresh, settings, t]);
+  useEffect(() => {
+    if (!settings || !/^\d{4}-\d{2}-\d{2}$/.test(requestedDate)) return;
+    const parsed = new Date(`${requestedDate}T12:00:00Z`);
+    if (Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === requestedDate && requestedDate >= settings.today && requestedDate <= settings.last_date) {
+      setDay(requestedDate); setTime('');
+    }
+  }, [requestedDate, settings]);
+  const choosePromotionDate = (value: string) => {
+    if (busy || attempt || !settings?.enabled || value < settings.today || value > settings.last_date) return;
+    setDay(value); setTime('');
+    document.getElementById('reservation-booking-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (submitting.current || !time || !day || !selected) return;
@@ -80,7 +95,10 @@ export default function Reservations() {
     } finally { submitting.current = false; setBusy(false); }
   };
   const selected = availabilityCurrent && !loading ? slots.find(slot => slot.time === time && slot.available) : undefined;
+  const eligibleSlot = availabilityCurrent && !loading ? slots.find(slot => slot.available && slot.promotion) : undefined;
+  const promotionSelection = day && availabilityCurrent && !loading ? { day, time: selected?.time, promotion: (selected ? selected.promotion : eligibleSlot?.promotion) ?? undefined } : undefined;
   return <><Navbar /><main className={`reservation-page${privatePage ? ' reservation-confirmation-page' : ''}`}>
+    {!privatePage && settings?.enabled && <ReservationPromotionNotice promotion={promotion} variant="booking" onChoose={choosePromotionDate} selection={promotionSelection} />}
     {privatePage ? pass ? <ReservationPass key={`${token}:${locale}`} pass={pass} token={token} onUpdate={next => setLoadedPass(current => current?.token === token && current.locale === locale ? { ...current, pass: next } : current)} /> : <section className="reservation-card"><h1>{t('title')}</h1><p role={error ? 'alert' : 'status'}>{error || (/^[a-f0-9]{64}$/.test(token) ? t('loading') : t('lost'))}</p>{error && <button onClick={() => { setError(''); setRefresh(value => value + 1); }}>{t('retry')}</button>}<Link to="/contact">{t('contact')}</Link></section> : <section className="reservation-card reservation-booking-card reservation-beach-layout">
       <div className="reservation-beach-intro"><span className="reservation-beach-kicker"><Shell size={17} aria-hidden="true" />Bonefree · Costa da Caparica</span><h1>{t('title')}</h1><p>{t('intro')}</p></div>
       <div className="reservation-booking-content">
@@ -90,13 +108,14 @@ export default function Reservations() {
           <div className="reservation-form-grid reservation-visit-fields"><div className="reservation-date-field"><label htmlFor="reservation-day">{t('date')}</label><ReservationDatePicker value={day} min={settings.today} max={settings.last_date} onChange={value => { setDay(value); setTime(''); }} /></div><div className="reservation-guests"><label htmlFor="reservation-guests">{t('guests')}</label><div className="reservation-guest-stepper"><button type="button" aria-label={t('fewerGuests')} disabled={guests <= settings.min_guests} onClick={() => { setGuests(value => value - 1); setTime(''); }}><Minus size={18} aria-hidden="true" /></button><input id="reservation-guests" type="number" name="guests" inputMode="numeric" required min={settings.min_guests} max={settings.max_guests} value={guests} onChange={e => { setGuests(Number(e.target.value)); setTime(''); }} /><button type="button" aria-label={t('moreGuests')} disabled={guests >= settings.max_guests} onClick={() => { setGuests(value => value + 1); setTime(''); }}><Plus size={18} aria-hidden="true" /></button></div></div></div>
           <fieldset className="reservation-time-options" aria-busy={loading} disabled={!day || loading || !availabilityCurrent}><legend>{t('time')}</legend><div className={`reservation-time-list${loading ? ' is-loading' : ''}`}>{slots.map(slot => <label className="reservation-time-choice" key={slot.time}><input type="radio" name="time" required value={slot.time} checked={time === slot.time} disabled={!slot.available} data-unavailable={!slot.available} onChange={() => setTime(slot.time)} /><span>{slot.time}</span>{!slot.available && <span className="visually-hidden">{t('unavailable')}</span>}</label>)}</div></fieldset>
           <p className="reservation-hint reservation-time-hint" role="status"><Clock3 size={15} aria-hidden="true" />{!day ? t('chooseDate') : loading ? t('loading') : slots.length === 0 ? t('noSlots') : t('dateZone')}</p>
+          {(promotion || eligibleSlot?.promotion || selected?.promotion) && <ReservationPromotionSelection selection={promotionSelection} />}
           <label>{t('name')}<input name="name" placeholder={t('namePlaceholder')} autoComplete="name" minLength={2} maxLength={120} required /></label>
           <details className="reservation-contact-details"><summary>{t('contactDetails')}<ChevronDown size={18} aria-hidden="true" /></summary><div className="reservation-contact-content">
           <div className="reservation-form-grid"><label>{t('email')}<input type="email" name="email" autoComplete="email" maxLength={254} /></label><label>{t('phone')}<input type="tel" name="phone" autoComplete="tel" maxLength={32} /></label></div>
           <label>{t('requests')}<textarea name="special_requests" maxLength={1000} rows={3} /></label>
           </div></details>
         </fieldset>
-        {selected?.promotion && <section className="reservation-offer"><Leaf size={20} aria-hidden="true" /><h2>{t('promotion', { percentage: reservationPercent(selected.promotion.percentage, locale), scope: selected.promotion.scope })}</h2><strong>{selected.promotion.title}</strong><p>{selected.promotion.description}</p><p>{selected.promotion.conditions}</p><small>{t('promotionNote')}</small></section>}
+
         <p className="reservation-hint reservation-email-note">{t('noEmail')}</p>{attempt && !busy && <p role="status">{t('pending')}</p>}
         <button className="reservation-primary" type="submit" disabled={busy || !selected}>{busy ? t('sending') : attempt ? t('retry') : t('submit')}<ArrowRight size={18} aria-hidden="true" /></button>
       </form>}

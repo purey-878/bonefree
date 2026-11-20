@@ -79,3 +79,24 @@ footer.footer.bf-footer {
 .bf-footer-community svg { flex-shrink: 0; }
 .bf-footer-community > svg:first-child { width: 18px; height: 18px; fill: currentColor; }
 .bf-footer-community:hover { color: #34472b; background: #fffaf0; }
+
+/* Continue the homepage's paper cards and green raised edges into the footer. */
+body:has(:is(.home-hero, .menu-page)) footer.footer.bf-footer {
+  border-top: 1px solid #dbe2ce;
+  border-radius: 32px 32px 0 0;
+  background: #f8f0d5;
+}
+body:has(:is(.home-hero, .menu-page)) .bf-footer-reserve {
+  border-color: #294b3e;
+  border-radius: 15px 15px 15px 5px;
+  box-shadow: 0 3px 0 var(--brand-main, #7baf4b);
+  transform: none;
+}
+body:has(:is(.home-hero, .menu-page)) .bf-footer-reserve:hover { transform: translateY(-2px); }
+body:has(:is(.home-hero, .menu-page)) .bf-footer-socials a,
+body:has(:is(.home-hero, .menu-page)) .bf-footer-community { border-color: #dbe2ce; background: #fffaf0; }
+body:has(:is(.home-hero, .menu-page)) .bf-footer-socials a:hover,
+body:has(:is(.home-hero, .menu-page)) .bf-footer-community:hover { background: #e6efd7; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  body:has(:is(.home-hero, .menu-page)) .bf-footer-reserve:hover { transform: none; }
+}

@@ -518,6 +518,16 @@ export type BodyAdminManagementUploadProductMedia = {
 };
 
 /**
+ * Body_site_settings_upload_event_image
+ */
+export type BodySiteSettingsUploadEventImage = {
+    /**
+     * File
+     */
+    file: Blob | File;
+};
+
+/**
  * BookingCreated
  */
 export type BookingCreated = {
@@ -1563,6 +1573,24 @@ export type DeleteResult = {
 export type EntityStatus = 'active' | 'inactive';
 
 /**
+ * EventImageUploadResponse
+ */
+export type EventImageUploadResponse = {
+    /**
+     * Height
+     */
+    height: number;
+    /**
+     * Image Url
+     */
+    image_url: string;
+    /**
+     * Width
+     */
+    width: number;
+};
+
+/**
  * EventItemSettings
  */
 export type EventItemSettings = {
@@ -1591,6 +1619,10 @@ export type EventItemSettings = {
      */
     image_url: string;
     /**
+     * Instagram Url
+     */
+    instagram_url?: string;
+    /**
      * Kicker
      */
     kicker?: string;
@@ -1602,6 +1634,10 @@ export type EventItemSettings = {
      * Title
      */
     title: string;
+    /**
+     * Website Url
+     */
+    website_url?: string;
 };
 
 /**
@@ -3729,6 +3765,60 @@ export type PromotionText = {
      * Title
      */
     title: string;
+};
+
+/**
+ * PublicPromotion
+ */
+export type PublicPromotion = {
+    /**
+     * Conditions
+     */
+    conditions?: string;
+    /**
+     * Description
+     */
+    description?: string;
+    /**
+     * End Date
+     */
+    end_date: string;
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Next Date
+     */
+    next_date: string;
+    /**
+     * Next Time
+     */
+    next_time: string;
+    /**
+     * Percentage
+     */
+    percentage: string;
+    /**
+     * Scope
+     */
+    scope: string;
+    /**
+     * Start Date
+     */
+    start_date: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Weekdays
+     */
+    weekdays: Array<number>;
+    /**
+     * Windows
+     */
+    windows: Array<BookingWindow>;
 };
 
 /**
@@ -8373,6 +8463,63 @@ export type SiteSettingsUpdateAdminEventsResponses = {
 
 export type SiteSettingsUpdateAdminEventsResponse = SiteSettingsUpdateAdminEventsResponses[keyof SiteSettingsUpdateAdminEventsResponses];
 
+export type SiteSettingsUploadEventImageData = {
+    body: BodySiteSettingsUploadEventImage;
+    path?: never;
+    query?: never;
+    url: '/admin/site-settings/events/image';
+};
+
+export type SiteSettingsUploadEventImageErrors = {
+    /**
+     * Unsupported or invalid image
+     */
+    400: unknown;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Image exceeds the 8 MB limit
+     */
+    413: unknown;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type SiteSettingsUploadEventImageError = SiteSettingsUploadEventImageErrors[keyof SiteSettingsUploadEventImageErrors];
+
+export type SiteSettingsUploadEventImageResponses = {
+    /**
+     * Successful Response
+     */
+    200: EventImageUploadResponse;
+};
+
+export type SiteSettingsUploadEventImageResponse = SiteSettingsUploadEventImageResponses[keyof SiteSettingsUploadEventImageResponses];
+
 export type SiteSettingsReadAdminLoyaltyCouponSettingsData = {
     body?: never;
     path?: never;
@@ -11413,6 +11560,66 @@ export type ReservationsAvailableDatesResponses = {
 };
 
 export type ReservationsAvailableDatesResponse = ReservationsAvailableDatesResponses[keyof ReservationsAvailableDatesResponses];
+
+export type ReservationsPublicPromotionsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Locale
+         */
+        locale?: 'pt-PT' | 'en-GB' | 'de-DE';
+    };
+    url: '/reservations/promotions';
+};
+
+export type ReservationsPublicPromotionsErrors = {
+    /**
+     * Invalid request
+     */
+    400: ApiErrorResponse;
+    /**
+     * Authentication required
+     */
+    401: ApiErrorResponse;
+    /**
+     * Permission denied
+     */
+    403: ApiErrorResponse;
+    /**
+     * Resource not found
+     */
+    404: ApiErrorResponse;
+    /**
+     * Request conflict
+     */
+    409: ApiErrorResponse;
+    /**
+     * Validation error
+     */
+    422: ApiErrorResponse;
+    /**
+     * Rate limit exceeded
+     */
+    429: ApiErrorResponse;
+    /**
+     * Internal server error
+     */
+    500: ApiErrorResponse;
+};
+
+export type ReservationsPublicPromotionsError = ReservationsPublicPromotionsErrors[keyof ReservationsPublicPromotionsErrors];
+
+export type ReservationsPublicPromotionsResponses = {
+    /**
+     * Response Reservations Public Promotions
+     *
+     * Successful Response
+     */
+    200: Array<PublicPromotion>;
+};
+
+export type ReservationsPublicPromotionsResponse = ReservationsPublicPromotionsResponses[keyof ReservationsPublicPromotionsResponses];
 
 export type ReservationsPublicSettingsData = {
     body?: never;

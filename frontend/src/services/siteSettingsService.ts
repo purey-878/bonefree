@@ -7,6 +7,7 @@ import type {
   SocialMediaSettings as SocialMediaDto
 } from '../api/generated';
 import {
+  siteSettingsUploadEventImage,
   siteSettingsReadAdminChefSpecial,
   siteSettingsReadAdminCompanyDetails,
   siteSettingsReadAdminEvents,
@@ -94,4 +95,10 @@ export async function updateAdminEventsSettings(payload: EventsSettings): Promis
   })));
   try { localStorage.setItem('bonefree_events_updated', String(Date.now())); } catch { /* Publishing works without browser storage. */ }
   return saved;
+}
+
+export async function uploadEventImage(file: File) {
+  return toDomain<{ imageUrl: string; width: number; height: number }>(await apiData(siteSettingsUploadEventImage({
+    body: { file }, client: adminApiClient, throwOnError: true,
+  })));
 }

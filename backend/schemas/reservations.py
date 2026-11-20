@@ -117,6 +117,15 @@ class Award(PromotionText):
     percentage: str
 
 
+class PublicPromotion(Award):
+    start_date: date
+    end_date: date
+    weekdays: list[int]
+    windows: list[BookingWindow]
+    next_date: date
+    next_time: str
+
+
 class PublicSettings(StrictModel):
     enabled: bool
     timezone: str = 'Europe/Lisbon'

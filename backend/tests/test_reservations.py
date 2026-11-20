@@ -49,6 +49,50 @@ class ReservationTests(unittest.TestCase):
     def lookup(self, token, locale='pt-PT'):
         return self.client.post('/reservations/confirmation', json={'token':token,'locale':locale})
 
+    def test_public_promotions_show_only_winning_localized_bookable_offers(self):
+        self.promo(percentage='10')
+        winner = self.promo(percentage='30')
+        self.promo(enabled=False, percentage='80')
+        self.promo(automatic=False, percentage='90')
+        self.promo(start_date='2020-01-01', end_date='2020-01-02')
+        response = self.client.get('/reservations/promotions', params={'locale': 'de-DE'})
+        self.assertEqual(response.status_code, 200, response.text)
+        offers = response.json()
+        self.assertEqual(len(offers), 1)
+        self.assertEqual(offers[0]['id'], winner['id'])
+        self.assertEqual(offers[0]['title'], 'Menüangebot')
+        self.assertEqual(offers[0]['next_date'], self.day)
+        self.assertEqual(offers[0]['next_time'], '18:00')
+        self.assertNotIn('translations', offers[0])
+
+    def test_public_promotions_respect_schedules_closures_and_pausing(self):
+        weekday = date.fromisoformat(self.day).weekday()
+        self.promo(weekdays=[(weekday + 1) % 7])
+        self.promo(windows=[{'start': '10:00', 'end': '11:00'}])
+        far = (now_local().date() + timedelta(days=100)).isoformat()
+        self.promo(start_date=far, end_date=far)
+        self.assertEqual(self.client.get('/reservations/promotions').json(), [])
+        self.promo()
+        self.assertEqual(len(self.client.get('/reservations/promotions').json()), 1)
+        with self.fixture.Session() as db:
+            db.add(ReservationException(day=date.fromisoformat(self.day), closed=True, windows=[]))
+            db.commit()
+        self.assertEqual(self.client.get('/reservations/promotions').json(), [])
+        with self.fixture.Session() as db:
+            db.execute(delete(ReservationException))
+            db.scalar(select(ReservationSettings)).config = self.config.model_copy(update={'enabled': False}).model_dump(mode='json')
+            db.commit()
+        self.assertEqual(self.client.get('/reservations/promotions').json(), [])
+
+    def test_public_promotions_skip_full_slots_and_hide_fully_booked_offers(self):
+        self.promo(windows=[{'start': '18:00', 'end': '19:00'}])
+        self.book(guests=4)
+        self.book(guests=4)
+        self.assertEqual(self.client.get('/reservations/promotions').json()[0]['next_time'], '18:30')
+        self.book(time='18:30', guests=4)
+        self.book(time='18:30', guests=4)
+        self.assertEqual(self.client.get('/reservations/promotions').json(), [])
+
     def test_optional_contacts_secure_pass_pdf_and_idempotency(self):
         key = secrets.token_hex(32)
         first = self.book(idempotency_key=key,email='',phone='')

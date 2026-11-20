@@ -786,6 +786,20 @@
         "title": "Body_admin_management_upload_product_media",
         "type": "object"
       },
+      "Body_site_settings_upload_event_image": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_site_settings_upload_event_image",
+        "type": "object"
+      },
       "BookingCreated": {
         "additionalProperties": false,
         "properties": {
@@ -2733,6 +2747,29 @@
         "title": "EntityStatus",
         "type": "string"
       },
+      "EventImageUploadResponse": {
+        "properties": {
+          "height": {
+            "title": "Height",
+            "type": "integer"
+          },
+          "image_url": {
+            "title": "Image Url",
+            "type": "string"
+          },
+          "width": {
+            "title": "Width",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "image_url",
+          "width",
+          "height"
+        ],
+        "title": "EventImageUploadResponse",
+        "type": "object"
+      },
       "EventItemSettings": {
         "properties": {
           "date": {
@@ -2765,6 +2802,12 @@
             "title": "Image Url",
             "type": "string"
           },
+          "instagram_url": {
+            "default": "",
+            "maxLength": 2048,
+            "title": "Instagram Url",
+            "type": "string"
+          },
           "kicker": {
             "default": "Upcoming event",
             "maxLength": 80,
@@ -2779,6 +2822,12 @@
           "title": {
             "maxLength": 100,
             "title": "Title",
+            "type": "string"
+          },
+          "website_url": {
+            "default": "",
+            "maxLength": 2048,
+            "title": "Website Url",
             "type": "string"
           }
         },
@@ -6706,6 +6755,90 @@
           "scope"
         ],
         "title": "PromotionText",
+        "type": "object"
+      },
+      "PublicPromotion": {
+        "additionalProperties": false,
+        "properties": {
+          "conditions": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Conditions",
+            "type": "string"
+          },
+          "description": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Description",
+            "type": "string"
+          },
+          "end_date": {
+            "format": "date",
+            "title": "End Date",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "next_date": {
+            "format": "date",
+            "title": "Next Date",
+            "type": "string"
+          },
+          "next_time": {
+            "title": "Next Time",
+            "type": "string"
+          },
+          "percentage": {
+            "title": "Percentage",
+            "type": "string"
+          },
+          "scope": {
+            "maxLength": 180,
+            "minLength": 1,
+            "title": "Scope",
+            "type": "string"
+          },
+          "start_date": {
+            "format": "date",
+            "title": "Start Date",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "weekdays": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Weekdays",
+            "type": "array"
+          },
+          "windows": {
+            "items": {
+              "$ref": "#/components/schemas/BookingWindow"
+            },
+            "title": "Windows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "title",
+          "scope",
+          "id",
+          "percentage",
+          "start_date",
+          "end_date",
+          "weekdays",
+          "windows",
+          "next_date",
+          "next_time"
+        ],
+        "title": "PublicPromotion",
         "type": "object"
       },
       "PublicSettings": {
@@ -16735,6 +16868,127 @@
         ]
       }
     },
+    "/admin/site-settings/events/image": {
+      "post": {
+        "operationId": "site_settings_upload_event_image",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_site_settings_upload_event_image"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventImageUploadResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "Unsupported or invalid image"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "413": {
+            "description": "Image exceeds the 8 MB limit"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limit exceeded",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds until another request may be attempted.",
+                "schema": {
+                  "minimum": 1.0,
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Upload Event Image",
+        "tags": [
+          "Site Settings"
+        ]
+      }
+    },
     "/admin/site-settings/loyalty-coupons": {
       "get": {
         "operationId": "site_settings_read_admin_loyalty_coupon_settings",
@@ -23339,6 +23593,137 @@
           }
         },
         "summary": "Available Dates",
+        "tags": [
+          "Reservations"
+        ]
+      }
+    },
+    "/reservations/promotions": {
+      "get": {
+        "operationId": "reservations_public_promotions",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "locale",
+            "required": false,
+            "schema": {
+              "default": "pt-PT",
+              "enum": [
+                "pt-PT",
+                "en-GB",
+                "de-DE"
+              ],
+              "title": "Locale",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PublicPromotion"
+                  },
+                  "title": "Response Reservations Public Promotions",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Request conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Validation error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limit exceeded",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds until another request may be attempted.",
+                "schema": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "summary": "Public Promotions",
         "tags": [
           "Reservations"
         ]

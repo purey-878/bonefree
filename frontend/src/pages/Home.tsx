@@ -1,10 +1,12 @@
+import ReservationPromotionNotice, { ReservationPromotionBadge } from '../components/ReservationPromotionNotice';
+import { useReservationPromotion } from '../hooks/useReservationPromotion';
 import { formatProductPrices } from "../utils/pricing"
-import { ArrowRight, Leaf, Music2, Sparkles, Waves } from "lucide-react";
-import type { PointerEvent } from "react";
+import { ArrowRight, CalendarDays, Leaf, Music2, Sparkles, UtensilsCrossed, Waves } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import styled from "styled-components";
+import { homeAction, homeCard, homeHeading, homeKicker } from "../components/homeStyles";
 
 import Navbar from "../components/Navbar";
 import { ProductCard } from "../components/ui/ProductCard";
@@ -43,16 +45,12 @@ const HomePage = () => {
   const { t } = useTranslation("storefront");
   const locale = resolvedLocale();
   const navigate = useNavigate();
+  const promotion = useReservationPromotion();
   const [products, setProducts] = useState<Product[]>([]);
   const [catalogCategories, setCatalogCategories] = useState<CategorySummary[]>([]);
   const [chefSpecialProductId, setChefSpecialProductId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [heroCarouselPaused, setHeroCarouselPaused] = useState(false);
-  const [activeHeroProductIndex, setActiveHeroProductIndex] = useState(0);
-  const heroSwipeStartXRef = useRef<number | null>(null);
-  const heroSwipeStartYRef = useRef<number | null>(null);
-  const skipHeroCardClickRef = useRef(false);
   const popularCarouselRef = useRef<HTMLDivElement | null>(null);
   const [activePopularIndex, setActivePopularIndex] = useState(0);
 
@@ -111,80 +109,11 @@ const HomePage = () => {
   const chefSpecial = configuredChefSpecial
     ?? availableProducts.find((product) => product.id !== featuredDish?.id)
     ?? featuredDish;
-  const heroDish = popularProducts[activeHeroProductIndex] ?? featuredDish;
-
-  useEffect(() => {
-    setActiveHeroProductIndex(0);
-  }, [popularProducts.length]);
 
   useEffect(() => {
     setActivePopularIndex(0);
     popularCarouselRef.current?.scrollTo({ left: 0 });
   }, [popularProducts.length]);
-
-  useEffect(() => {
-    if (loading || heroCarouselPaused || popularProducts.length <= 1) return undefined;
-
-    const intervalId = window.setInterval(() => {
-      setActiveHeroProductIndex((currentIndex) => (currentIndex + 1) % popularProducts.length);
-    }, 3000);
-
-    return () => window.clearInterval(intervalId);
-  }, [heroCarouselPaused, loading, popularProducts.length]);
-
-  const pauseHeroCarousel = () => {
-    setHeroCarouselPaused(true);
-  };
-
-  const changeHeroProduct = (direction: 1 | -1) => {
-    if (popularProducts.length <= 1) return;
-
-    pauseHeroCarousel();
-    setActiveHeroProductIndex((currentIndex) => (
-      (currentIndex + direction + popularProducts.length) % popularProducts.length
-    ));
-  };
-
-  const handleHeroPointerDown = (event: PointerEvent<HTMLElement>) => {
-    if (event.target instanceof HTMLElement && event.target.closest("button")) return;
-
-    pauseHeroCarousel();
-    heroSwipeStartXRef.current = event.clientX;
-    heroSwipeStartYRef.current = event.clientY;
-    skipHeroCardClickRef.current = false;
-    event.currentTarget.setPointerCapture?.(event.pointerId);
-  };
-
-  const handleHeroPointerUp = (event: PointerEvent<HTMLElement>) => {
-    const startX = heroSwipeStartXRef.current;
-    const startY = heroSwipeStartYRef.current;
-    heroSwipeStartXRef.current = null;
-    heroSwipeStartYRef.current = null;
-
-    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-
-    if (startX == null || startY == null) return;
-
-    const deltaX = event.clientX - startX;
-    const deltaY = event.clientY - startY;
-    const isHorizontalSwipe = Math.abs(deltaX) > 42 && Math.abs(deltaX) > Math.abs(deltaY) * 1.25;
-
-    if (!isHorizontalSwipe) return;
-
-    skipHeroCardClickRef.current = true;
-    changeHeroProduct(deltaX < 0 ? 1 : -1);
-  };
-
-  const resetHeroSwipe = (event: PointerEvent<HTMLElement>) => {
-    heroSwipeStartXRef.current = null;
-    heroSwipeStartYRef.current = null;
-
-    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-  };
 
   const handlePopularCarouselScroll = () => {
     const carousel = popularCarouselRef.current;
@@ -224,84 +153,33 @@ const HomePage = () => {
             <HeroTitle>{t("home.heroTitle")}</HeroTitle>
             <HeroText>{t("home.heroText")}</HeroText>
             <HeroActions>
-              <PrimaryCta className="fw-semibold" to="/menu">
+              <PrimaryCta to="/menu">
+                <UtensilsCrossed size={18} aria-hidden="true" />
                 {t("home.openMenu")}
-                <ArrowRight size={18} />
               </PrimaryCta>
-              <SecondaryCta className="fw-semibold" to="/reservations">
-                {t("home.reserveTable")}
+              <SecondaryCta className="reservation-reserve-button" to={promotion ? `/reservations?date=${promotion.next_date}` : "/reservations"}>
+                <CalendarDays size={18} aria-hidden="true" />{t("home.reserveTable")}<ReservationPromotionBadge promotion={promotion} compact />
               </SecondaryCta>
             </HeroActions>
             <HeroEventsLink className="home-events-link" to="/events"><Music2 size={18} aria-hidden="true" />{t('events.viewEvents')}<ArrowRight size={17} aria-hidden="true" /></HeroEventsLink>
 
           </HeroCopy>
 
-          <FeaturedDishCard
-            aria-label={t("home.featuredDish")}
-            onFocusCapture={pauseHeroCarousel}
-            onClick={() => {
-              if (skipHeroCardClickRef.current) {
-                skipHeroCardClickRef.current = false;
-                return;
-              }
-
-              if (heroDish) navigate(`/product/${heroDish.id}`);
-            }}
-            onPointerCancel={resetHeroSwipe}
-            onPointerDown={handleHeroPointerDown}
-            onPointerEnter={pauseHeroCarousel}
-            onPointerLeave={resetHeroSwipe}
-            onPointerUp={handleHeroPointerUp}
-            onTouchStart={pauseHeroCarousel}
-            onWheel={pauseHeroCarousel}
-          >
-            {loading ? (
-              <>
-                <Skeleton height="210px" />
-                <Skeleton width="52%" height="20px" />
-                <Skeleton width="84%" height="28px" />
-                <Skeleton width="72%" height="16px" />
-              </>
-            ) : heroDish ? (
-              <>
-                <FeaturedImage
-                  decoding="async"
-                  loading="eager"
-                  key={heroDish.id}
-                  alt={heroDish.name}
-                  onError={(event) => {
-                    applyApiImageFallback(event.currentTarget, fallbackDishImage);
-                  }}
-                  src={resolveImage(primaryProductMediaUrl(heroDish.media, "card"))}
-                />
-                <FeaturedMeta>
-                  <span>{heroDish.category}</span>
-                  <strong>{formatProductPrices(heroDish)}</strong>
-                </FeaturedMeta>
-                <FeaturedTitle>{heroDish.name}</FeaturedTitle>
-                <FeaturedText>{productDescription(heroDish)}</FeaturedText>
-                <HeroCarouselDots aria-label={t("home.chooseFeatured")}>
-                  {popularProducts.map((product, index) => (
-                    <button
-                      key={product.id}
-                      type="button"
-                      className={index === activeHeroProductIndex ? "active" : ""}
-                      aria-label={t("home.showProduct", { name: product.name })}
-                      aria-current={index === activeHeroProductIndex ? "true" : undefined}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        pauseHeroCarousel();
-                        setActiveHeroProductIndex(index);
-                      }}
-                    />
-                  ))}
-                </HeroCarouselDots>
-              </>
-            ) : (
-              <FeaturedEmpty>{error ?? t("home.highlightsPreparing")}</FeaturedEmpty>
-            )}
-          </FeaturedDishCard>
+          <ReservationPromotionNotice promotion={promotion} />
         </HeroContent>
+        <HeroWave viewBox="0 0 1440 96" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+          <path d="M0 28 C170 67 330 0 520 23 S820 66 1030 27 S1280 4 1440 24 L1440 96 L0 96 Z" fill="#fdcd43" opacity=".55" />
+          <path d="M0 38 C190 76 315 13 510 34 S800 77 1025 39 S1250 18 1440 34 L1440 96 L0 96 Z" fill="#c8dbb1" />
+          <path d="M0 48 C180 88 300 16 510 42 S810 92 1020 52 S1260 24 1440 50 L1440 96 L0 96 Z" fill="currentColor" />
+          <g fill="none" stroke="#7baf4b" strokeWidth="2" strokeLinecap="round" opacity=".55" vectorEffect="non-scaling-stroke">
+            <path d="M70 76 q14-10 28 0 t28 0 t28 0 M1110 70 q12-9 24 0 t24 0" />
+            <path d="M355 51 l4 7 m-16-2 7 2 M1300 57 l4 6 m8-11-2 7" />
+          </g>
+          <g fill="#e7b83e" opacity=".75">
+            <circle cx="238" cy="74" r="3" /><circle cx="252" cy="81" r="2" />
+            <circle cx="1194" cy="77" r="3" /><circle cx="1210" cy="82" r="2" />
+          </g>
+        </HeroWave>
       </HeroSection>
 
       <HomeUpcomingEvents />
@@ -323,11 +201,12 @@ const HomePage = () => {
 
       <FavoritesSection>
         <SectionHeader>
-          <SectionKicker className="fw-bold">{t("home.popular")}</SectionKicker>
+          <SectionKicker><Sparkles size={14} aria-hidden="true" />{t("home.popular")}</SectionKicker>
           <h2>{t("home.popularTitle")}</h2>
           <p>{t("home.popularText")}</p>
         </SectionHeader>
 
+        {error && <p className="home-catalog-notice" role="alert">{error}</p>}
         <PopularCarousel
           aria-label={t("home.popularAria")}
           onScroll={handlePopularCarouselScroll}
@@ -339,7 +218,6 @@ const HomePage = () => {
             ))
             : popularProducts.map((product) => (
               <ProductCard
-                className="p-4"
                 key={product.id}
                 currencySymbol="€"
                 product={product}
@@ -364,11 +242,11 @@ const HomePage = () => {
           </PopularCarouselDots>
         )}
         <div className="d-flex flex-wrap gap-3 justify-content-center mt-4">
-          <PrimaryCta className="fw-semibold" to="/menu">
+          <PrimaryCta to="/menu">
             {t("home.openFullMenu")}
             <ArrowRight size={18} aria-hidden="true" />
           </PrimaryCta>
-          <PrimaryCta to="/reservations">{t("home.reserveTable")}</PrimaryCta>
+          <SecondaryCta className="reservation-reserve-button" to={promotion ? `/reservations?date=${promotion.next_date}` : "/reservations"}><CalendarDays size={17} aria-hidden="true" />{t("home.reserveTable")}<ReservationPromotionBadge promotion={promotion} compact /></SecondaryCta>
         </div>
       </FavoritesSection>
 
@@ -402,7 +280,7 @@ const HomePage = () => {
               <span>{chefSpecial.available ? t("home.available") : t("home.unavailable")}</span>
             )}
           </ChefDetails>
-          <PrimaryCta className="fw-semibold" to={chefSpecial ? `/product/${chefSpecial.id}` : "/menu"}>
+          <PrimaryCta to={chefSpecial ? `/product/${chefSpecial.id}` : "/menu"}>
             {t("home.viewSpecial")}
             <ArrowRight size={18} />
           </PrimaryCta>
@@ -417,6 +295,9 @@ const HomePage = () => {
 
 const HomeShell = styled.main`
   position: relative;
+  --home-paper: #fffaf0;
+  --home-mint: #e6efd7;
+  --home-line: #dbe2ce;
   min-height: 100vh;
   overflow: hidden;
   background: #faf8f0;
@@ -426,18 +307,28 @@ const HomeShell = styled.main`
 const HeroSection = styled.section`
   position: relative;
   z-index: 3;
-  border-radius: 0 0 48px 48px;
   overflow: hidden;
   background:
     linear-gradient(90deg, rgba(31, 37, 30, .9), rgba(46, 43, 32, .58)),
     url(${ASSETS.images.hero.heroBanner}) center / cover no-repeat;
-  background-attachment: fixed;
+  background-attachment: scroll;
   background-position: center;
 
   @media (max-width: 767px) {
-    border-radius: 0 0 30px 30px;
     background-attachment: scroll;
   }
+`;
+
+const HeroWave = styled.svg`
+  position: absolute;
+  z-index: 2;
+  bottom: -1px;
+  left: 0;
+  display: block;
+  width: 100%;
+  height: clamp(36px, 6vw, 84px);
+  color: #faf8f0;
+  pointer-events: none;
 `;
 
 const HeroOverlay = styled.div`
@@ -462,7 +353,7 @@ const HeroContent = styled.div`
   align-items: center;
   gap: clamp(1.5rem, 4vw, 3rem);
   margin: 0 auto;
-  padding: 125px 1.5rem 80px;
+  padding: 157px 1.5rem 80px;
 
   @media (max-width: 1000px) {
     grid-template-columns: 1fr;
@@ -473,7 +364,7 @@ const HeroContent = styled.div`
     min-height: 0;
     flex-direction: column;
     align-items: stretch;
-    padding: 115px 1.25rem 65px;
+    padding: 124px 1.25rem 40px;
   }
 `;
 
@@ -487,7 +378,7 @@ const HeroCopy = styled.div`
     flex: 1;
     flex-direction: column;
     justify-content: center;
-    gap: 22px;
+    gap: 14px;
   }
 `;
 
@@ -530,7 +421,7 @@ const HeroTitle = styled.h1`
   text-wrap: balance;
 
   @media (max-width: 520px) {
-    font-size: clamp(2.15rem, 12vw, 3.35rem);
+    font-size: clamp(2rem, 8vw, 2.7rem);
     line-height: 1.04;
   }
 `;
@@ -544,6 +435,8 @@ const HeroText = styled.p`
 
   @media (max-width: 767px) {
     margin-top: 0;
+    font-size: .9rem;
+    line-height: 1.5;
   }
 `;
 
@@ -580,241 +473,91 @@ const HeroEventsLink = styled(Link)`
 `;
 
 const PrimaryCta = styled(Link)`
-  display: inline-flex;
+  ${homeAction}
   box-sizing: border-box;
-  max-width: 100%;
   min-height: 48px;
-  align-items: center;
-  justify-content: center;
-  gap: 0.55rem;
-  padding: 0 1.15rem;
-  border: 1px solid rgba(253, 205, 67, 0.42);
-  border-radius: 18px;
-  background: var(--brand-accent);
-  color: #21351d;
-  font-weight: 900;
-  text-decoration: none;
-  text-align: center;
-  transition: transform 180ms ease, border-color 180ms ease;
-
-  &:hover {
-    transform: translateY(-1px);
-    border-color: rgba(253, 205, 67, 0.62);
-    color: #21351d;
-    text-decoration: none;
-  }
+  padding: 12px 20px;
+  font-size: .9rem;
 `;
 
-const SecondaryCta = styled(Link)`
-  display: inline-flex;
-  box-sizing: border-box;
-  max-width: 100%;
-  min-height: 48px;
-  align-items: center;
-  justify-content: center;
-  padding: 0 1.15rem;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
-  font-weight: 900;
-  text-decoration: none;
-  text-align: center;
-  backdrop-filter: blur(16px) saturate(150%);
-  -webkit-backdrop-filter: blur(16px) saturate(150%);
-
-  &:hover {
-    color: #ffffff;
-    text-decoration: none;
-  }
+const SecondaryCta = styled(PrimaryCta)`
+  border-radius: 15px 15px 5px 15px;
+  background: #fff8e8;
+  color: #285442;
+  &:hover { background: #f2edcf; color: #285442; }
 `;
 
-const FeaturedDishCard = styled.aside`
-  display: grid;
-  grid-template-rows: clamp(230px, 28vw, 340px) auto minmax(3.3rem, auto) minmax(4.8rem, auto) 24px;
-  gap: 1rem;
-  box-sizing: border-box;
-  width: 100%;
-  max-width: 460px;
-  min-height: 570px;
-  align-self: center;
-  justify-self: end;
-  cursor: pointer;
-  touch-action: pan-y;
-  user-select: none;
-  padding: 1rem;
-  border: none;
-  border-radius: 36px;
-  background:
-    radial-gradient(circle at 18% 10%, rgba(253, 205, 67, 0.22), transparent 15rem),
-    radial-gradient(circle at 86% 42%, rgba(226, 210, 173, 0.12), transparent 14rem),
-    radial-gradient(circle at 30% 92%, rgba(226, 210, 173, 0.08), transparent 13rem),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.19), rgba(255, 255, 255, 0.09)),
-    rgba(7, 17, 15, 0.26);
-  box-shadow: 0 16px 45px rgba(0, 0, 0, .12);
-  backdrop-filter: blur(24px) saturate(150%);
-  -webkit-backdrop-filter: blur(24px) saturate(150%);
-  transition: transform 180ms ease;
-
-  &:hover {
-    transform: translateY(-2px);
-  }
-
-  @media (max-width: 1000px) {
-    display: none;
-  }
-
-  @media (max-width: 960px) {
-    justify-self: start;
-    width: min(100%, 520px);
-    max-width: 520px;
-  }
-
-  @media (max-width: 520px) {
-    grid-template-rows: 250px auto minmax(3.1rem, auto) minmax(4.6rem, auto) 24px;
-    min-height: 555px;
-  }
-`;
-
-const FeaturedImage = styled.img`
-  width: 100%;
-  height: 100%;
-  border-radius: 26px;
-  background:
-    radial-gradient(circle at 28% 22%, rgba(253, 205, 67, 0.24), transparent 36%),
-    radial-gradient(circle at 76% 72%, rgba(232, 218, 176, 0.12), transparent 42%),
-    rgba(255, 255, 255, 0.04);
-  object-fit: contain;
-  padding: 1rem;
-`;
-
-const FeaturedMeta = styled.div`
+const CarouselDots = styled.div`
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  color: rgba(247, 250, 245, 0.68);
-  font-size: 0.82rem;
-  font-weight: 900;
-  text-transform: uppercase;
-
-  strong {
-    color: var(--brand-accent);
-    font-size: 1.25rem;
-  }
-`;
-
-const FeaturedTitle = styled.h2`
-  display: -webkit-box;
-  min-height: 3.3rem;
-  margin: 0;
-  overflow: hidden;
-  color: #ffffff;
-  font-size: 1.35rem;
-  line-height: 1.22;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-`;
-
-const FeaturedText = styled.p`
-  display: -webkit-box;
-  min-height: 4.8rem;
-  margin: 0;
-  overflow: hidden;
-  color: rgba(247, 250, 245, 0.72);
-  line-height: 1.55;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-`;
-
-const HeroCarouselDots = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  margin-top: 0.1rem;
+  justify-content: center;
+  gap: 2px;
 
   button {
-    width: 9px;
-    height: 9px;
-    border: 1px solid rgba(255, 255, 255, 0.34);
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.18);
-    cursor: pointer;
+    display: inline-grid;
+    width: 32px;
+    height: 32px;
+    place-items: center;
     padding: 0;
-    transition: width 180ms ease, background 180ms ease, border-color 180ms ease;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    cursor: pointer;
   }
-
-  button:hover,
-  button:focus-visible {
-    border-color: rgba(253, 205, 67, 0.8);
-    outline: none;
+  button::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: #d0d9bf;
   }
-
-  button.active {
-    width: 24px;
-    border-color: rgba(253, 205, 67, 0.86);
-    background: var(--brand-accent);
-  }
-`;
-
-const FeaturedEmpty = styled.p`
-  margin: 0;
-  color: rgba(247, 250, 245, 0.72);
+  button:hover::before { background: #7baf4b; }
+  button:focus-visible { outline: 2px solid #076050; outline-offset: 1px; }
+  button.active::before { width: 18px; background: #7baf4b; }
 `;
 
 const CategorySection = styled.section`
-  position: relative;
-  z-index: 4;
   width: min(1240px, calc(100% - 40px));
-  margin: 35px auto 0;
-  border-radius: 24px;
-  background: color-mix(in srgb, var(--brand-main) 6%, var(--glass-bg-strong));
+  margin: clamp(28px, 4vw, 48px) auto 0;
+  border-block: 1px dashed #d1dbc2;
 `;
 
 const CategoryTrack = styled.div`
   display: flex;
-  width: min(100%, 1280px);
-  gap: 0.75rem;
-  margin: 0 auto;
+  align-items: center;
+  gap: 12px;
   overflow-x: auto;
-  padding: 1rem 1.5rem;
+  padding: 18px 4px 20px;
   scrollbar-width: none;
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
+  &::-webkit-scrollbar { display: none; }
 `;
 
 const CategoryPill = styled(Link)`
   display: inline-flex;
-  min-height: 44px;
   flex: 0 0 auto;
   align-items: center;
-  gap: 0.65rem;
-  padding: 0 1rem;
-  border: 1px solid rgba(7, 96, 80, 0.12);
-  border-radius: 999px;
-  background: #f8fbf5;
-  color: var(--brand-ink);
-  font-weight: 900;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--home-line);
+  border-radius: 14px 14px 14px 5px;
+  background: var(--home-paper);
+  color: #294b3e;
+  box-shadow: 0 2px 0 #7baf4b33;
+  font-size: .8rem;
+  font-weight: 700;
   text-decoration: none;
-
-  strong {
-    display: inline-grid;
-    min-width: 1.55rem;
-    height: 1.55rem;
-    place-items: center;
-    border-radius: 999px;
-    background: var(--brand-accent);
-    color: #171915;
-    font-size: 0.78rem;
-  }
+  &:hover { background: var(--home-mint); color: #294b3e; }
+  &:focus-visible { outline: 2px solid #076050; outline-offset: 3px; }
+  strong { display: inline-grid; min-width: 24px; height: 24px; place-items: center; border-radius: 50%; background: #ffdf7c; color: #294b3e; font-size: .72rem; }
 `;
 
 const FavoritesSection = styled.section`
+  .home-catalog-notice { padding: 14px; border: 1px solid var(--home-line); border-radius: 14px; background: var(--home-mint); color: #294b3e; }
+
   width: min(100%, 1280px);
   margin: 0 auto;
-  padding: clamp(4rem, 8vw, 6.5rem) 1.5rem;
+  padding: clamp(48px, 6vw, 80px) 1.5rem;
 
   @media (max-width: 520px) {
     padding-inline: 1rem;
@@ -823,30 +566,13 @@ const FavoritesSection = styled.section`
 
 const SectionHeader = styled.div`
   max-width: 720px;
-  margin-bottom: 2rem;
-
-  h2 {
-    margin: 0.35rem 0 0;
-    color: var(--brand-ink);
-    font-size: clamp(2rem, 5vw, 4rem);
-    line-height: 0.98;
-  }
-
-  p {
-    max-width: 600px;
-    margin: 1rem 0 0;
-    color: var(--brand-muted);
-    font-size: 1rem;
-    line-height: 1.65;
-  }
+  margin-bottom: 28px;
+  h2 { ${homeHeading} margin: 14px 0 0; }
+  p { max-width: 600px; margin: 14px 0 0; color: #67715f; font-size: .94rem; line-height: 1.7; }
 `;
 
 const SectionKicker = styled.span`
-  color: #6b560a;
-  font-size: 0.78rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  ${homeKicker}
 `;
 
 const PopularCarousel = styled.div`
@@ -854,25 +580,25 @@ const PopularCarousel = styled.div`
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1rem;
   align-items: stretch;
-  border: 1px solid rgba(234, 208, 120, 0.46);
-  border-radius: 28px;
-  background:
-    radial-gradient(circle at 12% 0%, rgba(253, 205, 67, 0.18), transparent 20rem),
-    linear-gradient(180deg, rgba(255, 248, 218, 0.72), rgba(255, 252, 237, 0.5));
   overflow: visible;
-  padding: 1rem;
+  padding: 4px 0 8px;
 
   & > article {
-    --product-card-media-bg: transparent;
-
-    border-radius: 18px;
-    box-shadow: 0 12px 34px rgba(23, 33, 29, 0.08);
+    ${homeCard}
+    --product-card-radius: 24px 24px 24px 8px;
+    --product-card-media-radius: 16px;
+    --product-card-media-bg: #edf2e4;
+    padding: 14px;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    &:hover { box-shadow: 0 5px 0 #7baf4b55; }
+    &::before { display: none; }
   }
-
-  & > article > button:first-child,
-  & > article > div:first-child {
-    background: transparent;
-  }
+  .product-card-media { background: #edf2e4; }
+  .product-card-media::before { display: none; }
+  .product-card-body { min-width: 0; }
+  .product-card-body h3 { color: #294b3e; font-size: 1.15rem; }
+  .product-card-body a { ${homeAction} min-height: 40px; padding: 8px 10px; font-size: .7rem; background: var(--home-paper); }
 
   @media (max-width: 1000px) {
     grid-template-columns: none;
@@ -880,8 +606,8 @@ const PopularCarousel = styled.div`
     grid-auto-flow: column;
     overflow-x: auto;
     overscroll-behavior-inline: contain;
-    padding: 0.85rem 0.85rem 1rem;
-    scroll-padding-inline: 0.85rem;
+    padding: 4px 4px 10px;
+    scroll-padding-inline: 4px;
     scroll-snap-type: inline mandatory;
     scrollbar-width: none;
 
@@ -897,45 +623,15 @@ const PopularCarousel = styled.div`
   @media (max-width: 520px) {
     grid-auto-columns: calc(100vw - 4.1rem);
     gap: 0.85rem;
-    border-radius: 24px;
-    padding: 0.7rem 0.7rem 0.9rem;
-    scroll-padding-inline: 0.7rem;
+    padding: 4px 4px 10px;
+    scroll-padding-inline: 4px;
   }
 `;
 
-const PopularCarouselDots = styled.div`
+const PopularCarouselDots = styled(CarouselDots)`
   display: none;
-  justify-content: center;
-  align-items: center;
-  gap: 0.5rem;
-  margin-top: 0.95rem;
-
-  button {
-    width: 9px;
-    height: 9px;
-    border: 1px solid rgba(7, 96, 80, 0.32);
-    border-radius: 999px;
-    background: rgba(7, 96, 80, 0.12);
-    cursor: pointer;
-    padding: 0;
-    transition: width 180ms ease, background 180ms ease, border-color 180ms ease;
-  }
-
-  button:hover,
-  button:focus-visible {
-    border-color: rgba(123, 175, 75, 0.86);
-    outline: none;
-  }
-
-  button.active {
-    width: 24px;
-    border-color: rgba(123, 175, 75, 0.9);
-    background: #7baf4b;
-  }
-
-  @media (max-width: 1000px) {
-    display: flex;
-  }
+  margin-top: 14px;
+  @media (max-width: 1000px) { display: flex; }
 `;
 
 const ChefSpecialBanner = styled.section`
@@ -943,15 +639,9 @@ const ChefSpecialBanner = styled.section`
   display: grid;
   grid-template-columns: minmax(320px, 0.82fr) minmax(0, 1fr);
   width: min(calc(100% - 3rem), 1280px);
-  margin: 0 auto clamp(4rem, 8vw, 6.5rem);
+  margin: 0 auto clamp(48px, 6vw, 80px);
   overflow: hidden;
-  border: 1px solid rgba(7, 96, 80, 0.14);
-  border-radius: 32px;
-  background:
-    radial-gradient(circle at 16% 12%, rgba(253, 205, 67, 0.22), transparent 18rem),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(249, 245, 231, 0.92)),
-    #ffffff;
-  box-shadow: 0 22px 58px rgba(23, 33, 29, 0.12);
+  ${homeCard}
 
   @media (max-width: 860px) {
     grid-template-columns: 1fr;
@@ -964,12 +654,13 @@ const ChefImageWrap = styled.div`
   min-height: 390px;
   place-items: center;
   padding: clamp(1.25rem, 4vw, 2.4rem);
-  background:
-    radial-gradient(circle at center, rgba(253, 205, 67, 0.16), transparent 56%),
-    linear-gradient(180deg, #faf8f0, #f2eddf);
+  background: #edf2e4;
+  border-right: 1px dashed #cbd8b9;
 
   @media (max-width: 860px) {
-    min-height: 280px;
+    min-height: 250px;
+    border-right: 0;
+    border-bottom: 1px dashed #cbd8b9;
   }
 `;
 
@@ -979,7 +670,7 @@ const ChefImage = styled.img`
   max-height: 330px;
   border-radius: var(--radius-md);
   object-fit: contain;
-  filter: drop-shadow(0 18px 28px rgba(23, 33, 29, 0.12));
+  filter: drop-shadow(0 8px 12px #294b3e14);
 
   @media (max-width: 860px) {
     height: 250px;
@@ -994,11 +685,9 @@ const ChefCopy = styled.div`
   padding: clamp(1.5rem, 5vw, 3rem);
 
   h2 {
+    ${homeHeading}
     max-width: 650px;
-    margin: 0.65rem 0 1rem;
-    color: var(--brand-ink);
-    font-size: clamp(2rem, 5vw, 4.2rem);
-    line-height: 1;
+    margin: 16px 0;
   }
 
   p {
@@ -1017,17 +706,7 @@ const ChefHeader = styled.div`
 `;
 
 const ChefCategory = styled.span`
-  display: inline-flex;
-  min-height: 28px;
-  align-items: center;
-  border: 1px solid #ead078;
-  border-radius: 999px;
-  background: #f7efd1;
-  color: #6b560a;
-  padding: 0 0.75rem;
-  font-size: 0.72rem;
-  font-weight: 900;
-  text-transform: uppercase;
+  ${homeKicker}
 `;
 
 const ChefDetails = styled.div`
@@ -1045,8 +724,8 @@ const ChefDetails = styled.div`
     align-items: center;
     gap: 0.45rem;
     border: 1px solid #dbe5d7;
-    border-radius: 999px;
-    background: #ffffff;
+    border-radius: 12px 12px 4px 12px;
+    background: #fffaf0;
     padding: 0 0.8rem;
     color: #53635b;
     font-size: 0.86rem;
@@ -1056,9 +735,9 @@ const ChefDetails = styled.div`
     display: inline-flex;
     min-height: 40px;
     align-items: center;
-    border-radius: 999px;
-    background: #fff1f0;
-    color: var(--danger);
+    border-radius: 12px 12px 4px 12px;
+    background: #e6efd7;
+    color: #285442;
     padding: 0 0.9rem;
     font-size: 1.25rem;
   }

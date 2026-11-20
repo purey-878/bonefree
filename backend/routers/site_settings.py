@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, File, Request, UploadFile
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
@@ -13,6 +13,7 @@ from schemas.site_settings import (
     ChefSpecialSettings,
     CompanyDetailsSettings,
     EventsSettings,
+    EventImageUploadResponse,
     LoyaltyCouponSettings,
     SiteThemeResponse,
     SiteThemeSettings,
@@ -254,3 +255,18 @@ def update_admin_events(
     db: Session = Depends(get_db),
 ):
     return save_events_settings(db, settings)
+
+
+@admin_router.post(
+    "/events/image",
+    response_model=EventImageUploadResponse,
+    operation_id="site_settings_upload_event_image",
+    responses={400: {"description": "Unsupported or invalid image"}, 413: {"description": "Image exceeds the 8 MB limit"}},
+)
+def upload_event_image(
+    request: Request,
+    file: UploadFile = File(...),
+    current_admin: Admin = Depends(require_role(SUPER_ADMIN_ROLE)),
+):
+    from services.event_images import store_event_image
+    return store_event_image(file, request.app.state.uploads_dir)

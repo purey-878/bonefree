@@ -9,6 +9,10 @@ const ptPT = {
       german: "Deutsch",
     },
     navigation: {
+      mobileGreeting: "Bom apetite. Boa companhia.",
+      reserveHint: "O teu lugar à mesa está aqui.",
+      mealFinderHint: "Um prato à tua medida.",
+
       mealFinder: 'Descobre o teu prato', reserveTable: "Reservar mesa",
       home: "Início",
       menu: "Menu",

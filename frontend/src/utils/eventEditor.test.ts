@@ -16,6 +16,11 @@ describe('event editor', () => {
     expect(eventIssues({ ...createEventDraft(), title: 'x'.repeat(101) })).toContain('length');
     expect(eventIssues({ ...createEventDraft(), title: 'DJ night', imageUrl: 'https://example.com/poster.jpg' })).toEqual([]);
   });
+  it('validates optional web links while allowing legacy events with no links', () => {
+    const event = { ...createEventDraft(), title: 'DJ night' };
+    expect(eventIssues({ ...event, instagramUrl: 'https://instagram.com/b0nefree', websiteUrl: '' })).toEqual([]);
+    expect(eventIssues({ ...event, websiteUrl: 'javascript:alert(1)' })).toContain('links');
+  });
   it('keeps expired events in admin while showing their public status, including overnight finishes', () => {
     const event = { ...createEventDraft(), title: 'DJ night', date: '2026-12-31', startTime: '20:00', endTime: '02:00' };
     expect(eventEditorStatus(event, new Date('2027-01-01T01:59:00Z'))).toBe('visible');

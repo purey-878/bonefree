@@ -1,3 +1,5 @@
+import { reservationsPublicPromotions } from '../api/generated';
+export type { PublicPromotion } from '../api/generated';
 import { apiData, adminApiClient, publicApiClient } from '../api/clients';
 import { reservationsAdminList, reservationsAdminSettings, reservationsAvailability, reservationsCancel, reservationsConfirmation, reservationsConfirmationPdf, reservationsCreate, reservationsCreatePromotion, reservationsDeleteException, reservationsListExceptions, reservationsListPromotions, reservationsPurgeExpired, reservationsPublicSettings, reservationsSaveException, reservationsUpdatePromotion, reservationsUpdateSettings, reservationsUpdateStatus } from '../api/generated';
 import type { BookingInput, BookingSettings, DateException, PrivateAccess, PromotionInput, ReservationsAdminListData, StatusUpdate } from '../api/generated';
@@ -11,6 +13,7 @@ export function toPromotionInput(source: PromotionInput): PromotionInput {
 }
 
 export const reservationService = {
+  publicPromotions: (locale: PrivateAccess['locale']) => apiData(reservationsPublicPromotions({ query: { locale }, client: publicApiClient, throwOnError: true, cache: 'no-store' })),
   settings: (signal?: AbortSignal) => apiData(reservationsPublicSettings({ client: publicApiClient, throwOnError: true, signal })),
   availability: (day: string, guests: number, locale: PrivateAccess['locale'], signal?: AbortSignal) => apiData(reservationsAvailability({ query: { day, guests, locale }, client: publicApiClient, throwOnError: true, signal })),
   create: (body: BookingInput, locale: PrivateAccess['locale']) => apiData(reservationsCreate({ body, query: { locale }, client: publicApiClient, throwOnError: true })),

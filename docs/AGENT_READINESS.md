@@ -62,7 +62,7 @@ npm run seo:catalog -- https://api.bonefree.pt /tmp/bonefree-agent-catalog.json
 BONEFREE_CATALOG_SNAPSHOT=/tmp/bonefree-agent-catalog.json npm run build
 
 # Requires local Apache 2.4, OpenSSL and PHP CGI:
-npm run test:agents:hosting
+npm run test:agents:hosting 
 # Optional paths: APACHE_BIN, APACHE_MODULES, PHP_CGI_BIN.
 
 npm run test:menu:browser

@@ -1,6 +1,7 @@
 import i18n from '.';
 const copy = {
   'pt-PT': {
+    uploadImage: 'Escolher fotografia do dispositivo', uploadHelp: 'JPEG, PNG, WebP, GIF ou AVIF · máximo 8 MB. Publica o evento para mostrar a nova fotografia.', imageUrl: 'Ou colar o URL de uma imagem', uploading: 'A carregar fotografia…', uploadFailed: 'Não foi possível carregar a imagem. Escolhe uma imagem válida e tenta novamente.', imageTooLarge: 'A imagem deve ter no máximo 8 MB.', optional: '(opcional)', linksHelp: 'As ligações só aparecem no website quando estão preenchidas.',
     title: 'Gerir eventos', help: 'Publique eventos na página inicial e em Eventos. São mostrados dois de cada vez, por data. Os eventos terminados deixam de aparecer automaticamente.',
     add: 'Adicionar evento', publish: 'Publicar eventos', saving: 'A publicar…', saved: 'Eventos publicados.', failed: 'Não foi possível publicar os eventos. Tente novamente.', invalid: 'Complete os eventos visíveis antes de publicar.',
     visible: 'No website', expired: 'Terminado', hidden: 'Oculto', incomplete: 'Por completar', untitled: 'Novo evento', total: '{{count}} eventos',
@@ -11,9 +12,10 @@ const copy = {
     enabled: 'Mostrar no website', enabledHelp: 'Os eventos ocultos e terminados ficam guardados aqui e não aparecem aos visitantes.',
     remove: 'Remover evento', removeTitle: 'Remover este evento?', removeText: 'A remoção será aplicada ao publicar os eventos.', cancel: 'Cancelar', duplicate: 'Duplicar evento',
     publicLink: 'Ver página de eventos', publishHelp: 'As alterações só aparecem no website depois de publicar os eventos.',
-    validation: { title: 'Introduza o nome do evento.', date: 'Escolha uma data válida.', time: 'Preencha as horas de início e fim.', image: 'Use uma ligação http(s) ou um caminho que comece por /.', length: 'Reduza os textos aos limites indicados.' },
+    validation: { links: 'Use ligações HTTP ou HTTPS válidas.', title: 'Introduza o nome do evento.', date: 'Escolha uma data válida.', time: 'Preencha as horas de início e fim.', image: 'Use uma ligação http(s) ou um caminho que comece por /.', length: 'Reduza os textos aos limites indicados.' },
   },
   'en-GB': {
+    uploadImage: 'Choose a photo from your device', uploadHelp: 'JPEG, PNG, WebP, GIF or AVIF · up to 8 MB. Publish the event to show the new photo.', imageUrl: 'Or paste an image URL', uploading: 'Uploading photo…', uploadFailed: 'Could not upload this image. Choose a valid image and try again.', imageTooLarge: 'Images must be 8 MB or smaller.', optional: '(optional)', linksHelp: 'Links appear on the website only when filled in.',
     title: 'Manage events', help: 'Publish events on Home and Events. Visitors see two at a time, ordered by date. Finished events disappear automatically.',
     add: 'Add event', publish: 'Publish events', saving: 'Publishing…', saved: 'Events published.', failed: 'Could not publish events. Please try again.', invalid: 'Complete visible events before publishing.',
     visible: 'On the website', expired: 'Finished', hidden: 'Hidden', incomplete: 'Incomplete', untitled: 'New event', total: '{{count}} events',
@@ -24,9 +26,10 @@ const copy = {
     enabled: 'Show on the website', enabledHelp: 'Hidden and finished events stay here and are not shown to visitors.',
     remove: 'Remove event', removeTitle: 'Remove this event?', removeText: 'The removal takes effect when you publish events.', cancel: 'Cancel', duplicate: 'Duplicate event',
     publicLink: 'View events page', publishHelp: 'Changes appear on the website only after you publish events.',
-    validation: { title: 'Enter the event name.', date: 'Choose a valid date.', time: 'Enter the start and end times.', image: 'Use an http(s) link or a path starting with /.', length: 'Shorten the text to the indicated limits.' },
+    validation: { links: 'Use valid HTTP or HTTPS links.', title: 'Enter the event name.', date: 'Choose a valid date.', time: 'Enter the start and end times.', image: 'Use an http(s) link or a path starting with /.', length: 'Shorten the text to the indicated limits.' },
   },
   'de-DE': {
+    uploadImage: 'Foto vom Gerät auswählen', uploadHelp: 'JPEG, PNG, WebP, GIF oder AVIF · bis zu 8 MB. Veröffentliche das Event, um das neue Foto zu zeigen.', imageUrl: 'Oder eine Bild-URL einfügen', uploading: 'Foto wird hochgeladen…', uploadFailed: 'Bild konnte nicht hochgeladen werden. Wähle ein gültiges Bild und versuche es erneut.', imageTooLarge: 'Bilder dürfen höchstens 8 MB groß sein.', optional: '(optional)', linksHelp: 'Links erscheinen nur auf der Website, wenn sie ausgefüllt sind.',
     title: 'Veranstaltungen verwalten', help: 'Veröffentliche Events auf Startseite und Veranstaltungsseite. Besucher sehen jeweils zwei Events nach Datum. Beendete Events verschwinden automatisch.',
     add: 'Event hinzufügen', publish: 'Events veröffentlichen', saving: 'Wird veröffentlicht…', saved: 'Events veröffentlicht.', failed: 'Events konnten nicht veröffentlicht werden. Bitte erneut versuchen.', invalid: 'Vervollständige sichtbare Events vor dem Veröffentlichen.',
     visible: 'Auf der Website', expired: 'Beendet', hidden: 'Ausgeblendet', incomplete: 'Unvollständig', untitled: 'Neues Event', total: '{{count}} Events',
@@ -37,7 +40,7 @@ const copy = {
     enabled: 'Auf der Website anzeigen', enabledHelp: 'Ausgeblendete und beendete Events bleiben hier gespeichert und werden Besuchern nicht angezeigt.',
     remove: 'Event entfernen', removeTitle: 'Dieses Event entfernen?', removeText: 'Das Entfernen wird beim Veröffentlichen wirksam.', cancel: 'Abbrechen', duplicate: 'Event duplizieren',
     publicLink: 'Veranstaltungsseite öffnen', publishHelp: 'Änderungen erscheinen erst nach dem Veröffentlichen auf der Website.',
-    validation: { title: 'Gib den Namen des Events ein.', date: 'Wähle ein gültiges Datum.', time: 'Gib Start- und Endzeit ein.', image: 'Verwende einen http(s)-Link oder einen Pfad, der mit / beginnt.', length: 'Kürze die Texte auf die angegebenen Grenzen.' },
+    validation: { links: 'Verwende gültige HTTP- oder HTTPS-Links.', title: 'Gib den Namen des Events ein.', date: 'Wähle ein gültiges Datum.', time: 'Gib Start- und Endzeit ein.', image: 'Verwende einen http(s)-Link oder einen Pfad, der mit / beginnt.', length: 'Kürze die Texte auf die angegebenen Grenzen.' },
   },
 };
 for (const [locale, strings] of Object.entries(copy)) i18n.addResourceBundle(locale, 'adminEvents', strings);

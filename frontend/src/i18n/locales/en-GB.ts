@@ -9,6 +9,10 @@ const enGB = {
       german: "Deutsch",
     },
     navigation: {
+      mobileGreeting: "Good food. Good company.",
+      reserveHint: "Your spot at the table awaits.",
+      mealFinderHint: "A little inspiration for your appetite.",
+
       mealFinder: 'Find your meal', reserveTable: "Reserve a Table",
       home: "Home",
       menu: "Menu",

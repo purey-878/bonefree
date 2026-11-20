@@ -101,6 +101,47 @@ def localized_award(snapshot, locale):
     return Award(id=snapshot['id'], percentage=snapshot['percentage'], **{key: text[key] for key in ['title', 'description', 'scope', 'conditions']})
 
 
+def public_promotions(db, locale='pt-PT'):
+    """Find winning, bookable offers without querying inside date/slot loops."""
+    _, config = configuration(db)
+    if not config.enabled:
+        return []
+    now = now_local()
+    today = now.date()
+    last = today + timedelta(days=config.horizon_days)
+    promotions = db.scalars(select(ReservationPromotion).where(
+        ReservationPromotion.enabled.is_(True), ReservationPromotion.automatic.is_(True),
+        ReservationPromotion.start_date <= last, ReservationPromotion.end_date >= today,
+    ).order_by(ReservationPromotion.percentage.desc(), ReservationPromotion.id)).all()
+    if not promotions:
+        return []
+    indexed = {row.id: row for row in promotions}
+    exceptions = {row.day: row for row in db.scalars(select(ReservationException).where(ReservationException.day.between(today, last))).all()}
+    counts = {(day, slot.strftime('%H:%M')): (count, total) for day, slot, count, total in db.execute(
+        select(Reservation.day, Reservation.slot, func.count(Reservation.id), func.sum(Reservation.guests))
+        .where(Reservation.day.between(today, last), Reservation.status == 'confirmed')
+        .group_by(Reservation.day, Reservation.slot)
+    ).all()}
+    found = {}
+    for offset in range(config.horizon_days + 1):
+        day = today + timedelta(days=offset)
+        exception = exceptions.get(day)
+        windows = ([] if exception.closed else exception.windows) if exception else [w.model_dump() for w in config.weekly.get(day.weekday(), [])]
+        eligible = [row for row in promotions if row.start_date <= day <= row.end_date]
+        for slot in candidate_slots(db, config, day, now=now, windows=windows):
+            count, total = counts.get((day, slot), (0, 0))
+            if count >= config.max_reservations_per_slot or total + config.min_guests > config.max_guests_per_slot:
+                continue
+            snapshot = promotion_snapshot(eligible, day, slot)
+            if snapshot and snapshot['id'] not in found:
+                row = indexed[snapshot['id']]
+                found[row.id] = {**localized_award(snapshot, locale).model_dump(),
+                    'start_date': row.start_date, 'end_date': row.end_date,
+                    'weekdays': row.content['weekdays'], 'windows': row.content['windows'],
+                    'next_date': day, 'next_time': slot}
+    return [found[row.id] for row in promotions if row.id in found]
+
+
 def availability(db, day, guests, locale='pt-PT'):
     _, config = configuration(db)
     if not config.min_guests <= guests <= config.max_guests:

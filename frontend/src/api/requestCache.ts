@@ -68,6 +68,7 @@ function invalidateMutation(request: Request) {
     invalidatePublicData('catalog');
     invalidatePublicData('chef-special');
   }
+  if (/\/admin\/reservations\/(promotions|settings|exceptions)(\/|$)/.test(path)) invalidatePublicData('reservation-promotions');
   const setting = path.match(/\/admin\/site-settings\/([^/]+)$/)?.[1];
   if (setting) invalidatePublicData(setting);
 }

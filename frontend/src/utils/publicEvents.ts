@@ -20,3 +20,12 @@ export function publicEventDate(date: string, locale: string) {
   const format = (options: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(locale, { ...options, timeZone: 'Europe/Lisbon' }).format(value);
   return { day: format({day: '2-digit'}), month: format({month: 'short'}), full: format({weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'}) };
 }
+
+export function validEventLink(value?: string): string | null {
+  const text = value?.trim();
+  if (!text || (/[\s\\]/.test(text) || [...text].some(char => char.charCodeAt(0) < 32))) return null;
+  try {
+    const url = new URL(text);
+    return ['https:', 'http:'].includes(url.protocol) && url.hostname && !url.username && !url.password ? text : null;
+  } catch { return null; }
+}

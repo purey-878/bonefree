@@ -120,6 +120,7 @@ def create_app(
 
     resolved_assets = public_assets_dir or PUBLIC_ASSETS_DIR
     resolved_uploads = uploads_dir or UPLOADS_DIR
+    application.state.uploads_dir = resolved_uploads
     resolved_assets.mkdir(parents=True, exist_ok=True)
     resolved_uploads.mkdir(parents=True, exist_ok=True)
     application.mount("/assets", StaticFiles(directory=resolved_assets), name="assets")

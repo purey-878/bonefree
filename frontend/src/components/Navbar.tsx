@@ -1,5 +1,7 @@
+import { ReservationPromotionBadge } from './ReservationPromotionNotice';
+import { useReservationPromotion } from '../hooks/useReservationPromotion';
 import { brandLogo } from "../constants/brandLogo"
-import { Sparkles, X } from "lucide-react";
+import { ArrowUpRight, CalendarDays, Heart, House, MapPin, Sparkles, Sun, UtensilsCrossed, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
@@ -8,11 +10,11 @@ import styled, { css, keyframes } from "styled-components";
 
 import LanguageSwitcher from "./LanguageSwitcher";
 const desktopLinks = [
-  { path: "/", labelKey: "navigation.home" },
-  { path: "/menu", labelKey: "navigation.menu" },
-  { path: "/about", labelKey: "navigation.about" },
-  { path: "/events", labelKey: "navigation.events" },
-  { path: "/contact", labelKey: "navigation.contact" },
+  { path: "/", labelKey: "navigation.home", icon: House },
+  { path: "/menu", labelKey: "navigation.menu", icon: UtensilsCrossed },
+  { path: "/about", labelKey: "navigation.about", icon: Heart },
+  { path: "/events", labelKey: "navigation.events", icon: CalendarDays },
+  { path: "/contact", labelKey: "navigation.contact", icon: MapPin },
   { path: "/reservations", labelKey: "navigation.reserveTable" },
 ];
 
@@ -28,7 +30,7 @@ const drawerIn = keyframes`
   }
 `;
 
-const TopNav = styled.header<{ $glassDark?: boolean; $hidden: boolean }>`
+const TopNav = styled.header<{ $glassDark?: boolean; $hidden: boolean; $transparent: boolean }>`
   position: fixed;
   top: 0;
   right: 0;
@@ -91,8 +93,8 @@ const TopNav = styled.header<{ $glassDark?: boolean; $hidden: boolean }>`
   background: transparent;
   border: 0;
   box-shadow: none;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: ${({ $transparent }) => $transparent ? "blur(3px)" : "blur(12px)"};
+  -webkit-backdrop-filter: ${({ $transparent }) => $transparent ? "blur(3px)" : "blur(12px)"};
 
   @media (max-width:767px){
     height:68px;
@@ -225,6 +227,8 @@ const PillLink = styled(Link) <{ $active: boolean }>`
 `;
 
 const ReservationLink = styled(PillLink)`
+  .reservation-promo-badge { background: #076050; color: #fff8e8; box-shadow: none; }
+
   gap: .5rem;
   min-height: 42px;
   border-radius: 18px 18px 18px 6px;
@@ -286,6 +290,14 @@ const MobileLeft = styled.div`
     display: flex;
     align-items: center;
     justify-content: flex-start;
+
+    > button {
+      border: 1px solid #263c2233;
+      border-radius: 16px 16px 16px 6px;
+      background: #fff9e9;
+      box-shadow: 0 3px 0 #263c2230;
+      transform: rotate(-4deg);
+    }
   }
 `;
 
@@ -419,131 +431,159 @@ const BurgerIcon = styled.span`
 
 const Backdrop = styled.button`
   position: fixed;
-  inset: 72px 0 0;
-  z-index: 1190;
+  inset: 0;
+  z-index: 1310;
   border: 0;
-  background: rgba(17, 24, 39, 0.28);
+  background: rgba(12, 39, 32, .45);
+  backdrop-filter: blur(6px);
   animation: ${backdropIn} 180ms ease both;
-
   @media (prefers-reduced-motion: reduce) { animation: none; }
-
-  @media (max-width: 767px) {
-    inset-block-start: 68px;
-  }
 `;
 
 const MobileDrawer = styled.aside`
   position: fixed;
-  top: 72px;
+  top: 14px;
   left: 50%;
-  z-index: 1210;
+  z-index: 1320;
   display: flex;
-  width: min(720px, calc(100vw - 1.5rem));
-  max-height: min(560px, calc(100dvh - 84px));
+  width: min(480px, calc(100vw - 24px));
+  max-height: calc(100dvh - 28px - env(safe-area-inset-bottom, 0px));
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid rgba(23, 33, 29, 0.12);
-  border-top: 0;
-  border-radius: 0 0 18px 18px;
-  background: #ffffff;
-  box-shadow: 0 18px 36px rgba(17, 24, 39, 0.14);
+  border: 1px solid #263c2226;
+  border-radius: 28px 28px 28px 10px;
+  background: #fffaf0;
+  color: #263c22;
+  box-shadow: 0 8px 0 #263c2240, 0 24px 70px #102b3540;
   transform: translateX(-50%);
   animation: ${drawerIn} 220ms ease;
-
   @media (prefers-reduced-motion: reduce) { animation: none; }
-
-  @media (max-width: 767px) {
-    top: 68px;
-    width: calc(100vw - 1rem);
-    max-height: calc(100dvh - 76px - env(safe-area-inset-bottom, 0px));
-  }
 `;
 
 const DrawerHeader = styled.div`
   display: flex;
-  min-height: 70px;
+  flex-shrink: 0;
+  min-height: 76px;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 0 0.85rem 0 1.15rem;
-  border-bottom: 1px solid rgba(23, 33, 29, 0.1);
+  margin: 0 20px;
+  border-bottom: 1px dashed #263c2233;
 
   ${Logo} {
     grid-column: auto;
-    img { height: 42px; }
+    img { height: 46px; }
     justify-self: auto;
-    font-size: 1.18rem;
   }
 
   ${IconAction} {
-    width: 44px;
-    height: 44px;
-    border-color: rgba(23, 33, 29, 0.12);
-    border-radius: 10px;
+    border: 1px solid #263c2233;
+    border-radius: 50%;
     background: #ffffff;
-    box-shadow: none;
+    color: #263c22;
+    box-shadow: 0 2px 0 #263c2220;
     backdrop-filter: none;
-    -webkit-backdrop-filter: none;
+    &:focus-visible { outline: 3px solid #076050; outline-offset: 3px; }
   }
 `;
 
 const DrawerBody = styled.div`
   display: flex;
-  flex: 1;
+  min-height: 0;
   flex-direction: column;
-  gap: 1rem;
+  gap: 18px;
   overflow-y: auto;
-  padding: 0.9rem 0.9rem calc(.9rem + env(safe-area-inset-bottom, 0px));
+  overscroll-behavior: contain;
+  padding: 18px 20px calc(22px + env(safe-area-inset-bottom, 0px));
+`;
+
+const DrawerGreeting = styled.p`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: .85rem;
+  font-weight: 700;
+  svg { color: #a15b11; flex-shrink: 0; transform: rotate(-12deg); }
+`;
+
+const DrawerActions = styled.div`
+  display: grid;
+  gap: 12px;
+`;
+
+const DrawerAction = styled(Link)<{ $meal?: boolean }>`
+  .reservation-promo-badge { background: #076050; color: #fff8e8; }
+
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 86px;
+  padding: 16px;
+  border: 1px solid #263c2226;
+  border-radius: ${({ $meal }) => $meal ? '20px 8px 20px 20px' : '20px 20px 20px 8px'};
+  background: ${({ $meal }) => $meal ? '#076050' : '#fdcd43'};
+  color: ${({ $meal }) => $meal ? '#fffaf0' : '#263c22'};
+  box-shadow: 0 4px 0 ${({ $meal }) => $meal ? '#03473b' : '#d4aa2b'};
+  text-decoration: none;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+
+  > svg:first-child {
+    flex-shrink: 0;
+    width: 42px;
+    height: 42px;
+    padding: 9px;
+    border: 1px solid currentColor;
+    border-radius: 14px 14px 14px 5px;
+    transform: rotate(-6deg);
+  }
+  > svg:last-child { flex-shrink: 0; margin-left: auto; }
+  > span { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; min-width: 0; }
+  strong { width: 100%; font-size: 1rem; line-height: 1.3; font-weight: 850; }
+  small { font-size: .73rem; line-height: 1.4; opacity: .9; }
+  &:hover { color: ${({ $meal }) => $meal ? '#fffaf0' : '#263c22'}; transform: translateY(-2px); }
+  &[aria-current="page"] { outline: 2px dashed currentColor; outline-offset: -6px; }
+  &:focus-visible { outline: 3px solid #a15b11; outline-offset: 5px; }
+  @media (prefers-reduced-motion: reduce) { transition: none; &:hover { transform: none; } }
+  @media (max-width: 359px) { padding: 13px 11px; gap: 9px; strong { font-size: .9rem; } }
 `;
 
 const DrawerNav = styled.nav`
   display: grid;
-  gap: 0.2rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
 `;
 
-const DrawerLink = styled(Link) <{ $active: boolean }>`
+const DrawerLink = styled(Link)<{ $active: boolean }>`
   display: flex;
-  min-height: 44px;
+  min-width: 0;
+  min-height: 52px;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 0.8rem;
-  border: 0;
-  border-radius: 10px;
-  background: ${({ $active }) =>
-    $active ? "#f4f6f2" : "transparent"};
-  color: ${({ $active }) => ($active ? "#17211d" : "#4b5b52")};
-  font-weight: 800;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid ${({ $active }) => $active ? '#07605055' : '#263c2214'};
+  border-radius: 14px;
+  background: ${({ $active }) => $active ? '#e3edda' : '#ffffff80'};
+  color: #263c22;
+  font-size: .85rem;
+  line-height: 1.3;
+  font-weight: 750;
   text-decoration: none;
-  position: relative;
-
-  &::before {
-    position: absolute;
-    top: 11px;
-    bottom: 11px;
-    left: 0;
-    width: 3px;
-    border-radius: 999px;
-    background: ${({ $active }) => ($active ? "var(--brand-main)" : "transparent")};
-    content: "";
-  }
-
-  &:hover {
-    background: #f7f8f5;
-    color: #17211d;
-  }
-
-  &[href="/reservations"] {
-    margin-top: .5rem;
-    background: var(--brand-accent, #fdcd43);
-    color: #263c22;
-  }
+  svg { flex-shrink: 0; width: 18px; height: 18px; color: #076050; }
+  span { min-width: 0; overflow-wrap: anywhere; hyphens: auto; }
+  &:last-child { grid-column: 1 / -1; }
+  &[aria-current="page"]::after { content: ''; width: 7px; height: 7px; flex-shrink: 0; margin-left: auto; border-radius: 50%; background: #076050; }
+  &:hover { background: #e3edda; color: #263c22; }
+  &:focus-visible { outline: 3px solid #076050; outline-offset: 2px; }
 `;
 
 const Navbar = ({ renderStatic = false }: { renderStatic?: boolean }) => {
   const { t } = useTranslation("common");
   const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const promotion = useReservationPromotion();
   const [navHidden, setNavHidden] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const headerRef = useRef<HTMLElement | null>(null);
   const drawerRef = useRef<HTMLElement | null>(null);
   const menuTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -565,6 +605,7 @@ const Navbar = ({ renderStatic = false }: { renderStatic?: boolean }) => {
       // Clamp elastic scrolling at either end of the page.
       const maxY = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
       const y = Math.min(maxY, Math.max(0, window.scrollY));
+      setScrolled(y > 12);
       const now = performance.now();
       const delta = y - previousY;
       const nextDirection = Math.sign(delta);
@@ -602,6 +643,7 @@ const Navbar = ({ renderStatic = false }: { renderStatic?: boolean }) => {
     frame = window.requestAnimationFrame(() => {
       frame = 0;
       setNavHidden(false);
+      setScrolled(Math.max(0, window.scrollY) > 12);
     });
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
@@ -641,16 +683,29 @@ const Navbar = ({ renderStatic = false }: { renderStatic?: boolean }) => {
     };
   }, [drawerOpen]);
   const navigation = <>
-    <TopNav ref={headerRef} $glassDark={glassDarkNav} $hidden={navHidden} inert={navHidden || drawerOpen}><NavInner>
+    <TopNav ref={headerRef} $transparent={location.pathname === "/" && !scrolled} $glassDark={glassDarkNav} $hidden={navHidden} inert={navHidden || drawerOpen}><NavInner>
       <MobileLeft><IconAction ref={menuTriggerRef} aria-controls="mobile-navigation" aria-label={t("navigation.openMenu")} aria-expanded={drawerOpen} onClick={() => setDrawerOpen(true)} type="button"><BurgerIcon aria-hidden="true"><span /></BurgerIcon></IconAction></MobileLeft>
       <Logo className="logo-bonefree" aria-label={t("navigation.bonefreeHome")} onClick={closeDrawer} to="/"><img {...brandLogo} sizes="43px" className="img-fluid img-25" alt="Bonefree" /></Logo>
       <CenterNav aria-label={t("navigation.main")}>{desktopLinks.filter(link => link.path !== "/reservations").map(({ path, labelKey }) => <PillLink $active={isActive(path)} key={path} to={path}>{t(labelKey)}</PillLink>)}</CenterNav>
-      <NavActions><LanguageSwitcher /><ReservationLink $active={isActive("/reservations")} aria-current={isActive("/reservations") ? "page" : undefined} to="/reservations"><Sparkles size={16} aria-hidden="true" />{t("navigation.reserveTable")}</ReservationLink></NavActions>
+      <NavActions><LanguageSwitcher /><ReservationLink $active={isActive("/reservations")} aria-current={isActive("/reservations") ? "page" : undefined} to="/reservations"><Sparkles size={16} aria-hidden="true" />{t("navigation.reserveTable")}<ReservationPromotionBadge promotion={promotion} compact /></ReservationLink></NavActions>
       <MobileRight><LanguageSwitcher className="language-switcher-mobile-nav" /></MobileRight>
     </NavInner></TopNav>
     {drawerOpen && <><Backdrop tabIndex={-1} aria-hidden="true" aria-label={t("navigation.closeMenu")} onClick={closeDrawer} type="button" /><MobileDrawer ref={drawerRef} id="mobile-navigation" role="dialog" aria-modal="true" aria-label={t("navigation.mobile")}>
       <DrawerHeader><Logo aria-label={t("navigation.bonefreeHome")} onClick={closeDrawer} to="/"><img {...brandLogo} sizes="43px" className="img-fluid img-25" alt="Bonefree" /></Logo><IconAction ref={closeTriggerRef} aria-label={t("navigation.closeMenu")} onClick={closeDrawer} type="button"><X size={22} /></IconAction></DrawerHeader>
-      <DrawerBody><DrawerNav>{desktopLinks.map(({ path, labelKey }) => <DrawerLink $active={isActive(path)} key={path} onClick={closeDrawer} to={path}>{t(labelKey)}</DrawerLink>)}<DrawerLink $active={isActive("/meal-finder")} onClick={closeDrawer} to="/meal-finder">{t("navigation.mealFinder")}</DrawerLink></DrawerNav></DrawerBody>
+      <DrawerBody>
+        <DrawerGreeting><Sun size={24} aria-hidden="true" />{t("navigation.mobileGreeting")}</DrawerGreeting>
+        <DrawerActions>
+          <DrawerAction aria-current={isActive("/reservations") ? "page" : undefined} onClick={closeDrawer} to="/reservations">
+            <CalendarDays aria-hidden="true" /><span><strong>{t("navigation.reserveTable")}</strong><ReservationPromotionBadge promotion={promotion} compact /><small>{t("navigation.reserveHint")}</small></span><ArrowUpRight size={21} aria-hidden="true" />
+          </DrawerAction>
+          <DrawerAction $meal aria-current={isActive("/meal-finder") ? "page" : undefined} onClick={closeDrawer} to="/meal-finder">
+            <Sparkles aria-hidden="true" /><span><strong>{t("navigation.mealFinder")}</strong><small>{t("navigation.mealFinderHint")}</small></span><ArrowUpRight size={21} aria-hidden="true" />
+          </DrawerAction>
+        </DrawerActions>
+        <DrawerNav aria-label={t("navigation.main")}>
+          {desktopLinks.filter(link => link.path !== "/reservations").map(({ path, labelKey, icon: Icon }) => <DrawerLink $active={isActive(path)} aria-current={isActive(path) ? "page" : undefined} key={path} onClick={closeDrawer} to={path}>{Icon && <Icon aria-hidden="true" />}<span>{t(labelKey)}</span></DrawerLink>)}
+        </DrawerNav>
+      </DrawerBody>
     </MobileDrawer></>}
   </>;
   // The build renderer places one navbar outside the animated route, matching

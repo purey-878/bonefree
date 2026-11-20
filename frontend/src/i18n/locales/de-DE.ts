@@ -9,6 +9,10 @@ const deDE = {
       german: "Deutsch",
     },
     navigation: {
+      mobileGreeting: "Gutes Essen. Gute Gesellschaft.",
+      reserveHint: "Dein Platz am Tisch wartet auf dich.",
+      mealFinderHint: "Finde, was dir schmeckt.",
+
       mealFinder: 'Finde dein Gericht', reserveTable: "Tisch reservieren",
       home: "Startseite",
       menu: "Speisekarte",

@@ -8,7 +8,7 @@ from dependencies import require_role
 from services.auth_service import STAFF_ADMIN_ROLE, SUPER_ADMIN_ROLE
 from core.rate_limit import enforce_rate_limit, get_client_ip, RATE_LIMIT_OPENAPI_RESPONSES
 from reservation_models import Reservation, ReservationException, ReservationPromotion
-from schemas.reservations import (AdminBooking, Availability, BookingCreated, BookingInput, BookingPage, BookingSettings, DateException, DeleteResult, Locale, PassResponse, PrivateAccess, PromotionAdmin, PromotionInput, PublicSettings, SettingsResult, StatusUpdate)
+from schemas.reservations import (AdminBooking, Availability, BookingCreated, BookingInput, BookingPage, BookingSettings, DateException, DeleteResult, Locale, PassResponse, PrivateAccess, PromotionAdmin, PromotionInput, PublicPromotion, PublicSettings, SettingsResult, StatusUpdate)
 from services import reservations as service
 from services.reservation_pdf import render_reservation_pdf
 from schemas.pagination import total_pages
@@ -34,6 +34,11 @@ def public_settings(db: Session = Depends(get_db)):
     _, config = service.configuration(db)
     today = service.now_local().date()
     return PublicSettings(enabled=config.enabled, today=today, last_date=today + timedelta(days=config.horizon_days), min_guests=config.min_guests, max_guests=config.max_guests)
+
+
+@router.get('/promotions', response_model=list[PublicPromotion], operation_id='reservations_public_promotions')
+def public_promotions(locale: Locale = 'pt-PT', db: Session = Depends(get_db)):
+    return service.public_promotions(db, locale)
 
 
 @router.get('/availability', response_model=Availability, operation_id='reservations_availability')

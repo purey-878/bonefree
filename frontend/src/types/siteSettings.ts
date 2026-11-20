@@ -106,6 +106,8 @@ export interface EventItemSettings {
   startTime: string;
   endTime: string;
   imageUrl: string;
+  instagramUrl?: string;
+  websiteUrl?: string;
   enabled: boolean;
 }
 

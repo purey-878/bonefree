@@ -1,0 +1,60 @@
+.reservation-promo-badge { display: inline-flex; align-items: center; flex-shrink: 0; align-self: center; padding: 5px 8px; border: 1px solid #294b3e26; border-radius: 9px 9px 3px 9px; background: #fdcd43; color: #294b3e; box-shadow: 0 2px 0 #7baf4b; font-size: .7rem; line-height: 1.2; font-weight: 850; white-space: nowrap; transform: rotate(-4deg); }
+.reservation-promo-notice { color: #294b3e; border: 1px solid #e3d69c; border-radius: 20px 20px 20px 6px; padding: 14px 14px 6px; background: radial-gradient(circle at 92% 12%, #ffe28b80, transparent 45%), #fffbea; box-shadow: 0 3px 0 #c5aa5420; overflow-wrap: anywhere; }
+.reservation-promo-top { display: flex; align-items: center; gap: 10px; }
+.reservation-promo-top > svg { flex-shrink: 0; color: #9b7926; transform: rotate(-12deg); }
+.reservation-promo-top > div { min-width: 0; flex: 1; line-height: 1.45; }
+.reservation-promo-kicker { display: block; margin-bottom: 2px; color: #6c7058; font-size: .65rem; font-weight: 500; }
+.reservation-promo-sticker { flex-shrink: 0; padding: 12px 9px; border: 1px dashed #af7b20; border-radius: 16px 16px 16px 5px; background: #ffdc65; color: #284733; font-size: 1.3rem; font-weight: 900; line-height: 1.1; transform: rotate(-5deg); white-space: nowrap; }
+.reservation-promo-scope { font-size: .8rem; font-weight: 700; }
+.reservation-promo-notice p { font-size: .74rem; line-height: 1.6; margin: 8px 0; }
+.reservation-promo-notice summary { display: flex; align-items: center; gap: 6px; width: fit-content; min-height: 36px; font-size: .67rem; font-weight: 500; color: #526653; cursor: pointer; list-style: none; }
+.reservation-promo-notice summary::-webkit-details-marker { display: none; }
+.reservation-promo-notice details[open] summary svg { transform: rotate(180deg); }
+.reservation-promo-action, .reservation-page .reservation-promo-action { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: 44px; min-height: 44px; padding: 0; border: 1px solid #c9d0b6; border-radius: 50%; background: #edf0de; color: #285242; text-decoration: none; }
+.reservation-promo-notice :is(a, button, summary):focus-visible { outline: 2px solid #076050; outline-offset: 3px; }
+.reservation-promo-selection, .reservation-promo-notice .reservation-promo-selection { display: flex; align-items: flex-start; gap: 7px; margin: 12px 0; color: var(--brand-muted); font-size: .74rem; line-height: 1.55; }
+.reservation-promo-selection svg { flex-shrink: 0; margin-top: 3px; }
+.reservation-promo-selection.is-applied, .reservation-promo-notice .reservation-promo-selection.is-applied { align-items: center; gap: 12px; padding: 14px; border: 1px solid #bad8a9; border-radius: 18px 18px 18px 6px; color: #24543b; background: radial-gradient(circle at 95% 15%, #f1bc54 0 2px, transparent 3px), radial-gradient(circle at 82% 88%, #eeaab3 0 2px, transparent 3px), linear-gradient(115deg, #e2f3d8, #fff2bd); box-shadow: 0 3px 0 #60934a18; animation: promo-cheer 260ms ease-out both; }
+.reservation-promo-happy { display: block; margin-bottom: 3px; color: #075c48; font-size: .9rem; font-weight: 850; }
+.reservation-promo-celebration { display: inline-grid; flex-shrink: 0; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: #fff8df; color: #a56114; transform: rotate(-12deg); }
+.reservation-promo-celebration svg { margin: 0; }
+@keyframes promo-cheer { from { opacity: 0; transform: translateY(4px) scale(.98); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .reservation-promo-selection.is-applied { animation: none; } }
+.reservation-reserve-button { gap: 9px; flex-wrap: wrap; }
+
+.reservation-promo-notice .reservation-promo-selection { padding-top: 10px; border-top: 1px dashed #ced5bd; }
+.promo-notice--booking { position: relative; z-index: 1; width: min(100%, 660px); margin: 0 auto 16px; }
+@media (min-width: 1280px) {
+  .reservation-page:has(> .promo-notice--booking) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 680px) minmax(0, 1fr); align-items: start; }
+  .reservation-page:has(> .promo-notice--booking) > .reservation-booking-card { grid-column: 2; grid-row: 1; }
+  .promo-notice--booking { position: relative; z-index: 1; grid-column: 3; grid-row: 1; width: min(260px, calc(100% - 20px)); margin: 0 0 0 20px; }
+}
+#reservation-booking-form { scroll-margin-top: 100px; }
+
+.promo-notice--booking .reservation-promo-top { display: grid; grid-template-columns: minmax(0, 1fr) 44px; gap: 12px; }
+.promo-notice--booking .reservation-promo-sticker { justify-self: start; }
+.promo-notice--booking .reservation-promo-top > div { grid-column: 1 / -1; grid-row: 2; }
+.promo-notice--booking .reservation-promo-action { grid-column: 2; grid-row: 1; }
+.promo-notice--booking .reservation-promo-scope { display: block; margin-top: 4px; font-size: 1rem; line-height: 1.4; }
+.reservation-promo-context p { color: #526653; }
+.reservation-promo-context p:first-child:not(:last-child) { color: #294b3e; }
+
+.promo-notice--home { position: relative; width: 100%; max-width: 350px; min-width: 0; justify-self: end; align-self: center; padding: 26px 26px 10px; border: 1px solid #b8d39d66; border-top: 4px solid #fdcd43; border-radius: 24px 24px 8px 24px; background: #123e32ed; color: #fff8e8; box-shadow: 0 5px 0 #7baf4b88; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.hero-promo-kicker { display: flex; align-items: center; gap: 8px; color: #f6db8e; font-size: .72rem; line-height: 1.5; font-weight: 650; }
+.hero-promo-kicker svg { flex-shrink: 0; }
+.hero-promo-percentage { display: block; margin-top: 18px; color: #fdcd43; font-size: clamp(3.5rem, 6vw, 4.8rem); line-height: 1; font-weight: 900; letter-spacing: -.045em; }
+.promo-notice--home .hero-promo-scope { margin: 12px 0 0; color: #fff8e8; font-size: 1.3rem; line-height: 1.25; font-weight: 750; letter-spacing: -.02em; }
+.promo-notice--home .hero-promo-hint { margin: 14px 0 20px; color: #e0e9d4; font-size: .76rem; line-height: 1.65; }
+.promo-notice--home .reservation-promo-action { display: flex; justify-content: space-between; width: 100%; min-height: 46px; padding: 11px 14px; border: 1px solid #d2dbbc; border-radius: 13px 13px 13px 4px; background: #fff8e8; color: #285442; box-shadow: 0 3px 0 #7baf4b; font-size: .8rem; font-weight: 750; }
+.promo-notice--home .reservation-promo-action:hover { background: #e6efd7; }
+.promo-notice--home details { margin-top: 12px; border-top: 1px dashed #b8d39d4d; }
+.promo-notice--home summary { min-height: 42px; color: #e0e9d4; font-size: .67rem; }
+.promo-notice--home details p { color: #e0e9d4; }
+.promo-notice--home :is(a, summary):focus-visible { outline-color: #fdcd43; }
+@media (max-width: 1000px) { .promo-notice--home { justify-self: center; margin-inline: auto; } }
+@media (max-width: 767px) {
+  .promo-notice--home { padding: 20px 22px 6px; }
+  .hero-promo-percentage { margin-top: 14px; font-size: 3.5rem; }
+  .promo-notice--home .hero-promo-scope { font-size: 1.15rem; }
+  .promo-notice--home .hero-promo-hint { margin: 10px 0 16px; }
+}

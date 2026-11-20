@@ -1,3 +1,4 @@
+from urllib.parse import urlsplit
 from decimal import Decimal
 from typing import Dict, List, Optional
 
@@ -209,12 +210,36 @@ class EventItemSettings(BaseModel):
     start_time: str = Field(max_length=10)
     end_time: str = Field(max_length=10)
     image_url: str = Field(max_length=300)
+    instagram_url: str = Field(default="", max_length=2048)
+    website_url: str = Field(default="", max_length=2048)
     enabled: bool = True
 
     @field_validator("id", "title", "kicker", "description", "date", "start_time", "end_time", "image_url")
     @classmethod
     def normalize_event_text(cls, value: str) -> str:
         return value.strip()
+
+    @field_validator("instagram_url", "website_url")
+    @classmethod
+    def validate_event_link(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            return value
+        try:
+            parsed = urlsplit(value)
+            valid = parsed.scheme in {"http", "https"} and parsed.hostname and not parsed.username and not parsed.password and not any(char.isspace() or ord(char) < 32 for char in value) and "\\" not in value
+            parsed.port
+        except ValueError:
+            valid = False
+        if not valid:
+            raise ValueError("Event links must be valid HTTP or HTTPS URLs without credentials")
+        return value
+
+
+class EventImageUploadResponse(BaseModel):
+    image_url: str
+    width: int
+    height: int
 
 
 class EventsSettings(BaseModel):
