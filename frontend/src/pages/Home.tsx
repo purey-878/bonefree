@@ -348,12 +348,12 @@ const HeroContent = styled.div`
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.62fr);
   box-sizing: border-box;
-  width: min(100%, 1280px);
-  min-height: 760px;
+  width: min(100%, 1360px);
+  min-height: 680px;
   align-items: center;
   gap: clamp(1.5rem, 4vw, 3rem);
   margin: 0 auto;
-  padding: 157px 1.5rem 80px;
+  padding: 148px 2rem 68px;
 
   @media (max-width: 1000px) {
     grid-template-columns: 1fr;
@@ -364,7 +364,7 @@ const HeroContent = styled.div`
     min-height: 0;
     flex-direction: column;
     align-items: stretch;
-    padding: 124px 1.25rem 40px;
+    padding: 116px 1.25rem 36px;
   }
 `;
 
@@ -413,15 +413,15 @@ const HeroTitle = styled.h1`
   max-width: min(100%, 860px);
   margin: 0;
   color: #ffffff;
-  font-size: clamp(2.7rem, 5.8vw, 5.3rem);
-  font-weight: 900;
-  letter-spacing: -.045em;
+  font-size: clamp(2.45rem, 5.1vw, 4.7rem);
+  font-weight: 700;
+  letter-spacing: -.015em;
   line-height: 1.04;
   overflow-wrap: break-word;
   text-wrap: balance;
 
   @media (max-width: 520px) {
-    font-size: clamp(2rem, 8vw, 2.7rem);
+    font-size: clamp(1.85rem, 7.2vw, 2.45rem);
     line-height: 1.04;
   }
 `;
@@ -430,7 +430,7 @@ const HeroText = styled.p`
   max-width: 590px;
   margin: 1.35rem 0 0;
   color: rgba(247, 250, 245, 0.82);
-  font-size: 1.03rem;
+  font-size: .97rem;
   line-height: 1.65;
 
   @media (max-width: 767px) {
@@ -451,8 +451,7 @@ const HeroActions = styled.div`
   }
 
   @media (max-width: 480px) {
-    align-items: stretch;
-    flex-direction: column;
+    align-items: flex-start;
   }
 `;
 
@@ -475,9 +474,9 @@ const HeroEventsLink = styled(Link)`
 const PrimaryCta = styled(Link)`
   ${homeAction}
   box-sizing: border-box;
-  min-height: 48px;
-  padding: 12px 20px;
-  font-size: .9rem;
+  min-height: 44px;
+  padding: 10px 16px;
+  font-size: .83rem;
 `;
 
 const SecondaryCta = styled(PrimaryCta)`
@@ -602,7 +601,7 @@ const PopularCarousel = styled.div`
 
   @media (max-width: 1000px) {
     grid-template-columns: none;
-    grid-auto-columns: minmax(300px, min(90vw, 420px));
+    grid-auto-columns: minmax(270px, min(82vw, 360px));
     grid-auto-flow: column;
     overflow-x: auto;
     overscroll-behavior-inline: contain;
@@ -621,7 +620,7 @@ const PopularCarousel = styled.div`
   }
 
   @media (max-width: 520px) {
-    grid-auto-columns: calc(100vw - 4.1rem);
+    grid-auto-columns: min(78vw, 340px);
     gap: 0.85rem;
     padding: 4px 4px 10px;
     scroll-padding-inline: 4px;

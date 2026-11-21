@@ -39,22 +39,86 @@
 .reservation-promo-context p { color: #526653; }
 .reservation-promo-context p:first-child:not(:last-child) { color: #294b3e; }
 
-.promo-notice--home { position: relative; width: 100%; max-width: 350px; min-width: 0; justify-self: end; align-self: center; padding: 26px 26px 10px; border: 1px solid #b8d39d66; border-top: 4px solid #fdcd43; border-radius: 24px 24px 8px 24px; background: #123e32ed; color: #fff8e8; box-shadow: 0 5px 0 #7baf4b88; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
-.hero-promo-kicker { display: flex; align-items: center; gap: 8px; color: #f6db8e; font-size: .72rem; line-height: 1.5; font-weight: 650; }
-.hero-promo-kicker svg { flex-shrink: 0; }
-.hero-promo-percentage { display: block; margin-top: 18px; color: #fdcd43; font-size: clamp(3.5rem, 6vw, 4.8rem); line-height: 1; font-weight: 900; letter-spacing: -.045em; }
-.promo-notice--home .hero-promo-scope { margin: 12px 0 0; color: #fff8e8; font-size: 1.3rem; line-height: 1.25; font-weight: 750; letter-spacing: -.02em; }
-.promo-notice--home .hero-promo-hint { margin: 14px 0 20px; color: #e0e9d4; font-size: .76rem; line-height: 1.65; }
-.promo-notice--home .reservation-promo-action { display: flex; justify-content: space-between; width: 100%; min-height: 46px; padding: 11px 14px; border: 1px solid #d2dbbc; border-radius: 13px 13px 13px 4px; background: #fff8e8; color: #285442; box-shadow: 0 3px 0 #7baf4b; font-size: .8rem; font-weight: 750; }
-.promo-notice--home .reservation-promo-action:hover { background: #e6efd7; }
-.promo-notice--home details { margin-top: 12px; border-top: 1px dashed #b8d39d4d; }
-.promo-notice--home summary { min-height: 42px; color: #e0e9d4; font-size: .67rem; }
-.promo-notice--home details p { color: #e0e9d4; }
-.promo-notice--home :is(a, summary):focus-visible { outline-color: #fdcd43; }
+/* A small offer ticket, using the homepage's warm paper and ink. */
+.promo-notice--home {
+  position: relative;
+  width: 100%;
+  max-width: 340px;
+  min-width: 0;
+  justify-self: end;
+  align-self: center;
+  padding: 20px 20px 6px;
+  border: 1px solid #dedbc4;
+  border-radius: 24px 24px 8px 24px;
+  background: #fffaf0;
+  color: #294b3e;
+  box-shadow: 0 5px 0 #294b3e, 0 16px 40px #122e2920;
+}
+.hero-promo-kicker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #526653;
+  font-size: .72rem;
+  line-height: 1.5;
+  font-weight: 650;
+}
+.hero-promo-kicker svg { flex-shrink: 0; color: #927118; }
+.hero-promo-offer { display: flex; align-items: center; gap: 18px; margin-top: 20px; }
+.hero-promo-percentage {
+  display: inline-grid;
+  flex-shrink: 0;
+  place-items: center;
+  min-width: 88px;
+  min-height: 88px;
+  padding: 12px;
+  border: 1px solid #c8a338;
+  border-radius: 45% 50% 43% 48%;
+  background: #ffdf7c;
+  color: #294b3e;
+  box-shadow: 0 3px 0 #d3b75a;
+  font-size: clamp(1.8rem, 3vw, 2.2rem);
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: -.05em;
+  transform: rotate(-7deg);
+}
+.promo-notice--home .hero-promo-scope {
+  min-width: 0;
+  margin: 0;
+  color: #294b3e;
+  font-size: clamp(1.15rem, 2vw, 1.45rem);
+  line-height: 1.2;
+  font-weight: 850;
+  letter-spacing: -.025em;
+  text-wrap: balance;
+}
+.promo-notice--home .hero-promo-hint { margin: 20px 0 0; padding: 0 0 18px; border-bottom: 1px dashed #c9ceb7; color: #64705b; font-size: .76rem; line-height: 1.65; }
+.promo-notice--home .reservation-promo-action {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 46px;
+  margin-top: 18px;
+  padding: 11px 14px;
+  border: 1px solid #294b3e;
+  border-radius: 13px 13px 13px 4px;
+  background: #e6efd7;
+  color: #294b3e;
+  box-shadow: 0 3px 0 #294b3e;
+  font-size: .8rem;
+  font-weight: 750;
+  transition: background 160ms ease;
+}
+.promo-notice--home .reservation-promo-action:hover { background: #d9e8c4; }
+.promo-notice--home details { margin-top: 8px; }
+.promo-notice--home summary { min-height: 42px; color: #64705b; font-size: .67rem; }
+.promo-notice--home details p { color: #526653; }
 @media (max-width: 1000px) { .promo-notice--home { justify-self: center; margin-inline: auto; } }
 @media (max-width: 767px) {
-  .promo-notice--home { padding: 20px 22px 6px; }
-  .hero-promo-percentage { margin-top: 14px; font-size: 3.5rem; }
-  .promo-notice--home .hero-promo-scope { font-size: 1.15rem; }
-  .promo-notice--home .hero-promo-hint { margin: 10px 0 16px; }
+  .promo-notice--home { padding: 20px 20px 6px; }
+  .hero-promo-offer { gap: 16px; margin-top: 16px; }
+  .hero-promo-percentage { min-width: 88px; min-height: 88px; font-size: 2rem; }
+  .promo-notice--home .hero-promo-hint { margin-top: 16px; padding-bottom: 16px; }
 }
+@media (prefers-reduced-motion: reduce) { .promo-notice--home .reservation-promo-action { transition: none; } }

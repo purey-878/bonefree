@@ -24,7 +24,7 @@ export const homeKicker = css`
 
 export const homeHeading = css`
   color: #294b3e;
-  font-size: clamp(2rem, 3.8vw, 3.2rem);
+  font-size: clamp(1.85rem, 3.4vw, 2.9rem);
   font-weight: 850;
   line-height: 1.1;
   letter-spacing: -.035em;
@@ -43,7 +43,7 @@ export const homeAction = css`
   border-radius: 15px 15px 15px 5px;
   background: var(--brand-accent, #fdcd43);
   color: #253e2c;
-  box-shadow: 0 3px 0 var(--brand-main, #7baf4b);
+  box-shadow: 0 3px 0 #294b3e;
   font: inherit;
   font-size: .84rem;
   font-weight: 750;
@@ -53,11 +53,11 @@ export const homeAction = css`
   cursor: pointer;
   transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
   svg { flex-shrink: 0; }
-  &:hover { transform: translateY(-2px); background: #ffdb70; color: #253e2c; box-shadow: 0 5px 0 var(--brand-main, #7baf4b); text-decoration: none; }
-  &:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--brand-main, #7baf4b); }
+  &:hover { transform: translateY(-2px); background: #ffdb70; color: #253e2c; box-shadow: 0 5px 0 #294b3e; text-decoration: none; }
+  &:active { transform: translateY(2px); box-shadow: 0 1px 0 #294b3e; }
   &:focus-visible { outline: 3px solid #076050; outline-offset: 4px; box-shadow: 0 0 0 7px #fff8e8; }
   @media (prefers-reduced-motion: reduce) {
     transition: none;
-    &:hover, &:active { transform: none; box-shadow: 0 3px 0 var(--brand-main, #7baf4b); }
+    &:hover, &:active { transform: none; box-shadow: 0 3px 0 #294b3e; }
   }
 `;

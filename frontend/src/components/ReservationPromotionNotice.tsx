@@ -33,8 +33,10 @@ export default function ReservationPromotionNotice({ promotion, variant = 'home'
   const terms = <details><summary>{t('promoTerms')}<ChevronDown size={13} aria-hidden="true" /></summary>{promotion.windows.length > 0 && <p>{promotion.windows.map(window => `${window.start}–${window.end}`).join(' · ')}</p>}{variant === 'home' && promotion.description && <p>{promotion.description}</p>}{promotion.conditions && <p>{promotion.conditions}</p>}<p>{t('promotionNote')}</p></details>;
   if (variant === 'home') return <aside className="reservation-promo-notice promo-notice--home" aria-label={t('promoKicker')}>
     <span className="hero-promo-kicker"><Sparkles size={16} aria-hidden="true" />{t('promoKicker')}</span>
-    <strong className="hero-promo-percentage"><span className="visually-hidden">{t('percentage')} </span>−{reservationPercent(promotion.percentage, resolvedLocale())}%</strong>
-    <h2 className="hero-promo-scope">{t('promoScope', { scope: promotion.scope })}</h2>
+    <div className="hero-promo-offer">
+      <strong className="hero-promo-percentage"><span className="visually-hidden">{t('percentage')} </span>−{reservationPercent(promotion.percentage, resolvedLocale())}%</strong>
+      <h2 className="hero-promo-scope">{t('promoScope', { scope: promotion.scope })}</h2>
+    </div>
     <p className="hero-promo-hint">{t('promoHint')}</p>
     <Link className="reservation-promo-action" to={`/reservations?date=${promotion.next_date}`}>{t('navigation.reserveTable', { ns: 'common' })}<ArrowUpRight size={18} aria-hidden="true" /></Link>
     {terms}
