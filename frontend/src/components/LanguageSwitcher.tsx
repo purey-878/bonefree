@@ -1,4 +1,4 @@
-import { Check, ChevronDown } from "lucide-react"
+import { Check, ChevronDown, Languages } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import type { KeyboardEvent as ReactKeyboardEvent } from "react"
 import { useTranslation } from "react-i18next"
@@ -126,7 +126,7 @@ export default function LanguageSwitcher({ className = "" }: { className?: strin
         data-open={open}
         onKeyDown={handleMenuKeyDown}
       >
-          <span className="language-switcher-heading">{t("language.label")}</span>
+          <span className="language-switcher-heading"><Languages size={15} aria-hidden="true" />{t("language.label")}</span>
           {LOCALE_OPTIONS.map((option) => {
             const selected = option.code === currentLocale
             return (

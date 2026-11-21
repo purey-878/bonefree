@@ -26,7 +26,20 @@ export default function HomeUpcomingEvents() {
       const date = publicEventDate(event.date, resolvedLocale());
       return <Card className="home-event-card" key={event.id}>
         <Photo><EventPhoto event={event} />{index === 0 && <div className="next-label"><ProductLabel>{t('events.next')}</ProductLabel></div>}</Photo>
-        <Copy>{event.kicker && <span className="event-kicker">{event.kicker}</span>}<h3>{event.title}</h3><p>{event.description}</p><time dateTime={event.date} className="event-date"><CalendarDays size={16} aria-hidden="true" />{date.full}</time><span className="event-time"><Clock3 size={16} aria-hidden="true" />{event.startTime}–{event.endTime}{event.endTime <= event.startTime && ` · ${t('events.nextDay')}`}</span><EventLinks event={event} /><div className="event-actions"><Link to="/events">{t('events.viewEvents')}<ArrowUpRight size={18} aria-hidden="true" /></Link><Link className="reservation-reserve-button" to={promotion ? `/reservations?date=${promotion.next_date}` : "/reservations"}>{t('home.reserveTable')}<ReservationPromotionBadge promotion={promotion} compact /></Link></div></Copy>
+        <Copy>
+          <Music2 className="event-copy-doodle" size={72} aria-hidden="true" />
+          {event.kicker && <span className="event-kicker">{event.kicker}</span>}
+          <h3>{event.title}</h3>
+          <div className="event-meta">
+            <time dateTime={event.date} className="event-date"><CalendarDays size={16} aria-hidden="true" />{date.full}</time>
+            <span className="event-time"><Clock3 size={16} aria-hidden="true" />{event.startTime}–{event.endTime}{event.endTime <= event.startTime && ` · ${t('events.nextDay')}`}</span>
+          </div>
+          {event.description && <p>{event.description}</p>}
+          <div className="event-actions">
+            <Link className="reservation-reserve-button" to={promotion ? `/reservations?date=${promotion.next_date}` : "/reservations"}>{t('home.reserveTable')}<ReservationPromotionBadge promotion={promotion} compact /><ArrowUpRight size={17} aria-hidden="true" /></Link>
+            <EventLinks event={event} />
+          </div>
+        </Copy>
       </Card>;
     })}</Grid> : null}
     {status === 'ready' && upcomingEvents.length > visibleCount && <MoreButton type="button" onClick={() => setVisibleCount(count => count + 2)}>{t('events.showMore', { count: upcomingEvents.length - visibleCount })}<ArrowUpRight size={18} aria-hidden="true" /></MoreButton>}
@@ -46,9 +59,9 @@ const Heading = styled.div`
   justify-content: space-between;
   align-items: flex-end;
   gap: 25px;
-  margin-bottom: 30px;
+  margin-bottom: 24px;
   > div > span { ${homeKicker} }
-  h2 { ${homeHeading} margin: 14px 0 0; }
+  h2 { ${homeHeading} margin: 12px 0 0; font-weight: 750; }
   > a { ${homeAction} flex-shrink: 0; background: var(--home-paper); }
 
   @media (max-width: 640px) { flex-direction: column; align-items: flex-start; gap: 12px; }
@@ -56,33 +69,81 @@ const Heading = styled.div`
 const Grid = styled.div<{ $single: boolean }>`
   display: grid;
   grid-template-columns: ${({$single}) => $single ? 'minmax(0, 1fr)' : 'repeat(2, minmax(0, 1fr))'};
-  gap: 26px;
-  > article { display: ${({$single}) => $single ? 'grid' : 'block'}; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); }
-  @media (max-width: 750px) { grid-template-columns: 1fr; > article { display: block; } }
+  gap: 24px;
+  width: 100%;
+  max-width: ${({$single}) => $single ? '1040px' : 'none'};
+  margin-inline: auto;
+  --event-photo-height: ${({$single}) => $single ? '340px' : '260px'};
+  > article {
+    display: ${({$single}) => $single ? 'grid' : 'flex'};
+    flex-direction: column;
+    grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr);
+  }
+  @media (max-width: 750px) {
+    grid-template-columns: 1fr;
+    --event-photo-height: 280px;
+    > article { display: flex; }
+  }
 `;
 const Card = styled.article`
   min-width: 0;
   overflow: hidden;
   ${homeCard}
+  background: #fffaf0;
+  border-color: #cbd8b9;
+  &:nth-child(even) { --event-photo-tint: #fff0c4; }
 `;
 const Photo = styled.div`
   position: relative;
-  .event-photo-playful { background: #edf2e4; }
-  .event-photo-print { border-radius: 18px 18px 18px 6px; box-shadow: 0 4px 0 #7baf4b33; }
-  .event-photo-print > img { border-radius: 12px; }
+  min-width: 0;
+  .event-photo-playful {
+    height: var(--event-photo-height);
+    min-height: 0;
+    padding: 24px 32px;
+    background: var(--event-photo-tint, #e6efd7);
+    border-bottom: 1px dashed #b5c69c;
+  }
+  .event-photo-print {
+    width: fit-content;
+    max-width: 100%;
+    height: 100%;
+    padding: 8px 8px 14px;
+    border-radius: 18px 18px 18px 6px;
+    box-shadow: 0 4px 0 #294b3e26;
+  }
+  .event-photo-print > img {
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 12px;
+  }
+  .event-photo-date { right: 16px; top: 16px; min-width: 56px; padding: 10px 8px; }
+  .event-photo-date strong { font-size: 1.5rem; }
   .next-label { position: absolute; z-index: 3; bottom: 12px; left: 0; }
 `;
 const Copy = styled.div`
-  padding: 28px;
-  .event-kicker { ${homeKicker} }
-  h3 { margin: 12px 0 15px; color: var(--brand-ink); font-size: clamp(1.7rem, 2.5vw, 2.3rem); font-weight: 900; line-height: 1.15; letter-spacing: -.03em; overflow-wrap: anywhere; }
-  > p { margin: 0 0 22px; color: var(--brand-muted); font-size: .88rem; line-height: 1.8; }
-  .event-date, .event-time { display: flex; align-items: center; gap: 9px; color: var(--brand-muted); font-size: .78rem; line-height: 1.6; margin-top: 10px; }
+  position: relative;
+  min-width: 0;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: clamp(22px, 3vw, 36px);
+  .event-copy-doodle { position: absolute; right: 20px; top: 20px; color: #7baf4b; opacity: .12; transform: rotate(15deg); pointer-events: none; }
+  .event-kicker { ${homeKicker} max-width: 100%; overflow-wrap: anywhere; background: #ffe39a; transform: rotate(-2deg); }
+  h3 { position: relative; margin: 12px 0 16px; color: #294b3e; font-size: clamp(1.65rem, 2.6vw, 2.3rem); font-weight: 750; line-height: 1.15; letter-spacing: -.015em; overflow-wrap: anywhere; }
+  > p { width: 100%; margin: 18px 0 0; color: #64705b; font-size: .87rem; line-height: 1.7; white-space: pre-line; overflow-wrap: anywhere; }
+  .event-meta { display: flex; flex-wrap: wrap; gap: 8px; }
+  .event-date, .event-time { display: inline-flex; align-items: center; gap: 7px; max-width: 100%; padding: 8px 10px; border-radius: 11px 11px 4px 11px; background: #e6efd7; color: #375744; font-size: .72rem; font-weight: 650; line-height: 1.5; }
+  .event-time { background: #fff0c4; }
   svg { flex-shrink: 0; }
-  .event-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; padding-top: 20px; margin-top: 20px; border-top: 1px dashed var(--home-line); }
-  .event-actions a { ${homeAction} font-size: .75rem; }
-  .event-actions a:last-child { background: var(--home-paper); border-radius: 15px 15px 5px 15px; }
-  .event-useful-links > a { border-radius: 13px 13px 13px 4px; background: #edf2e4; border-color: var(--home-line); }
+  .event-actions { display: flex; align-items: center; flex-wrap: wrap; width: 100%; gap: 12px; padding-top: 18px; margin-top: 20px; border-top: 1px dashed #d0d9c2; }
+  .event-actions > a { ${homeAction} font-size: .75rem; }
+  .event-useful-links { margin: 0; gap: 10px; }
+  .event-useful-links > a { min-height: 46px; padding: 11px 15px; border-radius: 13px 13px 13px 4px; background: #edf2e4; border-color: #d0d9c2; color: #375744; font-size: .75rem; }
+  .event-useful-links > a:hover { background: #e0ebd2; }
   @media (max-width: 480px) { padding: 22px; }
 `;
 const State = styled.div`

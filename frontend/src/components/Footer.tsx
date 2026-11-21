@@ -39,6 +39,11 @@ const Footer: React.FC = () => {
 
   return (
     <footer className="footer bf-footer">
+      <svg className="bf-footer-wave" viewBox="0 0 1440 96" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+        <path d="M0 28 C170 67 330 0 520 23 S820 66 1030 27 S1280 4 1440 24 L1440 96 L0 96 Z" fill="#fdcd43" opacity=".55" />
+        <path d="M0 38 C190 76 315 13 510 34 S800 77 1025 39 S1250 18 1440 34 L1440 96 L0 96 Z" fill="#c8dbb1" />
+        <path d="M0 48 C180 88 300 16 510 42 S810 92 1020 52 S1260 24 1440 50 L1440 96 L0 96 Z" fill="#f8f0d5" />
+      </svg>
       <div className="bf-footer-doodles" aria-hidden="true"><Sun /><Leaf /><Waves /></div>
       <div className="bf-footer-inner">
         <div className="bf-footer-intro">
