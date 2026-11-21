@@ -553,6 +553,6 @@ export function ProductCard({
         </ProductFooter>
       </ProductBody>
     </ProductCardShell>
-    {previewOpen && <ProductImageLightbox src={resolveImageSrc(primaryProductMediaUrl(product.media, 'detail'))} alt={product.name} onClose={() => setPreviewOpen(false)} />}
+    {previewOpen && <ProductImageLightbox src={resolveImageSrc(primaryProductMediaUrl(product.media, 'detail'))} alt={product.name} description={product.description} detailsHref={`/product/${encodeURIComponent(String(product.id))}`} onClose={() => setPreviewOpen(false)} />}
   </>)
 }

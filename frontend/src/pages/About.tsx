@@ -30,6 +30,35 @@ export default function About() {
           <VeganSeal><Leaf size={28} aria-hidden="true" /><span>{t('productDetail.vegan')}</span></VeganSeal>
         </HeroPhotos>
       </HeroInner>
+      <HeroFoliage viewBox="0 0 1440 140" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+        <defs>
+          <g id="about-hero-sprig">
+            <path d="M0 108 Q15 53 0 4" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+            <path d="M7 80 C-21 85 -40 66 -36 43 C-11 42 5 58 7 80Z M8 60 C34 62 49 42 44 24 C20 25 7 41 8 60Z M5 38 C-17 38 -30 22 -24 5 C-5 8 5 20 5 38Z M1 20 C17 10 24 -6 16 -21 C0 -12 -5 4 1 20Z" />
+          </g>
+          <path id="about-hero-leaf" d="M0 0 C-30 -14 -44 -48 -30 -77 C3 -66 19 -30 0 0Z" />
+        </defs>
+        <g fill="#94b875" color="#94b875">
+          <use href="#about-hero-sprig" transform="translate(85 31) rotate(-20)" />
+          <use href="#about-hero-sprig" transform="translate(365 22) rotate(18)" />
+          <use href="#about-hero-sprig" transform="translate(670 39) rotate(-15)" />
+          <use href="#about-hero-sprig" transform="translate(1020 25) rotate(20)" />
+          <use href="#about-hero-sprig" transform="translate(1330 30) rotate(-17)" />
+        </g>
+        <path d="M0 95 Q170 123 350 100 T700 104 T1060 99 T1440 100 L1440 140 L0 140Z" fill="#c8dbb1" />
+        <g fill="currentColor" color="inherit">
+          <use href="#about-hero-leaf" transform="translate(30 128) rotate(-35)" />
+          <use href="#about-hero-sprig" transform="translate(200 42) rotate(24)" />
+          <use href="#about-hero-leaf" transform="translate(455 124) rotate(30) scale(1.1)" />
+          <use href="#about-hero-sprig" transform="translate(565 54) rotate(-24)" />
+          <use href="#about-hero-leaf" transform="translate(805 126) rotate(-25)" />
+          <use href="#about-hero-sprig" transform="translate(900 47) rotate(22)" />
+          <use href="#about-hero-leaf" transform="translate(1170 127) rotate(32) scale(1.1)" />
+          <use href="#about-hero-sprig" transform="translate(1250 51) rotate(-20)" />
+          <use href="#about-hero-leaf" transform="translate(1430 130) rotate(20)" />
+          <path d="M0 111 Q165 137 350 116 T700 118 T1060 115 T1440 116 L1440 140 L0 140Z" />
+        </g>
+      </HeroFoliage>
     </Hero>
 
     <Content>
@@ -70,8 +99,20 @@ const Hero = styled.section`
   isolation: isolate;
   background: radial-gradient(ellipse at 85% 20%, rgba(123, 175, 75, .2), transparent 55%), #073f34;
   color: #fff;
-  border-radius: 0 0 48px 48px;
-  @media (max-width: 640px) { border-radius: 0 0 30px 30px; }
+  overflow: hidden;
+`;
+
+const HeroFoliage = styled.svg`
+  position: absolute;
+  z-index: 1;
+  bottom: -1px;
+  left: 50%;
+  display: block;
+  width: max(100%, 960px);
+  height: clamp(100px, 10vw, 140px);
+  color: var(--background-body);
+  transform: translateX(-50%);
+  pointer-events: none;
 `;
 
 const HeroInner = styled.div`
@@ -82,8 +123,8 @@ const HeroInner = styled.div`
   gap: clamp(40px, 7vw, 90px);
   width: min(1240px, calc(100% - 64px));
   margin: 0 auto;
-  padding: 145px 0 100px;
-  @media (max-width: 850px) { grid-template-columns: 1fr; gap: 50px; padding: 120px 0 80px; }
+  padding: 145px 0 145px;
+  @media (max-width: 850px) { grid-template-columns: 1fr; gap: 50px; padding: 120px 0 125px; }
   @media (max-width: 640px) { width: calc(100% - 40px); padding-top: 105px; }
 `;
 

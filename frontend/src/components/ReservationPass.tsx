@@ -1,4 +1,4 @@
-import { CalendarDays, CalendarX2, Clock3, Copy, Download, MapPin, Sprout, Tag, Users } from 'lucide-react';
+import { CalendarDays, CalendarX2, Check, Clock3, Copy, Download, MapPin, Tag, Users, UtensilsCrossed } from 'lucide-react';
 import { reservationPercent } from '../utils/reservationFormatting';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -64,6 +64,7 @@ export default function ReservationPass({ pass, token, onUpdate }: { pass: PassR
   };
   return <div className="reservation-confirmation">
     <header className="reservation-confirmation-heading">
+      <span className="reservation-confirmation-kicker"><UtensilsCrossed size={16} aria-hidden="true" />Bonefree · {t('ticketLabel')}</span>
       <h1 ref={title} tabIndex={-1}>{active ? t('confirmedHeading') : t(pass.status)}</h1>
       <p>{active ? t('savePassInstruction') : t('inactive')}</p>
     </header>
@@ -71,15 +72,18 @@ export default function ReservationPass({ pass, token, onUpdate }: { pass: PassR
       <article className={`reservation-pass${active ? '' : ' reservation-pass-inactive'}`} aria-labelledby="reservation-pass-status">
         <div className="reservation-ticket-main">
         <header className="reservation-ticket-header">
-          <img {...brandLogo} sizes="96px" className="reservation-logo" alt="BoneFree" />
-          <h2 id="reservation-pass-status" className="reservation-ticket-status">{t(pass.status)}</h2>
-          {active && <span className="reservation-ticket-rays" aria-hidden="true" />}
+          <img {...brandLogo} sizes="72px" className="reservation-logo" alt="BoneFree" />
+          <div className="reservation-ticket-heading-copy">
+            <p className="reservation-ticket-label">{t('ticketLabel')}</p>
+            <h2 id="reservation-pass-status" className="reservation-ticket-status">{active ? <Check size={15} aria-hidden="true" /> : <CalendarX2 size={15} aria-hidden="true" />}{t(pass.status)}</h2>
+          </div>
         </header>
         <div className="reservation-ticket-body">
+          <div className="reservation-ticket-guest"><span>{t('reservedFor')}</span><h3 className="reservation-ticket-name">{pass.name}</h3></div>
           <dl className="reservation-pass-grid">
-            <div className="reservation-ticket-date"><dt><CalendarDays size={22} aria-hidden="true" /><span className="visually-hidden">{t('date')}</span></dt><dd>{date}</dd></div>
-            <div><dt><Clock3 size={22} aria-hidden="true" /><span className="visually-hidden">{t('time')}</span></dt><dd>{pass.time}</dd></div>
-            <div><dt><Users size={22} aria-hidden="true" /><span className="visually-hidden">{t('guests')}</span></dt><dd>{t('guestCount', { count: pass.guests })}</dd></div>
+            <div className="reservation-ticket-date"><dt><CalendarDays size={22} aria-hidden="true" /><span>{t('date')}</span></dt><dd>{date}</dd></div>
+            <div><dt><Clock3 size={22} aria-hidden="true" /><span>{t('time')}</span></dt><dd>{pass.time}</dd></div>
+            <div><dt><Users size={22} aria-hidden="true" /><span>{t('guests')}</span></dt><dd>{t('guestCount', { count: pass.guests })}</dd></div>
           </dl>
           {active && pass.promotion && <section className="reservation-offer" aria-label={t('awarded')}>
             <Tag size={21} strokeWidth={1.8} aria-hidden="true" />
@@ -93,13 +97,16 @@ export default function ReservationPass({ pass, token, onUpdate }: { pass: PassR
         </div>
         </div>
         <footer className="reservation-ticket-stub">
-          <Sprout size={28} strokeWidth={1.8} aria-hidden="true" />
-          <h3 className="reservation-ticket-name">{pass.name}</h3>
+          <span className="reservation-ticket-seal" aria-hidden="true"><UtensilsCrossed size={28} strokeWidth={1.6} /></span>
           <dl className="reservation-reference"><dt>{t('reference')}</dt><dd><strong>{pass.reference}</strong></dd></dl>
+          {active && <span className="reservation-ticket-cheers">{t('ticketCheers')}</span>}
         </footer>
       </article>
     </div>
-    {(active || cancelError) && <section className={`reservation-pass-cancellation${confirmingCancellation || !pass.can_cancel ? ' is-expanded' : ''}`} aria-label={t('cancelReservation')}>
+    <div className="reservation-confirmation-tools">
+    {(active || cancelError) && <section className={`reservation-pass-cancellation${confirmingCancellation || !pass.can_cancel ? ' is-expanded' : ''}`} aria-labelledby="reservation-manage-title">
+      <h2 id="reservation-manage-title">{t('manageReservation')}</h2>
+      {active && pass.can_cancel && <p className="reservation-manage-hint">{t('manageHint')}</p>}
       {pass.can_cancel ? confirmingCancellation ? <div id="reservation-cancel-confirmation" role="group" aria-labelledby="reservation-cancel-title" aria-busy={cancelBusy}>
         <h2 id="reservation-cancel-title">{t('cancelTitle')}</h2>
         <p>{t('cancelQuestion', { date, time: pass.time })}</p>
@@ -111,6 +118,7 @@ export default function ReservationPass({ pass, token, onUpdate }: { pass: PassR
       {cancelError && <p className="reservation-cancel-error" role="alert">{cancelError}</p>}
     </section>}
     <section className="reservation-pass-actions" aria-label={t('savePass')}>
+      <h2>{t('savePass')}</h2>
       <button type="button" className="reservation-primary" onClick={() => { void download(); }} disabled={busy || cancelBusy}><Download size={19} aria-hidden="true" />{busy ? t('loading') : t('download')}</button>
       <div className="reservation-private-link">
         <button type="button" onClick={() => { void copy(); }} aria-describedby="reservation-private-link-note"><Copy size={16} aria-hidden="true" />{t('copyPrivateLink')}</button>
@@ -128,5 +136,6 @@ export default function ReservationPass({ pass, token, onUpdate }: { pass: PassR
       <Link to="/reservations">{t('back')}</Link>
 
     </footer>
+    </div>
   </div>;
 }

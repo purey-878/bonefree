@@ -1,6 +1,6 @@
 import ReservationPromotionNotice, { ReservationPromotionSelection } from '../components/ReservationPromotionNotice';
 import { useReservationPromotion } from '../hooks/useReservationPromotion';
-import { ArrowRight, ChevronDown, Clock3, Minus, Plus, Shell } from 'lucide-react';
+import { ArrowRight, ChevronDown, Clock3, Minus, Plus, Shell, Sun } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -100,7 +100,16 @@ export default function Reservations() {
   return <><Navbar /><main className={`reservation-page${privatePage ? ' reservation-confirmation-page' : ''}`}>
     {!privatePage && settings?.enabled && <ReservationPromotionNotice promotion={promotion} variant="booking" onChoose={choosePromotionDate} selection={promotionSelection} />}
     {privatePage ? pass ? <ReservationPass key={`${token}:${locale}`} pass={pass} token={token} onUpdate={next => setLoadedPass(current => current?.token === token && current.locale === locale ? { ...current, pass: next } : current)} /> : <section className="reservation-card"><h1>{t('title')}</h1><p role={error ? 'alert' : 'status'}>{error || (/^[a-f0-9]{64}$/.test(token) ? t('loading') : t('lost'))}</p>{error && <button onClick={() => { setError(''); setRefresh(value => value + 1); }}>{t('retry')}</button>}<Link to="/contact">{t('contact')}</Link></section> : <section className="reservation-card reservation-booking-card reservation-beach-layout">
-      <div className="reservation-beach-intro"><span className="reservation-beach-kicker"><Shell size={17} aria-hidden="true" />Bonefree · Costa da Caparica</span><h1>{t('title')}</h1><p>{t('intro')}</p></div>
+      <div className="reservation-beach-intro">
+        <Sun className="reservation-intro-sun" size={92} strokeWidth={1.25} aria-hidden="true" />
+        <span className="reservation-beach-kicker"><Shell size={17} aria-hidden="true" />Bonefree · Costa da Caparica</span>
+        <h1>{t('title')}</h1><p>{t('intro')}</p>
+        <svg className="reservation-intro-dunes" viewBox="0 0 680 70" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+          <path d="M0 32 Q110 0 245 30 T470 28 T680 18 V70 H0Z" fill="#d9bd8e" />
+          <path d="M0 43 Q135 20 270 43 T500 40 T680 37 V70 H0Z" fill="#efdfc2" />
+          <path d="M0 56 Q120 35 280 53 T500 52 T680 50 V70 H0Z" fill="#f3e7d2" />
+        </svg>
+      </div>
       <div className="reservation-booking-content">
       {error && <p role="alert" className="reservation-warning">{error}</p>}
       {!settings ? <><p role="status">{error ? '' : t('loading')}</p>{error && <button onClick={() => setRefresh(value => value + 1)}>{t('retry')}</button>}</> : !settings.enabled ? <><p>{t('paused')}</p><Link to="/contact">{t('contact')}</Link></> : <form id="reservation-booking-form" onSubmit={event => { void submit(event); }}>

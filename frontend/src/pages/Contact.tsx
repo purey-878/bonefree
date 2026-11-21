@@ -20,6 +20,22 @@ export default function Contact() {
         <HeroCopy><Kicker><Sun size={20} aria-hidden="true" />{t('contact.location')}</Kicker><h1>{t('contact.heroTitle')}</h1><p>{t('contact.heroDescription')}</p><HeroActions><Action href={mapsUrl} target="_blank" rel="noopener noreferrer"><Route size={19} aria-hidden="true" />{t('contact.directions')}<ArrowUpRight size={18} aria-hidden="true" /></Action><HeroLink to="/reservations">{t('home.reserveTable')}<ArrowUpRight size={18} aria-hidden="true" /></HeroLink></HeroActions></HeroCopy>
         <HeroPhoto><img src="/assets/images/contact-us-image.jpg" alt={t('contact.restaurantAlt')} fetchPriority="high" /><figcaption><MapPin size={16} aria-hidden="true" />Costa da Caparica</figcaption><SunSeal aria-hidden="true"><Sun size={51} strokeWidth={1.6} /></SunSeal></HeroPhoto>
       </HeroInner>
+      <HeroSunrise viewBox="0 0 1440 160" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+        <defs>
+          <g id="contact-hero-sun">
+            <circle r="58" fill="currentColor" />
+            <path d="M-80 0 H-103 M-74 -31 L-94 -40 M-56 -56 L-73 -73 M-31 -74 L-40 -96 M0 -80 V-105 M31 -74 L40 -96 M56 -56 L73 -73 M74 -31 L94 -40 M80 0 H103" fill="none" stroke="currentColor" strokeWidth="10" strokeLinecap="round" />
+          </g>
+        </defs>
+        <path d="M0 120 Q175 142 360 121 T720 123 T1080 119 T1440 121 L1440 160 L0 160Z" fill="#fff0c4" />
+        <g color="#fff7df">
+          <use href="#contact-hero-sun" transform="translate(175 150) scale(.65) rotate(-8)" />
+          <use href="#contact-hero-sun" transform="translate(1265 151) scale(.65) rotate(8)" />
+        </g>
+        <use href="#contact-hero-sun" transform="translate(720 148)" color="#fffdf6" />
+        <path d="M0 139 Q175 157 360 139 T720 140 T1080 137 T1440 140 L1440 160 L0 160Z" fill="#fffdf6" />
+        <g fill="#fff7df"><circle cx="420" cy="107" r="3" /><circle cx="1030" cy="100" r="3" /></g>
+      </HeroSunrise>
     </Hero>
 
     <Content>
@@ -56,9 +72,19 @@ const Page = styled.main`
 const Hero = styled.section`
   position: relative;
   isolation: isolate;
-  border-radius: 0 0 48px 48px;
+  overflow: hidden;
   background: linear-gradient(180deg, rgba(91, 58, 13, .32), transparent 145px), radial-gradient(ellipse at 80% 5%, #fff0b5, transparent 60%), linear-gradient(135deg, #f9d25e, #ffdc81);
-  @media (max-width: 640px) { border-radius: 0 0 30px 30px; }
+`;
+const HeroSunrise = styled.svg`
+  position: absolute;
+  z-index: 1;
+  bottom: -1px;
+  left: 50%;
+  display: block;
+  width: max(100%, 960px);
+  height: clamp(110px, 11vw, 160px);
+  transform: translateX(-50%);
+  pointer-events: none;
 `;
 const HeroInner = styled.div`
   display: grid;
@@ -67,8 +93,8 @@ const HeroInner = styled.div`
   align-items: center;
   width: min(1240px, calc(100% - 64px));
   margin: 0 auto;
-  padding: 135px 0 85px;
-  @media (max-width: 850px) { grid-template-columns: 1fr; gap: 48px; padding: 110px 0 65px; }
+  padding: 135px 0 135px;
+  @media (max-width: 850px) { grid-template-columns: 1fr; gap: 48px; padding: 110px 0 115px; }
   @media (max-width: 640px) { width: calc(100% - 40px); }
 `;
 const HeroCopy = styled.div`

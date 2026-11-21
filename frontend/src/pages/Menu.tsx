@@ -2,7 +2,7 @@ import { ReservationPromotionBadge } from '../components/ReservationPromotionNot
 import { useReservationPromotion } from '../hooks/useReservationPromotion';
 import { restoreMenuPriceRange } from "../utils/menuFilters";
 import { resolvedLocale } from "../i18n";
-import { CalendarDays, CakeSlice, Check, ChevronDown, CupSoda, MessageCircle, Salad, Sandwich, Search, SlidersHorizontal, Soup, Sparkles, X } from "lucide-react";
+import { ArrowRight, CalendarDays, CakeSlice, Check, ChevronDown, CupSoda, MessageCircle, Salad, Sandwich, Search, SlidersHorizontal, Soup, Sparkles, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useNavigationType, useSearchParams } from "react-router-dom";
 
@@ -355,7 +355,8 @@ function Menu() {
               <path d="M70 19V27M66 23H74" stroke="#164c39" strokeWidth="2.5" strokeLinecap="round" />
             </svg>
             <span className="menu-paulo-prompt">{t("menu.finderPrompt")}</span>
-            <span className="menu-paulo-action">{t("menu.finderAction")} <span aria-hidden="true"><MessageCircle size="1em" /></span></span>
+            <span className="menu-paulo-description">{t("menu.finderDescription")}</span>
+            <span className="menu-paulo-action"><MessageCircle size={18} aria-hidden="true" />{t("menu.finderAction")}<ArrowRight size={17} aria-hidden="true" /></span>
           </Link>
         </header>
 

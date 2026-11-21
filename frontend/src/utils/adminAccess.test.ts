@@ -15,6 +15,11 @@ describe('content administration access', () => {
     expect(adminTabsForRole('owner')).toContain('staff');
     expect(adminTabForRole('manager', 'settings')).toBe('products');
   });
+  it('exposes the standalone events workspace only to owners', () => {
+    expect(adminTabsForRole('owner')).toContain('events');
+    expect(adminTabForRole('owner', 'events')).toBe('events');
+    expect(adminTabForRole('manager', 'events')).toBe('products');
+  });
   it('falls back to products for retired tabs and login destinations', () => {
     for (const tab of ['orders', 'reviews', 'clientes', 'analytics', 'dashboard', null]) {
       expect(adminTabForRole('owner', tab)).toBe('products');

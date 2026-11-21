@@ -1,3 +1,4 @@
+import { brandLogo } from "../constants/brandLogo"
 import EventsEditor from "../components/admin/EventsEditor"
 import { eventImageFallback, eventsHaveIssues } from "../utils/eventEditor"
 import PricingOptionsEditor from "../components/admin/PricingOptionsEditor"
@@ -6,7 +7,7 @@ import { saveProductDraft } from "../services/productEditor"
 import CatalogLanguageTabs from "../components/admin/CatalogLanguageTabs"
 import { catalogText, editCatalogTranslation } from "../utils/catalogTranslations"
 import type { CatalogLocale, CatalogText } from "../utils/catalogTranslations"
-import { Menu, MoreHorizontal, Search, SlidersHorizontal, X } from "lucide-react"
+import { ArrowUpRight, Menu, MoreHorizontal, Search, SlidersHorizontal, Sprout, X } from "lucide-react"
 import type { FormEvent, MouseEvent, SyntheticEvent } from "react"
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -98,6 +99,7 @@ import { translateUserMessage } from "../utils/messages"
 import { persistOptimisticUpdate } from "../utils/optimisticUpdate"
 import { primaryProductMediaUrl, productMediaUrl } from "../utils/productMedia"
 import "./AdminDashboard.css"
+import "./AdminWorkspace.css"
 
 function getImageUrl(imagePath: string): string {
   return resolveProductImageUrl(imagePath)
@@ -112,7 +114,7 @@ const ReservationAdmin = lazy(() => import('../components/admin/ReservationAdmin
 
 type TabType = AdminDashboardTab
 type AdminTheme = "light" | "dark"
-type SiteSettingsTab = "promote" | "theme" | "company" | "social" | "events"
+type SiteSettingsTab = "promote" | "theme" | "company" | "social"
 
 type ProductFilterState = {
   name: string
@@ -151,6 +153,7 @@ function getErrorMessage(error: unknown, fallback: string): string {
 
 const NAV_ITEMS: { tab: TabType; label: string; icon: string }[] = [
   { tab: "meal-finder", label: "Meal Finder", icon: "M4 6h16M4 12h16M4 18h7" },
+  { tab: "events", label: "Gerir eventos", icon: "M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14H3V6a2 2 0 0 1 2-2M8 14h3M8 18h7" },
   { tab: "reservations", label: "Reservas", icon: "M4 5h16v16H4zM8 2v6M16 2v6M4 11h16" },
   { tab: "products", label: "Produtos", icon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" },
   { tab: "ingredients", label: "Ingredientes", icon: "M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48 2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48 2.83-2.83" },
@@ -164,7 +167,6 @@ const SETTINGS_TABS: { id: SiteSettingsTab; label: string; description: string }
   { id: "theme", label: "Tema do site", description: "Aspeto sazonal do website" },
   { id: "company", label: "Detalhes da empresa", description: "Marca e contacto no rodapé" },
   { id: "social", label: "Redes sociais", description: "Links dos ícones do rodapé" },
-  { id: "events", label: "Gerir eventos", description: "Datas e horários futuros" },
 ]
 
 const THEME_COLOR_FIELDS: { key: keyof ThemeColors; label: string; helper: string }[] = [
@@ -185,7 +187,8 @@ function isHexColor(value: string) {
 
 const NAV_GROUPS: { label: string; tabs: TabType[] }[] = [
 
-  { label: "Menu", tabs: ["products", "ingredients", "categories", "reservations", "meal-finder"] },
+  { label: "Menu", tabs: ["products", "ingredients", "categories", "meal-finder"] },
+  { label: "Restaurante", tabs: ["reservations", "events"] },
 
   { label: "Admin", tabs: ["staff", "settings"] },
 ]
@@ -283,7 +286,6 @@ function SiteSettingsPanel({
   chefSpecial,
   companyDetails,
   socialMedia,
-  eventsSettings,
   loading,
   products,
   saving,
@@ -292,15 +294,12 @@ function SiteSettingsPanel({
   onChefSpecialChange,
   onCompanyDetailsChange,
   onSocialMediaChange,
-  onEventsSettingsChange,
-  onSaveEvents,
   onSave,
 }: {
   value: SiteThemeResponse
   chefSpecial: ChefSpecialSettings
   companyDetails: CompanyDetailsSettings
   socialMedia: SocialMediaSettings
-  eventsSettings: EventsSettings
   loading: boolean
   products: AdminProduct[]
   saving: boolean
@@ -309,11 +308,8 @@ function SiteSettingsPanel({
   onChefSpecialChange: (value: ChefSpecialSettings) => void
   onCompanyDetailsChange: (value: CompanyDetailsSettings) => void
   onSocialMediaChange: (value: SocialMediaSettings) => void
-  onEventsSettingsChange: (value: EventsSettings) => void
-  onSaveEvents: () => void
   onSave: () => void
 }) {
-  const { t: eventText } = useTranslation("adminEvents")
   const [activeSettingsTab, setActiveSettingsTab] = useState<SiteSettingsTab>("promote")
   const colors = value.config.colors
   const selectedPreset = themePresetById(value.themeId)
@@ -405,15 +401,15 @@ function SiteSettingsPanel({
         <div className="ad-section-bar">
           <div>
             <h2 className="ad-section-title">Definições do website</h2>
-            <p className="ad-section-sub">Gerir destaques do menu, tema, detalhes da empresa, eventos e links sociais.</p>
+            <p className="ad-section-sub">Gerir destaques do menu, tema, detalhes da empresa e links sociais.</p>
           </div>
           <div className="ad-settings-actions">
             {saved && <span className="ad-settings-saved">Guardado</span>}
             {activeSettingsTab === "theme" && (
               <button className="ad-btn ad-btn-ghost" disabled={saving || loading} onClick={() => onChange(defaultSiteThemeResponse)}>Repor tema</button>
             )}
-            <button className="ad-btn ad-btn-primary" disabled={saving || loading} type={activeSettingsTab === "events" ? "submit" : "button"} form={activeSettingsTab === "events" ? "admin-events-form" : undefined} onClick={activeSettingsTab === "events" ? undefined : onSave}>
-              {activeSettingsTab === "events" ? eventText(saving ? "saving" : "publish") : saving ? "A guardar..." : "Publicar definições"}
+            <button className="ad-btn ad-btn-primary" disabled={saving || loading} type="button" onClick={onSave}>
+              {saving ? "A guardar..." : "Publicar definições"}
             </button>
           </div>
         </div>
@@ -685,9 +681,6 @@ function SiteSettingsPanel({
           </section>
         )}
 
-        {activeSettingsTab === "events" && (
-          <EventsEditor value={eventsSettings} onChange={onEventsSettingsChange} onSave={onSaveEvents} saving={saving} loading={loading} />
-        )}
 
       </div>
     </AdminI18nBoundary>
@@ -696,6 +689,7 @@ function SiteSettingsPanel({
 
 export default function AdminDashboard() {
   const { t } = useTranslation("admin")
+  const { t: eventText } = useTranslation("adminEvents")
   const [searchParams, setSearchParams] = useSearchParams()
   const storedRole = (localStorage.getItem("admin_role") || "manager") as AdminRole
 
@@ -743,6 +737,9 @@ export default function AdminDashboard() {
   const [companyDetails, setCompanyDetails] = useState<CompanyDetailsSettings>(defaultCompanyDetails)
   const [socialMedia, setSocialMedia] = useState<SocialMediaSettings>(defaultSocialMediaSettings)
   const [eventsSettings, setEventsSettings] = useState<EventsSettings>(defaultEventsSettings)
+  const [eventsLoading, setEventsLoading] = useState(true)
+  const [eventsLoadError, setEventsLoadError] = useState(false)
+  const [eventsRefresh, setEventsRefresh] = useState(0)
   const [siteThemeLoading, setSiteThemeLoading] = useState(false)
   const [siteThemeSaving, setSiteThemeSaving] = useState(false)
   const [siteThemeSaved, setSiteThemeSaved] = useState(false)
@@ -1234,18 +1231,16 @@ export default function AdminDashboard() {
     if (!isOwner) return
     try {
       setSiteThemeLoading(true)
-      const [theme, special, nextCompanyDetails, nextSocialMedia, nextEventsSettings] = await Promise.all([
+      const [theme, special, nextCompanyDetails, nextSocialMedia] = await Promise.all([
         getAdminSiteTheme(),
         getAdminChefSpecial(),
         getAdminCompanyDetails(),
         getAdminSocialMediaSettings(),
-        getAdminEventsSettings(),
       ])
       setSiteTheme(theme)
       setChefSpecial(special)
       setCompanyDetails(nextCompanyDetails)
       setSocialMedia(nextSocialMedia)
-      setEventsSettings(nextEventsSettings)
     } catch (err) {
       setError(getErrorMessage(err, "Não foi possível carregar as definições do site."))
     } finally {
@@ -1444,6 +1439,21 @@ export default function AdminDashboard() {
   }, [openProductActionMenuId])
 
   useEffect(() => { if (currentAdmin && isOwner && activeTab === "settings") void handleLoadSiteTheme() }, [activeTab, currentAdmin, isOwner, handleLoadSiteTheme])
+
+  useEffect(() => {
+    if (!currentAdmin || !isOwner || activeTab !== "events") return
+    let stale = false
+    setEventsLoading(true)
+    setEventsLoadError(false)
+    void getAdminEventsSettings().then(settings => {
+      if (!stale) setEventsSettings(settings)
+    }).catch(() => {
+      if (!stale) setEventsLoadError(true)
+    }).finally(() => {
+      if (!stale) setEventsLoading(false)
+    })
+    return () => { stale = true }
+  }, [activeTab, currentAdmin, isOwner, eventsRefresh])
 
   useEffect(() => {
     const invalidateCatalog = (event: Event) => {
@@ -2441,7 +2451,7 @@ export default function AdminDashboard() {
   }
 
   const handleSaveEvents = async () => {
-    if (siteThemeSaving) return
+    if (siteThemeSaving || eventsLoading || eventsLoadError || !isOwner) return
     if (eventsHaveIssues(eventsSettings)) {
       toast.error(i18n.t("invalid", { ns: "adminEvents" }))
       return
@@ -2687,9 +2697,7 @@ export default function AdminDashboard() {
 
             <div className="ad-topbar-brand" aria-label="Administração Bonefree">
               <div className="ad-brand-icon ad-topbar-brand-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                </svg>
+                <img {...brandLogo} sizes="40px" alt="" />
               </div>
               <div className="ad-topbar-brand-copy">
                 <span className="ad-brand-kicker">Bonefree</span>
@@ -2700,7 +2708,7 @@ export default function AdminDashboard() {
 
           <div className="ad-topbar-title">
             <p className="ad-page-kicker">{shellTitle}</p>
-            <h1 className="ad-page-title">{currentNavLabel}</h1>
+            <p className="ad-page-title">{currentNavLabel}</p>
             <p className="ad-page-sub">{new Date().toLocaleDateString(resolvedLocale(), { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
           </div>
 
@@ -2731,9 +2739,7 @@ export default function AdminDashboard() {
         >
           <div className="ad-brand">
             <div className="ad-brand-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-              </svg>
+              <img {...brandLogo} sizes="40px" alt="" />
             </div>
             <div className="ad-brand-copy">
               <span className="ad-brand-kicker">Bonefree</span>
@@ -2761,6 +2767,7 @@ export default function AdminDashboard() {
                       key={tab}
                       type="button"
                       className={`ad-nav-item ${activeTab === tab ? "active" : ""}`}
+                      aria-current={activeTab === tab ? "page" : undefined}
                       onClick={() => handleAdminNavItemClick(tab)}
                       title={!isMobileAdminNav && isSidebarCollapsed ? label : undefined}
                     >
@@ -2805,6 +2812,14 @@ export default function AdminDashboard() {
 
         {/* Main */}
         <main className="ad-main">
+          <div className="ad-workspace-heading">
+            <div className="ad-workspace-copy">
+              <span className="ad-workspace-kicker"><Sprout size={15} aria-hidden="true" />Bonefree · Costa da Caparica</span>
+              <h1>{currentNavLabel}</h1>
+              <p>Um bom dia começa nos detalhes.</p>
+            </div>
+            <a className="ad-site-link" href="/" target="_blank" rel="noopener noreferrer">Ver website<ArrowUpRight size={18} aria-hidden="true" /></a>
+          </div>
           {error && (
             <div className="ad-alert ad-alert-error">
               <span>{error}</span>
@@ -4257,6 +4272,12 @@ export default function AdminDashboard() {
           )}
           {activeTab === "meal-finder" && <Suspense fallback={<p>…</p>}><MealFinderAdmin /></Suspense>}
           {activeTab === "reservations" && <Suspense fallback={<p>{t("common.loading", { defaultValue: "…" })}</p>}><ReservationAdmin owner={isOwner} /></Suspense>}
+          {activeTab === "events" && isOwner && <div className="ad-content ad-events-workspace" aria-busy={eventsLoading}>
+            {eventsLoading ? <p role="status">{t("common.loading", { defaultValue: "…" })}</p> : eventsLoadError ? <div className="ad-events-load-error" role="alert">
+              <p>{eventText("loadFailed")}</p>
+              <button type="button" className="ad-btn ad-btn-primary" onClick={() => setEventsRefresh(value => value + 1)}>{eventText("retry")}</button>
+            </div> : <EventsEditor value={eventsSettings} onChange={setEventsSettings} onSave={handleSaveEvents} saving={siteThemeSaving} loading={eventsLoading} />}
+          </div>}
           {activeTab === "settings" && isOwner && (
             <SiteSettingsPanel
               value={siteTheme}
@@ -4264,7 +4285,6 @@ export default function AdminDashboard() {
 
               companyDetails={companyDetails}
               socialMedia={socialMedia}
-              eventsSettings={eventsSettings}
               loading={siteThemeLoading}
               products={settingsProducts}
               saving={siteThemeSaving}
@@ -4274,8 +4294,6 @@ export default function AdminDashboard() {
 
               onCompanyDetailsChange={setCompanyDetails}
               onSocialMediaChange={setSocialMedia}
-              onEventsSettingsChange={setEventsSettings}
-              onSaveEvents={handleSaveEvents}
               onSave={handleSaveSiteTheme}
             />
           )}

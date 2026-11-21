@@ -4,7 +4,10 @@ import type { SupportedLocale } from "."
 type Phrase = readonly [source: string, portuguese: string, english: string, german: string]
 
 const phrases = {
-  contentSettingsDescription: ["Gerir destaques do menu, tema, detalhes da empresa, eventos e links sociais.", "Gerir destaques do menu, tema, detalhes da empresa, eventos e links sociais.", "Manage menu highlights, theme, company details, events and social links.", "Menü-Highlights, Design, Unternehmensdaten, Veranstaltungen und soziale Links verwalten."],
+  restaurantGroup: ["Restaurante", "Restaurante", "Restaurant", "Restaurant"],
+  workspaceWelcome: ["Um bom dia começa nos detalhes.", "Um bom dia começa nos detalhes.", "A good day starts with the details.", "Ein guter Tag beginnt mit den Details."],
+  viewWebsite: ["Ver website", "Ver website", "View website", "Website ansehen"],
+  contentSettingsDescription: ["Gerir destaques do menu, tema, detalhes da empresa e links sociais.", "Gerir destaques do menu, tema, detalhes da empresa e links sociais.", "Manage menu highlights, theme, company details and social links.", "Menü-Highlights, Design, Unternehmensdaten und soziale Links verwalten."],
   catalogIngredientsDescription: ["Gerir os ingredientes e a informação nutricional dos pratos.", "Gerir os ingredientes e a informação nutricional dos pratos.", "Manage dish ingredients and nutrition information.", "Zutaten und Nährwertinformationen der Gerichte verwalten."],
   catalogEditorDescription: ["Preencha os detalhes do produto, a informação nutricional e as imagens num fluxo simples.", "Preencha os detalhes do produto, a informação nutricional e as imagens num fluxo simples.", "Edit dish details, nutrition information and images in one flow.", "Gerichtdetails, Nährwertinformationen und Bilder in einem Ablauf bearbeiten."],
   catalogConfigurationDescription: ["Controle destaques e etiquetas do menu.", "Controle destaques e etiquetas do menu.", "Manage featured dishes and menu labels.", "Ausgewählte Gerichte und Menükennzeichnungen verwalten."],

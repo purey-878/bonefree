@@ -1,8 +1,8 @@
 import type { AdminRole } from '../types/admin';
 
-export type AdminDashboardTab = 'products' | 'ingredients' | 'categories' | 'staff' | 'settings' | 'reservations' | 'meal-finder';
+export type AdminDashboardTab = 'products' | 'ingredients' | 'categories' | 'staff' | 'settings' | 'reservations' | 'meal-finder' | 'events';
 const CATALOG_TABS: readonly AdminDashboardTab[] = ['products', 'ingredients', 'categories', 'reservations', 'meal-finder'];
-const OWNER_TABS: readonly AdminDashboardTab[] = [...CATALOG_TABS, 'staff', 'settings'];
+const OWNER_TABS: readonly AdminDashboardTab[] = [...CATALOG_TABS, 'events', 'staff', 'settings'];
 const NO_TABS: readonly AdminDashboardTab[] = [];
 
 export function normalizeAdminRole(role: unknown): AdminRole | null {

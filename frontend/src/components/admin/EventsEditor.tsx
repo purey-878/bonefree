@@ -16,6 +16,8 @@ export default function EventsEditor({ value, onChange, onSave, saving, loading 
   value: EventsSettings; onChange: (value: EventsSettings) => void; onSave: () => void; saving: boolean; loading: boolean;
 }) {
   const { t } = useTranslation('adminEvents');
+  const counts = { visible: 0, hidden: 0, expired: 0, incomplete: 0 };
+  for (const event of value.events) counts[eventEditorStatus(event)]++;
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<{ id: string; message: string } | null>(null);
@@ -40,6 +42,9 @@ export default function EventsEditor({ value, onChange, onSave, saving, loading 
     onSave();
   }}>
     <div className="ae-heading"><div><h3>{t('title')}</h3><p>{t('help')}</p></div><button type="button" className="ad-btn ad-btn-primary" disabled={saving || loading || uploadingId !== null} onClick={() => add()}><Plus size={18} />{t('add')}</button></div>
+    <dl className="ae-summary" aria-label={t('draftSummary')}>
+      {(['visible', 'hidden', 'expired', 'incomplete'] as const).map(status => <div key={status} className={`ae-summary-${status}`}><dt>{t(status)}</dt><dd>{counts[status]}</dd></div>)}
+    </dl>
     <div className="ae-toolbar"><span>{t('total', { count: value.events.length })}</span><Link to="/events" target="_blank" rel="noreferrer">{t('publicLink')}<ExternalLink size={15} /></Link></div>
     <fieldset disabled={saving || loading || uploadingId !== null}>
       {!value.events.length && <div className="ae-empty"><CalendarDays size={34} aria-hidden="true" /><h4>{t('emptyTitle')}</h4><p>{t('emptyText')}</p><button type="button" className="ad-btn ad-btn-primary" onClick={() => add()}>{t('add')}</button></div>}

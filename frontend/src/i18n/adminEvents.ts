@@ -1,6 +1,7 @@
 import i18n from '.';
 const copy = {
   'pt-PT': {
+    loadFailed: 'Não foi possível carregar os eventos. Tenta novamente antes de editar.', retry: 'Tentar novamente', draftSummary: 'Resumo dos eventos em edição',
     uploadImage: 'Escolher fotografia do dispositivo', uploadHelp: 'JPEG, PNG, WebP, GIF ou AVIF · máximo 8 MB. Publica o evento para mostrar a nova fotografia.', imageUrl: 'Ou colar o URL de uma imagem', uploading: 'A carregar fotografia…', uploadFailed: 'Não foi possível carregar a imagem. Escolhe uma imagem válida e tenta novamente.', imageTooLarge: 'A imagem deve ter no máximo 8 MB.', optional: '(opcional)', linksHelp: 'As ligações só aparecem no website quando estão preenchidas.',
     title: 'Gerir eventos', help: 'Publique eventos na página inicial e em Eventos. São mostrados dois de cada vez, por data. Os eventos terminados deixam de aparecer automaticamente.',
     add: 'Adicionar evento', publish: 'Publicar eventos', saving: 'A publicar…', saved: 'Eventos publicados.', failed: 'Não foi possível publicar os eventos. Tente novamente.', invalid: 'Complete os eventos visíveis antes de publicar.',
@@ -15,6 +16,7 @@ const copy = {
     validation: { links: 'Use ligações HTTP ou HTTPS válidas.', title: 'Introduza o nome do evento.', date: 'Escolha uma data válida.', time: 'Preencha as horas de início e fim.', image: 'Use uma ligação http(s) ou um caminho que comece por /.', length: 'Reduza os textos aos limites indicados.' },
   },
   'en-GB': {
+    loadFailed: 'Could not load events. Please retry before editing.', retry: 'Try again', draftSummary: 'Summary of events being edited',
     uploadImage: 'Choose a photo from your device', uploadHelp: 'JPEG, PNG, WebP, GIF or AVIF · up to 8 MB. Publish the event to show the new photo.', imageUrl: 'Or paste an image URL', uploading: 'Uploading photo…', uploadFailed: 'Could not upload this image. Choose a valid image and try again.', imageTooLarge: 'Images must be 8 MB or smaller.', optional: '(optional)', linksHelp: 'Links appear on the website only when filled in.',
     title: 'Manage events', help: 'Publish events on Home and Events. Visitors see two at a time, ordered by date. Finished events disappear automatically.',
     add: 'Add event', publish: 'Publish events', saving: 'Publishing…', saved: 'Events published.', failed: 'Could not publish events. Please try again.', invalid: 'Complete visible events before publishing.',
@@ -29,6 +31,7 @@ const copy = {
     validation: { links: 'Use valid HTTP or HTTPS links.', title: 'Enter the event name.', date: 'Choose a valid date.', time: 'Enter the start and end times.', image: 'Use an http(s) link or a path starting with /.', length: 'Shorten the text to the indicated limits.' },
   },
   'de-DE': {
+    loadFailed: 'Events konnten nicht geladen werden. Bitte vor dem Bearbeiten erneut versuchen.', retry: 'Erneut versuchen', draftSummary: 'Übersicht der bearbeiteten Events',
     uploadImage: 'Foto vom Gerät auswählen', uploadHelp: 'JPEG, PNG, WebP, GIF oder AVIF · bis zu 8 MB. Veröffentliche das Event, um das neue Foto zu zeigen.', imageUrl: 'Oder eine Bild-URL einfügen', uploading: 'Foto wird hochgeladen…', uploadFailed: 'Bild konnte nicht hochgeladen werden. Wähle ein gültiges Bild und versuche es erneut.', imageTooLarge: 'Bilder dürfen höchstens 8 MB groß sein.', optional: '(optional)', linksHelp: 'Links erscheinen nur auf der Website, wenn sie ausgefüllt sind.',
     title: 'Veranstaltungen verwalten', help: 'Veröffentliche Events auf Startseite und Veranstaltungsseite. Besucher sehen jeweils zwei Events nach Datum. Beendete Events verschwinden automatisch.',
     add: 'Event hinzufügen', publish: 'Events veröffentlichen', saving: 'Wird veröffentlicht…', saved: 'Events veröffentlicht.', failed: 'Events konnten nicht veröffentlicht werden. Bitte erneut versuchen.', invalid: 'Vervollständige sichtbare Events vor dem Veröffentlichen.',

@@ -25,6 +25,39 @@ export default function Events() {
         <HeroCopy><Kicker><Music2 size={18} aria-hidden="true" />BONEFREE</Kicker><h1>{t('events.heroTitle')}</h1><p>{t('events.heroDescription')}</p><HeroAction href="#event-list">{t('events.viewEvents')}<ArrowDown size={18} aria-hidden="true" /></HeroAction></HeroCopy>
         <HeroPhoto><img src="/assets/images/about-us-3.jpg" alt={t('events.galleryAlt1')} fetchPriority="high" /><figcaption><MapPin size={16} aria-hidden="true" />{t('events.location')}</figcaption><MusicSeal aria-hidden="true"><Music2 size={37} /></MusicSeal></HeroPhoto>
       </HeroInner>
+      <HeroCorals viewBox="0 0 1440 150" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+        <defs>
+          <g id="events-hero-coral" fill="none" stroke="currentColor" strokeWidth="13" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M0 125 V16 M0 91 C-29 91 -39 76 -39 55 V32 M0 67 C28 67 40 51 40 29 V8 M-39 62 C-58 62 -65 49 -65 36 M40 40 C59 40 65 26 65 15 M0 42 C-16 42 -21 30 -21 15" />
+          </g>
+          <g id="events-hero-sea-fan" fill="none" stroke="currentColor" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M0 125 Q-2 65 0 15 M0 96 Q-37 74 -47 34 M0 74 Q29 60 41 16 M-24 76 Q-48 77 -65 59 M-37 56 V20 M23 58 Q48 60 63 39 M10 64 Q23 40 17 11 M-1 56 Q-15 42 -12 21" />
+          </g>
+        </defs>
+        <g color="#73c9c7">
+          <use href="#events-hero-sea-fan" transform="translate(75 18) rotate(-12)" />
+          <use href="#events-hero-coral" transform="translate(460 12) rotate(8)" />
+          <use href="#events-hero-sea-fan" transform="translate(825 20) rotate(-8)" />
+          <use href="#events-hero-coral" transform="translate(1225 15) rotate(12)" />
+        </g>
+        <g color="#efb1a0">
+          <use href="#events-hero-coral" transform="translate(255 44) scale(.8) rotate(-9)" />
+          <use href="#events-hero-sea-fan" transform="translate(660 35) scale(.85) rotate(12)" />
+          <use href="#events-hero-coral" transform="translate(1040 40) scale(.85) rotate(-10)" />
+          <use href="#events-hero-sea-fan" transform="translate(1400 35) scale(.85)" />
+        </g>
+        <path d="M0 120 Q170 140 360 120 T720 122 T1080 119 T1440 120 L1440 150 L0 150Z" fill="#c6e8e3" />
+        <g color="#f1f8f7">
+          <use href="#events-hero-coral" transform="translate(145 66) scale(.7) rotate(12)" />
+          <use href="#events-hero-sea-fan" transform="translate(545 64) scale(.7) rotate(-10)" />
+          <use href="#events-hero-coral" transform="translate(930 61) scale(.7) rotate(9)" />
+          <use href="#events-hero-sea-fan" transform="translate(1320 64) scale(.7) rotate(-12)" />
+        </g>
+        <path d="M0 132 Q170 151 360 133 T720 135 T1080 131 T1440 134 L1440 150 L0 150Z" fill="#f1f8f7" />
+        <g fill="none" stroke="#c6e8e3" strokeWidth="2" opacity=".75">
+          <circle cx="335" cy="86" r="4" /><circle cx="355" cy="62" r="3" /><circle cx="1115" cy="85" r="4" /><circle cx="1130" cy="58" r="2" />
+        </g>
+      </HeroCorals>
     </Hero>
 
     <Content>
@@ -83,11 +116,19 @@ const Hero = styled.section`
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  border-radius: 0 0 48px 48px;
   background: radial-gradient(ellipse at 85% 15%, rgba(108, 221, 219, .28), transparent 60%), linear-gradient(135deg, #0b3d56, #116b7b);
   color: #fff;
-  &::after { content: ''; position: absolute; z-index: -1; bottom: -95px; left: -10%; width: 120%; height: 150px; border-radius: 50%; background: rgba(164, 231, 228, .13); transform: rotate(-3deg); pointer-events: none; }
-  @media (max-width: 640px) { border-radius: 0 0 30px 30px; }
+`;
+const HeroCorals = styled.svg`
+  position: absolute;
+  z-index: 1;
+  bottom: -1px;
+  left: 50%;
+  display: block;
+  width: max(100%, 960px);
+  height: clamp(110px, 10.5vw, 150px);
+  transform: translateX(-50%);
+  pointer-events: none;
 `;
 const HeroInner = styled.div`
   display: grid;
@@ -96,8 +137,8 @@ const HeroInner = styled.div`
   gap: clamp(35px, 7vw, 90px);
   width: min(1240px, calc(100% - 64px));
   margin: 0 auto;
-  padding: 135px 0 85px;
-  @media (max-width: 850px) { grid-template-columns: 1fr; gap: 45px; padding: 110px 0 65px; }
+  padding: 135px 0 140px;
+  @media (max-width: 850px) { grid-template-columns: 1fr; gap: 45px; padding: 110px 0 120px; }
   @media (max-width: 640px) { width: calc(100% - 40px); }
 `;
 const HeroCopy = styled.div`

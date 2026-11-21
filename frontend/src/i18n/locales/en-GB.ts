@@ -137,7 +137,7 @@ const enGB = {
       loadingMore: "Loading dishes…", loadedCount: "{{count}} of {{total}} dishes loaded", endOfMenu: "All {{count}} dishes loaded", loadMore: "Load more dishes", retry: "Try again",
       loadError: "We couldn't load the menu.",
       sort: { caloriesAsc: "Calories: low to high", caloriesDesc: "Calories: high to low", default: "Featured", priceAsc: "Price: low to high", priceDesc: "Price: high to low", nameAsc: "Name: A–Z" }, close: "Close",
-      eyebrow: "Our menu", title: "Our Menu", finderPrompt: "Don’t know what to get?", finderAction: "ASK PAULO!",
+      eyebrow: "Our menu", title: "Our Menu", finderPrompt: "Don’t know what to get?", finderAction: "Ask Paulo", finderDescription: "Answer a few questions and find a dish that suits your taste.",
       shortDescription: "Vegan cooking with flavours to discover.",
       showing: "Showing", filtersLabel: "Menu filters", searchLabel: "Search the menu", searchPlaceholder: "Search dishes...", clearSearch: "Clear search", maxPrice: "Maximum price", filter: "Filter", specialFilter: "Special menu filter", all: "All", glutenFree: "Gluten-free", alcohol: "Alcohol", sortLabel: "Sort", sortMenu: "Sort menu", reset: "Reset", categories: "Categories", noResults: "No results", noResultsTitle: "No dishes found", noResultsText: "Try another category, search term or price range.", resetFilters: "Reset filters",
       dish: "dishes", dishes: "dishes",

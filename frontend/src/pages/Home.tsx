@@ -5,7 +5,7 @@ import { ArrowRight, CalendarDays, Leaf, Music2, Sparkles, UtensilsCrossed, Wave
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
 import { homeAction, homeCard, homeHeading, homeKicker } from "../components/homeStyles";
 
 import Navbar from "../components/Navbar";
@@ -143,7 +143,7 @@ const HomePage = () => {
       <HeroSection className="home-hero">
         <HeroOverlay aria-hidden="true"><Leaf /><Waves /><Music2 /></HeroOverlay>
         <Navbar />
-        <HeroContent>
+        <HeroContent $hasPromotion={!!promotion}>
 
           <HeroCopy>
             <Eyebrow>
@@ -319,16 +319,28 @@ const HeroSection = styled.section`
   }
 `;
 
+const heroWaveDrift = keyframes`
+  from { transform: translate3d(-3.12%, -14px, 0); }
+  to { transform: translate3d(3.12%, 2px, 0); }
+`;
+
 const HeroWave = styled.svg`
   position: absolute;
   z-index: 2;
-  bottom: -1px;
-  left: 0;
+  bottom: -18px;
+  left: -5%;
   display: block;
-  width: 100%;
-  height: clamp(36px, 6vw, 84px);
+  width: 110%;
+  height: calc(clamp(36px, 6vw, 84px) + 40px);
   color: #faf8f0;
   pointer-events: none;
+
+  animation: ${heroWaveDrift} 4.8s ease-in-out infinite alternate;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    transform: none;
+  }
 `;
 
 const HeroOverlay = styled.div`
@@ -342,42 +354,49 @@ const HeroOverlay = styled.div`
   svg:nth-child(3) { right: 20px; bottom: 35px; color: #fdcd43; }
 `;
 
-const HeroContent = styled.div`
+const HeroContent = styled.div<{ $hasPromotion: boolean }>`
+  --hero-copy-width: ${({ $hasPromotion }) => $hasPromotion ? '820px' : '1080px'};
+  --hero-title-size: ${({ $hasPromotion }) => $hasPromotion ? 'clamp(2.45rem, 5.1vw, 4.7rem)' : 'clamp(3.3rem, 7.2vw, 6.6rem)'};
+  --hero-mobile-title-size: ${({ $hasPromotion }) => $hasPromotion ? 'clamp(1.85rem, 7.2vw, 2.45rem)' : 'clamp(2.35rem, 10vw, 3.3rem)'};
+  --hero-description-size: ${({ $hasPromotion }) => $hasPromotion ? '.97rem' : '1.18rem'};
+  --hero-mobile-description-size: ${({ $hasPromotion }) => $hasPromotion ? '.9rem' : '1.05rem'};
+  --hero-description-width: ${({ $hasPromotion }) => $hasPromotion ? '590px' : '740px'};
+  --hero-copy-align: ${({ $hasPromotion }) => $hasPromotion ? 'center' : 'flex-start'};
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.62fr);
+  grid-template-columns: ${({ $hasPromotion }) => $hasPromotion ? 'minmax(0, 1.05fr) minmax(320px, 0.62fr)' : 'minmax(0, 1fr)'};
   box-sizing: border-box;
   width: min(100%, 1360px);
-  min-height: 680px;
-  align-items: center;
+  min-height: 97vh;
+  align-items: ${({ $hasPromotion }) => $hasPromotion ? 'center' : 'start'};
   gap: clamp(1.5rem, 4vw, 3rem);
   margin: 0 auto;
-  padding: 148px 2rem 68px;
+  padding: ${({ $hasPromotion }) => $hasPromotion ? '148px' : '152px'} 2rem 68px;
 
   @media (max-width: 1000px) {
     grid-template-columns: 1fr;
   }
 
   @media (max-width: 767px) {
+    min-height: 80vh;
     display: flex;
-    min-height: 0;
     flex-direction: column;
     align-items: stretch;
-    padding: 116px 1.25rem 36px;
+    padding: ${({ $hasPromotion }) => $hasPromotion ? '116px' : '136px'} 1.25rem 36px;
   }
 `;
 
 const HeroCopy = styled.div`
   min-width: 0;
   width: 100%;
-  max-width: 820px;
+  max-width: var(--hero-copy-width);
 
   @media (max-width: 767px) {
     display: flex;
     flex: 1;
     flex-direction: column;
-    justify-content: center;
+    justify-content: var(--hero-copy-align);
     gap: 14px;
   }
 `;
@@ -410,10 +429,10 @@ const Eyebrow = styled.p`
 `;
 
 const HeroTitle = styled.h1`
-  max-width: min(100%, 860px);
+  max-width: min(100%, var(--hero-copy-width));
   margin: 0;
   color: #ffffff;
-  font-size: clamp(2.45rem, 5.1vw, 4.7rem);
+  font-size: var(--hero-title-size);
   font-weight: 700;
   letter-spacing: -.015em;
   line-height: 1.04;
@@ -421,21 +440,21 @@ const HeroTitle = styled.h1`
   text-wrap: balance;
 
   @media (max-width: 520px) {
-    font-size: clamp(1.85rem, 7.2vw, 2.45rem);
+    font-size: var(--hero-mobile-title-size);
     line-height: 1.04;
   }
 `;
 
 const HeroText = styled.p`
-  max-width: 590px;
+  max-width: var(--hero-description-width);
   margin: 1.35rem 0 0;
   color: rgba(247, 250, 245, 0.82);
-  font-size: .97rem;
+  font-size: var(--hero-description-size);
   line-height: 1.65;
 
   @media (max-width: 767px) {
     margin-top: 0;
-    font-size: .9rem;
+    font-size: var(--hero-mobile-description-size);
     line-height: 1.5;
   }
 `;

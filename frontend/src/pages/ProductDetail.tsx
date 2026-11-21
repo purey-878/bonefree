@@ -1,3 +1,5 @@
+import { ReservationPromotionBadge } from '../components/ReservationPromotionNotice';
+import { useReservationPromotion } from '../hooks/useReservationPromotion';
 import { formatProductPrices } from "../utils/pricing"
 import ProductPricingDetails from "../components/ProductPricingDetails"
 import ProductImageLightbox from "../components/ProductImageLightbox"
@@ -83,6 +85,7 @@ function readRecentlyViewed() {
 
 export const ProductDetail = () => {
   const { t } = useTranslation("storefront")
+  const promotion = useReservationPromotion()
   const locale = resolvedLocale()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -318,7 +321,7 @@ export const ProductDetail = () => {
             </div>
 
             <ProductPricingDetails portions={product.portions} extras={product.extras} />
-            <div className="pd-actions"><Link className="pd-reserve-btn" to="/reservations">{t("home.reserveTable")}<ArrowUpRight size={19} aria-hidden="true" /></Link><Link className="pd-menu-link" to="/menu">{t("productDetail.backMenu")}<ArrowUpRight size={17} aria-hidden="true" /></Link></div>
+            <div className="pd-actions"><Link className="pd-reserve-btn reservation-reserve-button" to={promotion ? `/reservations?date=${promotion.next_date}` : "/reservations"}>{t("home.reserveTable")}<ReservationPromotionBadge promotion={promotion} compact /><ArrowUpRight size={19} aria-hidden="true" /></Link><Link className="pd-menu-link" to="/menu">{t("productDetail.backMenu")}<ArrowUpRight size={17} aria-hidden="true" /></Link></div>
 
 
             {inactiveNonBaseIngredients.length > 0 && (
@@ -339,7 +342,7 @@ export const ProductDetail = () => {
 
         <div className="pd-detail-grid">
             <section className="pd-ingredients" aria-labelledby="pd-ingredients-title">
-              <h2 id="pd-ingredients-title">{t("productDetail.ingredientsUsed")}</h2>
+              <h2 id="pd-ingredients-title"><Leaf size={19} aria-hidden="true" />{t("productDetail.ingredientsUsed")}</h2>
               {ingredientBreakdown.length > 0 ? (
                 <ul>
                   {ingredientBreakdown.map(ingredient => (

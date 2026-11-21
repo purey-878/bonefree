@@ -172,7 +172,7 @@ const ptPT = {
       loadError: "Não foi possível carregar o menu.",
       sort: { caloriesAsc: "Calorias: menos para mais", caloriesDesc: "Calorias: mais para menos", default: "Destaques", priceAsc: "Preço: do mais baixo ao mais alto", priceDesc: "Preço: do mais alto ao mais baixo", nameAsc: "Nome: A–Z" },
       close: "Fechar",
-      eyebrow: "O nosso menu", title: "O Nosso Menu", finderPrompt: "Não sabes o que escolher?", finderAction: "PERGUNTA AO PAULO!",
+      eyebrow: "O nosso menu", title: "O Nosso Menu", finderPrompt: "Não sabes o que escolher?", finderAction: "Perguntar ao Paulo", finderDescription: "Responde a algumas perguntas e descobre um prato ao teu gosto.",
       shortDescription: "Uma cozinha vegana com sabores para descobrir.",
 
       showing: "A mostrar", filtersLabel: "Filtros do menu", searchLabel: "Pesquisar no menu", searchPlaceholder: "Pesquisar pratos...", clearSearch: "Limpar pesquisa",
