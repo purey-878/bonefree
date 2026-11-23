@@ -42,6 +42,9 @@ footer.footer.bf-footer {
 .bf-footer .bf-footer-bottom p, .bf-footer-bottom a { margin: 0; color: #68715f; font-size: .75rem; line-height: 1.7; }
 .bf-footer-bottom a { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
 .bf-footer-bottom a:hover { color: #34472b; text-decoration: underline; text-underline-offset: 4px; }
+.bf-footer .bf-footer-credit { margin: 18px 0 0; color: #68715f; font-size: .75rem; line-height: 1.7; text-align: center; }
+.bf-footer-credit a { color: #294b3e; text-decoration: underline; text-underline-offset: 4px; }
+.bf-footer-credit a:hover { color: #076050; }
 .bf-footer a:focus-visible { outline: 2px solid #63843e; outline-offset: 5px; }
 .bf-footer-doodles { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
 .bf-footer-doodles svg { position: absolute; color: #92a86f; opacity: .14; stroke-width: 1; }

@@ -312,7 +312,7 @@ const HeroWave = styled(HeroOceanWave)`
   --hero-wave-height: clamp(76px, 8.6vw, 124px);
   position: absolute;
   z-index: 2;
-  bottom: calc(var(--hero-wave-height) * -0.16);
+  bottom: calc(var(--hero-wave-height) * -0.16 - 50px);
   left: 0;
   display: block;
   width: 100%;

@@ -45,7 +45,7 @@ const layers = (
   [
     { baseline: 25, amp: 9, offset: 0, duration: '11s', fill: '#fdcd43', opacity: 0.55 },
     { baseline: 38, amp: 10, offset: 0.4, duration: '9s', fill: '#c8dbb1', opacity: 1, foam: true },
-    { baseline: 51, amp: 11, offset: 0.8, duration: '7.5s', fill: 'currentColor', opacity: 1, foam: true },
+    { baseline: 41, amp: 16, offset: 0.8, duration: '12s', fill: '#a8c9b5', opacity: 1, foam: true },
   ] as LayerConfig[]
 ).map(layer => {
   const crests = Array.from({ length: FRAMES + 1 }, (_, frame) =>

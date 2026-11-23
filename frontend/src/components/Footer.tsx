@@ -76,6 +76,7 @@ const Footer: React.FC = () => {
         </div>
 
         <div className="bf-footer-bottom"><p>&copy; {new Date().getFullYear()} {companyDetails.brandName}. {t("footer.rights")}</p><Link to="/privacy">{t("privacy.title")}<ArrowUpRight size={14} aria-hidden="true" /></Link></div>
+        <p className="bf-footer-credit">Designed &amp; developed by <a href="https://wa.me/351938282660" target="_blank" rel="noopener noreferrer"><strong>Purab Shrestha</strong></a></p>
       </div>
     </footer>
   )
