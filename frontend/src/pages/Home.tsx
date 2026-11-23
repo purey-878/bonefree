@@ -5,10 +5,11 @@ import { ArrowRight, CalendarDays, Leaf, Music2, Sparkles, UtensilsCrossed, Wave
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
-import styled, { keyframes } from "styled-components";
+import styled from "styled-components";
 import { homeAction, homeCard, homeHeading, homeKicker } from "../components/homeStyles";
 
 import Navbar from "../components/Navbar";
+import HeroOceanWave from "../components/HeroOceanWave";
 import { ProductCard } from "../components/ui/ProductCard";
 import ProductLabel from "../components/ui/ProductLabel";
 import HomeUpcomingEvents from '../components/HomeUpcomingEvents';
@@ -167,19 +168,7 @@ const HomePage = () => {
 
           <ReservationPromotionNotice promotion={promotion} loading={promotionLoading} />
         </HeroContent>
-        <HeroWave viewBox="0 0 1440 96" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-          <path d="M0 28 C170 67 330 0 520 23 S820 66 1030 27 S1280 4 1440 24 L1440 96 L0 96 Z" fill="#fdcd43" opacity=".55" />
-          <path d="M0 38 C190 76 315 13 510 34 S800 77 1025 39 S1250 18 1440 34 L1440 96 L0 96 Z" fill="#c8dbb1" />
-          <path d="M0 48 C180 88 300 16 510 42 S810 92 1020 52 S1260 24 1440 50 L1440 96 L0 96 Z" fill="currentColor" />
-          <g fill="none" stroke="#7baf4b" strokeWidth="2" strokeLinecap="round" opacity=".55" vectorEffect="non-scaling-stroke">
-            <path d="M70 76 q14-10 28 0 t28 0 t28 0 M1110 70 q12-9 24 0 t24 0" />
-            <path d="M355 51 l4 7 m-16-2 7 2 M1300 57 l4 6 m8-11-2 7" />
-          </g>
-          <g fill="#e7b83e" opacity=".75">
-            <circle cx="238" cy="74" r="3" /><circle cx="252" cy="81" r="2" />
-            <circle cx="1194" cy="77" r="3" /><circle cx="1210" cy="82" r="2" />
-          </g>
-        </HeroWave>
+        <HeroWave />
       </HeroSection>
 
       <HomeUpcomingEvents />
@@ -319,23 +308,18 @@ const HeroSection = styled.section`
   }
 `;
 
-const heroWaveDrift = keyframes`
-  from { transform: translate3d(-3.12%, -14px, 0); }
-  to { transform: translate3d(3.12%, 2px, 0); }
-`;
-
-const HeroWave = styled.svg`
+const HeroWave = styled(HeroOceanWave)`
+  --hero-wave-height: clamp(76px, 8.6vw, 124px);
   position: absolute;
   z-index: 2;
-  bottom: -18px;
-  left: -5%;
+  bottom: calc(var(--hero-wave-height) * -0.16);
+  left: 0;
   display: block;
-  width: 110%;
-  height: calc(clamp(36px, 6vw, 84px) + 40px);
+  width: 100%;
+  height: var(--hero-wave-height);
   color: #faf8f0;
   pointer-events: none;
 
-  animation: ${heroWaveDrift} 4.8s ease-in-out infinite alternate;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
