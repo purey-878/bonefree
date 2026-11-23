@@ -13,6 +13,12 @@
 .reservation-promo-action, .reservation-page .reservation-promo-action { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: 44px; min-height: 44px; padding: 0; border: 1px solid #c9d0b6; border-radius: 50%; background: #edf0de; color: #285242; text-decoration: none; }
 .reservation-promo-notice :is(a, button, summary):focus-visible { outline: 2px solid #076050; outline-offset: 3px; }
 .reservation-promo-feedback { display: flow-root; }
+.reservation-promo-loading { min-height: 242px; }
+.reservation-promo-loading > span { display: block; color: #687568; font-size: .75rem; }
+.reservation-promo-placeholder { display: grid; gap: 16px; margin: 24px 0; }
+.reservation-promo-placeholder i { display: block; height: 12px; width: 85%; border-radius: 8px; background: #294b3e12; }
+.reservation-promo-placeholder i:first-child { width: 84px; height: 56px; border-radius: 14px 14px 4px 14px; background: #efcb8770; }
+.reservation-promo-placeholder i:last-child { width: 65%; }
 .reservation-promo-selection, .reservation-promo-notice .reservation-promo-selection { display: flex; align-items: flex-start; gap: 7px; margin: 12px 0; color: var(--brand-muted); font-size: .74rem; line-height: 1.55; }
 .reservation-promo-selection svg { flex-shrink: 0; margin-top: 3px; }
 .reservation-promo-selection.is-applied, .reservation-promo-notice .reservation-promo-selection.is-applied { align-items: center; gap: 12px; padding: 14px; border: 1px solid #bad8a9; border-radius: 18px 18px 18px 6px; color: #24543b; background: radial-gradient(circle at 95% 15%, #f1bc54 0 2px, transparent 3px), radial-gradient(circle at 82% 88%, #eeaab3 0 2px, transparent 3px), linear-gradient(115deg, #e2f3d8, #fff2bd); box-shadow: 0 3px 0 #60934a18; animation: promo-cheer 260ms ease-out both; }

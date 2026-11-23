@@ -1,5 +1,5 @@
 import ReservationPromotionNotice, { ReservationPromotionSelection } from '../components/ReservationPromotionNotice';
-import { useReservationPromotion } from '../hooks/useReservationPromotion';
+import { useReservationPromotionState } from '../hooks/useReservationPromotion';
 import { ArrowRight, ChevronDown, Clock3, Minus, Plus, Shell, Sun } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
@@ -22,7 +22,7 @@ export default function Reservations() {
   const location = useLocation();
   const navigate = useNavigate();
   const privatePage = location.pathname.endsWith('/confirmation');
-  const promotion = useReservationPromotion(!privatePage);
+  const { promotion, loading: promotionLoading } = useReservationPromotionState(!privatePage);
   const requestedDate = new URLSearchParams(location.search).get('date') ?? '';
   const token = new URLSearchParams(location.hash.slice(1)).get('token') ?? '';
   const [settings, setSettings] = useState<PublicSettings | null>(null);
@@ -98,7 +98,7 @@ export default function Reservations() {
   const eligibleSlot = availabilityCurrent && !loading ? slots.find(slot => slot.available && slot.promotion) : undefined;
   const promotionSelection = day && availabilityCurrent && !loading ? { day, time: selected?.time, promotion: (selected ? selected.promotion : eligibleSlot?.promotion) ?? undefined } : undefined;
   return <><Navbar /><main className={`reservation-page${privatePage ? ' reservation-confirmation-page' : ''}`}>
-    {!privatePage && settings?.enabled && <ReservationPromotionNotice promotion={promotion} variant="booking" onChoose={choosePromotionDate} selection={promotionSelection} />}
+    {!privatePage && settings?.enabled !== false && <ReservationPromotionNotice promotion={promotion} loading={promotionLoading} variant="booking" onChoose={choosePromotionDate} selection={promotionSelection} />}
     {privatePage ? pass ? <ReservationPass key={`${token}:${locale}`} pass={pass} token={token} onUpdate={next => setLoadedPass(current => current?.token === token && current.locale === locale ? { ...current, pass: next } : current)} /> : <section className="reservation-card"><h1>{t('title')}</h1><p role={error ? 'alert' : 'status'}>{error || (/^[a-f0-9]{64}$/.test(token) ? t('loading') : t('lost'))}</p>{error && <button onClick={() => { setError(''); setRefresh(value => value + 1); }}>{t('retry')}</button>}<Link to="/contact">{t('contact')}</Link></section> : <section className="reservation-card reservation-booking-card reservation-beach-layout">
       <div className="reservation-beach-intro">
         <Sun className="reservation-intro-sun" size={92} strokeWidth={1.25} aria-hidden="true" />

@@ -43,8 +43,11 @@ export function ReservationPromotionSelection({ selection }: { selection?: Promo
   </div>;
 }
 
-export default function ReservationPromotionNotice({ promotion, variant = 'home', onChoose, selection }: Props & { variant?: 'home' | 'booking'; onChoose?: (day: string) => void; selection?: PromotionSelection }) {
+export default function ReservationPromotionNotice({ promotion, variant = 'home', onChoose, selection, loading = false }: Props & { variant?: 'home' | 'booking'; onChoose?: (day: string) => void; selection?: PromotionSelection; loading?: boolean }) {
   const { t } = useTranslation('reservations');
+  if (!promotion && loading) return <aside className={`reservation-promo-notice promo-notice--${variant} reservation-promo-loading`} role="status" aria-busy="true" aria-label={t('loading')}>
+    <span>{t('loading')}</span><div className="reservation-promo-placeholder" aria-hidden="true"><i /><i /><i /></div>
+  </aside>;
   if (!promotion) return null;
   const terms = <details><summary>{t('promoTerms')}<ChevronDown size={13} aria-hidden="true" /></summary>{promotion.windows.length > 0 && <p>{promotion.windows.map(window => `${window.start}–${window.end}`).join(' · ')}</p>}{variant === 'home' && promotion.description && <p>{promotion.description}</p>}{promotion.conditions && <p>{promotion.conditions}</p>}<p>{t('promotionNote')}</p></details>;
   if (variant === 'home') return <aside className="reservation-promo-notice promo-notice--home" aria-label={t('promoKicker')}>

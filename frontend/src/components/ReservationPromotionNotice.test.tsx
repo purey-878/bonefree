@@ -7,6 +7,13 @@ import type { PublicPromotion } from '../services/reservationService';
 const promotion: PublicPromotion = { id: 1, title: 'Online offer', scope: 'À la carte', percentage: '10.00', description: '', conditions: 'Reservation date only.', start_date: '2026-11-16', end_date: '2026-11-30', weekdays: [0, 2], windows: [{ start: '18:00', end: '20:00' }], next_date: '2026-11-18', next_time: '18:00' };
 beforeAll(async () => { await i18nReady; await i18n.changeLanguage('en-GB'); });
 describe('reservation promotion announcements', () => {
+  it('reserves a loading card without advertising a discount before the first live response', () => {
+    const html = renderToStaticMarkup(<MemoryRouter><ReservationPromotionNotice loading variant="booking" /></MemoryRouter>);
+    expect(html).toContain('promo-notice--booking');
+    expect(html).toContain('aria-busy="true"');
+    expect(html).not.toContain('reservation-promo-sticker');
+    expect(html).not.toContain('href=');
+  });
   it('renders neither a badge nor a message without an eligible offer', () => {
     expect(renderToStaticMarkup(<ReservationPromotionBadge />)).toBe('');
     expect(renderToStaticMarkup(<MemoryRouter><ReservationPromotionNotice /></MemoryRouter>)).toBe('');

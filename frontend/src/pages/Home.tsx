@@ -1,5 +1,5 @@
 import ReservationPromotionNotice, { ReservationPromotionBadge } from '../components/ReservationPromotionNotice';
-import { useReservationPromotion } from '../hooks/useReservationPromotion';
+import { useReservationPromotionState } from '../hooks/useReservationPromotion';
 import { formatProductPrices } from "../utils/pricing"
 import { ArrowRight, CalendarDays, Leaf, Music2, Sparkles, UtensilsCrossed, Waves } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -45,7 +45,7 @@ const HomePage = () => {
   const { t } = useTranslation("storefront");
   const locale = resolvedLocale();
   const navigate = useNavigate();
-  const promotion = useReservationPromotion();
+  const { promotion, loading: promotionLoading } = useReservationPromotionState();
   const [products, setProducts] = useState<Product[]>([]);
   const [catalogCategories, setCatalogCategories] = useState<CategorySummary[]>([]);
   const [chefSpecialProductId, setChefSpecialProductId] = useState<number | null>(null);
@@ -143,7 +143,7 @@ const HomePage = () => {
       <HeroSection className="home-hero">
         <HeroOverlay aria-hidden="true"><Leaf /><Waves /><Music2 /></HeroOverlay>
         <Navbar />
-        <HeroContent $hasPromotion={!!promotion}>
+        <HeroContent $hasPromotion={!!promotion || promotionLoading}>
 
           <HeroCopy>
             <Eyebrow>
@@ -165,7 +165,7 @@ const HomePage = () => {
 
           </HeroCopy>
 
-          <ReservationPromotionNotice promotion={promotion} />
+          <ReservationPromotionNotice promotion={promotion} loading={promotionLoading} />
         </HeroContent>
         <HeroWave viewBox="0 0 1440 96" preserveAspectRatio="none" aria-hidden="true" focusable="false">
           <path d="M0 28 C170 67 330 0 520 23 S820 66 1030 27 S1280 4 1440 24 L1440 96 L0 96 Z" fill="#fdcd43" opacity=".55" />
