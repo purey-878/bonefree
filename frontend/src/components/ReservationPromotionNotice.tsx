@@ -1,4 +1,5 @@
 import { ArrowUpRight, Check, ChevronDown, PartyPopper, Sparkles } from 'lucide-react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { resolvedLocale } from '../i18n';
@@ -18,12 +19,27 @@ export function ReservationPromotionBadge({ promotion, compact = false }: Props 
 
 export function ReservationPromotionSelection({ selection }: { selection?: PromotionSelection }) {
   const { t } = useTranslation('reservations');
-  if (!selection) return null;
-  const { promotion, time } = selection;
+  const feedback = useRef<HTMLDivElement>(null);
+  const [reservedHeight, setReservedHeight] = useState(0);
+  useLayoutEffect(() => {
+    const element = feedback.current;
+    if (!element) return;
+    // Keep the space already used by feedback when availability refreshes or
+    // an applied offer becomes an eligibility hint. Never show stale offers.
+    const measure = () => setReservedHeight(height => Math.max(height, element.getBoundingClientRect().height));
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [selection]);
+  if (!selection && reservedHeight === 0) return null;
+  const { promotion, time } = selection ?? {};
   const applied = !!promotion && !!time;
-  return <div className={`reservation-promo-selection${applied ? ' is-applied' : ''}`} role="status">
+  return <div ref={feedback} className="reservation-promo-feedback" style={{ minHeight: reservedHeight }}>
+    {selection && <div className={`reservation-promo-selection${applied ? ' is-applied' : ''}`} role="status">
     {applied ? <span className="reservation-promo-celebration" aria-hidden="true"><PartyPopper size={22} /></span> : promotion && <Check size={15} aria-hidden="true" />}
     <span>{applied && <strong className="reservation-promo-happy">{t('promoHappy')}</strong>}{promotion ? t(time ? 'promoApplied' : 'promoDateEligible', { percentage: reservationPercent(promotion.percentage, resolvedLocale()), scope: promotion.scope, time }) : t(time ? 'promoTimeIneligible' : 'promoDateIneligible')}</span>
+    </div>}
   </div>;
 }
 
