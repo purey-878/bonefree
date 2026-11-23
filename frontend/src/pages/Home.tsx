@@ -10,6 +10,7 @@ import { homeAction, homeCard, homeHeading, homeKicker } from "../components/hom
 
 import Navbar from "../components/Navbar";
 import HeroOceanWave from "../components/HeroOceanWave";
+import HeroFoodCarousel from "../components/HeroFoodCarousel";
 import { ProductCard } from "../components/ui/ProductCard";
 import ProductLabel from "../components/ui/ProductLabel";
 import HomeUpcomingEvents from '../components/HomeUpcomingEvents';
@@ -144,7 +145,7 @@ const HomePage = () => {
       <HeroSection className="home-hero">
         <HeroOverlay aria-hidden="true"><Leaf /><Waves /><Music2 /></HeroOverlay>
         <Navbar />
-        <HeroContent $hasPromotion={!!promotion || promotionLoading}>
+        <HeroContent>
 
           <HeroCopy>
             <Eyebrow>
@@ -166,7 +167,9 @@ const HomePage = () => {
 
           </HeroCopy>
 
-          <ReservationPromotionNotice promotion={promotion} loading={promotionLoading} />
+          {promotion || promotionLoading
+            ? <ReservationPromotionNotice promotion={promotion} loading={promotionLoading} />
+            : <HeroFoodCarousel key={locale} products={popularProducts.slice(0, 4)} loading={loading} />}
         </HeroContent>
         <HeroWave />
       </HeroSection>
@@ -312,7 +315,7 @@ const HeroWave = styled(HeroOceanWave)`
   --hero-wave-height: clamp(76px, 8.6vw, 124px);
   position: absolute;
   z-index: 2;
-  bottom: calc(var(--hero-wave-height) * -0.16 - 50px);
+  bottom: calc(var(--hero-wave-height) * -0.16);
   left: 0;
   display: block;
   width: 100%;
@@ -338,25 +341,25 @@ const HeroOverlay = styled.div`
   svg:nth-child(3) { right: 20px; bottom: 35px; color: #fdcd43; }
 `;
 
-const HeroContent = styled.div<{ $hasPromotion: boolean }>`
-  --hero-copy-width: ${({ $hasPromotion }) => $hasPromotion ? '820px' : '1080px'};
-  --hero-title-size: ${({ $hasPromotion }) => $hasPromotion ? 'clamp(2.45rem, 5.1vw, 4.7rem)' : 'clamp(3.3rem, 7.2vw, 6.6rem)'};
-  --hero-mobile-title-size: ${({ $hasPromotion }) => $hasPromotion ? 'clamp(1.85rem, 7.2vw, 2.45rem)' : 'clamp(2.35rem, 10vw, 3.3rem)'};
-  --hero-description-size: ${({ $hasPromotion }) => $hasPromotion ? '.97rem' : '1.18rem'};
-  --hero-mobile-description-size: ${({ $hasPromotion }) => $hasPromotion ? '.9rem' : '1.05rem'};
-  --hero-description-width: ${({ $hasPromotion }) => $hasPromotion ? '590px' : '740px'};
-  --hero-copy-align: ${({ $hasPromotion }) => $hasPromotion ? 'center' : 'flex-start'};
+const HeroContent = styled.div`
+  --hero-copy-width: 820px;
+  --hero-title-size: clamp(2.45rem, 5.1vw, 4.7rem);
+  --hero-mobile-title-size: clamp(1.85rem, 7.2vw, 2.45rem);
+  --hero-description-size: .97rem;
+  --hero-mobile-description-size: .9rem;
+  --hero-description-width: 590px;
+  --hero-copy-align: center;
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: ${({ $hasPromotion }) => $hasPromotion ? 'minmax(0, 1.05fr) minmax(320px, 0.62fr)' : 'minmax(0, 1fr)'};
+  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.62fr);
   box-sizing: border-box;
   width: min(100%, 1360px);
   min-height: 97vh;
-  align-items: ${({ $hasPromotion }) => $hasPromotion ? 'center' : 'start'};
+  align-items: center;
   gap: clamp(1.5rem, 4vw, 3rem);
   margin: 0 auto;
-  padding: ${({ $hasPromotion }) => $hasPromotion ? '148px' : '152px'} 2rem 68px;
+  padding: 148px 2rem 88px;
 
   @media (max-width: 1000px) {
     grid-template-columns: 1fr;
@@ -367,7 +370,7 @@ const HeroContent = styled.div<{ $hasPromotion: boolean }>`
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    padding: ${({ $hasPromotion }) => $hasPromotion ? '116px' : '136px'} 1.25rem 36px;
+    padding: 116px 1.25rem 76px;
   }
 `;
 
